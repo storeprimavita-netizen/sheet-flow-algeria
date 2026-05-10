@@ -19,51 +19,35 @@ export function useSheetsData() {
   });
 }
 
-export function useAddTransaction() {
-  const fn = useServerFn(addTransaction);
+function makeMutation<T>(serverFn: (opts: { data: T }) => Promise<any>) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
+    mutationFn: (data: T) => serverFn({ data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
   });
+}
+
+export function useAddTransaction() {
+  const fn = useServerFn(addTransaction);
+  return makeMutation<any>(fn as any);
 }
 export function useAddAccount() {
   const fn = useServerFn(addAccount);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
-  });
+  return makeMutation<any>(fn as any);
 }
 export function useAddProduct() {
   const fn = useServerFn(addProduct);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
-  });
+  return makeMutation<any>(fn as any);
 }
 export function useAddSpy() {
   const fn = useServerFn(addSpy);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
-  });
+  return makeMutation<any>(fn as any);
 }
 export function useAddContact() {
   const fn = useServerFn(addContact);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
-  });
+  return makeMutation<any>(fn as any);
 }
 export function useUpdateRate() {
   const fn = useServerFn(updateExchangeRate);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Parameters<typeof fn>[0]["data"]) => fn({ data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sheets"] }),
-  });
+  return makeMutation<any>(fn as any);
 }
