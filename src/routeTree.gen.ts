@@ -13,6 +13,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppTransactionsRouteImport } from './routes/_app.transactions'
+import { Route as AppSpyRouteImport } from './routes/_app.spy'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppProductsRouteImport } from './routes/_app.products'
+import { Route as AppContactsRouteImport } from './routes/_app.contacts'
+import { Route as AppAccountsRouteImport } from './routes/_app.accounts'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,14 +38,49 @@ const AppTransactionsRoute = AppTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSpyRoute = AppSpyRouteImport.update({
+  id: '/spy',
+  path: '/spy',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProductsRoute = AppProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContactsRoute = AppContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccountsRoute = AppAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/accounts': typeof AppAccountsRoute
+  '/contacts': typeof AppContactsRoute
+  '/products': typeof AppProductsRoute
+  '/settings': typeof AppSettingsRoute
+  '/spy': typeof AppSpyRoute
   '/transactions': typeof AppTransactionsRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/accounts': typeof AppAccountsRoute
+  '/contacts': typeof AppContactsRoute
+  '/products': typeof AppProductsRoute
+  '/settings': typeof AppSettingsRoute
+  '/spy': typeof AppSpyRoute
   '/transactions': typeof AppTransactionsRoute
   '/': typeof AppIndexRoute
 }
@@ -48,15 +88,46 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/accounts': typeof AppAccountsRoute
+  '/_app/contacts': typeof AppContactsRoute
+  '/_app/products': typeof AppProductsRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/spy': typeof AppSpyRoute
   '/_app/transactions': typeof AppTransactionsRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/transactions'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/accounts'
+    | '/contacts'
+    | '/products'
+    | '/settings'
+    | '/spy'
+    | '/transactions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/transactions' | '/'
-  id: '__root__' | '/_app' | '/login' | '/_app/transactions' | '/_app/'
+  to:
+    | '/login'
+    | '/accounts'
+    | '/contacts'
+    | '/products'
+    | '/settings'
+    | '/spy'
+    | '/transactions'
+    | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/login'
+    | '/_app/accounts'
+    | '/_app/contacts'
+    | '/_app/products'
+    | '/_app/settings'
+    | '/_app/spy'
+    | '/_app/transactions'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,15 +165,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTransactionsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/spy': {
+      id: '/_app/spy'
+      path: '/spy'
+      fullPath: '/spy'
+      preLoaderRoute: typeof AppSpyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/products': {
+      id: '/_app/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof AppProductsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contacts': {
+      id: '/_app/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof AppContactsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/accounts': {
+      id: '/_app/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AppAccountsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAccountsRoute: typeof AppAccountsRoute
+  AppContactsRoute: typeof AppContactsRoute
+  AppProductsRoute: typeof AppProductsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppSpyRoute: typeof AppSpyRoute
   AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAccountsRoute: AppAccountsRoute,
+  AppContactsRoute: AppContactsRoute,
+  AppProductsRoute: AppProductsRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppSpyRoute: AppSpyRoute,
   AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
 }
