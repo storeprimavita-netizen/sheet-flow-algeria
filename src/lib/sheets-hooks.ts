@@ -8,6 +8,10 @@ import {
   addSpy,
   addContact,
   updateExchangeRate,
+  updateAccount,
+  updateProduct,
+  updateContact,
+  reverseTransaction,
 } from "@/lib/sheets.functions";
 
 export function useSheetsData() {
@@ -28,26 +32,32 @@ function makeMutation<T>(serverFn: (opts: { data: T }) => Promise<any>) {
 }
 
 export function useAddTransaction() {
-  const fn = useServerFn(addTransaction);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(addTransaction) as any);
 }
 export function useAddAccount() {
-  const fn = useServerFn(addAccount);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(addAccount) as any);
 }
 export function useAddProduct() {
-  const fn = useServerFn(addProduct);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(addProduct) as any);
 }
 export function useAddSpy() {
-  const fn = useServerFn(addSpy);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(addSpy) as any);
 }
 export function useAddContact() {
-  const fn = useServerFn(addContact);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(addContact) as any);
 }
 export function useUpdateRate() {
-  const fn = useServerFn(updateExchangeRate);
-  return makeMutation<any>(fn as any);
+  return makeMutation<any>(useServerFn(updateExchangeRate) as any);
+}
+export function useUpdateAccount() {
+  return makeMutation<any>(useServerFn(updateAccount) as any);
+}
+export function useUpdateProduct() {
+  return makeMutation<any>(useServerFn(updateProduct) as any);
+}
+export function useUpdateContact() {
+  return makeMutation<any>(useServerFn(updateContact) as any);
+}
+export function useReverseTransaction() {
+  return makeMutation<any>(useServerFn(reverseTransaction) as any);
 }
