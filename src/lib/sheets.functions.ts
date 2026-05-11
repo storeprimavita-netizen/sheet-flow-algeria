@@ -7,6 +7,7 @@ import {
   batchGet,
   num,
   nextId,
+  findRowById,
 } from "./sheets.server";
 import type {
   Account,
