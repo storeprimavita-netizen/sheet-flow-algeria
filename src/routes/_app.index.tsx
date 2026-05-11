@@ -53,13 +53,24 @@ const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 function Dashboard() {
   const { data, isLoading, error } = useSheetsData();
   const [range, setRange] = useState<Range>("month");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [productFilter, setProductFilter] = useState<string>("all");
+  const [personFilter, setPersonFilter] = useState<string>("all");
 
   const filtered = useMemo<Transaction[]>(() => {
     if (!data) return [];
     return data.transactions.filter(
-      (t) => t.status === "Confirmed" && withinRange(t.date, range),
+      (t) =>
+        t.status === "Confirmed" &&
+        withinRange(t.date, range) &&
+        (accountFilter === "all" ||
+          t.account_id === accountFilter ||
+          t.to_account_id === accountFilter) &&
+        (productFilter === "all" ||
+          (productFilter === "none" ? !t.product_id : t.product_id === productFilter)) &&
+        (personFilter === "all" || t.person === personFilter),
     );
-  }, [data, range]);
+  }, [data, range, accountFilter, productFilter, personFilter]);
 
   if (isLoading)
     return <div className="text-muted-foreground">Loading sheet data...</div>;
