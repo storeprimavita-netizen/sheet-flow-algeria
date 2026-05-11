@@ -15,8 +15,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "COD Finance Manager" },
-      { name: "description", content: "Financial management for COD e-commerce partners" },
+      { title: "WMN Finance" },
+      { name: "description", content: "WMN Finance — partner financial hub" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

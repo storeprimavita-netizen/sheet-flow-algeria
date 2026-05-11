@@ -136,6 +136,15 @@ export async function updateRange(range: string, values: (string | number)[][]):
   });
 }
 
+// Find the 1-indexed row number in a sheet where column A === id (data starts row 2).
+export async function findRowById(sheet: string, id: string): Promise<number | null> {
+  const rows = await readRange(`${sheet}!A2:A`);
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][0] === id) return i + 2;
+  }
+  return null;
+}
+
 export async function batchGet(ranges: string[]): Promise<Record<string, string[][]>> {
   const params = ranges.map((r) => `ranges=${encodeURIComponent(r)}`).join("&");
   const data = await api<{ valueRanges: { range: string; values?: string[][] }[] }>(

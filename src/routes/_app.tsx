@@ -57,9 +57,9 @@ function AppLayout() {
         )}
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-info" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary/30 to-info/30 text-2xl">💰</div>
           <div>
-            <div className="text-sm font-bold text-gradient">COD Finance</div>
+            <div className="text-sm font-bold text-gradient">WMN Finance</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Partners Hub
             </div>
@@ -127,7 +127,7 @@ function AppLayout() {
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="text-sm font-semibold text-gradient">COD Finance</div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-gradient"><span>💰</span>WMN Finance</div>
         </header>
         <main className="flex-1 p-4 md:p-8">
           <Outlet />
