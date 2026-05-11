@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useSheetsData, useAddAccount, useAddTransaction, useUpdateRate } from "@/lib/sheets-hooks";
+import { useState, useEffect } from "react";
+import {
+  useSheetsData,
+  useAddAccount,
+  useUpdateAccount,
+  useAddTransaction,
+  useUpdateRate,
+} from "@/lib/sheets-hooks";
 import { fmtDZD, fmtUSD } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +28,15 @@ import {
 } from "@/components/ui/select";
 import { ALL_PARTNERS } from "@/lib/partners";
 import { useAuth } from "@/lib/auth-context";
-import { Plus, ArrowLeftRight, RefreshCw } from "lucide-react";
+import { Plus, ArrowLeftRight, RefreshCw, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import type { Account } from "@/lib/types";
 
 export const Route = createFileRoute("/_app/accounts")({
   component: AccountsPage,
 });
+
+const currencyEmoji = (c: "DZD" | "USD") => (c === "DZD" ? "🇩🇿" : "💵");
 
 function AccountsPage() {
   const { data, isLoading } = useSheetsData();
@@ -42,11 +51,15 @@ function AccountsPage() {
         </div>
         <div className="flex gap-2">
           <TransferDialog />
-          <AddAccountDialog />
+          <AccountDialog />
         </div>
       </div>
 
-      <ExchangeRateCard rate={rate} updated={data?.settings.last_updated} updatedBy={data?.settings.updated_by} />
+      <ExchangeRateCard
+        rate={rate}
+        updated={data?.settings.last_updated}
+        updatedBy={data?.settings.updated_by}
+      />
 
       {isLoading && <div className="text-muted-foreground">Loading...</div>}
 
@@ -60,11 +73,23 @@ function AccountsPage() {
           return (
             <div key={a.account_id} className="glass-card rounded-xl p-5">
               <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{a.owner}</div>
-                  <div className="mt-1 text-lg font-semibold">{a.name}</div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/15 text-2xl">
+                    {currencyEmoji(a.currency)}
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {a.owner}
+                    </div>
+                    <div className="mt-0.5 text-lg font-semibold">{a.name}</div>
+                  </div>
                 </div>
-                <span className="rounded-full bg-info/20 px-2 py-0.5 text-xs text-info">{a.currency}</span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-info/20 px-2 py-0.5 text-xs text-info">
+                    {a.currency}
+                  </span>
+                  <AccountDialog existing={a} />
+                </div>
               </div>
               <div className="mt-4 text-3xl font-bold text-primary">
                 {a.currency === "DZD" ? fmtDZD(a.balance) : fmtUSD(a.balance)}
@@ -126,6 +151,7 @@ function ExchangeRateCard({
           </div>
           <DialogFooter>
             <Button
+              disabled={update.isPending}
               onClick={async () => {
                 try {
                   await update.mutateAsync({ rate: parseFloat(val), updated_by: partner });
@@ -136,6 +162,7 @@ function ExchangeRateCard({
                 }
               }}
             >
+              {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>
           </DialogFooter>
@@ -145,24 +172,46 @@ function ExchangeRateCard({
   );
 }
 
-function AddAccountDialog() {
+function AccountDialog({ existing }: { existing?: Account }) {
   const add = useAddAccount();
+  const update = useUpdateAccount();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [owner, setOwner] = useState("Nadhir");
-  const [currency, setCurrency] = useState<"DZD" | "USD">("DZD");
-  const [balance, setBalance] = useState("0");
+  const [name, setName] = useState(existing?.name ?? "");
+  const [owner, setOwner] = useState(existing?.owner ?? "Nadhir");
+  const [currency, setCurrency] = useState<"DZD" | "USD">(existing?.currency ?? "DZD");
+  const [balance, setBalance] = useState(String(existing?.balance ?? "0"));
+
+  useEffect(() => {
+    if (open && existing) {
+      setName(existing.name);
+      setOwner(existing.owner);
+      setCurrency(existing.currency);
+      setBalance(String(existing.balance));
+    }
+  }, [open, existing]);
+
+  const isEdit = !!existing;
+  const pending = add.isPending || update.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          <Plus className="mr-1 h-4 w-4" /> Add Account
-        </Button>
+        {isEdit ? (
+          <Button size="icon" variant="ghost" className="h-7 w-7">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : (
+          <Button variant="outline">
+            <Plus className="mr-1 h-4 w-4" /> Add Account
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Account</DialogTitle>
+          <DialogTitle>
+            <span className="mr-2">{currencyEmoji(currency)}</span>
+            {isEdit ? "Edit Account" : "New Account"}
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -192,38 +241,59 @@ function AddAccountDialog() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DZD">DZD</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="DZD">🇩🇿 DZD</SelectItem>
+                  <SelectItem value="USD">💵 USD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div>
-            <Label>Initial Balance</Label>
+            <Label>{isEdit ? "Balance" : "Initial Balance"}</Label>
             <Input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} />
+            {isEdit && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Editing balance directly overrides the stored value. Use a transaction to keep the
+                ledger in sync.
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
           <Button
+            disabled={pending}
             onClick={async () => {
               if (!name) return toast.error("Name required");
               try {
-                await add.mutateAsync({
-                  name,
-                  owner,
-                  currency,
-                  balance: parseFloat(balance) || 0,
-                });
-                toast.success("Account added");
+                if (isEdit) {
+                  await update.mutateAsync({
+                    account_id: existing!.account_id,
+                    name,
+                    owner,
+                    currency,
+                    balance: parseFloat(balance) || 0,
+                  });
+                  toast.success("Account updated");
+                } else {
+                  await add.mutateAsync({
+                    name,
+                    owner,
+                    currency,
+                    balance: parseFloat(balance) || 0,
+                  });
+                  toast.success("Account added");
+                }
                 setOpen(false);
-                setName("");
-                setBalance("0");
+                if (!isEdit) {
+                  setName("");
+                  setBalance("0");
+                }
               } catch (e) {
                 toast.error((e as Error).message);
               }
             }}
           >
-            Save
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Save Changes" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -251,7 +321,7 @@ function TransferDialog() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Transfer Money</DialogTitle>
+          <DialogTitle>🔄 Transfer Money</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -263,7 +333,7 @@ function TransferDialog() {
               <SelectContent>
                 {data?.accounts.map((a) => (
                   <SelectItem key={a.account_id} value={a.account_id}>
-                    {a.name} ({a.currency})
+                    {currencyEmoji(a.currency)} {a.name} ({a.currency})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -280,7 +350,7 @@ function TransferDialog() {
                   .filter((a) => a.account_id !== from)
                   .map((a) => (
                     <SelectItem key={a.account_id} value={a.account_id}>
-                      {a.name} ({a.currency})
+                      {currencyEmoji(a.currency)} {a.name} ({a.currency})
                     </SelectItem>
                   ))}
               </SelectContent>
@@ -293,6 +363,7 @@ function TransferDialog() {
         </div>
         <DialogFooter>
           <Button
+            disabled={add.isPending}
             onClick={async () => {
               if (!from || !to || !amount) return toast.error("Fill all fields");
               try {
@@ -317,6 +388,7 @@ function TransferDialog() {
               }
             }}
           >
+            {add.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Transfer
           </Button>
         </DialogFooter>
