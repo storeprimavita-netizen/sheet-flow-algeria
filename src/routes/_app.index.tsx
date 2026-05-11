@@ -173,7 +173,49 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Asset cards */}
+      {/* Filters */}
+      <div className="glass-card grid grid-cols-1 gap-2 rounded-xl p-3 sm:grid-cols-3">
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Account" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Accounts</SelectItem>
+            {data.accounts.map((a) => (
+              <SelectItem key={a.account_id} value={a.account_id}>
+                {a.currency === "DZD" ? "🇩🇿" : "💵"} {a.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={productFilter} onValueChange={setProductFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Product" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Products</SelectItem>
+            <SelectItem value="none">— No product —</SelectItem>
+            {data.products.map((p) => (
+              <SelectItem key={p.product_id} value={p.product_id}>
+                📦 {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={personFilter} onValueChange={setPersonFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Agent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Agents</SelectItem>
+            {["Nadhir", "Mahdi", "Wail"].map((p) => (
+              <SelectItem key={p} value={p}>
+                👤 {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard icon={<Wallet />} label="Total Assets (DZD)" value={fmtDZD(totalDZD)} />
         <StatCard icon={<DollarSign />} label="Total Assets (USD)" value={fmtUSD(totalUSD)} />
