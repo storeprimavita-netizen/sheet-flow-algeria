@@ -82,10 +82,19 @@ async function getAccessToken(): Promise<string> {
   return cached.token;
 }
 
+function extractSheetId(raw: string): string {
+  const trimmed = raw.trim();
+  // Match /spreadsheets/d/<ID> in a full Google Sheets URL
+  const m = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (m) return m[1];
+  // Strip any stray query/path suffix like /edit?gid=0
+  return trimmed.split("/")[0].split("?")[0];
+}
+
 function getSheetId(): string {
   const id = process.env.GOOGLE_SHEETS_ID;
   if (!id) throw new Error("GOOGLE_SHEETS_ID not configured");
-  return id;
+  return extractSheetId(id);
 }
 
 async function api<T = any>(path: string, init: RequestInit = {}): Promise<T> {
