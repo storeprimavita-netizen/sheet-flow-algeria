@@ -25,8 +25,22 @@ import {
 } from "@/lib/partners";
 import { useAddTransaction, useSheetsData } from "@/lib/sheets-hooks";
 import { useAuth } from "@/lib/auth-context";
-import { Plus } from "lucide-react";
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  ArrowLeftRight,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
+
+const currencyEmoji = (c: "DZD" | "USD") => (c === "DZD" ? "🇩🇿" : "💵");
+
+const STATUS_META: Record<string, { emoji: string; cls: string }> = {
+  Confirmed: { emoji: "✅", cls: "text-success" },
+  Pending: { emoji: "⏳", cls: "text-info" },
+  Cancelled: { emoji: "❌", cls: "text-destructive" },
+};
 
 export function AddTransactionDialog({
   defaultProductId,
@@ -50,6 +64,7 @@ export function AddTransactionDialog({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [comment, setComment] = useState("");
   const [status, setStatus] = useState<"Confirmed" | "Pending" | "Cancelled">("Confirmed");
+  const [submitting, setSubmitting] = useState(false);
 
   const cats =
     type === "Income"
@@ -59,10 +74,12 @@ export function AddTransactionDialog({
         : (["Internal Transfer"] as const);
 
   const onSubmit = async () => {
+    if (submitting || add.isPending) return; // hard guard against double-click
     if (!amount || !accountId || (type !== "Transfer" && !category) || (type === "Transfer" && !toAccountId)) {
       toast.error("Fill all required fields");
       return;
     }
+    setSubmitting(true);
     try {
       await add.mutateAsync({
         date,
@@ -83,11 +100,27 @@ export function AddTransactionDialog({
       setComment("");
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const busy = submitting || add.isPending;
+
+  const typeMeta = {
+    Income: { icon: TrendingUp, emoji: "🟢", bg: "bg-success", fg: "text-success-foreground" },
+    Expense: { icon: TrendingDown, emoji: "🔴", bg: "bg-destructive", fg: "text-destructive-foreground" },
+    Transfer: { icon: ArrowLeftRight, emoji: "🔄", bg: "bg-info", fg: "text-info-foreground" },
+  } as const;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (busy && !o) return; // don't close mid-submit
+        setOpen(o);
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
@@ -97,31 +130,33 @@ export function AddTransactionDialog({
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Transaction</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <span>{typeMeta[type].emoji}</span> New Transaction
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
-            {(["Income", "Expense", "Transfer"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => {
-                  setType(t);
-                  setCategory("");
-                }}
-                className={`rounded-md py-1.5 text-sm font-medium transition ${
-                  type === t
-                    ? t === "Income"
-                      ? "bg-success text-success-foreground"
-                      : t === "Expense"
-                        ? "bg-destructive text-destructive-foreground"
-                        : "bg-info text-info-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+            {(["Income", "Expense", "Transfer"] as const).map((t) => {
+              const m = typeMeta[t];
+              const Icon = m.icon;
+              const active = type === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    setType(t);
+                    setCategory("");
+                  }}
+                  className={`flex items-center justify-center gap-1.5 rounded-md py-2 text-sm font-medium transition ${
+                    active ? `${m.bg} ${m.fg}` : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {t}
+                </button>
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -141,8 +176,8 @@ export function AddTransactionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DZD">DZD</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="DZD">🇩🇿 DZD</SelectItem>
+                  <SelectItem value="USD">💵 USD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -157,7 +192,7 @@ export function AddTransactionDialog({
               <SelectContent>
                 {data?.accounts.map((a) => (
                   <SelectItem key={a.account_id} value={a.account_id}>
-                    {a.name} ({a.currency})
+                    {currencyEmoji(a.currency)} {a.name} ({a.currency})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -176,7 +211,7 @@ export function AddTransactionDialog({
                     .filter((a) => a.account_id !== accountId)
                     .map((a) => (
                       <SelectItem key={a.account_id} value={a.account_id}>
-                        {a.name} ({a.currency})
+                        {currencyEmoji(a.currency)} {a.name} ({a.currency})
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -213,7 +248,7 @@ export function AddTransactionDialog({
                   <SelectItem value="none">None</SelectItem>
                   {data?.products.map((p) => (
                     <SelectItem key={p.product_id} value={p.product_id}>
-                      {p.name}
+                      📦 {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -228,7 +263,7 @@ export function AddTransactionDialog({
                 <SelectContent>
                   {ALL_PARTNERS.filter((p) => p !== "Shared").map((p) => (
                     <SelectItem key={p} value={p}>
-                      {p}
+                      👤 {p}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -248,9 +283,13 @@ export function AddTransactionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  {(["Confirmed", "Pending", "Cancelled"] as const).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      <span className={STATUS_META[s].cls}>
+                        {STATUS_META[s].emoji} {s}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -267,8 +306,15 @@ export function AddTransactionDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onSubmit} disabled={add.isPending}>
-            {add.isPending ? "Saving..." : "Save Transaction"}
+          <Button onClick={onSubmit} disabled={busy} className="min-w-[160px]">
+            {busy ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving to Sheets...
+              </>
+            ) : (
+              "Save Transaction"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
