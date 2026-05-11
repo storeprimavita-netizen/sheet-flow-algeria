@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useSheetsData, useAddContact } from "@/lib/sheets-hooks";
+import { useState, useEffect } from "react";
+import { useSheetsData, useAddContact, useUpdateContact } from "@/lib/sheets-hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,18 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { CONTACT_SERVICES } from "@/lib/partners";
-import { Plus, Star, Phone, Mail, MessageCircle, Search } from "lucide-react";
+import {
+  Plus,
+  Star,
+  Phone,
+  Mail,
+  MessageCircle,
+  Search,
+  Pencil,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
+import type { Contact } from "@/lib/types";
 
 export const Route = createFileRoute("/_app/contacts")({
   component: ContactsPage,
@@ -41,7 +51,7 @@ function ContactsPage() {
           <h1 className="text-3xl font-bold">Contacts</h1>
           <p className="text-sm text-muted-foreground">Suppliers, agents, and service providers</p>
         </div>
-        <AddContactDialog />
+        <ContactDialog />
       </div>
 
       <div className="glass-card rounded-xl p-4">
@@ -71,15 +81,18 @@ function ContactsPage() {
                 <h3 className="text-lg font-semibold">{c.name}</h3>
                 <div className="text-xs text-muted-foreground">{c.location || "—"}</div>
               </div>
-              <div className="flex">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-3 w-3 ${
-                      i < c.rating ? "fill-primary text-primary" : "text-muted"
-                    }`}
-                  />
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-3 w-3 ${
+                        i < c.rating ? "fill-primary text-primary" : "text-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <ContactDialog existing={c} />
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-1">
@@ -133,21 +146,34 @@ function ContactsPage() {
   );
 }
 
-function AddContactDialog() {
+function ContactDialog({ existing }: { existing?: Contact }) {
   const add = useAddContact();
+  const update = useUpdateContact();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    services: [] as string[],
-    phone: "",
-    whatsapp: "",
-    email: "",
-    instagram: "",
-    facebook: "",
-    location: "",
-    rating: 0,
-    notes: "",
+  const isEdit = !!existing;
+
+  const initial = () => ({
+    name: existing?.name ?? "",
+    services: (existing?.services ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    phone: existing?.phone ?? "",
+    whatsapp: existing?.whatsapp ?? "",
+    email: existing?.email ?? "",
+    instagram: existing?.instagram ?? "",
+    facebook: existing?.facebook ?? "",
+    location: existing?.location ?? "",
+    rating: existing?.rating ?? 0,
+    notes: existing?.notes ?? "",
+    status: existing?.status ?? "Active",
   });
+  const [form, setForm] = useState(initial);
+
+  useEffect(() => {
+    if (open) setForm(initial());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const toggleService = (s: string) => {
     setForm({
@@ -158,16 +184,24 @@ function AddContactDialog() {
     });
   };
 
+  const pending = add.isPending || update.isPending;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-1 h-4 w-4" /> Add Contact
-        </Button>
+        {isEdit ? (
+          <Button size="icon" variant="ghost" className="h-7 w-7">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="mr-1 h-4 w-4" /> Add Contact
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Contact</DialogTitle>
+          <DialogTitle>👤 {isEdit ? "Edit Contact" : "New Contact"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -244,31 +278,39 @@ function AddContactDialog() {
         </div>
         <DialogFooter>
           <Button
+            disabled={pending}
             onClick={async () => {
               if (!form.name) return toast.error("Name required");
+              const payload = {
+                name: form.name,
+                services: form.services.join(", "),
+                phone: form.phone,
+                whatsapp: form.whatsapp,
+                email: form.email,
+                instagram: form.instagram,
+                facebook: form.facebook,
+                location: form.location,
+                rating: form.rating,
+                price_range: "",
+                notes: form.notes,
+                status: form.status,
+              };
               try {
-                await add.mutateAsync({
-                  name: form.name,
-                  services: form.services.join(", "),
-                  phone: form.phone,
-                  whatsapp: form.whatsapp,
-                  email: form.email,
-                  instagram: form.instagram,
-                  facebook: form.facebook,
-                  location: form.location,
-                  rating: form.rating,
-                  price_range: "",
-                  notes: form.notes,
-                  status: "Active",
-                });
-                toast.success("Contact added");
+                if (isEdit) {
+                  await update.mutateAsync({ contact_id: existing!.contact_id, ...payload });
+                  toast.success("Contact updated");
+                } else {
+                  await add.mutateAsync(payload);
+                  toast.success("Contact added");
+                }
                 setOpen(false);
               } catch (e) {
                 toast.error((e as Error).message);
               }
             }}
           >
-            Save
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Save Changes" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

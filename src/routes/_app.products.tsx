@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { useSheetsData, useAddProduct } from "@/lib/sheets-hooks";
+import { useState, useEffect } from "react";
+import { useSheetsData, useAddProduct, useUpdateProduct } from "@/lib/sheets-hooks";
 import { fmtDZD } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PRODUCT_CATEGORIES, PRODUCT_STATUSES } from "@/lib/partners";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { Product } from "@/lib/types";
 
 export const Route = createFileRoute("/_app/products")({
   component: ProductsPage,
@@ -40,7 +41,7 @@ function ProductsPage() {
           <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-sm text-muted-foreground">Track P&L per product</p>
         </div>
-        <AddProductDialog />
+        <ProductDialog />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -68,7 +69,10 @@ function ProductsPage() {
                     {p.name}
                   </h3>
                 </div>
-                <StatusBadge status={p.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={p.status} />
+                  <ProductDialog existing={p} />
+                </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                 <div>
@@ -143,34 +147,70 @@ function StatusBadge({ status }: { status: string }) {
     Stopped: "bg-destructive/20 text-destructive",
     Idea: "bg-muted text-muted-foreground",
   };
-  return <span className={cn("rounded-full px-2 py-0.5 text-xs", map[status] || "bg-muted")}>{status}</span>;
+  const emoji: Record<string, string> = {
+    Active: "🟢",
+    Testing: "🧪",
+    Stopped: "🛑",
+    Idea: "💡",
+  };
+  return (
+    <span className={cn("rounded-full px-2 py-0.5 text-xs", map[status] || "bg-muted")}>
+      {emoji[status] || ""} {status}
+    </span>
+  );
 }
 
-function AddProductDialog() {
+function ProductDialog({ existing }: { existing?: Product }) {
   const add = useAddProduct();
+  const update = useUpdateProduct();
   const [open, setOpen] = useState(false);
+  const isEdit = !!existing;
   const [form, setForm] = useState({
-    name: "",
-    category: "Clothes" as string,
-    status: "Idea" as string,
-    product_cost: "0",
-    selling_price: "0",
-    confirmation_rate: "0",
-    delivery_rate: "0",
-    description: "",
-    notes: "",
+    name: existing?.name ?? "",
+    category: existing?.category ?? "Clothes",
+    status: existing?.status ?? "Idea",
+    product_cost: String(existing?.product_cost ?? "0"),
+    selling_price: String(existing?.selling_price ?? "0"),
+    confirmation_rate: String(existing?.confirmation_rate ?? "0"),
+    delivery_rate: String(existing?.delivery_rate ?? "0"),
+    description: existing?.description ?? "",
+    notes: existing?.notes ?? "",
   });
+
+  useEffect(() => {
+    if (open && existing) {
+      setForm({
+        name: existing.name,
+        category: existing.category || "Clothes",
+        status: existing.status || "Idea",
+        product_cost: String(existing.product_cost),
+        selling_price: String(existing.selling_price),
+        confirmation_rate: String(existing.confirmation_rate),
+        delivery_rate: String(existing.delivery_rate),
+        description: existing.description ?? "",
+        notes: existing.notes ?? "",
+      });
+    }
+  }, [open, existing]);
+
+  const pending = add.isPending || update.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-1 h-4 w-4" /> Add Product
-        </Button>
+        {isEdit ? (
+          <Button size="icon" variant="ghost" className="h-7 w-7">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="mr-1 h-4 w-4" /> Add Product
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Product</DialogTitle>
+          <DialogTitle>📦 {isEdit ? "Edit Product" : "New Product"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -252,28 +292,36 @@ function AddProductDialog() {
         </div>
         <DialogFooter>
           <Button
+            disabled={pending}
             onClick={async () => {
               if (!form.name) return toast.error("Name required");
+              const payload = {
+                name: form.name,
+                category: form.category,
+                status: form.status,
+                product_cost: parseFloat(form.product_cost) || 0,
+                selling_price: parseFloat(form.selling_price) || 0,
+                confirmation_rate: parseFloat(form.confirmation_rate) || 0,
+                delivery_rate: parseFloat(form.delivery_rate) || 0,
+                description: form.description,
+                notes: form.notes,
+              };
               try {
-                await add.mutateAsync({
-                  name: form.name,
-                  category: form.category,
-                  status: form.status,
-                  product_cost: parseFloat(form.product_cost) || 0,
-                  selling_price: parseFloat(form.selling_price) || 0,
-                  confirmation_rate: parseFloat(form.confirmation_rate) || 0,
-                  delivery_rate: parseFloat(form.delivery_rate) || 0,
-                  description: form.description,
-                  notes: form.notes,
-                });
-                toast.success("Product added");
+                if (isEdit) {
+                  await update.mutateAsync({ product_id: existing!.product_id, ...payload });
+                  toast.success("Product updated");
+                } else {
+                  await add.mutateAsync(payload);
+                  toast.success("Product added");
+                }
                 setOpen(false);
               } catch (e) {
                 toast.error((e as Error).message);
               }
             }}
           >
-            Save
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Save Changes" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

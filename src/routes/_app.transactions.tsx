@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useSheetsData } from "@/lib/sheets-hooks";
+import { useSheetsData, useReverseTransaction } from "@/lib/sheets-hooks";
 import { fmtDZD, fmtUSD } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,11 +13,24 @@ import {
 } from "@/components/ui/select";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Search, Undo2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/transactions")({
   component: TransactionsPage,
 });
+
+const STATUS_META: Record<string, { emoji: string; cls: string }> = {
+  Confirmed: { emoji: "✅", cls: "bg-success/15 text-success" },
+  Pending: { emoji: "⏳", cls: "bg-info/15 text-info" },
+  Cancelled: { emoji: "❌", cls: "bg-muted text-muted-foreground line-through" },
+};
+
+const TYPE_EMOJI: Record<string, string> = {
+  Income: "🟢",
+  Expense: "🔴",
+  Transfer: "🔄",
+};
 
 function TransactionsPage() {
   const { data, isLoading } = useSheetsData();
@@ -125,18 +139,20 @@ function TransactionsPage() {
                 <th className="pb-2 text-right">DZD</th>
                 <th className="pb-2 text-right">USD</th>
                 <th className="pb-2">Status</th>
+                <th className="pb-2"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-6 text-center text-muted-foreground">
                     Loading...
                   </td>
                 </tr>
               )}
               {filtered.map((t) => {
                 const acc = data?.accounts.find((a) => a.account_id === t.account_id);
+                const meta = STATUS_META[t.status] ?? STATUS_META.Confirmed;
                 return (
                   <tr
                     key={t.transaction_id}
@@ -151,12 +167,13 @@ function TransactionsPage() {
                     <td className="py-2">
                       <span
                         className={cn(
-                          "rounded px-2 py-0.5 text-xs",
+                          "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs",
                           t.type === "Income" && "bg-success/20 text-success",
                           t.type === "Expense" && "bg-destructive/20 text-destructive",
                           t.type === "Transfer" && "bg-info/20 text-info",
                         )}
                       >
+                        <span>{TYPE_EMOJI[t.type]}</span>
                         {t.type}
                       </span>
                     </td>
@@ -171,23 +188,23 @@ function TransactionsPage() {
                       {fmtUSD(t.amount_usd)}
                     </td>
                     <td className="py-2">
-                      <span
-                        className={cn(
-                          "rounded px-2 py-0.5 text-xs",
-                          t.status === "Confirmed" && "bg-success/10 text-success",
-                          t.status === "Pending" && "bg-info/10 text-info",
-                          t.status === "Cancelled" && "bg-muted text-muted-foreground line-through",
-                        )}
-                      >
+                      <span className={cn("inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs", meta.cls)}>
+                        <span>{meta.emoji}</span>
                         {t.status}
                       </span>
+                    </td>
+                    <td className="py-2 text-right">
+                      <UndoButton
+                        transactionId={t.transaction_id}
+                        disabled={t.status === "Cancelled"}
+                      />
                     </td>
                   </tr>
                 );
               })}
               {!isLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-8 text-center text-muted-foreground">
                     No transactions found
                   </td>
                 </tr>
@@ -197,6 +214,48 @@ function TransactionsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function UndoButton({ transactionId, disabled }: { transactionId: string; disabled: boolean }) {
+  const reverse = useReverseTransaction();
+  const [confirming, setConfirming] = useState(false);
+  const busy = reverse.isPending;
+
+  const onClick = async () => {
+    if (disabled || busy) return;
+    if (!confirming) {
+      setConfirming(true);
+      setTimeout(() => setConfirming(false), 3000);
+      return;
+    }
+    try {
+      await reverse.mutateAsync({ transaction_id: transactionId });
+      toast.success("Transaction reversed");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <Button
+      variant={confirming ? "destructive" : "ghost"}
+      size="sm"
+      className="h-7 px-2 text-xs"
+      disabled={disabled || busy}
+      onClick={onClick}
+    >
+      {busy ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <>
+          <Undo2 className="mr-1 h-3.5 w-3.5" />
+          {confirming ? "Confirm?" : "Undo"}
+        </>
+      )}
+    </Button>
   );
 }
 

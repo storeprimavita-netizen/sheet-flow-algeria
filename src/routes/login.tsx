@@ -32,7 +32,8 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="glass-card w-full max-w-md rounded-2xl p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-gradient">COD Finance</h1>
+          <div className="text-5xl">💰</div>
+          <h1 className="mt-2 text-3xl font-bold text-gradient">WMN Finance</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin" ? "Sign in to manage your business" : "Create your partner account"}
           </p>

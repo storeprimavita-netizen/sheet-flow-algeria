@@ -18,6 +18,13 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/lib/types";
@@ -46,13 +53,24 @@ const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 function Dashboard() {
   const { data, isLoading, error } = useSheetsData();
   const [range, setRange] = useState<Range>("month");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [productFilter, setProductFilter] = useState<string>("all");
+  const [personFilter, setPersonFilter] = useState<string>("all");
 
   const filtered = useMemo<Transaction[]>(() => {
     if (!data) return [];
     return data.transactions.filter(
-      (t) => t.status === "Confirmed" && withinRange(t.date, range),
+      (t) =>
+        t.status === "Confirmed" &&
+        withinRange(t.date, range) &&
+        (accountFilter === "all" ||
+          t.account_id === accountFilter ||
+          t.to_account_id === accountFilter) &&
+        (productFilter === "all" ||
+          (productFilter === "none" ? !t.product_id : t.product_id === productFilter)) &&
+        (personFilter === "all" || t.person === personFilter),
     );
-  }, [data, range]);
+  }, [data, range, accountFilter, productFilter, personFilter]);
 
   if (isLoading)
     return <div className="text-muted-foreground">Loading sheet data...</div>;
@@ -155,7 +173,49 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Asset cards */}
+      {/* Filters */}
+      <div className="glass-card grid grid-cols-1 gap-2 rounded-xl p-3 sm:grid-cols-3">
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Account" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Accounts</SelectItem>
+            {data.accounts.map((a) => (
+              <SelectItem key={a.account_id} value={a.account_id}>
+                {a.currency === "DZD" ? "🇩🇿" : "💵"} {a.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={productFilter} onValueChange={setProductFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Product" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Products</SelectItem>
+            <SelectItem value="none">— No product —</SelectItem>
+            {data.products.map((p) => (
+              <SelectItem key={p.product_id} value={p.product_id}>
+                📦 {p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={personFilter} onValueChange={setPersonFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Agent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Agents</SelectItem>
+            {["Nadhir", "Mahdi", "Wail"].map((p) => (
+              <SelectItem key={p} value={p}>
+                👤 {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard icon={<Wallet />} label="Total Assets (DZD)" value={fmtDZD(totalDZD)} />
         <StatCard icon={<DollarSign />} label="Total Assets (USD)" value={fmtUSD(totalUSD)} />

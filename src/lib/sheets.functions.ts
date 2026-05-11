@@ -7,6 +7,7 @@ import {
   batchGet,
   num,
   nextId,
+  findRowById,
 } from "./sheets.server";
 import type {
   Account,
@@ -364,5 +365,171 @@ export const updateExchangeRate = createServerFn({ method: "POST" })
       ["last_updated", today],
       ["updated_by", data.updated_by],
     ]);
+    return { ok: true };
+  });
+
+// ---------- UPDATE ACCOUNT ----------
+const AccountUpdateInput = z.object({
+  account_id: z.string(),
+  name: z.string(),
+  owner: z.string(),
+  currency: z.enum(["DZD", "USD"]),
+  balance: z.number(),
+});
+export const updateAccount = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => AccountUpdateInput.parse(d))
+  .handler(async ({ data }) => {
+    const row = await findRowById("Accounts", data.account_id);
+    if (!row) throw new Error("Account not found");
+    await updateRange(`Accounts!A${row}:E${row}`, [
+      [data.account_id, data.name, data.owner, data.currency, data.balance],
+    ]);
+    return { ok: true };
+  });
+
+// ---------- UPDATE PRODUCT ----------
+const ProductUpdateInput = z.object({
+  product_id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  status: z.string(),
+  product_cost: z.number(),
+  selling_price: z.number(),
+  confirmation_rate: z.number(),
+  delivery_rate: z.number(),
+  description: z.string().default(""),
+  notes: z.string().default(""),
+});
+export const updateProduct = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => ProductUpdateInput.parse(d))
+  .handler(async ({ data }) => {
+    const row = await findRowById("Products", data.product_id);
+    if (!row) throw new Error("Product not found");
+    await updateRange(`Products!A${row}:L${row}`, [
+      [
+        data.product_id,
+        data.name,
+        data.category,
+        data.status,
+        data.product_cost,
+        data.selling_price,
+        data.confirmation_rate,
+        data.delivery_rate,
+        data.description,
+        "",
+        "",
+        data.notes,
+      ],
+    ]);
+    return { ok: true };
+  });
+
+// ---------- UPDATE CONTACT ----------
+const ContactUpdateInput = z.object({
+  contact_id: z.string(),
+  name: z.string(),
+  services: z.string().default(""),
+  phone: z.string().default(""),
+  whatsapp: z.string().default(""),
+  email: z.string().default(""),
+  instagram: z.string().default(""),
+  facebook: z.string().default(""),
+  location: z.string().default(""),
+  rating: z.number().default(0),
+  price_range: z.string().default(""),
+  notes: z.string().default(""),
+  status: z.string().default("Active"),
+});
+export const updateContact = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => ContactUpdateInput.parse(d))
+  .handler(async ({ data }) => {
+    const row = await findRowById("Contacts", data.contact_id);
+    if (!row) throw new Error("Contact not found");
+    await updateRange(`Contacts!A${row}:M${row}`, [
+      [
+        data.contact_id,
+        data.name,
+        data.services,
+        data.phone,
+        data.whatsapp,
+        data.email,
+        data.instagram,
+        data.facebook,
+        data.location,
+        data.rating,
+        data.price_range,
+        data.notes,
+        data.status,
+      ],
+    ]);
+    return { ok: true };
+  });
+
+// ---------- REVERSE TRANSACTION (UNDO) ----------
+// Marks the original transaction Cancelled and reverses the balance impact on accounts.
+export const reverseTransaction = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ transaction_id: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const txRows = await readRange("Transactions!A2:O");
+    let txRowIndex = -1;
+    for (let i = 0; i < txRows.length; i++) {
+      if (txRows[i][0] === data.transaction_id) {
+        txRowIndex = i;
+        break;
+      }
+    }
+    if (txRowIndex < 0) throw new Error("Transaction not found");
+    const r = txRows[txRowIndex];
+    const status = r[13] as "Confirmed" | "Pending" | "Cancelled";
+    if (status === "Cancelled") throw new Error("Transaction is already cancelled");
+
+    const type = r[2] as "Income" | "Expense" | "Transfer";
+    const amount = num(r[3]);
+    const currency = r[4] as "DZD" | "USD";
+    const amount_dzd = num(r[5]);
+    const amount_usd = num(r[6]);
+    const account_id = r[8];
+    const to_account_id = r[9];
+
+    // Reverse balances only if the original was Confirmed
+    if (status === "Confirmed") {
+      const accountsRaw = await readRange("Accounts!A2:E");
+      const updates: { rowIndex: number; newBalance: number }[] = [];
+      accountsRaw.forEach((a, i) => {
+        const acc_id = a[0];
+        const accCurrency = a[3] as "DZD" | "USD";
+        let bal = num(a[4]);
+        const amtInAcc =
+          accCurrency === currency ? amount : accCurrency === "DZD" ? amount_dzd : amount_usd;
+        let touched = false;
+        if (type === "Income" && acc_id === account_id) {
+          bal -= amtInAcc;
+          touched = true;
+        } else if (type === "Expense" && acc_id === account_id) {
+          bal += amtInAcc;
+          touched = true;
+        } else if (type === "Transfer") {
+          if (acc_id === account_id) {
+            bal += amtInAcc;
+            touched = true;
+          }
+          if (acc_id === to_account_id) {
+            bal -= amtInAcc;
+            touched = true;
+          }
+        }
+        if (touched) updates.push({ rowIndex: i + 2, newBalance: bal });
+      });
+      await Promise.all(
+        updates.map((u) =>
+          updateRange(`Accounts!E${u.rowIndex}`, [[Math.round(u.newBalance * 100) / 100]]),
+        ),
+      );
+    }
+
+    // Mark original Cancelled (column N = index 14, 1-based 14 = N)
+    const sheetRow = txRowIndex + 2;
+    await updateRange(`Transactions!N${sheetRow}`, [["Cancelled"]]);
+
     return { ok: true };
   });
