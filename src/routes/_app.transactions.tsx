@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useSheetsData } from "@/lib/sheets-hooks";
+import { useSheetsData, useReverseTransaction } from "@/lib/sheets-hooks";
 import { fmtDZD, fmtUSD } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,11 +13,24 @@ import {
 } from "@/components/ui/select";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Search, Undo2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/transactions")({
   component: TransactionsPage,
 });
+
+const STATUS_META: Record<string, { emoji: string; cls: string }> = {
+  Confirmed: { emoji: "✅", cls: "bg-success/15 text-success" },
+  Pending: { emoji: "⏳", cls: "bg-info/15 text-info" },
+  Cancelled: { emoji: "❌", cls: "bg-muted text-muted-foreground line-through" },
+};
+
+const TYPE_EMOJI: Record<string, string> = {
+  Income: "🟢",
+  Expense: "🔴",
+  Transfer: "🔄",
+};
 
 function TransactionsPage() {
   const { data, isLoading } = useSheetsData();
