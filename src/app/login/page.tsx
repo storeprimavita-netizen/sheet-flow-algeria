@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,10 +25,7 @@ export default function LoginPage() {
     // Created in the handler (not at render time) so the page can prerender
     // without Supabase env vars present at build time.
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     setBusy(false);
 
@@ -37,50 +38,60 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center p-8">
-      <h1 className="text-2xl font-semibold">MNW ERP</h1>
-      <p className="mt-1 text-sm text-neutral-600">Sign in to your account</p>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border border-neutral-300 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-neutral-300 px-3 py-2"
-          />
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex items-center gap-2">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-lg font-semibold text-primary-foreground">
+            M
+          </span>
+          <div className="leading-tight">
+            <p className="text-base font-semibold">MNW ERP</p>
+            <p className="text-xs text-muted">Cash on Delivery</p>
+          </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Card>
+          <CardContent className="space-y-4">
+            <div>
+              <h1 className="text-lg font-semibold">Sign in</h1>
+              <p className="mt-1 text-sm text-muted">Use your MNW ERP account.</p>
+            </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              {error && (
+                <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+              )}
+
+              <Button type="submit" disabled={busy} className="w-full">
+                {busy ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }
