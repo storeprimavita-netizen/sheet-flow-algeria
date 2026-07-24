@@ -1,17 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-/**
- * Supabase client for Server Components, Route Handlers and Server Actions.
- *
- * NOTE: untyped until DB types are generated. After applying the migration, run:
- *   npx supabase gen types --project-id <id> > src/lib/supabase/database.types.ts
- * then switch to `createServerClient<Database>(...)`.
- */
+import type { Database } from "./database.types";
+
+/** Supabase client for Server Components, Route Handlers and Server Actions. */
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -25,7 +21,7 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Called from a Server Component — safe to ignore; middleware
+            // Called from a Server Component — safe to ignore; the proxy
             // refreshes the session on navigation.
           }
         },
