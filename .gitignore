@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify knowledge graph (regenerated locally)
+/graphify-out/
+
+# supabase local CLI temp
+/supabase/.temp/
