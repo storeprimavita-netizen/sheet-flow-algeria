@@ -218,6 +218,7 @@ export type Database = {
           assigned_delivery_agent: string | null
           city: string | null
           confirmation_status: Database["public"]["Enums"]["confirmation_status"]
+          confirmation_attempts: number
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -241,6 +242,7 @@ export type Database = {
           assigned_delivery_agent?: string | null
           city?: string | null
           confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
+          confirmation_attempts?: number
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -264,6 +266,7 @@ export type Database = {
           assigned_delivery_agent?: string | null
           city?: string | null
           confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
+          confirmation_attempts?: number
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
