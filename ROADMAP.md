@@ -57,6 +57,15 @@ Replicated **`BENZ Pricing (31).xlsx`** — a COD unit-economics + scaling model
 - **`<ScenarioEngine>`** (`pricing/scenario-engine.tsx`) — live recompute + debounced (700 ms) autosave. Because the unique indexes are partial, it resolves insert-vs-update per slug (select then update/insert) instead of `upsert(onConflict)`.
 - **Two surfaces**: a general planner at **`/app/pricing`** (admin, nav entry) + the same engine embedded on **`/app/products/[id]`** seeded from the product's COGS + selling price. Both persist to the table.
 
+### Phase 8 — Operational dashboard ✅
+Replaced the static module-link dashboard with a live, icon-led KPI overview:
+- **4 KPI cards** (Confirmed / Delivered / Returned / Revenue) — month value large, today's value as a sub-line; revenue accent-coloured.
+- **Queue + totals** row — pending confirmation, awaiting delivery, product & customer counts (each links to its module).
+- **Recent orders** table (6) with confirmation/delivery status badges, linked.
+- **Quick links** — icon tiles to Orders / Products / BI / Expenses (+ Pricing for admins).
+- **`dashboard_kpis()`** RPC (migration `00005_dashboard_kpis.sql`, applied) — single round-trip, `security invoker` so every metric respects the caller's RLS (admin = global, agent = scoped). Time-based metrics read from `order_events` transitions; queue counts from `orders`. Typed return added to `database.types.ts`.
+- Fix: added the missing `role.{admin,confirmation_agent,delivery_agent}` i18n keys (caused a console error on every page via the app shell badge).
+
 ## Git workflow
 
 - **`mnw`** is the integration branch (our main line).

@@ -252,6 +252,25 @@
       "Expenses": { "title": "المصاريف", "desc": "تكاليف مرتبطة بالمنتجات والطلبات" },
       "BI": { "title": "التحليلات", "desc": "الهوامش ونسب التوصيل والموثوقية" },
       "Settings": { "title": "الإعدادات", "desc": "الويبهوك والأسرار والفريق" }
-    }
+    },
+    "kpi": {
+      "confirmed": "مؤكدة",
+      "delivered": "مُسلّمة",
+      "returned": "مُرجَعة",
+      "revenue": "الإيرادات",
+      "today": "اليوم",
+      "month": "هذا الشهر"
+    },
+    "queue": {
+      "pendingConfirmation": "بانتظار التأكيد",
+      "awaitingDelivery": "بانتظار التوصيل"
+    },
+    "recent": "أحدث الطلبات",
+    "noRecent": "لا توجد طلبات بعد."
+  },
+  "role": {
+    "admin": "مدير",
+    "confirmation_agent": "مُؤكِّد الطلبات",
+    "delivery_agent": "مُوصِّل الطلبات"
   }
 }
