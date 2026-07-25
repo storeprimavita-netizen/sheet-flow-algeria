@@ -38,10 +38,10 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { navKey: "dashboard", href: "/app/dashboard", icon: LayoutDashboard },
-  { navKey: "products", icon: Package },
-  { navKey: "orders", icon: ShoppingBag },
-  { navKey: "contacts", icon: Users },
-  { navKey: "expenses", icon: Wallet },
+  { navKey: "products", href: "/app/products", icon: Package },
+  { navKey: "orders", href: "/app/orders", icon: ShoppingBag },
+  { navKey: "contacts", href: "/app/contacts", icon: Users },
+  { navKey: "expenses", href: "/app/expenses", icon: Wallet },
   { navKey: "settings", icon: SettingsIcon, adminOnly: true },
 ];
 

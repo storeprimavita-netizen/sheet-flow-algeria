@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
 
@@ -25,4 +27,12 @@ export async function getCurrentUserRole(): Promise<Role | null> {
 
 export async function isCurrentUserAdmin(): Promise<boolean> {
   return (await getCurrentUserRole()) === "admin";
+}
+
+/**
+ * Server-side UX gate for admin-only pages. RLS still enforces writes; this
+ * just keeps non-admins out of write screens and shows them the dashboard.
+ */
+export async function requireAdmin(redirectTo = "/app/dashboard"): Promise<void> {
+  if (!(await isCurrentUserAdmin())) redirect(redirectTo);
 }

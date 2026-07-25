@@ -11,12 +11,139 @@
   "common": {
     "signOut": "Sign out",
     "soon": "soon",
-    "noRole": "no role"
+    "noRole": "no role",
+    "empty": "Nothing here yet.",
+    "notAllowed": "You don't have access to this.",
+    "optional": "optional",
+    "all": "All",
+    "total": "Total",
+    "deleteConfirm": "Delete this item? This cannot be undone.",
+    "updated": "Saved.",
+    "error": "Something went wrong."
   },
-  "role": {
-    "admin": "Admin",
-    "confirmation_agent": "Confirmation Agent",
-    "delivery_agent": "Delivery Agent"
+  "actions": {
+    "new": "New",
+    "create": "Create",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back",
+    "search": "Search",
+    "view": "View",
+    "confirm": "Confirm"
+  },
+  "status": {
+    "product_status": {
+      "to_be_tested": "To be tested",
+      "tested": "Tested",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled"
+    },
+    "confirmation_status": {
+      "wait_for_confirmation": "Wait for confirmation",
+      "not_answer": "No answer",
+      "closed_phone": "Phone closed",
+      "cancelled": "Cancelled",
+      "confirmed": "Confirmed"
+    },
+    "delivery_status": {
+      "wait_for_deposit": "Wait for deposit",
+      "bureau_deposited": "At bureau",
+      "in_transit": "In transit",
+      "out_for_delivery": "Out for delivery",
+      "stop_desk_waiting": "Stop-desk waiting",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "delayed": "Delayed",
+      "returning": "Returning",
+      "returned": "Returned"
+    },
+    "contact_type": {
+      "shooting_studio": "Shooting studio",
+      "atelier_couture": "Atelier couture",
+      "emballage": "Emballage",
+      "customer": "Customer",
+      "supplier": "Supplier"
+    },
+    "expense_category": {
+      "shooting": "Shooting",
+      "packaging": "Packaging",
+      "sampling": "Sampling",
+      "confirmation": "Confirmation",
+      "delivery": "Delivery",
+      "test_ads": "Test ads",
+      "scaling_ads": "Scaling ads",
+      "other": "Other"
+    }
+  },
+  "fields": {
+    "name": "Name",
+    "sku": "SKU",
+    "description": "Description",
+    "category": "Category",
+    "material": "Material",
+    "fabric": "Fabric",
+    "status": "Status",
+    "price": "Selling price",
+    "costs": "Costs",
+    "active": "Active",
+    "image_url": "Image URL",
+    "phone": "Phone",
+    "city": "City",
+    "location": "Location",
+    "type": "Type",
+    "email": "Email",
+    "notes": "Notes",
+    "product": "Product",
+    "order": "Order",
+    "customer": "Customer",
+    "quantity": "Quantity",
+    "unit_price": "Unit price",
+    "total_amount": "Total",
+    "source": "Source",
+    "agent_comment": "Comment",
+    "confirmation_status": "Confirmation",
+    "delivery_status": "Delivery",
+    "address": "Address",
+    "placed_at": "Placed at",
+    "amount": "Amount",
+    "incurred_on": "Date",
+    "none": "—"
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Catalog, costs & status lifecycle",
+    "new": "New product",
+    "edit": "Edit product",
+    "none": "No products yet.",
+    "costTotal": "Cost total"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "subtitle": "Customers, suppliers & partners",
+    "new": "New contact",
+    "edit": "Edit contact",
+    "none": "No contacts yet."
+  },
+  "orders": {
+    "title": "Orders",
+    "subtitle": "Confirmation queue → delivery handoff",
+    "new": "New order",
+    "edit": "Order",
+    "none": "No orders in your queue.",
+    "notFound": "This order is no longer visible to you — it may have moved to the next stage.",
+    "history": "History",
+    "workflow": "Update status / comment",
+    "eventsNone": "No events yet."
+  },
+  "expenses": {
+    "title": "Expenses",
+    "subtitle": "Costs linked to products & orders",
+    "new": "New expense",
+    "edit": "Edit expense",
+    "none": "No expenses yet."
   },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",

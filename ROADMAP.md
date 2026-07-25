@@ -10,8 +10,8 @@ Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 | 1 — Auth + RBAC scaffold | ✅ done | `mnw` |
 | 1½ — Typed client + design system | ✅ done | `mnw-finish-phase1-design` |
 | 2 — i18n (AR/EN + RTL) | ✅ done | `mnw-phase2-i18n` |
-| 3 — Core ERP CRUD + order workflow | ⏳ next | — |
-| 4 — Integrations (HMAC webhooks + settings) | ☐ | — |
+| 3 — Core ERP CRUD + order workflow | ✅ done | `mnw-phase3-crud` |
+| 4 — Integrations (HMAC webhooks + settings) | ⏳ next | — |
 | 5 — BI dashboard + price calculator | ☐ | — |
 | 6 — Team automation (Slack) | ☐ | — |
 
@@ -29,11 +29,12 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 ### Phase 2 — i18n ✅
 `next-intl` (v4) without i18n routing — cookie-based locale. `src/messages/{en,ar}.json`, `src/i18n/request.ts` reads `locale` cookie, `NextIntlClientProvider` in root layout flips `<html dir>` to `rtl` for AR. Locale switcher (sidebar footer + login) toggles cookie + `router.refresh()`. Sidebar/borders use logical props (`start-0`/`border-e`/`ps-64`) + `rtl:` translate for mobile drawer. All nav/login/dashboard strings translated.
 
-### Phase 3 — Core ERP CRUD
-- Products: 7 cost columns + status lifecycle (to_be_tested → tested → confirmed/cancelled).
-- Contacts: customers, suppliers, studios, atelier, emballage.
-- Orders: confirmation queue (≠ confirmed) → confirmed → delivery handoff. `order_events` history + agent comments. Stage guards + RLS scoping per role.
-- Expenses: open to all users.
+### Phase 3 — Core ERP CRUD ✅
+- **Products** (admin-writes, all-read): list + create/edit; 7 cost columns + status lifecycle; cost-total rollup in list.
+- **Contacts** (admin-writes, all-read): list + create/edit; 5 contact types.
+- **Orders** (role-scoped via RLS): list + admin create + detail workflow. Confirmation agents see only unconfirmed and update `confirmation_status`; delivery agents see only confirmed and update `delivery_status` (column guard trigger blocks cross-stage writes); admins do both. `order_events` audit trail (logged before the status flip so the confirmation→confirmed handoff still records history). Agent comments.
+- **Expenses** (all users): list + create/edit; link to product/order; 8 categories.
+- Shared: `PageHeader`, `Empty`, `Field`, `ButtonLink`, `DeleteButton`, styled native `<select>` + `<textarea>`, DZD/date formatters, `requireAdmin()` UX gate, bilingual labels/statuses/actions. Dashboard cards + sidebar now link to live modules (Settings/BI still "soon").
 
 ### Phase 4 — Integrations
 - `app_settings` (HMAC secrets, Slack token — admin-only).
