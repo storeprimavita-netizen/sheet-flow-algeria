@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const MODULES = [
   { key: "Products", desc: "Catalog, costs & status lifecycle" },
@@ -14,21 +13,21 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">Welcome back. Here's what's being built.</p>
+        <h1 className="text-3xl font-bold text-gradient">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Welcome back. Here's what's being built.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {MODULES.map((m) => (
-          <Card key={m.key}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{m.key}</CardTitle>
-                <Badge tone="neutral">soon</Badge>
-              </div>
-              <CardDescription>{m.desc}</CardDescription>
-            </CardHeader>
-          </Card>
+          <div key={m.key} className="glass-card rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                {m.key}
+              </span>
+              <Badge variant="outline">soon</Badge>
+            </div>
+            <p className="mt-2 text-sm">{m.desc}</p>
+          </div>
         ))}
       </div>
     </div>
