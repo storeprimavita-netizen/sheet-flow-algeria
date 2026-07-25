@@ -11,12 +11,139 @@
   "common": {
     "signOut": "تسجيل الخروج",
     "soon": "قريباً",
-    "noRole": "بدون دور"
+    "noRole": "بدون دور",
+    "empty": "لا يوجد شيء بعد.",
+    "notAllowed": "ليس لديك صلاحية الوصول إلى هذا.",
+    "optional": "اختياري",
+    "all": "الكل",
+    "total": "الإجمالي",
+    "deleteConfirm": "حذف هذا العنصر؟ لا يمكن التراجع عن ذلك.",
+    "updated": "تم الحفظ.",
+    "error": "حدث خطأ ما."
   },
-  "role": {
-    "admin": "مدير",
-    "confirmation_agent": "موظف تأكيد",
-    "delivery_agent": "موظف توصيل"
+  "actions": {
+    "new": "جديد",
+    "create": "إنشاء",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "back": "رجوع",
+    "search": "بحث",
+    "view": "عرض",
+    "confirm": "تأكيد"
+  },
+  "status": {
+    "product_status": {
+      "to_be_tested": "للاختبار",
+      "tested": "تم الاختبار",
+      "confirmed": "مؤكد",
+      "cancelled": "ملغى"
+    },
+    "confirmation_status": {
+      "wait_for_confirmation": "بانتظار التأكيد",
+      "not_answer": "لا رد",
+      "closed_phone": "الهاتف مغلق",
+      "cancelled": "ملغى",
+      "confirmed": "مؤكد"
+    },
+    "delivery_status": {
+      "wait_for_deposit": "بانتظار الإيداع",
+      "bureau_deposited": "في المكتب",
+      "in_transit": "قيد الشحن",
+      "out_for_delivery": "قيد التوصيل",
+      "stop_desk_waiting": "بانتظار الاستلام من المكتب",
+      "delivered": "تم التوصيل",
+      "cancelled": "ملغى",
+      "delayed": "متأخر",
+      "returning": "قيد الإرجاع",
+      "returned": "تم الإرجاع"
+    },
+    "contact_type": {
+      "shooting_studio": "ستوديو تصوير",
+      "atelier_couture": "ورشة خياطة",
+      "emballage": "تغليف",
+      "customer": "عميل",
+      "supplier": "مورّد"
+    },
+    "expense_category": {
+      "shooting": "تصوير",
+      "packaging": "تغليف",
+      "sampling": "عيّنات",
+      "confirmation": "تأكيد",
+      "delivery": "توصيل",
+      "test_ads": "إعلانات تجريبية",
+      "scaling_ads": "إعلانات التوسّع",
+      "other": "أخرى"
+    }
+  },
+  "fields": {
+    "name": "الاسم",
+    "sku": "رمز المنتج",
+    "description": "الوصف",
+    "category": "الفئة",
+    "material": "الخامة",
+    "fabric": "القماش",
+    "status": "الحالة",
+    "price": "سعر البيع",
+    "costs": "التكاليف",
+    "active": "مفعّل",
+    "image_url": "رابط الصورة",
+    "phone": "الهاتف",
+    "city": "المدينة",
+    "location": "الموقع",
+    "type": "النوع",
+    "email": "البريد الإلكتروني",
+    "notes": "ملاحظات",
+    "product": "المنتج",
+    "order": "الطلب",
+    "customer": "العميل",
+    "quantity": "الكمية",
+    "unit_price": "سعر الوحدة",
+    "total_amount": "الإجمالي",
+    "source": "المصدر",
+    "agent_comment": "تعليق",
+    "confirmation_status": "التأكيد",
+    "delivery_status": "التوصيل",
+    "address": "العنوان",
+    "placed_at": "تاريخ الطلب",
+    "amount": "المبلغ",
+    "incurred_on": "التاريخ",
+    "none": "—"
+  },
+  "products": {
+    "title": "المنتجات",
+    "subtitle": "الكتالوج والتكاليف ودورة الحالة",
+    "new": "منتج جديد",
+    "edit": "تعديل المنتج",
+    "none": "لا توجد منتجات بعد.",
+    "costTotal": "إجمالي التكلفة"
+  },
+  "contacts": {
+    "title": "جهات الاتصال",
+    "subtitle": "العملاء والموردون والشركاء",
+    "new": "جهة اتصال جديدة",
+    "edit": "تعديل جهة الاتصال",
+    "none": "لا توجد جهات اتصال بعد."
+  },
+  "orders": {
+    "title": "الطلبات",
+    "subtitle": "طابور التأكيد ← تسليم التوصيل",
+    "new": "طلب جديد",
+    "edit": "الطلب",
+    "none": "لا توجد طلبات في طابورك.",
+    "notFound": "هذا الطلب لم يعد مرئياً لك — ربما انتقل إلى المرحلة التالية.",
+    "history": "السجل",
+    "workflow": "تحديث الحالة / تعليق",
+    "eventsNone": "لا توجد أحداث بعد."
+  },
+  "expenses": {
+    "title": "المصاريف",
+    "subtitle": "تكاليف مرتبطة بالمنتجات والطلبات",
+    "new": "مصروف جديد",
+    "edit": "تعديل المصروف",
+    "none": "لا توجد مصاريف بعد."
   },
   "login": {
     "subtitle": "سجّل الدخول إلى مساحة عمل الدفع عند الاستلام",
