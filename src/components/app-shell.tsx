@@ -16,6 +16,7 @@ import {
   Settings as SettingsIcon,
   CircleDollarSign,
   Headset,
+  Boxes,
   Menu,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ type NavKey =
   | "pricing"
   | "team"
   | "cash"
+  | "stock"
   | "settings";
 
 type NavItem = {
@@ -57,6 +59,7 @@ const NAV: NavItem[] = [
   { navKey: "pricing", href: "/app/pricing", icon: Calculator, adminOnly: true },
   { navKey: "team", href: "/app/team", icon: UserCog, adminOnly: true },
   { navKey: "cash", href: "/app/cash", icon: CircleDollarSign, adminOnly: true },
+  { navKey: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
   { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
 ];
 

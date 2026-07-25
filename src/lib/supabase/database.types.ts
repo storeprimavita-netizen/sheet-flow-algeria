@@ -329,6 +329,7 @@ export type Database = {
           selling_price: number | null
           sku: string | null
           status: Database["public"]["Enums"]["product_status"]
+          stock: number
           updated_at: string
         }
         Insert: {
@@ -378,6 +379,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          note: string | null
+          product_id: string
+          reason: string
+          reference: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          note?: string | null
+          product_id: string
+          reason: string
+          reference?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          note?: string | null
+          product_id?: string
+          reason?: string
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pricing_scenarios: {
         Row: {

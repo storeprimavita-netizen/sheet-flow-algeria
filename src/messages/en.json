@@ -11,6 +11,7 @@
     "pricing": "Pricing",
     "team": "Team",
     "cash": "Cash",
+    "stock": "Stock",
     "settings": "Settings"
   },
   "common": {
@@ -251,6 +252,29 @@
     "assignConfirmation": "Confirmation agent",
     "assignDelivery": "Delivery agent",
     "unassigned": "Unassigned"
+  },
+  "stock": {
+    "title": "Stock",
+    "subtitle": "On-hand quantities, adjustments & low-stock alerts",
+    "onHand": "On hand",
+    "threshold": "Low-stock at",
+    "stock": "Stock",
+    "adjust": "Adjust",
+    "out": "out",
+    "low": "low",
+    "note": "Note",
+    "history": "Movement history",
+    "noHistory": "No stock movements yet.",
+    "delta": "Δ",
+    "reason": "Reason",
+    "reasons": {
+      "initial": "Initial",
+      "restock": "Restock",
+      "order": "Order",
+      "return": "Return",
+      "adjustment": "Adjustment",
+      "removal": "Removal"
+    }
   },
   "settings": {
     "title": "Settings",
