@@ -1,12 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-
-export type Role = "admin" | "confirmation_agent" | "delivery_agent";
-
-export const ROLE_LABEL: Record<Role, string> = {
-  admin: "Admin",
-  confirmation_agent: "Confirmation Agent",
-  delivery_agent: "Delivery Agent",
-};
+import type { Role } from "@/lib/roles";
 
 /**
  * The signed-in user's role, read from `public.user_roles` (RLS-scoped).
