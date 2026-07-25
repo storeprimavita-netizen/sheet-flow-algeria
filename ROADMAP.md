@@ -12,8 +12,8 @@ Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 | 2 — i18n (AR/EN + RTL) | ✅ done | `mnw-phase2-i18n` |
 | 3 — Core ERP CRUD + order workflow | ✅ done | `mnw-phase3-crud` |
 | 4 — Integrations (HMAC webhooks + settings) | ✅ done | `mnw-phase4-webhooks` |
-| 5 — BI dashboard + price calculator | ⏳ next | — |
-| 6 — Team automation (Slack) | ☐ | — |
+| 5 — BI dashboard + price calculator | ✅ done | `mnw-phase5-bi` |
+| 6 — Team automation (Slack) | ⏳ next | — |
 
 ## Phases
 
@@ -42,8 +42,8 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 - **Admin Settings page** (`/app/settings`, admin-only): shows the exact webhook URLs to copy (computed from `APP_URL`/request host) + a per-secret set/not-set badge, and a form to store secrets (blank = keep current; never sends existing secrets to the browser).
 - Note: secrets live in an admin-only table; for production prefer Supabase Vault / env.
 
-### Phase 5 — BI + pricing
-Dashboard: revenue, margins (selling_price − Σ costs), COD delivery/return rates, customer reliability. Price calculator: costs + margin → suggested price.
+### Phase 5 — BI + pricing ✅
+`/app/bi` (Analytics): revenue (delivered orders), confirmed/pending counts, COD delivery & return rates, avg product margin (selling − Σ costs). Top-customers reliability table from the `customer_profiles` view. Live **price calculator** (7 costs + margin % → suggested price + per-unit profit).
 
 ### Phase 6 — Team automation
 `team_roles` management, Slack alerts on order events, meeting-lateness tracking.
