@@ -11,6 +11,7 @@
     "pricing": "التسعير",
     "team": "الفريق",
     "cash": "الخزينة",
+    "stock": "المخزون",
     "settings": "الإعدادات"
   },
   "common": {
@@ -251,6 +252,29 @@
     "assignConfirmation": "مُؤكِّد الطلبات",
     "assignDelivery": "مُوصِّل الطلبات",
     "unassigned": "غير مُسند"
+  },
+  "stock": {
+    "title": "المخزون",
+    "subtitle": "الكميات المتوفرة والتسويات وتنبيهات النفاد",
+    "onHand": "المتوفر",
+    "threshold": "حد النقص",
+    "stock": "المخزون",
+    "adjust": "تسوية",
+    "out": "نفد",
+    "low": "منخفض",
+    "note": "ملاحظة",
+    "history": "سجل الحركات",
+    "noHistory": "لا توجد حركات مخزون بعد.",
+    "delta": "Δ",
+    "reason": "السبب",
+    "reasons": {
+      "initial": "افتتاحي",
+      "restock": "تزويد",
+      "order": "طلب",
+      "return": "إرجاع",
+      "adjustment": "تسوية",
+      "removal": "إخراج"
+    }
   },
   "settings": {
     "title": "الإعدادات",

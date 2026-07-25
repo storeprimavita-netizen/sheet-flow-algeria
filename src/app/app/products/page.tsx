@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin } from "@/lib/rbac";
+import { readSettings } from "@/lib/app-settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -31,6 +32,9 @@ export default async function ProductsPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
+  const settings = await readSettings(supabase, ["stock_low_threshold"]);
+  const threshold = Number(settings.stock_low_threshold ?? 5) || 0;
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("products.title")} subtitle={t("products.subtitle")}>
@@ -55,6 +59,7 @@ export default async function ProductsPage() {
                   <th>{t("fields.category")}</th>
                   <th>{t("products.costTotal")}</th>
                   <th>{t("fields.price")}</th>
+                  <th>{t("stock.stock")}</th>
                   <th>{t("fields.status")}</th>
                   <th>{t("fields.placed_at")}</th>
                 </tr>
@@ -62,6 +67,8 @@ export default async function ProductsPage() {
               <tbody>
                 {products.map((p) => {
                   const cost = COST_KEYS.reduce((sum, k) => sum + Number(p[k] ?? 0), 0);
+                  const out = p.stock <= 0;
+                  const low = !out && p.stock <= threshold;
                   return (
                     <tr key={p.id} className="hover:bg-muted/30">
                       <td>
@@ -76,6 +83,12 @@ export default async function ProductsPage() {
                       <td className="text-muted-foreground">{p.category ?? "—"}</td>
                       <td>{formatCurrency(cost)}</td>
                       <td>{formatCurrency(p.selling_price)}</td>
+                      <td>
+                        <Badge variant={out ? "destructive" : low ? "secondary" : "outline"}>
+                          {p.stock}
+                          {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
+                        </Badge>
+                      </td>
                       <td>
                         <Badge
                           variant={
