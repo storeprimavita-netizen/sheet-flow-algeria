@@ -32,6 +32,56 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_collections: {
+        Row: {
+          amount: number
+          collected_at: string
+          collected_by: string | null
+          deposit_reference: string | null
+          deposited_at: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          collected_at?: string
+          collected_by?: string | null
+          deposit_reference?: string | null
+          deposited_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          collected_at?: string
+          collected_by?: string | null
+          deposit_reference?: string | null
+          deposited_at?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_collections_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           city: string | null
@@ -443,6 +493,10 @@ export type Database = {
     }
     Functions: {
       bootstrap_admin: { Args: { p_email: string }; Returns: string }
+      cash_summary: {
+        Args: never
+        Returns: { outstanding: number; deposited_month: number; collected_month: number }
+      }
       current_user_role: { Args: never; Returns: string }
       dashboard_kpis: {
         Args: never

@@ -14,6 +14,7 @@ import {
   Calculator,
   UserCog,
   Settings as SettingsIcon,
+  CircleDollarSign,
   Menu,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ type NavKey =
   | "bi"
   | "pricing"
   | "team"
+  | "cash"
   | "settings";
 
 type NavItem = {
@@ -51,6 +53,7 @@ const NAV: NavItem[] = [
   { navKey: "bi", href: "/app/bi", icon: BarChart3 },
   { navKey: "pricing", href: "/app/pricing", icon: Calculator, adminOnly: true },
   { navKey: "team", href: "/app/team", icon: UserCog, adminOnly: true },
+  { navKey: "cash", href: "/app/cash", icon: CircleDollarSign, adminOnly: true },
   { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
 ];
 

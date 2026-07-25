@@ -9,6 +9,7 @@
     "bi": "Analytics",
     "pricing": "Pricing",
     "team": "Team",
+    "cash": "Cash",
     "settings": "Settings"
   },
   "common": {
@@ -217,6 +218,27 @@
     "late": "Late (min)",
     "slackUser": "Slack user ID",
     "none": "No team members yet."
+  },
+  "cash": {
+    "title": "Cash reconciliation",
+    "subtitle": "Collect delivered cash, then bank it",
+    "record": "Record collection",
+    "recordHint": "Log cash collected for each delivered order.",
+    "noUncollected": "No delivered orders awaiting collection.",
+    "amount": "Amount",
+    "collector": "Collected by",
+    "save": "Record",
+    "outstanding": "Outstanding (held)",
+    "selected": "Selected",
+    "noOutstanding": "No held cash right now.",
+    "order": "Order",
+    "customer": "Customer",
+    "depositReference": "Deposit reference",
+    "createDeposit": "Mark deposited",
+    "deposits": "Recent deposits",
+    "noDeposits": "No deposits yet.",
+    "collectedMonth": "Collected (month)",
+    "depositedMonth": "Deposited (month)"
   },
   "settings": {
     "title": "Settings",
