@@ -11,6 +11,7 @@ import {
   Users,
   Wallet,
   BarChart3,
+  Calculator,
   UserCog,
   Settings as SettingsIcon,
   Menu,
@@ -30,6 +31,7 @@ type NavKey =
   | "contacts"
   | "expenses"
   | "bi"
+  | "pricing"
   | "team"
   | "settings";
 
@@ -47,6 +49,7 @@ const NAV: NavItem[] = [
   { navKey: "contacts", href: "/app/contacts", icon: Users },
   { navKey: "expenses", href: "/app/expenses", icon: Wallet },
   { navKey: "bi", href: "/app/bi", icon: BarChart3 },
+  { navKey: "pricing", href: "/app/pricing", icon: Calculator, adminOnly: true },
   { navKey: "team", href: "/app/team", icon: UserCog, adminOnly: true },
   { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
 ];

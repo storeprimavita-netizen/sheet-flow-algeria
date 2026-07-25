@@ -7,6 +7,7 @@
     "contacts": "Contacts",
     "expenses": "Expenses",
     "bi": "Analytics",
+    "pricing": "Pricing",
     "team": "Team",
     "settings": "Settings"
   },
@@ -166,6 +167,46 @@
     "margin": "Margin %",
     "suggestedPrice": "Suggested price",
     "profit": "Profit per unit"
+  },
+  "pricing": {
+    "title": "Pricing scenarios",
+    "subtitleGeneral": "COD unit-economics planner (best / medium / worst)",
+    "subtitleProduct": "COD unit-economics for this product (best / medium / worst)",
+    "autosave": "Edits save automatically.",
+    "profit": "Profit",
+    "loss": "Loss",
+    "netOrder": "Net profit / order",
+    "netDay": "Net profit / day",
+    "netMonth": "Net profit / month",
+    "confirmation_cost_da": "Confirmation cost (DA)",
+    "delivery_cost_da": "Delivery cost (DA)",
+    "confirmed_day": "Confirmed (day / mo)",
+    "delivered_day": "Delivered (day / mo)",
+    "returns_fee": "Returns fee / order",
+    "other_fee": "Other fee / order",
+    "cost_order": "Cost / order",
+    "scenario": { "best": "Best", "medium": "Medium", "worst": "Worst" },
+    "groups": {
+      "funnel": "Ad funnel",
+      "perOrder": "Per order",
+      "fixed": "Fixed costs"
+    },
+    "fields": {
+      "product_price": "Product price (COGS)",
+      "euro_price": "Euro price (DZD)",
+      "lead_cost_eur": "Cost / lead (€)",
+      "confirmation_pct": "Confirmation %",
+      "delivery_pct": "Delivery %",
+      "delivery_price": "Delivery surcharge",
+      "confirmation_agent": "Confirmation agent",
+      "packaging_fees": "Packaging fees",
+      "sale_price": "Sale price",
+      "spend_eur_day": "Spend / day (€)",
+      "delivery_fee_da": "Delivery fee (DA)",
+      "flexy_month": "Flexy / month",
+      "location_day": "Rent + electricity / day",
+      "salary_month": "Salary / month"
+    }
   },
   "team": {
     "title": "Team",

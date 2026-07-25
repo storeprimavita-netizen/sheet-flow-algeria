@@ -7,6 +7,7 @@
     "contacts": "جهات الاتصال",
     "expenses": "المصاريف",
     "bi": "التحليلات",
+    "pricing": "التسعير",
     "team": "الفريق",
     "settings": "الإعدادات"
   },
@@ -166,6 +167,46 @@
     "margin": "الهامش %",
     "suggestedPrice": "السعر المقترح",
     "profit": "الربح لكل وحدة"
+  },
+  "pricing": {
+    "title": "سيناريوهات التسعير",
+    "subtitleGeneral": "مخطط اقتصاديات الدفع عند الاستلام (الأفضل / المتوسط / الأسوأ)",
+    "subtitleProduct": "اقتصاديات الدفع عند الاستلام لهذا المنتج (الأفضل / المتوسط / الأسوأ)",
+    "autosave": "تُحفظ التعديلات تلقائياً.",
+    "profit": "ربح",
+    "loss": "خسارة",
+    "netOrder": "صافي الربح / طلب",
+    "netDay": "صافي الربح / يوم",
+    "netMonth": "صافي الربح / شهر",
+    "confirmation_cost_da": "تكلفة التأكيد (دج)",
+    "delivery_cost_da": "تكلفة التوصيل (دج)",
+    "confirmed_day": "المؤكدة (يوم / شهر)",
+    "delivered_day": "المُسلّمة (يوم / شهر)",
+    "returns_fee": "رسوم الإرجاع / طلب",
+    "other_fee": "رسوم أخرى / طلب",
+    "cost_order": "التكلفة / طلب",
+    "scenario": { "best": "الأفضل", "medium": "المتوسط", "worst": "الأسوأ" },
+    "groups": {
+      "funnel": "مسار الإعلانات",
+      "perOrder": "لكل طلب",
+      "fixed": "تكاليف ثابتة"
+    },
+    "fields": {
+      "product_price": "سعر المنتج (تكلفة)",
+      "euro_price": "سعر اليورو (دج)",
+      "lead_cost_eur": "تكلفة العميل (€)",
+      "confirmation_pct": "نسبة التأكيد %",
+      "delivery_pct": "نسبة التوصيل %",
+      "delivery_price": "تكلفة التوصيل الإضافية",
+      "confirmation_agent": "عمولة مؤكِّد الطلبات",
+      "packaging_fees": "رسوم التغليف",
+      "sale_price": "سعر البيع",
+      "spend_eur_day": "الإنفاق / يوم (€)",
+      "delivery_fee_da": "رسوم المُوصِّل (دج)",
+      "flexy_month": "فلكسي / شهر",
+      "location_day": "الإيجار + الكهرباء / يوم",
+      "salary_month": "الراتب / شهر"
+    }
   },
   "team": {
     "title": "الفريق",

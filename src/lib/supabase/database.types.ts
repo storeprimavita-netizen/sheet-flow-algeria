@@ -326,6 +326,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_scenarios: {
+        Row: {
+          created_at: string
+          id: string
+          inputs: Json
+          product_id: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inputs?: Json
+          product_id?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inputs?: Json
+          product_id?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_scenarios_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_roles: {
         Row: {
           created_at: string

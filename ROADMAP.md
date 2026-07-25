@@ -37,7 +37,7 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 - Shared: `PageHeader`, `Empty`, `Field`, `ButtonLink`, `DeleteButton`, styled native `<select>` + `<textarea>`, DZD/date formatters, `requireAdmin()` UX gate, bilingual labels/statuses/actions. Dashboard cards + sidebar now link to live modules (Settings/BI still "soon").
 
 ### Phase 4 — Integrations ✅
-- **`app_settings`** key/value table (migration `00002_app_settings.sql`) — admin-only RLS. Stores HMAC webhook secrets + Slack token. **Apply the migration** (Dashboard → SQL Editor) and **regenerate types** (`npx supabase gen types ...`) so `app_settings` types come from the DB instead of the hand-added entry.
+- **`app_settings`** key/value table (migration `00002_app_settings.sql`) — admin-only RLS. Stores HMAC webhook secrets + Slack token. **Migration applied** to `apsulsbdrnlesggzzfak` (2026-07-25, via CLI). Types already hand-added to `database.types.ts` → build typechecks; regenerating (`npx supabase gen types`) is optional cleanup.
 - **Webhook routes** `/api/webhooks/{lightfunnel,shopify}`: constant-time HMAC-SHA256 verification (hex for Lightfunnel, base64 for Shopify), then idempotent order upsert keyed on `(source, external_id)`. Re-deliveries never clobber agent workflow state (only logistics fields update). No user session → runs via a **service-role client** (`src/lib/supabase/admin.ts`); requires `SUPABASE_SERVICE_ROLE_KEY` in env. Customer contact find-or-create by phone.
 - **Admin Settings page** (`/app/settings`, admin-only): shows the exact webhook URLs to copy (computed from `APP_URL`/request host) + a per-secret set/not-set badge, and a form to store secrets (blank = keep current; never sends existing secrets to the browser).
 - Note: secrets live in an admin-only table; for production prefer Supabase Vault / env.
@@ -46,9 +46,16 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 `/app/bi` (Analytics): revenue (delivered orders), confirmed/pending counts, COD delivery & return rates, avg product margin (selling − Σ costs). Top-customers reliability table from the `customer_profiles` view. Live **price calculator** (7 costs + margin % → suggested price + per-unit profit).
 
 ### Phase 6 — Team automation ✅
-- **`team_directory`** view (migration `00003_team_directory.sql`) — postgres-owned, joins `auth.users + user_roles + team_roles`, restricted to admins (`is_admin()`). Solves "auth.users isn't exposed over Postgrest" so the Team page can show emails. **Apply the migration + regenerate types.**
+- **`team_directory`** view (migration `00003_team_directory.sql`) — postgres-owned, joins `auth.users + user_roles + team_roles`, restricted to admins (`is_admin()`). Solves "auth.users isn't exposed over Postgrest" so the Team page can show emails. **Migration applied** (2026-07-25); types already hand-added to `database.types.ts`.
 - **`/app/team`** (admin): inline-edit every user's `team_roles` — duty, Slack user/channel, meeting-late minutes, active toggle — and add/remove members.
 - **Slack alerts on order events**: the order status update is now a **server action** (`orders/actions.ts`, RLS-enforced via the user's session client — same security as before) that logs the audit event, flips the status, then fires a best-effort Slack `chat.postMessage` (token + channel from `app_settings`; silently skips if Slack isn't configured). The client `OrderWorkflow` just calls the action.
+
+### Phase 7 — Pricing scenarios (BENZ model) ✅
+Replicated **`BENZ Pricing (31).xlsx`** — a COD unit-economics + scaling model — cell-for-cell. Three scenarios (best/medium/worst) each compute: ad-funnel (€/day spend → confirmed → delivered orders via euro rate, €/lead, confirmation %, delivery %), per-delivered-order P&L (COGS + acquisition cost + courier + packaging + returns + fixed-cost share), and daily/monthly net profit. Formula parity verified against the sheet (BEST = 1025.9 DZD/order, 130,037.5/month; MEDIUM = −445.2/order, −233,750/month).
+- **`pricing_scenarios`** table (migration `00004_pricing_scenarios.sql`) — `product_id` nullable (null = general planner), `slug` ∈ best/medium/worst, 14 numeric `inputs` in jsonb. RLS mirrors products (all read, admin write). Two partial unique indexes: general `(slug) WHERE product_id IS NULL`, product `(product_id, slug) WHERE product_id IS NOT NULL`. **Migration applied** (2026-07-25); types hand-added to `database.types.ts`.
+- **`src/lib/pricing.ts`** — the only source of truth for the math: `DEFAULT_INPUTS` (BEST), `normalizeInputs`, `seedForProduct`, `computeScenario()` (all divisions guarded → empty WORST yields 0, not #DIV/0!).
+- **`<ScenarioEngine>`** (`pricing/scenario-engine.tsx`) — live recompute + debounced (700 ms) autosave. Because the unique indexes are partial, it resolves insert-vs-update per slug (select then update/insert) instead of `upsert(onConflict)`.
+- **Two surfaces**: a general planner at **`/app/pricing`** (admin, nav entry) + the same engine embedded on **`/app/products/[id]`** seeded from the product's COGS + selling price. Both persist to the table.
 
 ## Git workflow
 

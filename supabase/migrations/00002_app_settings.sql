@@ -34,6 +34,7 @@ create policy as_upd on public.app_settings for update to authenticated
 create policy as_del on public.app_settings for delete to authenticated
   using (public.is_admin());
 
+drop trigger if exists set_updated_at on public.app_settings;
 create trigger set_updated_at
   before update on public.app_settings
   for each row execute function public.set_updated_at();
