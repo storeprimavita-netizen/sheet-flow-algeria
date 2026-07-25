@@ -4,6 +4,7 @@
     "dashboard": "Dashboard",
     "products": "Products",
     "orders": "Orders",
+    "workbench": "Workbench",
     "contacts": "Contacts",
     "expenses": "Expenses",
     "bi": "Analytics",
@@ -239,6 +240,17 @@
     "noDeposits": "No deposits yet.",
     "collectedMonth": "Collected (month)",
     "depositedMonth": "Deposited (month)"
+  },
+  "workbench": {
+    "title": "Workbench",
+    "subtitle": "Your queue — call, update, move on",
+    "none": "Your queue is clear.",
+    "attempts": "Attempts",
+    "comment": "Note",
+    "assignment": "Assignment",
+    "assignConfirmation": "Confirmation agent",
+    "assignDelivery": "Delivery agent",
+    "unassigned": "Unassigned"
   },
   "settings": {
     "title": "Settings",

@@ -15,6 +15,7 @@ import {
   UserCog,
   Settings as SettingsIcon,
   CircleDollarSign,
+  Headset,
   Menu,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ type NavKey =
   | "dashboard"
   | "products"
   | "orders"
+  | "workbench"
   | "contacts"
   | "expenses"
   | "bi"
@@ -48,6 +50,7 @@ const NAV: NavItem[] = [
   { navKey: "dashboard", href: "/app/dashboard", icon: LayoutDashboard },
   { navKey: "products", href: "/app/products", icon: Package },
   { navKey: "orders", href: "/app/orders", icon: ShoppingBag },
+  { navKey: "workbench", href: "/app/workbench", icon: Headset },
   { navKey: "contacts", href: "/app/contacts", icon: Users },
   { navKey: "expenses", href: "/app/expenses", icon: Wallet },
   { navKey: "bi", href: "/app/bi", icon: BarChart3 },

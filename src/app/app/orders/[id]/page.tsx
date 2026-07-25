@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
+import { AssignmentCard } from "./assignment-card";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -53,6 +54,21 @@ export default async function OrderDetailPage({
 
   const isAdmin = await isCurrentUserAdmin();
 
+  // admin: agent rosters for the assignment card
+  let confirmationAgents: { id: string; email: string }[] = [];
+  let deliveryAgents: { id: string; email: string }[] = [];
+  if (isAdmin) {
+    const { data: team } = await supabase
+      .from("team_directory")
+      .select("user_id, email, role")
+      .eq("is_team_member", true);
+    for (const r of (team ?? []) as any[]) {
+      const entry = { id: r.user_id, email: r.email ?? r.user_id.slice(0, 8) };
+      if (r.role === "confirmation_agent") confirmationAgents.push(entry);
+      else if (r.role === "delivery_agent") deliveryAgents.push(entry);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -89,6 +105,16 @@ export default async function OrderDetailPage({
       </div>
 
       <OrderWorkflow order={order} role={role} events={events ?? []} />
+
+      {isAdmin ? (
+        <AssignmentCard
+          orderId={order.id}
+          confirmationAgent={order.assigned_confirmation_agent}
+          deliveryAgent={order.assigned_delivery_agent}
+          confirmationAgents={confirmationAgents}
+          deliveryAgents={deliveryAgents}
+        />
+      ) : null}
     </div>
   );
 }

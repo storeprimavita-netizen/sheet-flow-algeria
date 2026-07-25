@@ -4,6 +4,7 @@
     "dashboard": "لوحة التحكم",
     "products": "المنتجات",
     "orders": "الطلبات",
+    "workbench": "محطة العمل",
     "contacts": "جهات الاتصال",
     "expenses": "المصاريف",
     "bi": "التحليلات",
@@ -239,6 +240,17 @@
     "noDeposits": "لا توجد إيداعات بعد.",
     "collectedMonth": "المُحصَّل (الشهر)",
     "depositedMonth": "المُودَع (الشهر)"
+  },
+  "workbench": {
+    "title": "محطة العمل",
+    "subtitle": "طابورك — اتصل، حدِّث، تابع",
+    "none": "لا يوجد شيء في طابورك.",
+    "attempts": "المحاولات",
+    "comment": "ملاحظة",
+    "assignment": "الإسناد",
+    "assignConfirmation": "مُؤكِّد الطلبات",
+    "assignDelivery": "مُوصِّل الطلبات",
+    "unassigned": "غير مُسند"
   },
   "settings": {
     "title": "الإعدادات",
