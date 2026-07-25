@@ -7,6 +7,7 @@
     "contacts": "Contacts",
     "expenses": "Expenses",
     "bi": "Analytics",
+    "team": "Team",
     "settings": "Settings"
   },
   "common": {
@@ -165,6 +166,16 @@
     "margin": "Margin %",
     "suggestedPrice": "Suggested price",
     "profit": "Profit per unit"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Duties, Slack & meeting lateness",
+    "member": "team",
+    "active": "Active member",
+    "duty": "Duty",
+    "late": "Late (min)",
+    "slackUser": "Slack user ID",
+    "none": "No team members yet."
   },
   "settings": {
     "title": "Settings",
