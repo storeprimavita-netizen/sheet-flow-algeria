@@ -6,6 +6,7 @@
     "orders": "Orders",
     "contacts": "Contacts",
     "expenses": "Expenses",
+    "bi": "Analytics",
     "settings": "Settings"
   },
   "common": {
@@ -144,6 +145,26 @@
     "new": "New expense",
     "edit": "Edit expense",
     "none": "No expenses yet."
+  },
+  "bi": {
+    "title": "Business Intelligence",
+    "subtitle": "Revenue, margins & COD reliability",
+    "revenue": "Revenue (delivered)",
+    "pending": "Pending confirmation",
+    "confirmed": "Confirmed",
+    "deliveryRate": "Delivery rate",
+    "returnRate": "Return rate",
+    "avgMargin": "Avg product margin",
+    "customers": "Top customers",
+    "orders": "Orders",
+    "delivered": "Delivered",
+    "reliability": "Reliability",
+    "calculator": "Price calculator",
+    "calculatorHint": "Total cost + margin → suggested price",
+    "totalCost": "Total cost",
+    "margin": "Margin %",
+    "suggestedPrice": "Suggested price",
+    "profit": "Profit per unit"
   },
   "settings": {
     "title": "Settings",

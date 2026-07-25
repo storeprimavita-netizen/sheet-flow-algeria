@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   Users,
   Wallet,
+  BarChart3,
   Settings as SettingsIcon,
   Menu,
 } from "lucide-react";
@@ -27,6 +28,7 @@ type NavKey =
   | "orders"
   | "contacts"
   | "expenses"
+  | "bi"
   | "settings";
 
 type NavItem = {
@@ -42,6 +44,7 @@ const NAV: NavItem[] = [
   { navKey: "orders", href: "/app/orders", icon: ShoppingBag },
   { navKey: "contacts", href: "/app/contacts", icon: Users },
   { navKey: "expenses", href: "/app/expenses", icon: Wallet },
+  { navKey: "bi", href: "/app/bi", icon: BarChart3 },
   { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
 ];
 
