@@ -252,6 +252,25 @@
       "Expenses": { "title": "Expenses", "desc": "Costs linked to products & orders" },
       "BI": { "title": "BI", "desc": "Margins, COD rates & reliability" },
       "Settings": { "title": "Settings", "desc": "Webhooks, secrets & team" }
-    }
+    },
+    "kpi": {
+      "confirmed": "Confirmed",
+      "delivered": "Delivered",
+      "returned": "Returned",
+      "revenue": "Revenue",
+      "today": "Today",
+      "month": "This month"
+    },
+    "queue": {
+      "pendingConfirmation": "Pending confirmation",
+      "awaitingDelivery": "Awaiting delivery"
+    },
+    "recent": "Recent orders",
+    "noRecent": "No recent orders yet."
+  },
+  "role": {
+    "admin": "Admin",
+    "confirmation_agent": "Confirmation agent",
+    "delivery_agent": "Delivery agent"
   }
 }

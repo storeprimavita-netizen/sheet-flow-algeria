@@ -444,6 +444,16 @@ export type Database = {
     Functions: {
       bootstrap_admin: { Args: { p_email: string }; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      dashboard_kpis: {
+        Args: never
+        Returns: {
+          today: { confirmed: number; delivered: number; returned: number; revenue: number }
+          month: { confirmed: number; delivered: number; returned: number; revenue: number }
+          queue: { pending_confirmation: number; awaiting_delivery: number }
+          top_product: { name: string; delivered: number } | null
+          totals: { products: number; orders: number; customers: number }
+        }
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
