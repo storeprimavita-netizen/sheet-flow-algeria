@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Package,
@@ -10,31 +11,38 @@ import {
   Users,
   Wallet,
   Settings as SettingsIcon,
-  LogOut,
   Menu,
 } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
-import { ROLE_LABEL } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/app/app/dashboard/sign-out-button";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+
+type NavKey =
+  | "dashboard"
+  | "products"
+  | "orders"
+  | "contacts"
+  | "expenses"
+  | "settings";
 
 type NavItem = {
-  label: string;
+  navKey: NavKey;
   href?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
-  { label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
-  { label: "Products", icon: Package },
-  { label: "Orders", icon: ShoppingBag },
-  { label: "Contacts", icon: Users },
-  { label: "Expenses", icon: Wallet },
-  { label: "Settings", icon: SettingsIcon, adminOnly: true },
+  { navKey: "dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+  { navKey: "products", icon: Package },
+  { navKey: "orders", icon: ShoppingBag },
+  { navKey: "contacts", icon: Users },
+  { navKey: "expenses", icon: Wallet },
+  { navKey: "settings", icon: SettingsIcon, adminOnly: true },
 ];
 
 export function AppShell({
@@ -47,6 +55,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const items = NAV.filter((i) => !i.adminOnly || role === "admin");
   const initial = (user.email?.[0] ?? "M").toUpperCase();
@@ -55,8 +64,8 @@ export function AppShell({
     <div className="flex min-h-screen w-full">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar transition-transform md:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-sidebar-border bg-sidebar transition-transform md:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full rtl:translate-x-full",
         )}
       >
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
@@ -66,7 +75,7 @@ export function AppShell({
           <div>
             <div className="text-sm font-bold text-gradient">MNW ERP</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Cash on Delivery
+              {t("tagline")}
             </div>
           </div>
         </div>
@@ -74,6 +83,7 @@ export function AppShell({
         <nav className="flex-1 space-y-1 p-3">
           {items.map((item) => {
             const Icon = item.icon;
+            const label = t(`nav.${item.navKey}`);
             const active =
               !!item.href &&
               (pathname === item.href || pathname.startsWith(item.href + "/"));
@@ -81,7 +91,7 @@ export function AppShell({
             if (item.href) {
               return (
                 <Link
-                  key={item.label}
+                  key={item.navKey}
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
@@ -92,20 +102,20 @@ export function AppShell({
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {item.label}
+                  {label}
                 </Link>
               );
             }
 
             return (
               <span
-                key={item.label}
+                key={item.navKey}
                 className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40"
               >
                 <Icon className="h-4 w-4" />
-                {item.label}
-                <Badge variant="outline" className="ml-auto">
-                  soon
+                {label}
+                <Badge variant="outline" className="ms-auto">
+                  {t("common.soon")}
                 </Badge>
               </span>
             );
@@ -124,14 +134,15 @@ export function AppShell({
               <div className="mt-0.5">
                 {role ? (
                   <Badge variant={role === "admin" ? "default" : "secondary"}>
-                    {ROLE_LABEL[role]}
+                    {t(`role.${role}`)}
                   </Badge>
                 ) : (
-                  <Badge variant="outline">no role</Badge>
+                  <Badge variant="outline">{t("common.noRole")}</Badge>
                 )}
               </div>
             </div>
           </div>
+          <LocaleSwitcher />
           <SignOutButton />
         </div>
       </aside>
@@ -143,7 +154,7 @@ export function AppShell({
         />
       )}
 
-      <div className="flex flex-1 flex-col md:pl-64">
+      <div className="flex flex-1 flex-col md:ps-64">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/60 px-4 backdrop-blur md:hidden">
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />

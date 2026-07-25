@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,17 +42,19 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="glass-card w-full max-w-md rounded-2xl p-8">
+        <div className="mb-6 flex items-center justify-end">
+          <LocaleSwitcher />
+        </div>
+
         <div className="mb-6 text-center">
           <div className="text-5xl">🛍️</div>
           <h1 className="mt-2 text-3xl font-bold text-gradient">MNW ERP</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your Cash on Delivery workspace
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("email")}</Label>
             <Input
               id="email"
               type="email"
@@ -62,7 +67,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("password")}</Label>
             <Input
               id="password"
               type="password"
@@ -82,7 +87,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Please wait..." : "Sign In"}
+            {busy ? t("busy") : t("submit")}
           </Button>
         </form>
       </div>
