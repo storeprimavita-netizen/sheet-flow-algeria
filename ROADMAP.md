@@ -9,8 +9,8 @@ Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 | 0 — DB schema | ✅ done | `mnw` |
 | 1 — Auth + RBAC scaffold | ✅ done | `mnw` |
 | 1½ — Typed client + design system | ✅ done | `mnw-finish-phase1-design` |
-| 2 — i18n (AR/EN + RTL) | ⏳ next | — |
-| 3 — Core ERP CRUD + order workflow | ☐ | — |
+| 2 — i18n (AR/EN + RTL) | ✅ done | `mnw-phase2-i18n` |
+| 3 — Core ERP CRUD + order workflow | ⏳ next | — |
 | 4 — Integrations (HMAC webhooks + settings) | ☐ | — |
 | 5 — BI dashboard + price calculator | ☐ | — |
 | 6 — Team automation (Slack) | ☐ | — |
@@ -26,8 +26,8 @@ Next 16 (`proxy.ts`), `@supabase/ssr`, session refresh, login, auth-gated dashbo
 ### Phase 1½ — Typed client + design ✅
 Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Card/Input/Label/Badge), AppShell with sidebar, polished login + dashboard.
 
-### Phase 2 — i18n
-`next-intl`, AR/EN message catalogs, locale switcher, RTL via `<html dir>`. All screens bilingual.
+### Phase 2 — i18n ✅
+`next-intl` (v4) without i18n routing — cookie-based locale. `src/messages/{en,ar}.json`, `src/i18n/request.ts` reads `locale` cookie, `NextIntlClientProvider` in root layout flips `<html dir>` to `rtl` for AR. Locale switcher (sidebar footer + login) toggles cookie + `router.refresh()`. Sidebar/borders use logical props (`start-0`/`border-e`/`ps-64`) + `rtl:` translate for mobile drawer. All nav/login/dashboard strings translated.
 
 ### Phase 3 — Core ERP CRUD
 - Products: 7 cost columns + status lifecycle (to_be_tested → tested → confirmed/cancelled).

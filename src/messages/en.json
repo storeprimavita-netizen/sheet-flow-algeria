@@ -1,0 +1,41 @@
+{
+  "tagline": "Cash on Delivery",
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "contacts": "Contacts",
+    "expenses": "Expenses",
+    "settings": "Settings"
+  },
+  "common": {
+    "signOut": "Sign out",
+    "soon": "soon",
+    "noRole": "no role"
+  },
+  "role": {
+    "admin": "Admin",
+    "confirmation_agent": "Confirmation Agent",
+    "delivery_agent": "Delivery Agent"
+  },
+  "login": {
+    "subtitle": "Sign in to your Cash on Delivery workspace",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "busy": "Please wait..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Welcome back. Here's what's being built.",
+    "soon": "soon",
+    "modules": {
+      "Products": { "title": "Products", "desc": "Catalog, costs & status lifecycle" },
+      "Orders": { "title": "Orders", "desc": "Confirmation queue → delivery handoff" },
+      "Contacts": { "title": "Contacts", "desc": "Customers, suppliers & partners" },
+      "Expenses": { "title": "Expenses", "desc": "Costs linked to products & orders" },
+      "BI": { "title": "BI", "desc": "Margins, COD rates & reliability" },
+      "Settings": { "title": "Settings", "desc": "Webhooks, secrets & team" }
+    }
+  }
+}
