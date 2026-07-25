@@ -392,6 +392,19 @@ export type Database = {
         }
         Relationships: []
       }
+      team_directory: {
+        Row: {
+          duty: string | null
+          email: string | null
+          is_team_member: boolean
+          meeting_late_minutes: number | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          slack_channel_id: string | null
+          slack_user_id: string | null
+          user_id: string
+        }
+        Relationships: []
+      }
     }
     Functions: {
       bootstrap_admin: { Args: { p_email: string }; Returns: string }

@@ -13,7 +13,7 @@ Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 | 3 — Core ERP CRUD + order workflow | ✅ done | `mnw-phase3-crud` |
 | 4 — Integrations (HMAC webhooks + settings) | ✅ done | `mnw-phase4-webhooks` |
 | 5 — BI dashboard + price calculator | ✅ done | `mnw-phase5-bi` |
-| 6 — Team automation (Slack) | ⏳ next | — |
+| 6 — Team automation (Slack) | ✅ done | `mnw-phase6-team` |
 
 ## Phases
 
@@ -45,8 +45,10 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 ### Phase 5 — BI + pricing ✅
 `/app/bi` (Analytics): revenue (delivered orders), confirmed/pending counts, COD delivery & return rates, avg product margin (selling − Σ costs). Top-customers reliability table from the `customer_profiles` view. Live **price calculator** (7 costs + margin % → suggested price + per-unit profit).
 
-### Phase 6 — Team automation
-`team_roles` management, Slack alerts on order events, meeting-lateness tracking.
+### Phase 6 — Team automation ✅
+- **`team_directory`** view (migration `00003_team_directory.sql`) — postgres-owned, joins `auth.users + user_roles + team_roles`, restricted to admins (`is_admin()`). Solves "auth.users isn't exposed over Postgrest" so the Team page can show emails. **Apply the migration + regenerate types.**
+- **`/app/team`** (admin): inline-edit every user's `team_roles` — duty, Slack user/channel, meeting-late minutes, active toggle — and add/remove members.
+- **Slack alerts on order events**: the order status update is now a **server action** (`orders/actions.ts`, RLS-enforced via the user's session client — same security as before) that logs the audit event, flips the status, then fires a best-effort Slack `chat.postMessage` (token + channel from `app_settings`; silently skips if Slack isn't configured). The client `OrderWorkflow` just calls the action.
 
 ## Git workflow
 

@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { createClient } from "@/lib/supabase/client";
-import type { Enums, Tables, TablesUpdate } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/supabase/database.types";
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +13,7 @@ import { Field } from "@/components/field";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES } from "@/lib/enums";
+import { updateOrderStatus } from "./actions";
 
 type OrderRow = Tables<"orders">;
 type EventRow = Tables<"order_events">;
@@ -49,34 +49,18 @@ export function OrderWorkflow({
       stage === "confirmation"
         ? String(fd.get("confirmation_status") ?? "")
         : String(fd.get("delivery_status") ?? "");
-    const currentStatus =
-      stage === "confirmation" ? order.confirmation_status : order.delivery_status;
-    const changed = status !== "" && status !== currentStatus;
 
-    const supabase = createClient();
+    const res = await updateOrderStatus({
+      orderId: order.id,
+      stage,
+      status,
+      comment,
+      orderNumber: order.order_number,
+    });
 
-    // Log the event BEFORE flipping the status: once a confirmation agent marks an
-    // order "confirmed" it leaves their RLS view, so a post-update event insert would
-    // be denied. Logging first keeps the audit trail intact.
-    if (changed) {
-      await supabase.from("order_events").insert({
-        order_id: order.id,
-        stage,
-        status,
-        comment: comment || null,
-      });
-    }
-
-    const patch: TablesUpdate<"orders"> = { agent_comment: comment || null };
-    if (changed) {
-      if (stage === "confirmation") patch.confirmation_status = status as Enums<"confirmation_status">;
-      else patch.delivery_status = status as Enums<"delivery_status">;
-    }
-
-    const { error: upErr } = await supabase.from("orders").update(patch).eq("id", order.id);
     setBusy(false);
-    if (upErr) {
-      setError(upErr.message);
+    if (!res.ok) {
+      setError(res.error);
       return;
     }
     router.refresh();
