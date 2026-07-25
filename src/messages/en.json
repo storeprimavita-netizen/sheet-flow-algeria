@@ -145,6 +145,22 @@
     "edit": "Edit expense",
     "none": "No expenses yet."
   },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Webhooks, secrets & team",
+    "webhooks": "Webhook endpoints",
+    "webhooksHint": "Configure these URLs in Lightfunnel / Shopify.",
+    "secrets": "Shared secrets",
+    "secretsHint": "Leave blank to keep the current value.",
+    "lightfunnelSecret": "Lightfunnel secret",
+    "shopifySecret": "Shopify secret",
+    "slackToken": "Slack bot token",
+    "slackChannel": "Slack channel ID",
+    "set": "set",
+    "notSet": "not set",
+    "copy": "Copy",
+    "copied": "Copied"
+  },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",
     "email": "Email",

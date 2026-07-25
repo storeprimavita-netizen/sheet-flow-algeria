@@ -145,6 +145,22 @@
     "edit": "تعديل المصروف",
     "none": "لا توجد مصاريف بعد."
   },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "الويبهوك والأسرار والفريق",
+    "webhooks": "نقاط الويبهوك",
+    "webhooksHint": "اضبط هذه الروابط في Lightfunnel / Shopify.",
+    "secrets": "الأسرار المشتركة",
+    "secretsHint": "اترك الحقل فارغاً للإبقاء على القيمة الحالية.",
+    "lightfunnelSecret": "سر Lightfunnel",
+    "shopifySecret": "سر Shopify",
+    "slackToken": "رمز روبوت Slack",
+    "slackChannel": "معرّف قناة Slack",
+    "set": "مُعيّن",
+    "notSet": "غير مُعيّن",
+    "copy": "نسخ",
+    "copied": "تم النسخ"
+  },
   "login": {
     "subtitle": "سجّل الدخول إلى مساحة عمل الدفع عند الاستلام",
     "email": "البريد الإلكتروني",
