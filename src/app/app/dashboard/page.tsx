@@ -11,6 +11,7 @@ const HREF: Partial<Record<(typeof MODULES)[number], string>> = {
   Orders: "/app/orders",
   Contacts: "/app/contacts",
   Expenses: "/app/expenses",
+  Settings: "/app/settings",
 };
 
 export default async function DashboardPage() {

@@ -42,7 +42,7 @@ const NAV: NavItem[] = [
   { navKey: "orders", href: "/app/orders", icon: ShoppingBag },
   { navKey: "contacts", href: "/app/contacts", icon: Users },
   { navKey: "expenses", href: "/app/expenses", icon: Wallet },
-  { navKey: "settings", icon: SettingsIcon, adminOnly: true },
+  { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
 ];
 
 export function AppShell({

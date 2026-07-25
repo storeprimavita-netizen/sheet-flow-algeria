@@ -11,8 +11,8 @@ Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 | 1½ — Typed client + design system | ✅ done | `mnw-finish-phase1-design` |
 | 2 — i18n (AR/EN + RTL) | ✅ done | `mnw-phase2-i18n` |
 | 3 — Core ERP CRUD + order workflow | ✅ done | `mnw-phase3-crud` |
-| 4 — Integrations (HMAC webhooks + settings) | ⏳ next | — |
-| 5 — BI dashboard + price calculator | ☐ | — |
+| 4 — Integrations (HMAC webhooks + settings) | ✅ done | `mnw-phase4-webhooks` |
+| 5 — BI dashboard + price calculator | ⏳ next | — |
 | 6 — Team automation (Slack) | ☐ | — |
 
 ## Phases
@@ -36,10 +36,11 @@ Typed `<Database>` on Supabase clients. Design tokens, UI primitives (Button/Car
 - **Expenses** (all users): list + create/edit; link to product/order; 8 categories.
 - Shared: `PageHeader`, `Empty`, `Field`, `ButtonLink`, `DeleteButton`, styled native `<select>` + `<textarea>`, DZD/date formatters, `requireAdmin()` UX gate, bilingual labels/statuses/actions. Dashboard cards + sidebar now link to live modules (Settings/BI still "soon").
 
-### Phase 4 — Integrations
-- `app_settings` (HMAC secrets, Slack token — admin-only).
-- Admin Settings page: shows exact webhook URLs to copy.
-- `/api/webhooks/{lightfunnel,shopify}` with HMAC validation → upsert orders.
+### Phase 4 — Integrations ✅
+- **`app_settings`** key/value table (migration `00002_app_settings.sql`) — admin-only RLS. Stores HMAC webhook secrets + Slack token. **Apply the migration** (Dashboard → SQL Editor) and **regenerate types** (`npx supabase gen types ...`) so `app_settings` types come from the DB instead of the hand-added entry.
+- **Webhook routes** `/api/webhooks/{lightfunnel,shopify}`: constant-time HMAC-SHA256 verification (hex for Lightfunnel, base64 for Shopify), then idempotent order upsert keyed on `(source, external_id)`. Re-deliveries never clobber agent workflow state (only logistics fields update). No user session → runs via a **service-role client** (`src/lib/supabase/admin.ts`); requires `SUPABASE_SERVICE_ROLE_KEY` in env. Customer contact find-or-create by phone.
+- **Admin Settings page** (`/app/settings`, admin-only): shows the exact webhook URLs to copy (computed from `APP_URL`/request host) + a per-secret set/not-set badge, and a form to store secrets (blank = keep current; never sends existing secrets to the browser).
+- Note: secrets live in an admin-only table; for production prefer Supabase Vault / env.
 
 ### Phase 5 — BI + pricing
 Dashboard: revenue, margins (selling_price − Σ costs), COD delivery/return rates, customer reliability. Price calculator: costs + margin → suggested price.
