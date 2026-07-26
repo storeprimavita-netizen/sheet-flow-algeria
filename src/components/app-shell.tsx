@@ -9,16 +9,8 @@ import {
   Package,
   ShoppingBag,
   Users,
-  Wallet,
-  BarChart3,
-  Calculator,
   UserCog,
   Settings as SettingsIcon,
-  CircleDollarSign,
-  Headset,
-  Boxes,
-  FileBarChart,
-  ShieldCheck,
   Menu,
 } from "lucide-react";
 
@@ -29,44 +21,22 @@ import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/app/app/dashboard/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
-type NavKey =
-  | "dashboard"
-  | "products"
-  | "orders"
-  | "workbench"
-  | "contacts"
-  | "expenses"
-  | "bi"
-  | "pricing"
-  | "team"
-  | "cash"
-  | "stock"
-  | "reports"
-  | "roles"
-  | "settings";
+type NavKey = "dashboard" | "orders" | "products" | "contacts" | "team" | "settings";
 
 type NavItem = {
   navKey: NavKey;
-  href?: string;
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
 };
 
+/** Exactly six sections (SPEC §1). Agents only ever see Orders — their queue. */
 const NAV: NavItem[] = [
   { navKey: "dashboard", href: "/app/dashboard", icon: LayoutDashboard },
-  { navKey: "products", href: "/app/products", icon: Package },
   { navKey: "orders", href: "/app/orders", icon: ShoppingBag },
-  { navKey: "workbench", href: "/app/workbench", icon: Headset },
+  { navKey: "products", href: "/app/products", icon: Package },
   { navKey: "contacts", href: "/app/contacts", icon: Users },
-  { navKey: "expenses", href: "/app/expenses", icon: Wallet },
-  { navKey: "bi", href: "/app/bi", icon: BarChart3 },
-  { navKey: "pricing", href: "/app/pricing", icon: Calculator, adminOnly: true },
-  { navKey: "team", href: "/app/team", icon: UserCog, adminOnly: true },
-  { navKey: "cash", href: "/app/cash", icon: CircleDollarSign, adminOnly: true },
-  { navKey: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
-  { navKey: "reports", href: "/app/reports", icon: FileBarChart, adminOnly: true },
-  { navKey: "roles", href: "/app/roles", icon: ShieldCheck, adminOnly: true },
-  { navKey: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
+  { navKey: "team", href: "/app/team", icon: UserCog },
+  { navKey: "settings", href: "/app/settings", icon: SettingsIcon },
 ];
 
 export function AppShell({
@@ -81,7 +51,7 @@ export function AppShell({
   const pathname = usePathname();
   const t = useTranslations();
   const [open, setOpen] = useState(false);
-  const items = NAV.filter((i) => !i.adminOnly || role === "admin");
+  const items = role === "admin" ? NAV : NAV.filter((i) => i.navKey === "orders");
   const initial = (user.email?.[0] ?? "M").toUpperCase();
 
   return (
@@ -109,39 +79,23 @@ export function AppShell({
             const Icon = item.icon;
             const label = t(`nav.${item.navKey}`);
             const active =
-              !!item.href &&
-              (pathname === item.href || pathname.startsWith(item.href + "/"));
-
-            if (item.href) {
-              return (
-                <Link
-                  key={item.navKey}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                    active
-                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </Link>
-              );
-            }
+              pathname === item.href || pathname.startsWith(item.href + "/");
 
             return (
-              <span
+              <Link
                 key={item.navKey}
-                className="flex cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/40"
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  active
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                )}
               >
                 <Icon className="h-4 w-4" />
                 {label}
-                <Badge variant="outline" className="ms-auto">
-                  {t("common.soon")}
-                </Badge>
-              </span>
+              </Link>
             );
           })}
         </nav>

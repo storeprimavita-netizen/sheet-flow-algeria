@@ -2,18 +2,10 @@
   "tagline": "Cash on Delivery",
   "nav": {
     "dashboard": "Dashboard",
-    "products": "Products",
     "orders": "Orders",
-    "workbench": "Workbench",
+    "products": "Products",
     "contacts": "Contacts",
-    "expenses": "Expenses",
-    "bi": "Analytics",
-    "pricing": "Pricing",
     "team": "Team",
-    "cash": "Cash",
-    "stock": "Stock",
-    "reports": "Reports",
-    "roles": "Roles",
     "settings": "Settings"
   },
   "common": {
@@ -166,26 +158,6 @@
     "edit": "Edit expense",
     "none": "No expenses yet."
   },
-  "bi": {
-    "title": "Business Intelligence",
-    "subtitle": "Revenue, margins & COD reliability",
-    "revenue": "Revenue (delivered)",
-    "pending": "Pending confirmation",
-    "confirmed": "Confirmed",
-    "deliveryRate": "Delivery rate",
-    "returnRate": "Return rate",
-    "avgMargin": "Avg product margin",
-    "customers": "Top customers",
-    "orders": "Orders",
-    "delivered": "Delivered",
-    "reliability": "Reliability",
-    "calculator": "Price calculator",
-    "calculatorHint": "Total cost + margin → suggested price",
-    "totalCost": "Total cost",
-    "margin": "Margin %",
-    "suggestedPrice": "Suggested price",
-    "profit": "Profit per unit"
-  },
   "pricing": {
     "title": "Pricing scenarios",
     "subtitleGeneral": "COD unit-economics planner (best / medium / worst)",
@@ -228,12 +200,11 @@
   },
   "team": {
     "title": "Team",
-    "subtitle": "Duties, Slack & meeting lateness",
+    "subtitle": "Duties & meeting lateness",
     "member": "team",
     "active": "Active member",
     "duty": "Duty",
     "late": "Late (min)",
-    "slackUser": "Slack user ID",
     "none": "No team members yet."
   },
   "cash": {
@@ -258,11 +229,6 @@
     "depositedMonth": "Deposited (month)"
   },
   "workbench": {
-    "title": "Workbench",
-    "subtitle": "Your queue — call, update, move on",
-    "none": "Your queue is clear.",
-    "attempts": "Attempts",
-    "comment": "Note",
     "assignment": "Assignment",
     "assignConfirmation": "Confirmation agent",
     "assignDelivery": "Delivery agent",
@@ -291,38 +257,6 @@
       "removal": "Removal"
     }
   },
-  "reports": {
-    "title": "Reports",
-    "subtitle": "Date range, P&L and CSV export",
-    "range": "Date range",
-    "from": "From",
-    "to": "To",
-    "apply": "Apply",
-    "export": "Export CSV",
-    "exportOrders": "Orders",
-    "exportExpenses": "Expenses",
-    "exportCash": "Cash",
-    "revenue": "Revenue (delivered)",
-    "expenses": "Expenses",
-    "net": "Net",
-    "collected": "Cash collected",
-    "deposited": "Cash deposited",
-    "byCategory": "Expenses by category",
-    "noData": "No data in this range."
-  },
-  "roles": {
-    "title": "Roles & access",
-    "subtitle": "Assign roles, invite users, reset passwords",
-    "invite": "Invite user",
-    "email": "Email",
-    "role": "Role",
-    "invited": "Invitation sent.",
-    "reset": "Reset password",
-    "resetSent": "Reset email sent.",
-    "roster": "Team access",
-    "none": "No users yet.",
-    "actions": "Actions"
-  },
   "reset": {
     "title": "Set a new password",
     "subtitle": "Choose a new password for your account.",
@@ -339,8 +273,6 @@
     "secretsHint": "Leave blank to keep the current value.",
     "lightfunnelSecret": "Lightfunnel secret",
     "shopifySecret": "Shopify secret",
-    "slackToken": "Slack bot token",
-    "slackChannel": "Slack channel ID",
     "set": "set",
     "notSet": "not set",
     "copy": "Copy",

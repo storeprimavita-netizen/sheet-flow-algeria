@@ -16,8 +16,8 @@ the bottom. Format:
 
 | Phase | File | Status |
 |---|---|---|
-| 0 — DB rebaseline + auth foundation | docs/phases/phase-00.md | pending |
-| 1 — Shell, six-section IA, guards, Slack removal | docs/phases/phase-01.md | pending |
+| 0 — DB rebaseline + auth foundation | docs/phases/phase-00.md | done |
+| 1 — Shell, six-section IA, guards, Slack removal | docs/phases/phase-01.md | done |
 | 2 — Settings section | docs/phases/phase-02.md | pending |
 | 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | pending |
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | pending |
@@ -106,3 +106,49 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   port 54322) may still be running — `npx supabase stop` to clean up. There is
   no `supabase/config.toml` (project linked, never `init`ed), so
   `gen types --local` fails; use `--linked` or `--db-url`.
+
+## Phase 1 — App shell, six-section IA, role guards, Slack removal (2026-07-26) — DONE
+- Done: sidebar (`src/components/app-shell.tsx`) now renders exactly six
+  entries (Dashboard, Orders, Products, Contacts, Team, Settings). Admins see
+  all six; confirmation/delivery agents see only Orders (SPEC §2 — "nothing
+  else"), enforced two ways: nav filter (`role === "admin" ? NAV : orders
+  only`) and a real route guard — one shared `AdminGuardLayout`
+  (`src/components/admin-guard-layout.tsx`, calls `requireAdmin("/app/orders")`)
+  re-exported as `layout.tsx` in `dashboard/`, `products/`, `contacts/`,
+  `team/`, `settings/`, and `orders/cash/` (cash reconciliation is admin-only
+  even though the rest of Orders is agent-visible). RLS remains the real wall;
+  these are UX redirects.
+- Route moves/deletions per phase file: `bi` + `reports` deleted (folded into
+  Dashboard conceptually — nothing to build yet, Phase 7 owns real BI/export);
+  `cash` moved to `orders/cash`; `stock` deleted (parked for Phase 3, no
+  `stock-manager.tsx` existed to preserve — Phase 0 already removed all v1
+  managers); `workbench` deleted (assignment card already lives in
+  `orders/[id]/assignment-card.tsx`); `roles` deleted, merged conceptually into
+  `team` (tabs are Phase 9). `expenses` and `pricing` routes were **left
+  untouched** — not named in the phase file's move list, still admin-gated by
+  their own page-level `requireAdmin` calls from Phase 0, and Phase 3/4 own
+  folding them into Products tabs. They're reachable by URL/dashboard quick
+  link but no longer in the sidebar (six-entry rule).
+- Slack: no `src/lib/slack.ts`, no Slack call in `orders/actions.ts`, no
+  `bi/price-calculator.tsx` — Phase 0 already deleted all of that. Only
+  leftover was `slackUser`/`slackToken`/`slackChannel` message keys and a
+  "Slack" mention in `team.subtitle` (en/ar) — removed. Also removed the
+  create-next-app placeholder SVGs in `public/` (unreferenced).
+- Files: new `src/components/admin-guard-layout.tsx` +  six one-line
+  `layout.tsx` re-exports; `app-shell.tsx` NAV rewritten (dropped the
+  `adminOnly`/optional-href/"soon"-badge branch, now dead with only six
+  always-linked entries); `dashboard/page.tsx` quick-links fixed (dropped the
+  dead `/app/bi` link, `expenses`/`pricing` links now read `expenses.title`/
+  `pricing.title` instead of removed `nav.expenses`/`nav.pricing` keys);
+  `src/messages/{en,ar}.json` trimmed to the six `nav.*` keys and dropped the
+  now-fully-unused `bi`/`reports`/`roles` blocks (kept `stock.*` — still used
+  by `products/page.tsx` for low-stock badges — and `cash.*`, `workbench.*`
+  pruned to only the keys `assignment-card.tsx` actually uses).
+- Known issues: none new. `expenses`/`pricing` are the only routes outside the
+  six-section IA and outside a layout guard; they rely on Phase 0's
+  page-level `requireAdmin` + RLS until Phase 3/4 absorb them into Products
+  tabs.
+- Next chat must know: `npm run build` green (no test script yet — N/A gate).
+  Orders stays a single flat list in Phase 1 (no all/confirmation/delivery
+  subview split) — that's explicitly Phase 5 scope ("Orders core") per the
+  phase table, not this phase's "moves, deletions, guards only" mandate.
