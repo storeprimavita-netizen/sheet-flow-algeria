@@ -25,7 +25,7 @@ the bottom. Format:
 | 6 — Webhooks v2 | docs/phases/phase-06.md | done |
 | 7 — Dashboard BI | docs/phases/phase-07.md | done |
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | done |
-| 9 — Team & Rules | docs/phases/phase-09.md | pending |
+| 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | pending |
 
 ## Planning (2026-07-26, Fable) — DONE
@@ -789,3 +789,97 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   confirmation/delivery agents by real identity and this phase's customer
   detail page's admin/agent branch is the pattern to copy for any other
   agent-readable-but-admin-editable page.
+
+## Phase 9 — Team & Rules (2026-07-26) — DONE
+- Done: replaced the Phase-0 `rebuildPending` stub with the full section.
+  **Users** (`/app/team`, root): profile list (name/email/duty/role/active) —
+  email comes from `supabase.auth.admin.listUsers()` since `profiles` has no
+  email column (only `auth.users` does); `InviteForm` calls `inviteUser()`
+  (service-role: `auth.admin.inviteUserByEmail` + same admin client
+  immediately assigns `workspace_id`/`role`/`duty`/`is_active=true` on the
+  resulting profile, `redirectTo` → `/reset-password`). Per-row edits
+  (`UserRow`, role/duty/active) use the normal session client — RLS/`pr_upd`
+  already allows it once `workspace_id` is set. **Invited users land
+  pre-assigned and active**, not inactive-until-claimed — documenting this
+  since the acceptance criteria asked which behavior was chosen; the
+  alternative (invite first, assign later) hits an RLS wall (see Decisions).
+  **Rules** (`/app/team/rules`): CRUD `rules_docs` (title/content/position,
+  up/down reorder swaps two `position` values), plain `whitespace-pre-wrap`
+  render for agents (no markdown lib, per the phase brief). **Meetings**
+  (`/app/team/meetings`, `[id]`): "Create next instances" computes the next
+  occurrence of each `settings.meeting_schedule` weekly slot and inserts a
+  `meetings` row per slot (skips if one already exists at that exact
+  timestamp) — no cron. Instance page: objectives checklist (add/toggle/
+  delete via `meeting_objectives`), `MarkHeldButton` (mark held), notes
+  textarea, attendees via the existing `MultiSelectSearch` component (Phase 7)
+  posting into a plain `<form action={setAttendees}>`. Dashboard's
+  next-meeting card now links to `/app/team/meetings` (was the bare
+  `/app/team` root, now Users). **Performance** (`/app/team/performance`):
+  `agent_performance` view joined to `profiles` for names; new
+  `formatDuration()` (`lib/format.ts`) turns a Postgres interval string
+  ("3 days 01:02:03" / "01:02:03") into "3d 1h 2m" — first parser-shaped
+  helper in this phase, given its own `format.test.ts` (5 cases) per
+  ponytail's "non-trivial logic gets one check" rule. **Audit log**
+  (`/app/team/audit`): GET filter form (table/actor/date), `audit_log`
+  rows (last 100) with a `diffRows()` helper rendering changed keys as
+  `key: old → new` (skips `created_at`/`updated_at` noise).
+- Decisions: **deleted the blanket `team/layout.tsx` `AdminGuardLayout`
+  re-export** (same move Phase 8 made for `contacts/layout.tsx`) — the
+  acceptance criteria require "/app/team redirects away (except rules read
+  view if linked)", which a section-wide guard can't express. Instead:
+  `team/page.tsx` (Users, root) calls `requireAdmin()` itself; `meetings/`,
+  `performance/`, `audit/` each get their own one-line `AdminGuardLayout`
+  re-export (mirrors `orders/cash/layout.tsx`, `suppliers/layout.tsx`);
+  `rules/page.tsx` has **no** guard at all — `rd_sel` RLS already lets every
+  authenticated role read, so the route just checks `isCurrentUserAdmin()` to
+  pick edit-form vs. read-only rendering. Agents have no "Team" nav entry
+  (six-entry rule, Phase 1) so `/app/team/rules` is reachable only by direct
+  URL/link, matching "if linked". **Invite must use the service-role client
+  for both steps, not just the invite call**: a freshly auth-triggered
+  profile row has `workspace_id = null` (00001_core.sql's
+  `handle_new_user()`), and `pr_upd`'s `USING` clause checks the row's
+  *current* `workspace_id` against `current_workspace_id()` — null never
+  matches, so even an admin's session client cannot assign a workspace to a
+  brand-new invitee. `admin.ts`'s doc comment already named "invites" as a
+  server-only use case for exactly this reason. **`markMeetingHeld` and
+  `inviteUser`/`updateUser` return `{ok,error}` instead of throwing** — read
+  Next 16's own error-handling doc
+  (`node_modules/next/dist/docs/01-app/01-getting-started/10-error-handling.md`)
+  before writing these, which explicitly says to model *expected* errors
+  (a validation failure, `guard_meeting_held`'s "fill the objectives
+  checklist" trigger exception) as return values, not throws — a thrown
+  server-action error can render as a bare digest in production, hiding the
+  message the phase brief explicitly asks to surface. Every other action in
+  this phase (rules CRUD, objectives, notes, attendees) keeps the
+  established throw-on-error convention from every prior phase, since those
+  aren't expected-failure paths. Mirrors the already-existing
+  `assignAgents`/`AssignmentCard` pattern (Phase 5) rather than introducing
+  `useActionState` — same effect, no new pattern in the codebase.
+- Fixed in passing (ponytail-review pass): first draft of `UserRow` used
+  three `useState`s to mirror the role/duty/active form fields, matching
+  none of the codebase's existing patterns; switched to uncontrolled inputs +
+  `FormData` read on submit (same shape `AssignmentCard` already uses),
+  ~10 fewer lines.
+- Known issues: not exercised in a live browser or against a live Supabase
+  project (no credentials this session, same class of gap as every phase
+  since Phase 0) — verified via `npm run build`/`npm test` (25 tests, +5 new
+  for `formatDuration`) and by re-reading the relevant RLS policies/triggers
+  (`pr_sel`/`pr_upd`/`guard_profiles` in 00001_core.sql, `rd_sel`/`m_all` and
+  `guard_meeting_held` in 00005_team.sql). The invite flow's actual email
+  delivery (Supabase's `inviteUserByEmail`) and the `guard_meeting_held`
+  trigger's error message reaching the UI end-to-end are unverified live —
+  same "no live DB access this session" gap Phases 2/3/6 already flagged for
+  their acceptance-criteria SQL checks. `TeamTabs` is now a third near-copy
+  of `OrderTabs`/`ContactTabs` (flagged, not extracted — Phase 8 already
+  deferred this same duplication once; still out of this phase's scope).
+  Performance page's rate column reuses `confirmed`/`delivered` counts
+  straight from the view with no live data to sanity-check against (same
+  "Phase 5 must produce real orders first" gap Phases 3/4/7 already noted for
+  their own stats surfaces).
+- Next chat must know: `npm run build` and `npm test` green (25 tests),
+  `graphify update .` run. **Phase 10** (polish/seed/RLS tests/deploy) is the
+  first phase with a real chance to exercise the invite flow, meeting-held
+  guard, and agent financial-blindness end-to-end with actual credentials —
+  every phase since Phase 0 has deferred that same live spot-check for lack
+  of a second test user or DB access; Phase 10 finally has "seed" in its
+  title, which is the natural place to close it out.

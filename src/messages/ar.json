@@ -94,6 +94,11 @@
       "test_ads": "إعلانات تجريبية",
       "scaling_ads": "إعلانات التوسّع",
       "other": "أخرى"
+    },
+    "meeting_status": {
+      "planned": "مُخطَّط",
+      "held": "منعقد",
+      "cancelled": "ملغى"
     }
   },
   "fields": {
@@ -271,13 +276,47 @@
     }
   },
   "team": {
-    "title": "الفريق",
-    "subtitle": "المهام وتأخّر الاجتماعات",
-    "member": "فريق",
-    "active": "عضو مفعّل",
+    "title": "الفريق والقواعد",
+    "subtitle": "المستخدمون والقواعد والاجتماعات والأداء وسجل التدقيق",
+    "tabs": {
+      "users": "المستخدمون",
+      "rules": "القواعد",
+      "meetings": "الاجتماعات",
+      "performance": "الأداء",
+      "audit": "سجل التدقيق"
+    },
+    "invite": "دعوة مستخدم",
     "duty": "المهمة",
-    "late": "التأخّر (دقيقة)",
-    "none": "لا يوجد أعضاء بعد."
+    "active": "مفعّل",
+    "none": "لا يوجد أعضاء بعد.",
+    "newRule": "قاعدة جديدة",
+    "ruleTitle": "العنوان",
+    "ruleContent": "المحتوى",
+    "rulesNone": "لا توجد قواعد بعد.",
+    "createNextInstances": "إنشاء الجلسات القادمة",
+    "upcoming": "القادمة",
+    "history": "السجل",
+    "meetingsNone": "لا توجد اجتماعات بعد.",
+    "objectives": "الأهداف",
+    "objectivesNone": "لا توجد أهداف بعد.",
+    "addObjective": "إضافة هدف",
+    "attendees": "الحضور",
+    "notes": "ملاحظات / قرارات",
+    "markHeld": "تعليم كمُنعقد",
+    "stage": "المرحلة",
+    "stageLabel": {
+      "confirmation": "التأكيد",
+      "delivery": "التوصيل"
+    },
+    "ordersHandled": "الطلبات المُعالجة",
+    "rate": "النسبة",
+    "lost": "مفقود",
+    "avgDecisionTime": "متوسط وقت القرار",
+    "performanceNone": "لا يوجد نشاط بعد.",
+    "table": "الجدول",
+    "action": "الإجراء",
+    "changes": "التغييرات",
+    "auditNone": "لا توجد سجلات تدقيق بعد."
   },
   "cash": {
     "title": "تسوية النقد",

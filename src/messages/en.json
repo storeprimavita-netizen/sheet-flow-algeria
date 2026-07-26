@@ -94,6 +94,11 @@
       "test_ads": "Test ads",
       "scaling_ads": "Scaling ads",
       "other": "Other"
+    },
+    "meeting_status": {
+      "planned": "Planned",
+      "held": "Held",
+      "cancelled": "Cancelled"
     }
   },
   "fields": {
@@ -267,13 +272,47 @@
     }
   },
   "team": {
-    "title": "Team",
-    "subtitle": "Duties & meeting lateness",
-    "member": "team",
-    "active": "Active member",
+    "title": "Team & Rules",
+    "subtitle": "Users, rules, meetings, performance & audit log",
+    "tabs": {
+      "users": "Users",
+      "rules": "Rules",
+      "meetings": "Meetings",
+      "performance": "Performance",
+      "audit": "Audit log"
+    },
+    "invite": "Invite user",
     "duty": "Duty",
-    "late": "Late (min)",
-    "none": "No team members yet."
+    "active": "Active",
+    "none": "No team members yet.",
+    "newRule": "New rule",
+    "ruleTitle": "Title",
+    "ruleContent": "Content",
+    "rulesNone": "No rules yet.",
+    "createNextInstances": "Create next instances",
+    "upcoming": "Upcoming",
+    "history": "History",
+    "meetingsNone": "No meetings yet.",
+    "objectives": "Objectives",
+    "objectivesNone": "No objectives yet.",
+    "addObjective": "Add objective",
+    "attendees": "Attendees",
+    "notes": "Notes / decisions",
+    "markHeld": "Mark held",
+    "stage": "Stage",
+    "stageLabel": {
+      "confirmation": "Confirmation",
+      "delivery": "Delivery"
+    },
+    "ordersHandled": "Orders handled",
+    "rate": "Rate",
+    "lost": "Lost",
+    "avgDecisionTime": "Avg. decision time",
+    "performanceNone": "No activity yet.",
+    "table": "Table",
+    "action": "Action",
+    "changes": "Changes",
+    "auditNone": "No audit entries yet."
   },
   "cash": {
     "title": "Cash reconciliation",
