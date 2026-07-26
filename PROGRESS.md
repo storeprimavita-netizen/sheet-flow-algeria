@@ -24,7 +24,7 @@ the bottom. Format:
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | done |
 | 6 — Webhooks v2 | docs/phases/phase-06.md | done |
 | 7 — Dashboard BI | docs/phases/phase-07.md | done |
-| 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | pending |
+| 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | done |
 | 9 — Team & Rules | docs/phases/phase-09.md | pending |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | pending |
 
@@ -692,3 +692,100 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `GRANT ALL ... TO anon, authenticated, service_role` + `ALTER DEFAULT
   PRIVILEGES` block will be needed again before any RLS-authenticated query
   will work.
+
+## Phase 8 — Contacts: customers + suppliers (2026-07-26) — DONE
+- Done: split `/app/contacts` (Phase-0 stub: a single admin-only supplier
+  CRUD list) into the two sections the phase brief calls for. **Customers**
+  now lives at `/app/contacts` itself — list from `customer_stats` (name,
+  phone, wilaya, total/delivered/returned counts, risk badge), a plain GET
+  search box (`?q=`) that runs two `.ilike()` queries (name, and phone after
+  `normalizeDzPhone(q)`) and merges by id in JS — chosen over a single
+  `.or()` string to avoid the same raw-filter-injection class Phase 5's
+  ponytail-review pass already flagged for the `all`-page agent filter.
+  Detail page `/app/contacts/[id]` shows an admin-editable form
+  (name/wilaya/commune/notes via new `saveCustomer` server action — no
+  create/delete, customers are order-created only), a **risk-score
+  breakdown** table (returned/cancelled/no-answer counts × `risk_weights`
+  from Settings, via `getSetting`) with the formula spelled out next to the
+  DB-computed `customer_stats.risk_score` badge (displayed, not
+  recalculated client-side, so it can never drift from the view), and full
+  order history. **Suppliers** moved to `/app/contacts/suppliers` (list/new/
+  `[id]`), admin-gated by a `layout.tsx` re-exporting the existing
+  `AdminGuardLayout` (same one-liner pattern as `orders/cash`). Supplier
+  detail page gained the **linked expense history + total** the phase brief
+  asks for (`expenses` filtered by `contact_id`, summed `amount_dzd`).
+  New `ContactTabs` (`contacts/tabs.tsx`) switches Customers/Suppliers for
+  admins only (mirrors `OrderTabs`) — returns `null` for agents, who only
+  ever have the customer view to begin with.
+- Decisions: **removed the blanket `AdminGuardLayout` from `contacts/
+  layout.tsx` entirely** (deleted the file) — Phase 1 had gated the whole
+  section admin-only, but this phase's own Notes section requires
+  "confirmation agents may open customer detail" and the acceptance
+  criteria require "customers visible" for agents. `customers` RLS
+  (`cu_sel`) already allows all authenticated roles to read, so the only
+  change needed was letting the route through; admin-only write stays
+  enforced by `saveCustomer`'s `requireAdminProfile()` (agents get a
+  read-only Meta view instead of the form) and by RLS itself. Agents don't
+  get a "Contacts" nav entry (Phase 1's six-entry rule is untouched), so in
+  practice they reach a customer's page via the new link on the customer
+  name in `orders/confirmation/row.tsx` (`→ /app/contacts/${order.
+  customer_id}`) — not by browsing the list, though nothing blocks that
+  either since RLS already permits it and the phase only asked to make
+  customers "visible", not to further restrict discovery. Suppliers stayed
+  fully admin-gated (`contacts` RLS is `co_adm`, admin-only) via the new
+  `suppliers/layout.tsx`. Extracted the confirmation queue's inline risk
+  badge into `src/components/risk-badge.tsx` (the phase brief's own
+  suggestion) and reused it in both new customer views — one `riskVariant`
+  implementation instead of two now.
+- Converted the supplier `ContactForm` off Phase 0's client-side
+  `supabase.from("contacts").insert/update` (a "use client" component) onto
+  a new `saveContact` server action in `contacts/actions.ts`, following the
+  Settings/Products server-action pattern CLAUDE.md mandates and that this
+  route had never adopted — zero client JS in the form now, `DeleteButton`
+  (already generic over `"contacts"`) kept for delete, matching the
+  established split (server action for create/update, `DeleteButton` for
+  delete) used by the product Expenses tab.
+- Wired the supplier selector into the product Expenses tab per the phase
+  brief ("replace the plain input left in Phase 3"): `[id]/expenses/
+  page.tsx`'s `contact_id` field is now a `<Select>` of `contacts` rows
+  instead of a raw UUID `<Input>` — `saveExpense`'s existing zod
+  preprocess (empty string → null) needed no changes since a `<Select>`
+  posts the same shape as the old `<Input>`.
+- Files: new `src/components/risk-badge.tsx`; new `src/app/app/contacts/
+  {actions.ts, tabs.tsx, suppliers/{layout.tsx, page.tsx, new/page.tsx,
+  [id]/page.tsx}}`; rewrote `contacts/page.tsx` (was supplier list, now
+  customer list), `contacts/[id]/page.tsx` (was supplier edit, now customer
+  detail), `contacts/contact-form.tsx` (client → server action); deleted
+  `contacts/layout.tsx`, `contacts/new/page.tsx` (moved to `suppliers/new`);
+  extended `orders/confirmation/row.tsx` (customer name links to
+  `/app/contacts/[id]`, uses `RiskBadge`) and `products/[id]/expenses/
+  page.tsx` (supplier `<Select>`); ~18 new `contacts.*`/`fields.weight` keys
+  in both locales (dropped the old generic `contacts.new/edit/none`, now
+  split into customer/supplier-specific keys — grepped first, nothing else
+  referenced the old keys).
+- Known issues: not exercised in a live browser (no credentials this
+  session, same class of gap as every phase since Phase 0) — verified via
+  `npm run build`/`npm test` green (20 tests, unchanged — no new test file;
+  this phase is UI/actions over already-tested `normalizeDzPhone` and the
+  Phase-7-verified `customer_stats` view, nothing new to unit-test) and by
+  re-reading the `cu_sel`/`cu_all`/`co_adm` RLS policies in
+  `00004_orders.sql` that back the "customers visible, suppliers invisible"
+  acceptance line. The risk-breakdown formula display was cross-checked
+  against `00006_analytics.sql`'s `customer_stats` SQL by hand (same
+  `w_ret·returned + w_can·cancelled + w_na·no_answer` shape) but not against
+  a live customer with real order history — no seed data exists in this
+  session's environment. Delivery agents can also reach `/app/contacts` and
+  customer detail (RLS `cu_sel` has no role predicate, only the confirmation
+  queue links to it) — SPEC §2 only mentions customer info for
+  confirmation_agent, but nothing forbids it for delivery_agent either, so
+  this was left open rather than added as a new restriction not asked for.
+- Next chat must know: `npm run build` and `npm test` green, `graphify
+  update .` run. `ContactTabs` (`contacts/tabs.tsx`) duplicates `OrderTabs`
+  (`orders/order-tabs.tsx`) near line-for-line — flagged in this phase's
+  ponytail-review pass as a ~30-line extraction opportunity, deliberately
+  not taken since it would mean editing a Phase 5 file outside this phase's
+  scope; worth doing if **Phase 9** (Team & Rules) or **Phase 10** (polish)
+  ever touches tab-switcher UI again. **Phase 9** can now assign
+  confirmation/delivery agents by real identity and this phase's customer
+  detail page's admin/agent branch is the pattern to copy for any other
+  agent-readable-but-admin-editable page.

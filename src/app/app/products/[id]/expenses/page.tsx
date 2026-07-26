@@ -24,9 +24,10 @@ export default async function ProductExpensesPage({
   const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: product }, { data: expenses }, usdRate, eurRate] = await Promise.all([
+  const [{ data: product }, { data: expenses }, { data: suppliers }, usdRate, eurRate] = await Promise.all([
     supabase.from("products").select("id").eq("id", id).maybeSingle(),
     supabase.from("expenses").select("*").eq("product_id", id).order("spent_on", { ascending: false }),
+    supabase.from("contacts").select("id, name").order("name"),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
   ]);
@@ -67,7 +68,14 @@ export default async function ProductExpensesPage({
                   <Input name="spent_on" type="date" required defaultValue={e.spent_on} />
                 </Field>
                 <Field label={t("fields.supplier")} hint={t("common.optional")}>
-                  <Input name="contact_id" defaultValue={e.contact_id ?? ""} />
+                  <Select name="contact_id" defaultValue={e.contact_id ?? ""}>
+                    <option value="">{t("fields.none")}</option>
+                    {(suppliers ?? []).map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </Select>
                 </Field>
                 <div className="flex gap-2 sm:col-span-7">
                   <Field label={t("fields.notes")} hint={t("common.optional")} className="grow">
@@ -107,7 +115,14 @@ export default async function ProductExpensesPage({
             <Input name="spent_on" type="date" required defaultValue={today} />
           </Field>
           <Field label={t("fields.supplier")} hint={t("common.optional")}>
-            <Input name="contact_id" />
+            <Select name="contact_id" defaultValue="">
+              <option value="">{t("fields.none")}</option>
+              {(suppliers ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label={t("fields.notes")} hint={t("common.optional")} className="sm:col-span-2">
             <Input name="note" />
