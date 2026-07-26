@@ -22,10 +22,12 @@ export function OrderWorkflow({
   order,
   role,
   events,
+  actorNames,
 }: {
   order: OrderRow;
   role: Role | null;
   events: EventRow[];
+  actorNames: Record<string, string>;
 }) {
   const router = useRouter();
   const t = useTranslations();
@@ -161,7 +163,7 @@ export function OrderWorkflow({
                       : t(`status.delivery_status.${ev.to_status}`)}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {formatDateTime(ev.created_at)}
+                    {ev.actor ? actorNames[ev.actor] : t("orders.systemActor")} · {formatDateTime(ev.created_at)}
                   </span>
                 </div>
                 {ev.comment ? <p className="text-muted-foreground">{ev.comment}</p> : null}

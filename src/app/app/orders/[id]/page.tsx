@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -51,6 +52,15 @@ export default async function OrderDetailPage({
     .select("*")
     .eq("order_id", id)
     .order("created_at", { ascending: false });
+
+  // `actor` has no FK (webhooks may write null) — resolve names separately.
+  const actorIds = [...new Set((events ?? []).map((e) => e.actor).filter((a): a is string => !!a))];
+  const { data: actors } = actorIds.length
+    ? await supabase.from("profiles").select("user_id, display_name").in("user_id", actorIds)
+    : { data: [] };
+  const actorNames = Object.fromEntries(
+    (actors ?? []).map((a) => [a.user_id, a.display_name ?? a.user_id.slice(0, 8)]),
+  );
 
   const isAdmin = await isCurrentUserAdmin();
 
@@ -108,7 +118,16 @@ export default async function OrderDetailPage({
         </Meta>
       </div>
 
-      <OrderWorkflow order={order} role={role} events={events ?? []} />
+      {order.is_duplicate_suspect && order.duplicate_of ? (
+        <div className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive">
+          {t("orders.duplicateWarning")}{" "}
+          <Link href={`/app/orders/${order.duplicate_of}`} className="underline">
+            {t("orders.viewDuplicate")}
+          </Link>
+        </div>
+      ) : null}
+
+      <OrderWorkflow order={order} role={role} events={events ?? []} actorNames={actorNames} />
 
       {isAdmin ? (
         <AssignmentCard

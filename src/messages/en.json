@@ -20,7 +20,9 @@
     "deleteConfirm": "Delete this item? This cannot be undone.",
     "updated": "Saved.",
     "error": "Something went wrong.",
-    "rebuildPending": "This section is being rebuilt — coming in a later phase."
+    "rebuildPending": "This section is being rebuilt — coming in a later phase.",
+    "prev": "Previous",
+    "next": "Next"
   },
   "actions": {
     "new": "New",
@@ -130,6 +132,14 @@
     "variants": "Variants",
     "images": "Images",
     "kind": "Kind",
+    "wilaya": "Wilaya",
+    "delivery_type": "Delivery type",
+    "delivery_fee": "Delivery fee",
+    "variant": "Variant",
+    "risk": "Risk",
+    "agent": "Agent",
+    "from": "From",
+    "to": "To",
     "none": "—"
   },
   "products": {
@@ -181,7 +191,17 @@
     "notFound": "This order is no longer visible to you — it may have moved to the next stage.",
     "history": "History",
     "workflow": "Update status / comment",
-    "eventsNone": "No events yet."
+    "eventsNone": "No events yet.",
+    "tabs": {
+      "all": "All",
+      "confirmation": "Confirmation",
+      "delivery": "Delivery",
+      "cash": "Cash"
+    },
+    "duplicateWarning": "Possible duplicate — same phone and product within the duplicate window.",
+    "viewDuplicate": "View original order",
+    "logAttempt": "Log attempt",
+    "systemActor": "System"
   },
   "expenses": {
     "title": "Expenses",
