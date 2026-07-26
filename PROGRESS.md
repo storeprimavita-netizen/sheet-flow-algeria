@@ -58,3 +58,44 @@ Execute that phase only, on branch mnw-XX; read nothing else unless the phase fi
 Use `graphify query` to orient instead of broad greps; invoke the ponytail:ponytail skill before writing code and ponytail:ponytail-review before merging.
 When `npm run build` (and `npm test` once it exists) is green: run `graphify update .`, append your handoff block here, merge --no-ff into mnw.
 ```
+
+## Phase 0 — DB rebaseline + auth foundation (2026-07-26) — PARTIAL (code complete + build green; remote reset needs the user, see below)
+- Done: all code adapted to the v2 schema; `npm run build` green. `rbac.ts`
+  now reads `profiles` (`getProfile()` → `{ role, workspaceId }`); orders/
+  products/contacts/expenses/dashboard point at v2 tables and every insert
+  sets `workspace_id`; status updates only touch `orders` (triggers write
+  `order_status_history`); webhooks read secrets from `integration_configs`
+  and upsert `customers` (source enum fixed to `lightfunnels`); enums updated
+  (`no_answer`, SUPPLIER_TYPES, ORDER_SOURCES, DELIVERY_TYPES,
+  CURRENCY_CODES, AD_KINDS) with EN/AR message keys. Types regenerated from a
+  local Supabase (same migrations — regen `--linked` after the remote reset
+  should be a no-op). Verified locally: migrations 00001–00007 apply clean and
+  `bootstrap_workspace('sh.wailbmg@gmail.com','MNW')` yields 1 workspace,
+  1 active admin, 58 wilaya_fees, 5 settings.
+- Stubbed ("rebuild pending" placeholder pages, old components deleted):
+  settings (Ph2), stock (Ph3), pricing (Ph4), cash + workbench (Ph5 — the
+  `assignAgents` action moved to `orders/actions.ts`, assignment card kept),
+  bi + reports (Ph7), team + roles (Ph9). Dashboard shows recent orders +
+  quick links only; KPI tiles return with the Phase 7 RPC.
+- Files: deleted `lib/slack.ts` (Slack removal pulled forward — it read
+  `app_settings`), `lib/app-settings.ts`, `lib/pricing-server.ts`, and all v1
+  manager components of the stubbed pages. Forms still do client-side inserts
+  with a `workspaceId` prop (server-action conversion belongs to each
+  feature's rebuild phase). Expense entry is DZD-only for now (`ponytail:`
+  comment; currency/fx UI in Phase 3); products low-stock threshold is a
+  const (settings key in Phase 3).
+- Known issues: webhooks don't yet log to `webhook_events` nor update
+  `last_event_at`, and assume a single workspace (Phase 6). Delivery-stage
+  comments aren't persisted (v2 has only `confirmation_comment`; history
+  trigger logs confirmation comments only).
+- Next chat must know: **the remote reset was NOT executed** — the Claude Code
+  permission classifier blocks destructive remote DB commands, so the user
+  must run, in order: (1) `npx supabase db reset --linked` (or the drop-schema
+  block from docs/DB.md §Applying + `npx supabase db push`); (2) sign up
+  `sh.wailbmg@gmail.com` at `/login`; (3) in the SQL editor:
+  `select public.bootstrap_workspace('sh.wailbmg@gmail.com','MNW');`
+  (4) `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
+  (expected no-op) and the phase-00 acceptance spot-checks (agent user sees
+  no financial rows). Until then the deployed app has no working DB. A local
+  Supabase db container (`supabase_db_mnw-erp`, port 54322) was left from
+  type generation — `npx supabase stop` to clean up.
