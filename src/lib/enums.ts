@@ -1,6 +1,6 @@
 /**
  * Source-of-truth enum value lists. Mirror the Postgres enums in
- * `supabase/migrations/00001_init.sql` and drive every <select> + status badge.
+ * `supabase/migrations/00001_core.sql` and drive every <select> + status badge.
  */
 
 export const PRODUCT_STATUSES = [
@@ -12,7 +12,7 @@ export const PRODUCT_STATUSES = [
 
 export const CONFIRMATION_STATUSES = [
   "wait_for_confirmation",
-  "not_answer",
+  "no_answer",
   "closed_phone",
   "cancelled",
   "confirmed",
@@ -31,12 +31,11 @@ export const DELIVERY_STATUSES = [
   "returned",
 ] as const;
 
-export const CONTACT_TYPES = [
+export const SUPPLIER_TYPES = [
   "shooting_studio",
   "atelier_couture",
   "emballage",
-  "customer",
-  "supplier",
+  "other",
 ] as const;
 
 export const EXPENSE_CATEGORIES = [
@@ -49,3 +48,11 @@ export const EXPENSE_CATEGORIES = [
   "scaling_ads",
   "other",
 ] as const;
+
+export const ORDER_SOURCES = ["shopify", "lightfunnels", "manual"] as const;
+
+export const DELIVERY_TYPES = ["home", "stopdesk"] as const;
+
+export const CURRENCY_CODES = ["DZD", "USD", "EUR"] as const;
+
+export const AD_KINDS = ["test", "scaling"] as const;

@@ -8,7 +8,7 @@ import { UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/field";
-import { assignAgents } from "@/app/app/workbench/actions";
+import { assignAgents } from "../actions";
 
 type Agent = { id: string; email: string };
 

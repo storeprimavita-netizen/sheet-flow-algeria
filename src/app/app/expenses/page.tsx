@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
 
   const { data: expenses } = await supabase
     .from("expenses")
-    .select("*, product:products(name), order:orders(order_number)")
+    .select("*, product:products(name)")
     .order("created_at", { ascending: false });
 
   return (
@@ -40,7 +40,6 @@ export default async function ExpensesPage() {
                   <th>{t("fields.category")}</th>
                   <th>{t("fields.amount")}</th>
                   <th>{t("fields.product")}</th>
-                  <th>{t("fields.order")}</th>
                   <th>{t("fields.notes")}</th>
                 </tr>
               </thead>
@@ -49,19 +48,16 @@ export default async function ExpensesPage() {
                   <tr key={e.id} className="hover:bg-muted/30">
                     <td>
                       <Link href={`/app/expenses/${e.id}`} className="font-medium hover:underline">
-                        {formatDate(e.incurred_on)}
+                        {formatDate(e.spent_on)}
                       </Link>
                     </td>
                     <td>
                       <Badge variant="secondary">{t(`status.expense_category.${e.category}`)}</Badge>
                     </td>
-                    <td>{formatCurrency(e.amount)}</td>
+                    <td>{formatCurrency(e.amount_dzd)}</td>
                     <td className="text-muted-foreground">{e.product?.name ?? "—"}</td>
-                    <td className="text-muted-foreground">
-                      {e.order?.order_number ?? "—"}
-                    </td>
-                    <td className="max-w-[20ch] truncate text-muted-foreground" title={e.notes ?? ""}>
-                      {e.notes ?? "—"}
+                    <td className="max-w-[20ch] truncate text-muted-foreground" title={e.note ?? ""}>
+                      {e.note ?? "—"}
                     </td>
                   </tr>
                 ))}

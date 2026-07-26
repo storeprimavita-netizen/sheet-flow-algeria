@@ -43,17 +43,16 @@ export default async function DashboardPage() {
   const isAdmin = await isCurrentUserAdmin();
   const supabase = await createClient();
 
-  const [{ data: kRaw }, { data: recent }] = await Promise.all([
-    supabase.rpc("dashboard_kpis"),
-    supabase
-      .from("orders")
-      .select(
-        "id,order_number,total_amount,confirmation_status,delivery_status,created_at,product:products(name),customer:contacts(name)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
-  const k = (kRaw as Kpis | null) ?? ZERO;
+  // KPI aggregates return with the Phase 7 dashboard RPC (00008_dashboard.sql);
+  // zeros until then so the page always renders.
+  const { data: recent } = await supabase
+    .from("orders")
+    .select(
+      "id,order_number,quantity,sale_price,confirmation_status,delivery_status,created_at,product:products(name),customer:customers(name)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(6);
+  const k = ZERO;
 
   const kpis = [
     { key: "confirmed", icon: CheckCircle2, month: k.month.confirmed, today: k.today.confirmed, accent: false },
@@ -157,7 +156,7 @@ export default async function DashboardPage() {
                       </td>
                       <td className="text-muted-foreground">{o.customer?.name ?? "—"}</td>
                       <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
-                      <td>{formatCurrency(o.total_amount)}</td>
+                      <td>{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
                       <td>
                         <Badge variant={o.confirmation_status === "confirmed" ? "default" : "secondary"}>
                           {t(`status.confirmation_status.${o.confirmation_status}`)}

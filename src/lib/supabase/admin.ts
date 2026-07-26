@@ -5,7 +5,7 @@ import type { Database } from "./database.types";
 /**
  * Service-role client — bypasses RLS. SERVER-ONLY: never import from a Client
  * Component or reference NEXT_PUBLIC-* vars alongside it. Used by webhook
- * routes (no user session) to read app_settings secrets and upsert orders.
+ * routes (no user session) to read integration secrets and upsert orders.
  *
  * Requires `SUPABASE_SERVICE_ROLE_KEY` in the environment.
  */

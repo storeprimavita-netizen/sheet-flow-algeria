@@ -16,7 +16,7 @@ import { CONFIRMATION_STATUSES, DELIVERY_STATUSES } from "@/lib/enums";
 import { updateOrderStatus } from "./actions";
 
 type OrderRow = Tables<"orders">;
-type EventRow = Tables<"order_events">;
+type EventRow = Tables<"order_status_history">;
 
 export function OrderWorkflow({
   order,
@@ -55,7 +55,6 @@ export function OrderWorkflow({
       stage,
       status,
       comment,
-      orderNumber: order.order_number,
     });
 
     setBusy(false);
@@ -78,8 +77,8 @@ export function OrderWorkflow({
           </Badge>
         </div>
 
-        {order.agent_comment ? (
-          <p className="text-sm text-muted-foreground">{order.agent_comment}</p>
+        {order.confirmation_comment ? (
+          <p className="text-sm text-muted-foreground">{order.confirmation_comment}</p>
         ) : null}
 
         <h2 className="text-sm font-semibold">{t("orders.workflow")}</h2>
@@ -114,7 +113,11 @@ export function OrderWorkflow({
         </div>
 
         <Field label={t("fields.agent_comment")} htmlFor="agent_comment" hint={t("common.optional")}>
-          <Textarea id="agent_comment" name="agent_comment" defaultValue={order.agent_comment ?? ""} />
+          <Textarea
+            id="agent_comment"
+            name="agent_comment"
+            defaultValue={order.confirmation_comment ?? ""}
+          />
         </Field>
 
         {error ? (
@@ -154,8 +157,8 @@ export function OrderWorkflow({
                   </Badge>
                   <span className="font-medium">
                     {ev.stage === "confirmation"
-                      ? t(`status.confirmation_status.${ev.status}`)
-                      : t(`status.delivery_status.${ev.status}`)}
+                      ? t(`status.confirmation_status.${ev.to_status}`)
+                      : t(`status.delivery_status.${ev.to_status}`)}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {formatDateTime(ev.created_at)}

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getProfile, requireAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { ExpenseForm } from "../expense-form";
@@ -11,6 +12,8 @@ export default async function EditExpensePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin("/app/expenses");
+  const profile = (await getProfile())!;
   const { id } = await params;
   const t = await getTranslations();
 
@@ -28,7 +31,7 @@ export default async function EditExpensePage({
       <PageHeader title={t("expenses.edit")}>
         <DeleteButton table="expenses" id={expense.id} redirectTo="/app/expenses" />
       </PageHeader>
-      <ExpenseForm expense={expense} />
+      <ExpenseForm expense={expense} workspaceId={profile.workspaceId} />
     </div>
   );
 }

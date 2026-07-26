@@ -15,26 +15,28 @@ import { EXPENSE_CATEGORIES } from "@/lib/enums";
 
 type ExpenseRow = Tables<"expenses">;
 type ProductOpt = { id: string; name: string };
-type OrderOpt = { id: string; order_number: string | null };
 
-export function ExpenseForm({ expense }: { expense?: ExpenseRow }) {
+export function ExpenseForm({
+  expense,
+  workspaceId,
+}: {
+  expense?: ExpenseRow;
+  workspaceId: string;
+}) {
   const router = useRouter();
   const t = useTranslations();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductOpt[]>([]);
-  const [orders, setOrders] = useState<OrderOpt[]>([]);
   const editing = Boolean(expense?.id);
 
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase.from("products").select("id, name").order("name"),
-      supabase.from("orders").select("id, order_number").order("created_at", { ascending: false }),
-    ]).then(([p, o]) => {
-      setProducts((p.data as ProductOpt[] | null) ?? []);
-      setOrders((o.data as OrderOpt[] | null) ?? []);
-    });
+    supabase
+      .from("products")
+      .select("id, name")
+      .order("name")
+      .then((p) => setProducts((p.data as ProductOpt[] | null) ?? []));
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,13 +48,14 @@ export function ExpenseForm({ expense }: { expense?: ExpenseRow }) {
     const opt = (n: string) => String(fd.get(n) ?? "").trim() || null;
     const amount = Number(fd.get("amount") ?? 0);
 
+    // ponytail: DZD-only entry for now; currency/fx fields land in Phase 3
     const payload: TablesInsert<"expenses"> = {
+      workspace_id: workspaceId,
       category: String(fd.get("category") ?? "other") as Enums<"expense_category">,
       amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
-      incurred_on: String(fd.get("incurred_on") ?? "").trim() || new Date().toISOString().slice(0, 10),
+      spent_on: String(fd.get("spent_on") ?? "").trim() || new Date().toISOString().slice(0, 10),
       product_id: opt("product_id"),
-      order_id: opt("order_id"),
-      notes: opt("notes"),
+      note: opt("note"),
     };
 
     const supabase = createClient();
@@ -84,13 +87,13 @@ export function ExpenseForm({ expense }: { expense?: ExpenseRow }) {
               defaultValue={expense?.amount ?? ""}
             />
           </Field>
-          <Field label={t("fields.incurred_on")} htmlFor="incurred_on">
+          <Field label={t("fields.incurred_on")} htmlFor="spent_on">
             <Input
-              id="incurred_on"
-              name="incurred_on"
+              id="spent_on"
+              name="spent_on"
               type="date"
               required
-              defaultValue={expense?.incurred_on ?? new Date().toISOString().slice(0, 10)}
+              defaultValue={expense?.spent_on ?? new Date().toISOString().slice(0, 10)}
             />
           </Field>
           <Field label={t("fields.category")} htmlFor="category">
@@ -112,19 +115,9 @@ export function ExpenseForm({ expense }: { expense?: ExpenseRow }) {
               ))}
             </Select>
           </Field>
-          <Field label={t("fields.order")} htmlFor="order_id" hint={t("common.optional")}>
-            <Select id="order_id" name="order_id" defaultValue={expense?.order_id ?? ""}>
-              <option value="">—</option>
-              {orders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.order_number ?? o.id.slice(0, 8)}
-                </option>
-              ))}
-            </Select>
-          </Field>
         </div>
-        <Field label={t("fields.notes")} htmlFor="notes" hint={t("common.optional")}>
-          <Textarea id="notes" name="notes" defaultValue={expense?.notes ?? ""} />
+        <Field label={t("fields.notes")} htmlFor="note" hint={t("common.optional")}>
+          <Textarea id="note" name="note" defaultValue={expense?.note ?? ""} />
         </Field>
       </div>
 

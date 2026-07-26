@@ -11,11 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/field";
-import { CONTACT_TYPES } from "@/lib/enums";
+import { SUPPLIER_TYPES } from "@/lib/enums";
 
 type ContactRow = Tables<"contacts">;
 
-export function ContactForm({ contact }: { contact?: ContactRow }) {
+export function ContactForm({
+  contact,
+  workspaceId,
+}: {
+  contact?: ContactRow;
+  workspaceId: string;
+}) {
   const router = useRouter();
   const t = useTranslations();
   const [busy, setBusy] = useState(false);
@@ -29,13 +35,13 @@ export function ContactForm({ contact }: { contact?: ContactRow }) {
 
     const fd = new FormData(e.currentTarget);
     const opt = (n: string) => String(fd.get(n) ?? "").trim() || null;
+    const phone = opt("phone");
     const payload: TablesInsert<"contacts"> = {
+      workspace_id: workspaceId,
       name: String(fd.get("name") ?? "").trim(),
-      type: String(fd.get("type") ?? "customer") as Enums<"contact_type">,
-      phone: opt("phone"),
-      city: opt("city"),
+      type: String(fd.get("type") ?? "other") as Enums<"supplier_type">,
+      phones: phone ? [phone] : [],
       location: opt("location"),
-      email: opt("email"),
       notes: opt("notes"),
     };
 
@@ -61,22 +67,16 @@ export function ContactForm({ contact }: { contact?: ContactRow }) {
             <Input id="name" name="name" required defaultValue={contact?.name ?? ""} />
           </Field>
           <Field label={t("fields.type")} htmlFor="type">
-            <Select id="type" name="type" defaultValue={contact?.type ?? "customer"}>
-              {CONTACT_TYPES.map((s) => (
+            <Select id="type" name="type" defaultValue={contact?.type ?? "other"}>
+              {SUPPLIER_TYPES.map((s) => (
                 <option key={s} value={s}>
-                  {t(`status.contact_type.${s}`)}
+                  {t(`status.supplier_type.${s}`)}
                 </option>
               ))}
             </Select>
           </Field>
           <Field label={t("fields.phone")} htmlFor="phone" hint={t("common.optional")}>
-            <Input id="phone" name="phone" defaultValue={contact?.phone ?? ""} />
-          </Field>
-          <Field label={t("fields.email")} htmlFor="email" hint={t("common.optional")}>
-            <Input id="email" name="email" type="email" defaultValue={contact?.email ?? ""} />
-          </Field>
-          <Field label={t("fields.city")} htmlFor="city" hint={t("common.optional")}>
-            <Input id="city" name="city" defaultValue={contact?.city ?? ""} />
+            <Input id="phone" name="phone" defaultValue={contact?.phones?.[0] ?? ""} />
           </Field>
           <Field label={t("fields.location")} htmlFor="location" hint={t("common.optional")}>
             <Input id="location" name="location" defaultValue={contact?.location ?? ""} />

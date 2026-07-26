@@ -3,13 +3,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
 
+export type Profile = { role: Role; workspaceId: string };
+
 /**
- * The signed-in user's role, read from `public.user_roles` (RLS-scoped).
- * Returns null when not signed in or when no role row exists yet.
+ * The signed-in user's profile row (`public.profiles`, RLS-scoped).
+ * Returns null when not signed in, inactive, or not yet in a workspace.
  *
  * RLS is the real enforcement boundary; this is for UI/UX gating only.
  */
-export async function getCurrentUserRole(): Promise<Role | null> {
+export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,12 +19,17 @@ export async function getCurrentUserRole(): Promise<Role | null> {
   if (!user) return null;
 
   const { data } = await supabase
-    .from("user_roles")
-    .select("role")
+    .from("profiles")
+    .select("role, workspace_id, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  return (data?.role as Role | undefined) ?? null;
+  if (!data?.is_active || !data.workspace_id) return null;
+  return { role: data.role as Role, workspaceId: data.workspace_id };
+}
+
+export async function getCurrentUserRole(): Promise<Role | null> {
+  return (await getProfile())?.role ?? null;
 }
 
 export async function isCurrentUserAdmin(): Promise<boolean> {
