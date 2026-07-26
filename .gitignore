@@ -48,3 +48,5 @@ next-env.d.ts
 
 # business reference sheets (kept local)
 *.xlsx
+supabase/.branches/
+supabase/.temp/
