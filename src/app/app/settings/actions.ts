@@ -2,19 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, MEETING_SLOT_COUNT } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/enums";
+import { fxRateFor } from "@/lib/fx";
 import type { Database } from "@/lib/supabase/database.types";
-
-async function adminProfile() {
-  const profile = await getProfile();
-  if (!profile || profile.role !== "admin") throw new Error("Forbidden");
-  return profile;
-}
 
 const num = (fd: FormData, name: string) => Number(fd.get(name) ?? 0);
 
@@ -100,16 +94,6 @@ const fixedFeeSchema = z.object({
   amount: z.coerce.number().min(0),
   currency: z.enum(CURRENCY_CODES),
 });
-
-async function fxRateFor(
-  supabase: SupabaseClient<Database>,
-  workspaceId: string,
-  currency: (typeof CURRENCY_CODES)[number],
-) {
-  if (currency === "DZD") return 1;
-  const { data } = await supabase.rpc("current_fx_rate", { p_ws: workspaceId, p_currency: currency });
-  return typeof data === "number" && data > 0 ? data : 1;
-}
 
 export async function saveFixedFee(id: string | null, formData: FormData) {
   const { workspaceId } = await adminProfile();

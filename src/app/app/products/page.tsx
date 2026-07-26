@@ -3,36 +3,33 @@ import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin } from "@/lib/rbac";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { LOW_STOCK_THRESHOLD, PRODUCT_STATUSES } from "@/lib/enums";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
-
-// ponytail: fixed low-stock threshold; becomes a settings key in Phase 3
-const LOW_STOCK_THRESHOLD = 5;
+import { setProductStatus } from "./actions";
 
 export default async function ProductsPage() {
   const t = await getTranslations();
-  const isAdmin = await isCurrentUserAdmin();
   const supabase = await createClient();
 
   const { data: products } = await supabase
     .from("products")
-    .select("*")
+    .select("*, product_costs(sourcing_cost_dzd)")
     .order("created_at", { ascending: false });
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("products.title")} subtitle={t("products.subtitle")}>
-        {isAdmin ? (
-          <ButtonLink href="/app/products/new">
-            <Plus />
-            {t("products.new")}
-          </ButtonLink>
-        ) : null}
+        <ButtonLink href="/app/products/new">
+          <Plus />
+          {t("products.new")}
+        </ButtonLink>
       </PageHeader>
 
       {!products?.length ? (
@@ -43,11 +40,12 @@ export default async function ProductsPage() {
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th />
                   <th>{t("fields.name")}</th>
-                  <th>{t("fields.sku")}</th>
                   <th>{t("fields.category")}</th>
                   <th>{t("fields.price")}</th>
                   <th>{t("stock.stock")}</th>
+                  <th>{t("products.costTotal")}</th>
                   <th>{t("fields.status")}</th>
                   <th>{t("fields.placed_at")}</th>
                 </tr>
@@ -59,14 +57,22 @@ export default async function ProductsPage() {
                   return (
                     <tr key={p.id} className="hover:bg-muted/30">
                       <td>
+                        {p.images[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- external supplier URLs, no next/image domain config this phase
+                          <img src={p.images[0]} alt="" className="h-8 w-8 rounded object-cover" />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-muted" />
+                        )}
+                      </td>
+                      <td>
                         <Link
                           href={`/app/products/${p.id}`}
                           className="font-medium hover:underline"
                         >
                           {p.name}
                         </Link>
+                        <div className="text-xs text-muted-foreground">{p.sku ?? "—"}</div>
                       </td>
-                      <td className="text-muted-foreground">{p.sku ?? "—"}</td>
                       <td className="text-muted-foreground">{p.category ?? "—"}</td>
                       <td>{formatCurrency(p.sale_price)}</td>
                       <td>
@@ -75,18 +81,20 @@ export default async function ProductsPage() {
                           {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
                         </Badge>
                       </td>
+                      <td>{formatCurrency(p.product_costs?.sourcing_cost_dzd)}</td>
                       <td>
-                        <Badge
-                          variant={
-                            p.status === "confirmed"
-                              ? "default"
-                              : p.status === "cancelled"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
-                          {t(`status.product_status.${p.status}`)}
-                        </Badge>
+                        <form action={setProductStatus.bind(null, p.id)} className="flex items-center gap-1">
+                          <Select name="status" defaultValue={p.status} className="h-7 py-0 text-xs">
+                            {PRODUCT_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {t(`status.product_status.${s}`)}
+                              </option>
+                            ))}
+                          </Select>
+                          <Button type="submit" size="sm" variant="ghost">
+                            {t("actions.save")}
+                          </Button>
+                        </form>
                       </td>
                       <td className="text-muted-foreground">{formatDate(p.created_at)}</td>
                     </tr>

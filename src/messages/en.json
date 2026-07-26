@@ -125,6 +125,11 @@
     "placed_at": "Placed at",
     "amount": "Amount",
     "incurred_on": "Date",
+    "supplier": "Supplier",
+    "rate": "Exchange rate",
+    "variants": "Variants",
+    "images": "Images",
+    "kind": "Kind",
     "none": "—"
   },
   "products": {
@@ -133,7 +138,31 @@
     "new": "New product",
     "edit": "Edit product",
     "none": "No products yet.",
-    "costTotal": "Cost total"
+    "costTotal": "Cost total",
+    "sourcing": "Sourcing cost",
+    "variantsHint": "One per line: label | sku (sku optional)",
+    "imagesHint": "One URL per line",
+    "adSpend": "Ad spend",
+    "tabs": {
+      "details": "Details",
+      "expenses": "Expenses",
+      "stock": "Stock",
+      "statistics": "Statistics"
+    },
+    "statistics": {
+      "received": "Received",
+      "confirmed": "Confirmed",
+      "delivered": "Delivered",
+      "returned": "Returned",
+      "confirmationRate": "Confirmation rate",
+      "deliveryRate": "Delivery rate",
+      "revenue": "Revenue",
+      "expensesByCategory": "Expenses by category",
+      "allocatedFixedFees": "Allocated fixed fees",
+      "netProfit": "Net profit",
+      "adCostPerDelivered": "Ad cost / delivered",
+      "profitPerDelivered": "Profit / delivered"
+    }
   },
   "contacts": {
     "title": "Contacts",
@@ -251,12 +280,10 @@
     "delta": "Δ",
     "reason": "Reason",
     "reasons": {
-      "initial": "Initial",
-      "restock": "Restock",
-      "order": "Order",
-      "return": "Return",
-      "adjustment": "Adjustment",
-      "removal": "Removal"
+      "purchase": "Purchase",
+      "correction": "Correction",
+      "delivered": "Delivered",
+      "returned": "Returned"
     }
   },
   "reset": {

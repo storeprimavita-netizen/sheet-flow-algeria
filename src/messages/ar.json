@@ -125,6 +125,11 @@
     "placed_at": "تاريخ الطلب",
     "amount": "المبلغ",
     "incurred_on": "التاريخ",
+    "supplier": "المورد",
+    "rate": "سعر الصرف",
+    "variants": "المتغيرات",
+    "images": "الصور",
+    "kind": "النوع",
     "none": "—"
   },
   "products": {
@@ -133,7 +138,31 @@
     "new": "منتج جديد",
     "edit": "تعديل المنتج",
     "none": "لا توجد منتجات بعد.",
-    "costTotal": "إجمالي التكلفة"
+    "costTotal": "إجمالي التكلفة",
+    "sourcing": "تكلفة التوريد",
+    "variantsHint": "سطر لكل عنصر: التسمية | الرمز (الرمز اختياري)",
+    "imagesHint": "رابط واحد في كل سطر",
+    "adSpend": "الإنفاق الإعلاني",
+    "tabs": {
+      "details": "التفاصيل",
+      "expenses": "المصاريف",
+      "stock": "المخزون",
+      "statistics": "الإحصائيات"
+    },
+    "statistics": {
+      "received": "المستلمة",
+      "confirmed": "المؤكدة",
+      "delivered": "الموصلة",
+      "returned": "المرتجعة",
+      "confirmationRate": "نسبة التأكيد",
+      "deliveryRate": "نسبة التوصيل",
+      "revenue": "الإيرادات",
+      "expensesByCategory": "المصاريف حسب الفئة",
+      "allocatedFixedFees": "حصة التكاليف الثابتة",
+      "netProfit": "صافي الربح",
+      "adCostPerDelivered": "تكلفة الإعلان / طلبية موصلة",
+      "profitPerDelivered": "الربح / طلبية موصلة"
+    }
   },
   "contacts": {
     "title": "جهات الاتصال",
@@ -255,12 +284,10 @@
     "delta": "Δ",
     "reason": "السبب",
     "reasons": {
-      "initial": "افتتاحي",
-      "restock": "تزويد",
-      "order": "طلب",
-      "return": "إرجاع",
-      "adjustment": "تسوية",
-      "removal": "إخراج"
+      "purchase": "شراء",
+      "correction": "تصحيح",
+      "delivered": "تم التوصيل",
+      "returned": "مرتجع"
     }
   },
   "reset": {

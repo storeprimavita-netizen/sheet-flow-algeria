@@ -19,7 +19,7 @@ the bottom. Format:
 | 0 — DB rebaseline + auth foundation | docs/phases/phase-00.md | done |
 | 1 — Shell, six-section IA, guards, Slack removal | docs/phases/phase-01.md | done |
 | 2 — Settings section | docs/phases/phase-02.md | done |
-| 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | pending |
+| 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | done |
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | pending |
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | pending |
 | 6 — Webhooks v2 | docs/phases/phase-06.md | pending |
@@ -208,3 +208,83 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   DZD-only/client-insert (Phase 0 debt, `ponytail:` comment) — Phase 3 owns
   folding it into Products and would be a natural place to also convert it
   to the server-action pattern this phase established.
+
+## Phase 3 — Products (details/expenses/ad-spend/stock) (2026-07-26) — DONE
+- Done: full Products section minus the Pricing tab (Phase 4). Product page
+  is four routed tabs — Details (`[id]/page.tsx`), Expenses (`[id]/expenses`),
+  Stock (`[id]/stock`), Statistics (`[id]/statistics`) — under a shared
+  `[id]/layout.tsx` that renders plain server-rendered nav links (no active-tab
+  highlight, no client JS — skipped as unrequested polish). All mutations
+  (product+cost, expenses, stock movements, ad-spend) are server actions +
+  zod in one colocated `src/app/app/products/actions.ts`, following the
+  Phase 2 Settings pattern exactly (plain `<form action={...}>`, `.bind(null,
+  id)` for edit/delete like `saveFixedFee`, zero `"use client"` except two
+  small shared widgets below) — this finishes converting Phase 0's
+  client-insert product/expense forms to the CLAUDE.md-mandated pattern.
+- Decisions: **deleted the standalone `/app/expenses` route** (4 files) and
+  folded its CRUD into the product's Expenses tab as inline row-forms
+  (mirrors `fixed-fees-section.tsx`'s edit/delete-via-`formAction` pattern) —
+  expenses were never part of the six-section IA, this was Phase-0/1 debt
+  explicitly flagged for this phase to fold in; dashboard quick-links updated
+  to drop the now-dead `/app/expenses` link. Extracted `fxRateFor` →
+  `src/lib/fx.ts` and the settings `adminProfile()` helper →
+  `rbac.ts:requireAdminProfile()` since both Settings (Phase 2) and Products
+  needed identical copies — deduped instead of copy-pasting a third time;
+  `settings/actions.ts` now imports both, behavior unchanged. New shared
+  `src/components/currency-rate-fields.tsx` (client, no state — plain
+  `onChange` DOM write) handles "pick a currency, rate auto-fills but stays
+  editable" for Expenses rows and the ad-spend widget; the product Details
+  page's sourcing-cost card deliberately does **not** use it — mirrors
+  `fixed_fees` instead (currency picker only, rate resolved silently server-
+  side via `current_fx_rate` at save), since sourcing cost is a single stable
+  value like a fixed fee, not a per-entry rate an admin tunes. Built
+  `src/components/ad-spend-entry.tsx` per the phase brief's exact shape:
+  fixed to one product via `productId` on the product page, falls back to a
+  product `<select>` when reused without it (Phase 7 Dashboard hook already
+  wired, just needs a call site). Statistics tab computes net profit inline
+  in `[id]/statistics/page.tsx` (not `src/lib/pricing.ts` — that's the
+  separate BENZ scenario engine, Phase 4's file) with the allocation formula
+  as a code comment: workspace fixed-fees total × (this product's delivered ÷
+  all-products' delivered), all-time since there's no period filter yet
+  (Phase 7 BI). Manual stock entry only allows `purchase`/`correction`
+  (`delivered`/`returned` are the order-status trigger's job, Phase 5);
+  movement history has no edit/delete — it's an append-only ledger, deleting
+  a row would desync the trigger-maintained `products.stock`.
+- Fixed in passing: `stock.reasons.*` message keys (`initial/restock/order/
+  return/adjustment/removal`) were leftover v1 wording that never matched the
+  real `stock_reason` enum (`purchase/correction/delivered/returned`) —
+  replaced in both `en.json`/`ar.json` since the Stock tab renders them.
+  Added `MANUAL_STOCK_REASONS`/`LOW_STOCK_THRESHOLD` to `lib/enums.ts` so the
+  reason list and the low-stock magic number each have one home instead of
+  being copy-pasted between the list page and the new Stock tab. Also
+  dropped the dead page-level `requireAdmin()`/`getProfile()` calls in
+  `products/new` and `products/[id]` — redundant since Phase 1's
+  `AdminGuardLayout` already guards the whole `/app/products` tree.
+- Files: new `src/app/app/products/actions.ts`, `src/lib/fx.ts`,
+  `src/components/{currency-rate-fields,ad-spend-entry}.tsx`,
+  `src/app/app/products/[id]/{layout.tsx,expenses/page.tsx,stock/page.tsx,
+  statistics/page.tsx}`; rewrote `product-form.tsx` (server action, added
+  variants/images/sourcing-cost fields) and `products/page.tsx` (image
+  thumbnail, cost-total column via `product_costs` embed, inline quick-
+  status-change form); deleted `src/app/app/expenses/` (4 files); trimmed
+  `dashboard/page.tsx` quick-links; `rbac.ts` gained `requireAdminProfile`.
+- Known issues: the `stock_movements` → `products.stock` trigger effect was
+  verified by reading migration `00003_products.sql` only, not exercised
+  against a live DB this session (no live DB access here — same class of gap
+  as Phase 2's audit_log note). Statistics tab will show all zeros/— in every
+  workspace until Phase 5 (Orders) produces real rows — expected, not a bug;
+  the net-profit/allocation formula itself is unverified against real
+  numbers for the same reason. Expense→supplier linking is a raw UUID text
+  input (per the phase brief, Phase 8 builds the real picker) — a typo
+  surfaces as a Postgres FK error, not a friendly message.
+- Next chat must know: `npm run build` green (still no test script — N/A
+  gate), `graphify update .` run. **Phase 4** re-adds the Pricing tab into
+  `[id]/layout.tsx`'s tab list and owns `src/lib/pricing.ts` +
+  `product_scenarios` — should not need to touch this phase's sourcing-cost
+  card beyond reading `product_costs`. **Phase 5** (Orders) is what turns
+  Statistics-tab numbers non-zero, and owns wiring the `delivered`/`returned`
+  stock-movement writes (trigger already exists per `docs/DB.md` §Order
+  triggers, just needs live orders). **Phase 7** (Dashboard BI) reuses
+  `AdSpendEntry` — call it without `productId`, pass a `products` list —
+  and should read this phase's net-profit formula comment before adding any
+  aggregate/period-scoped version of it.
