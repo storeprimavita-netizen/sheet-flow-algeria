@@ -32,6 +32,7 @@ Finally regenerate types:
 | `bootstrap_workspace(email, name)` | One-shot first workspace + admin + seed |
 | `seed_workspace(ws)` | Idempotent per-workspace defaults (58 fee rows + settings) |
 | `audit_row()` | Generic audit trigger fn → `audit_log` |
+| `transition_order_status(order_id, confirmation_status?, delivery_status?, comment?)` | Security-definer status transition (00009) — a plain agent `UPDATE` moving `confirmation_status` to `'confirmed'` fails RLS because the post-update row no longer satisfies the agent's own SELECT policy; re-checks authorization manually and bypasses that. Used by every agent-facing status change instead of `.update()`. |
 
 ## Tables (all have `workspace_id` unless noted)
 

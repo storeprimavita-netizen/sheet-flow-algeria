@@ -26,7 +26,7 @@ the bottom. Format:
 | 7 — Dashboard BI | docs/phases/phase-07.md | done |
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | done |
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
-| 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | pending |
+| 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -883,3 +883,178 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   every phase since Phase 0 has deferred that same live spot-check for lack
   of a second test user or DB access; Phase 10 finally has "seed" in its
   title, which is the natural place to close it out.
+
+## Phase 10 — Polish, seed, RLS tests, deploy (2026-07-26) — PARTIAL (deploy handed off)
+
+- Done: **`scripts/seed-dev.ts`** (deterministic, dev-only, refuses to run
+  against a non-local `NEXT_PUBLIC_SUPABASE_URL` unless `--force`) — 3 users
+  (admin/confirmation/delivery, fixed emails `*@seed.mnw` / `SeedDev!2026`), 5
+  products with costs/scenarios/expenses/ad-spend/initial stock, 58 wilaya
+  fees filled for the top 12, 2 FX rates, 2 suppliers, ~60 orders spanning
+  every confirmation/delivery status combination (including 2 orders that
+  provoke a real duplicate-suspect flag), 2 meetings (one held with
+  objectives, one planned), 2 rules docs. Idempotent — safe to re-run against
+  the same DB. Run natively: `node --env-file=.env.local scripts/seed-dev.ts`
+  (Node 20+ strips TS types with no ts-node/tsx dependency; only `import
+  type` crosses the `@/` alias, which is erased before Node ever tries to
+  resolve it — runtime imports from this script use relative paths).
+- Done: **RLS test suite** (`src/lib/rls.test.ts`, 40 tests) — real signed-in
+  `supabase-js` clients (not SQL role simulation) against every financial
+  table (`product_costs`, `expenses`, `ad_spend_daily`, `fixed_fees`,
+  `exchange_rates`, `cash_collections`, `product_scenarios`, `settings`,
+  `contacts`, plus `audit_log`/`webhook_events` handled separately since
+  they have no `authenticated` insert policy at all): agent select ⇒ 0 rows,
+  admin select ⇒ sees the seeded rows (so a passing "0 rows" test can't be
+  hiding an accidentally-empty table), agent insert ⇒ rejected. Orders:
+  confirmation/delivery agent visibility-window counts cross-checked against
+  admin's own count of the same predicate, cross-stage update rejection, two
+  legitimate-transition regression tests (see the critical fix below), and
+  cross-workspace isolation via a second real workspace + admin user. Opt-in
+  via `LOCAL_SUPABASE_URL` env var — `npm test` stays green with no local
+  Supabase running (5 files/25 tests pass, this suite cleanly skips) and
+  green with it running (5 files/63 tests, all real).
+- **Local Supabase docker stack**: the hand-assembled stack from Phase 0/7
+  (`supabase_*_mnw-erp` containers, ports 54321/54322) was still running from
+  a prior session — used for all of the above instead of the linked remote
+  project (never touch real customer data with test writes). It uses
+  Supabase's published self-hosting demo JWT keys (the well-known
+  `supabase-demo` anon/service_role tokens from the public docker-compose.yml
+  example — not a secret of this project) — confirmed by a successful
+  authenticated request, which is how the RLS suite and seed script talk to
+  it without needing to read anything out of the containers. Two local-stack
+  quirks fixed in passing (present because this stack was hand-assembled, not
+  `supabase start` — not migrated, not relevant to the linked remote/any real
+  Supabase platform): (1) `auth.users` had NULL token/`created_at`/
+  `raw_app_meta_data` columns for the one hand-inserted admin from Phase 0,
+  which crashes GoTrue's `/admin/users` with "Database error finding users" —
+  backfilled with `coalesce(...,'')`/`now()`; (2) migration 00008 hadn't been
+  applied to this stack yet — applied directly.
+- **CRITICAL FIX — `supabase/migrations/00009_order_transitions.sql`**: the
+  E2E pass found that confirmation agents could **never** actually confirm an
+  order through the app — `updateConfirmationStatus`/`updateOrderStatus`'s
+  plain `.update({ confirmation_status: "confirmed" })` has been silently
+  rejected with "new row violates row-level security policy" for every
+  confirmation_agent since Phase 5, because PostgreSQL requires the
+  post-UPDATE row to still satisfy the table's SELECT policy (`o_sel`) for
+  the calling role — not just the UPDATE policy's WITH CHECK (`o_upd`) — and
+  `o_sel` hides confirmed orders from confirmation_agent by design (that's
+  the whole point of the queue). Proven empirically (not just by reading
+  docs) by relaxing `o_upd`'s WITH CHECK alone (no effect) vs. relaxing
+  `o_sel` alone (fixes it) via `alter policy ... using (...)` inside a rolled
+  back transaction. Fix: `transition_order_status(order_id,
+  confirmation_status?, delivery_status?, comment?)`, a `security definer`
+  RPC (same pattern as `current_workspace_id()`/`is_admin()`/
+  `bootstrap_workspace`) that re-implements `o_upd`'s authorization check
+  itself (bypassing the problem entirely) and writes directly;
+  `guard_order_fields` still runs (keyed off `auth.uid()`, unaffected by the
+  function's elevated privileges) so per-role field restrictions are
+  unchanged. `updateOrderStatus`, `updateConfirmationStatus`,
+  `updateDeliveryStatus` (`src/app/app/orders/actions.ts`) all switched from
+  `.update()` to `.rpc("transition_order_status", ...)`. Regression-tested
+  live in `rls.test.ts` (confirmation agent CAN confirm; delivery agent
+  attempting the same transition is still rejected — the RPC's own
+  authorization check, not RLS, is what's actually gating it now).
+  `database.types.ts` hand-patched with the new RPC signature (same
+  `--db-url` local regen + hand-merge precedent as Phase 7's `dashboard_stats`
+  — remote doesn't have migration 00009 yet, see Next chat/backlog).
+- **CRITICAL FIX #2 — webhook orders never had a `product_id`**: `MappedOrder`
+  (Phase 6) never had a product field at all, so every webhook-sourced order
+  landed with `product_id = null` — which silently disabled duplicate
+  detection (`flag_duplicate_order` requires `product_id is not null`),
+  stock effects (`order_stock_effects` no-ops on null `product_id`), and
+  every per-product stat/dashboard breakdown for the entire primary order
+  source, since Phase 6. No admin UI exists to fix an order's product after
+  the fact either. Found live: a webhook fixture with no product-identifying
+  field produced exactly this. Fix (`src/lib/webhook.ts`): `MappedOrder`
+  gained `product_sku`/`product_name`; new `matchProduct()` (mirrors the
+  existing `matchWilayaCode()` pattern exactly — exact SKU match, then
+  exact/substring name match, else null) resolves `product_id` in
+  `applyMappedOrder`; both provider `map()` functions populate the two new
+  fields from `line_items[0]` (`sku`/`title`/`product_title` — **best-effort
+  guess, same caveat Phase 6 already flagged for wilaya/delivery-fee field
+  names: no real provider payload sample was available, adjust
+  `lightfunnelProvider.map`/`shopifyProvider.map` once one is seen**).
+  `webhook.test.ts` extended (not new tests — added assertions to the
+  existing shape tests) to cover `product_sku`/`product_name` extraction.
+  Full chain re-verified live end-to-end after the fix: webhook → product
+  resolved → second webhook (same phone+resolved product) → duplicate
+  flagged → confirmed (agent, via the RPC) → delivered (agent) → revenue
+  appears in `dashboard_stats` → returned → stock and `product_stats` both
+  adjust correctly → cash collected → deposited. Every step exercised through
+  the real signed-in-client code paths (webhook route's own `processWebhook`
+  called directly, not re-implemented), not raw SQL.
+- **Polish**: extracted `src/components/tabs-nav.tsx` (`TabsNav`) — a
+  ~30-line admin-only tab-switcher shape that `OrderTabs`/`ContactTabs` had
+  each duplicated (flagged by Phase 8's and Phase 9's ponytail-review passes,
+  deferred both times as out-of-scope; Phase 10 is "polish", the deferred-to
+  phase). `OrderTabs`, `ContactTabs`, `TeamTabs` are now ~15-line wrappers
+  that resolve their own translations and pass plain tabs to `TabsNav`. Swept
+  for i18n gaps (no hardcoded EN strings or raw `ml-/mr-/left-/right-`
+  physical CSS found outside `ui/` primitives — already clean) and dead code
+  (no file under `src/components`/`src/lib` with zero importers). ponytail-
+  review pass on this phase's own diff cut a 10-line hand-rolled mulberry32
+  PRNG from `seed-dev.ts` (only used for cosmetic amount variance in a
+  script whose entire point is determinism) down to a 1-line index-based
+  `vary()` — same "not all identical" texture, zero RNG machinery.
+- **Known issues**: mobile sidebar and RTL were **not** spot-checked in an
+  actual browser — no browser-automation tool available this session, same
+  structural gap as the live-UI checks every phase since Phase 0 has noted;
+  everything in this phase was verified live at the data/RLS/business-logic
+  layer instead (arguably a stronger check for the RLS/E2E acceptance
+  criteria specifically, but doesn't cover visual/responsive rendering).
+  Migration 00009 and the `matchProduct` webhook fix are **not yet applied to
+  the linked remote project** — only to the local docker stack used for this
+  session's verification; `npx supabase db push` must run against the linked
+  project before the fixes take effect there (see Next chat must know). The
+  local docker stack now carries a small amount of harmless test-residue
+  drift (a couple of `stock_movements` rows' worth) from this session's live
+  E2E poking beyond the pristine seed numbers — cosmetic only, a fresh
+  `db reset` + reseed reproduces the exact numbers documented above.
+- **Deploy — handed off, not done by me**: no Vercel CLI/project link exists
+  in this repo, and deploying + owning production secrets is the user's own
+  action (their Vercel account), not something to do unattended. Exact
+  handoff:
+  1. `npx supabase db push` (linked project) to apply migration 00009 (and
+     confirm 00001–00008 are already applied there — Phase 0 already did the
+     initial rebaseline push).
+  2. `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
+     to pick up `transition_order_status` from the remote (this session's
+     copy was hand-merged from a local regen — this step reconciles it).
+  3. `vercel link` (or the Vercel dashboard → New Project → import this repo).
+  4. Env vars (Project Settings → Environment Variables, all three
+     environments): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+     `SUPABASE_SERVICE_ROLE_KEY` (server-only — do **not** prefix with
+     `NEXT_PUBLIC_`), `APP_URL` (the deployed URL once known — used for
+     invite-email redirects).
+  5. Deploy (`vercel --prod` or push to the connected branch).
+  6. Run one real webhook against the deployed URL (Phase 6's curl fixtures,
+     `PROGRESS.md`'s Phase 6 entry, pointed at the deployed domain instead of
+     localhost) and update the provider's webhook URL + secret in Settings →
+     Integrations to the production values once confirmed working.
+  7. Free-tier constraints to plan around: Supabase free tier pauses the
+     project after ~1 week with no activity (first request after a pause is
+     slow while it wakes up) and caps the database at 500 MB; Vercel's
+     hobby/free tier has no long-running background jobs (fine here — no
+     cron in this app) and a function-duration cap (webhooks are simple
+     upserts, well under it).
+- **Backlog** (not this phase, not attempted): FR locale (strings are
+  centralized in `src/messages/{en,ar}.json`, a third `fr.json` + a
+  `next-intl` config entry is the whole job); a real carrier API integration
+  (delivery status currently only changes by hand or via the two webhook
+  providers, no carrier push/pull); the SaaS multi-workspace signup flow
+  (`bootstrap_workspace` is a one-shot single-tenant function by design —
+  `docs/SPEC.md`'s deviation #2 already flags this as deliberately deferred);
+  product/variant image uploads (`products.images` is a plain `text[]` of
+  URLs today, no upload widget or storage bucket wired up).
+- **Next chat must know**: `npm run build` green, `npm test` green (63 tests
+  with `LOCAL_SUPABASE_URL` set, 25 without — the RLS suite is opt-in by
+  design), `graphify update .` run. The two critical fixes
+  (`transition_order_status`, webhook `matchProduct`) are live-verified on
+  the **local** stack only — running `npx supabase db push` against the
+  linked remote project is the first thing that should happen before or
+  during the Vercel deploy handoff above, otherwise the remote project still
+  has the confirmation-workflow bug this phase found. If real Shopify/
+  LightFunnels payloads become available, cross-check
+  `product_sku`/`product_name` extraction in both `map()` functions against
+  them (same field-name-guess caveat Phase 6 left for wilaya/delivery-fee,
+  now extended to product matching).

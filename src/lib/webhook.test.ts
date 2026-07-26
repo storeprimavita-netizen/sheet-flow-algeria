@@ -34,7 +34,7 @@ describe("shopifyProvider.map", () => {
       created_at: "2026-01-01T00:00:00Z",
       customer: { first_name: "Amine", last_name: "K", phone: "0555123456" },
       shipping_address: { city: "Alger", province: "Alger", address1: "Rue X" },
-      line_items: [{ quantity: 2, variant_title: "Rouge / M" }],
+      line_items: [{ quantity: 2, variant_title: "Rouge / M", sku: "DRESS-A", title: "Robe Zahra" }],
       shipping_lines: [{ price: "400", code: "home" }],
     });
     expect(mapped).toMatchObject({
@@ -47,6 +47,8 @@ describe("shopifyProvider.map", () => {
       delivery_fee: 400,
       delivery_type: "home",
       variant: "Rouge / M",
+      product_sku: "DRESS-A",
+      product_name: "Robe Zahra",
     });
   });
 
@@ -68,7 +70,7 @@ describe("lightfunnelProvider.map", () => {
       created_at: "2026-01-01T00:00:00Z",
       customer: { full_name: "Sara B", phone: "0666112233" },
       shipping_address: { city: "Oran", province: "Oran" },
-      line_items: [{ quantity: 1, variant: "Bleu / L" }],
+      line_items: [{ quantity: 1, variant: "Bleu / L", sku: "ABAYA-N" }],
       shipping_fee: 350,
       delivery_type: "stopdesk",
     });
@@ -81,6 +83,7 @@ describe("lightfunnelProvider.map", () => {
       delivery_fee: 350,
       delivery_type: "stopdesk",
       variant: "Bleu / L",
+      product_sku: "ABAYA-N",
     });
   });
 });

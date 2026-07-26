@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Enums, TablesUpdate } from "@/lib/supabase/database.types";
+import type { Enums } from "@/lib/supabase/database.types";
 import { isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { upsertCustomerFromOrder } from "@/lib/customers";
 import {
@@ -20,10 +20,16 @@ export type UpdateResult = { ok: true } | { ok: false; error: string };
 const optionalText = z.string().trim().optional().transform((v) => v || null);
 
 /**
- * Stage-aware order status update. Just updates `orders` — the DB triggers
- * write order_status_history and enforce stage ownership (RLS + the
- * guard_order_fields trigger: confirmation agents can't touch delivery_status
- * and vice-versa).
+ * Stage-aware order status update, via the `transition_order_status` RPC
+ * (supabase/migrations/00009_order_transitions.sql) rather than a plain
+ * `.update()`. A confirmation agent setting confirmation_status='confirmed'
+ * moves the row out of their own o_sel visibility bucket — Postgres requires
+ * the post-UPDATE row to still satisfy the table's SELECT policy for the
+ * calling role, so a direct RLS-scoped UPDATE is rejected even though the
+ * UPDATE policy's WITH CHECK passes (found live in Phase 10's E2E pass; see
+ * the migration's comment for the full story). The RPC re-implements the
+ * authorization check itself and bypasses that requirement; the
+ * guard_order_fields trigger still enforces per-role field restrictions.
  */
 export async function updateOrderStatus(params: {
   orderId: string;
@@ -34,15 +40,12 @@ export async function updateOrderStatus(params: {
   const { orderId, stage, status, comment } = params;
   const supabase = await createClient();
 
-  const patch: TablesUpdate<"orders"> = {};
-  if (stage === "confirmation") {
-    patch.confirmation_comment = comment || null;
-    if (status !== "") patch.confirmation_status = status as Enums<"confirmation_status">;
-  } else if (status !== "") {
-    patch.delivery_status = status as Enums<"delivery_status">;
-  }
-
-  const { error } = await supabase.from("orders").update(patch).eq("id", orderId);
+  const { error } = await supabase.rpc("transition_order_status", {
+    p_order_id: orderId,
+    p_confirmation_status: stage === "confirmation" && status !== "" ? (status as Enums<"confirmation_status">) : undefined,
+    p_delivery_status: stage === "delivery" && status !== "" ? (status as Enums<"delivery_status">) : undefined,
+    p_confirmation_comment: stage === "confirmation" ? comment || undefined : undefined,
+  });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath(`/app/orders/${orderId}`);
@@ -91,10 +94,11 @@ export async function updateConfirmationStatus(orderId: string, formData: FormDa
     comment: formData.get("comment"),
   });
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ confirmation_status: input.status, confirmation_comment: input.comment })
-    .eq("id", orderId);
+  const { error } = await supabase.rpc("transition_order_status", {
+    p_order_id: orderId,
+    p_confirmation_status: input.status,
+    p_confirmation_comment: input.comment ?? undefined,
+  });
   if (error) throw new Error(error.message);
   revalidatePath("/app/orders/confirmation");
   revalidatePath(`/app/orders/${orderId}`);
@@ -127,10 +131,10 @@ const deliverySchema = z.object({ status: z.enum(DELIVERY_STATUSES) });
 export async function updateDeliveryStatus(orderId: string, formData: FormData) {
   const input = deliverySchema.parse({ status: formData.get("status") });
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("orders")
-    .update({ delivery_status: input.status })
-    .eq("id", orderId);
+  const { error } = await supabase.rpc("transition_order_status", {
+    p_order_id: orderId,
+    p_delivery_status: input.status,
+  });
   if (error) throw new Error(error.message);
   revalidatePath("/app/orders/delivery");
   revalidatePath(`/app/orders/${orderId}`);

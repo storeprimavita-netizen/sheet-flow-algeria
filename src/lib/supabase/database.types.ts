@@ -1379,6 +1379,15 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       normalize_dz_phone: { Args: { p: string }; Returns: string }
       seed_workspace: { Args: { p_ws: string }; Returns: undefined }
+      transition_order_status: {
+        Args: {
+          p_confirmation_comment?: string
+          p_confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
+          p_delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          p_order_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       ad_kind: "test" | "scaling"

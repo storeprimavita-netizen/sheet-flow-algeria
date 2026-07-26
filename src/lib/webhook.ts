@@ -23,6 +23,8 @@ export type MappedOrder = {
   delivery_fee?: number | null; // DZD, straight from the payload
   delivery_type?: "home" | "stopdesk";
   variant?: string | null;
+  product_sku?: string | null;
+  product_name?: string | null;
 };
 
 const mappedOrderSchema = z.object({
@@ -44,6 +46,8 @@ const mappedOrderSchema = z.object({
   delivery_fee: z.number().nonnegative().nullable().optional(),
   delivery_type: z.enum(["home", "stopdesk"]).optional(),
   variant: z.string().nullable().optional(),
+  product_sku: z.string().nullable().optional(),
+  product_name: z.string().nullable().optional(),
 });
 
 export type ProviderConfig = {
@@ -94,7 +98,7 @@ async function resolveWorkspace(
   return { workspaceId: data.workspace_id, secret: data.secret };
 }
 
-function normalizeWilayaName(s: string): string {
+function normalizeName(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -108,15 +112,48 @@ async function matchWilayaCode(
   name: string | null | undefined,
 ): Promise<number | null> {
   if (!name) return null;
-  const target = normalizeWilayaName(name);
+  const target = normalizeName(name);
   const { data } = await supabase.from("wilayas").select("code, name");
   const rows = data ?? [];
-  const exact = rows.find((w) => normalizeWilayaName(w.name) === target);
+  const exact = rows.find((w) => normalizeName(w.name) === target);
   if (exact) return exact.code;
   const fuzzy = rows.find(
-    (w) => target.includes(normalizeWilayaName(w.name)) || normalizeWilayaName(w.name).includes(target),
+    (w) => target.includes(normalizeName(w.name)) || normalizeName(w.name).includes(target),
   );
   return fuzzy?.code ?? null;
+}
+
+/**
+ * Match a webhook line item to a product: exact SKU match first (most
+ * reliable — set once in Products and mirrored in the store), else
+ * exact/substring match on name, else null (an admin can fix it up later;
+ * unmatched product_id is what silently disabled duplicate detection, stock
+ * effects, and per-product stats for every webhook order until this — see
+ * Phase 10's PROGRESS.md entry).
+ */
+async function matchProduct(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  sku: string | null | undefined,
+  name: string | null | undefined,
+): Promise<string | null> {
+  if (!sku && !name) return null;
+  const { data } = await supabase.from("products").select("id, sku, name").eq("workspace_id", workspaceId);
+  const rows = data ?? [];
+  if (sku) {
+    const bySku = rows.find((p) => p.sku && p.sku.toLowerCase() === sku.toLowerCase());
+    if (bySku) return bySku.id;
+  }
+  if (name) {
+    const target = normalizeName(name);
+    const exact = rows.find((p) => normalizeName(p.name) === target);
+    if (exact) return exact.id;
+    const fuzzy = rows.find(
+      (p) => target.includes(normalizeName(p.name)) || normalizeName(p.name).includes(target),
+    );
+    if (fuzzy) return fuzzy.id;
+  }
+  return null;
 }
 
 /**
@@ -156,6 +193,7 @@ async function applyMappedOrder(
   const c = m.customer;
 
   const wilayaCode = await matchWilayaCode(supabase, m.wilaya_name);
+  const productId = await matchProduct(supabase, workspaceId, m.product_sku, m.product_name);
   const deliveryType = m.delivery_type ?? "home";
 
   let deliveryFee = m.delivery_fee ?? null;
@@ -194,6 +232,7 @@ async function applyMappedOrder(
     customer_name: c?.name ?? null,
     customer_phone: c?.phone ?? null,
     wilaya_code: wilayaCode,
+    product_id: productId,
     commune: c?.city ?? null,
     address: c?.address ?? null,
     delivery_type: deliveryType,
@@ -329,6 +368,8 @@ export const lightfunnelProvider: ProviderConfig = {
       delivery_fee: p?.shipping_fee != null ? num(p.shipping_fee) : null,
       delivery_type: deliveryTypeOf(p?.delivery_type),
       variant: items[0]?.variant_title ?? items[0]?.variant ?? null,
+      product_sku: items[0]?.sku ?? null,
+      product_name: items[0]?.product_title ?? items[0]?.title ?? items[0]?.name ?? null,
     };
   },
 };
@@ -361,6 +402,8 @@ export const shopifyProvider: ProviderConfig = {
       delivery_fee: shipLine?.price != null ? num(shipLine.price) : null,
       delivery_type: deliveryTypeOf(shipLine?.code),
       variant: items[0]?.variant_title ?? null,
+      product_sku: items[0]?.sku ?? null,
+      product_name: items[0]?.title ?? null,
     };
   },
 };
