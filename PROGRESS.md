@@ -18,7 +18,7 @@ the bottom. Format:
 |---|---|---|
 | 0 — DB rebaseline + auth foundation | docs/phases/phase-00.md | done |
 | 1 — Shell, six-section IA, guards, Slack removal | docs/phases/phase-01.md | done |
-| 2 — Settings section | docs/phases/phase-02.md | pending |
+| 2 — Settings section | docs/phases/phase-02.md | done |
 | 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | pending |
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | pending |
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | pending |
@@ -152,3 +152,59 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   Orders stays a single flat list in Phase 1 (no all/confirmation/delivery
   subview split) — that's explicitly Phase 5 scope ("Orders core") per the
   phase table, not this phase's "moves, deletions, guards only" mandate.
+
+## Phase 2 — Settings section (2026-07-26) — DONE
+- Done: full admin Settings page (`/app/settings`, still behind the Phase 1
+  `AdminGuardLayout`) with all six subsections, each its own component +
+  server actions in one colocated `actions.ts`: **Workspace** (rename) ·
+  **Integrations** (per-provider store domain, secret set/replace — never
+  echoed, only a "set/not set" hint — webhook URL + `CopyButton`,
+  `last_event_at` health badge) · **Delivery fees** (58-row `wilaya_fees`
+  grid, single bulk-save form) · **Fixed fees** (CRUD; currency picker
+  silently resolves `fx_rate` via the `current_fx_rate` RPC at save time,
+  `amount_dzd` shown from the generated column) · **Exchange rates**
+  (append-only insert + current-rate cards via `current_fx_rate` + history
+  table) · **Thresholds** (`return_fee`, `duplicate_window`, `risk_weights`,
+  `stop_shipping_rule`, `meeting_schedule` — fixed 5-slot editor, blank time =
+  slot unused).
+- Decisions: every form is a plain `<form action={serverAction}>` — zero
+  `"use client"` components anywhere in this phase. Fixed-fee row
+  edit/delete uses one form with a second submit button's `formAction`
+  override (native, no per-row client JS). Bulk wilaya-fee save re-queries
+  the 58 `wilaya_code`s server-side rather than shipping them as hidden
+  inputs. This deliberately diverges from the client-side-insert pattern
+  contacts/products/expenses still use (Phase 0 debt) — CLAUDE.md and this
+  phase file both call for server actions + zod, so Settings sets the
+  target pattern for later phases to convert older forms toward.
+  `src/lib/settings.ts` added (`getSetting`/`setSetting`, zod schema per
+  key, seeded defaults mirroring `seed_workspace()`), replacing the deleted
+  v1 `app-settings.ts` per the phase brief. **zod added as a new dependency**
+  (package.json/package-lock.json) — first use in the repo; CLAUDE.md
+  already mandated it but it was never installed.
+- Files: new `src/lib/settings.ts`; new
+  `src/app/app/settings/{actions,workspace-section,integrations-section,
+  fees-section,fixed-fees-section,exchange-rates-section,thresholds-section}.tsx`;
+  `src/app/app/settings/page.tsx` rewritten (was the `Empty`/rebuildPending
+  stub); `src/messages/{en,ar}.json` settings block replaced (old
+  per-provider `lightfunnelSecret`/`shopifySecret`/`webhooks*` keys removed,
+  ~25 new `settings.*` keys added, plus `fields.label`/`fields.currency`);
+  `dashboard.modules.Settings.desc` updated to match the new subtitle.
+- Known issues: **audit_log verification was not executed against the live
+  DB** — the auto-mode permission classifier blocked a throwaway
+  service-role script that would've upserted `settings` and read
+  `audit_log` back, flagging it as an unauthorized live-data mutation. The
+  `audit_row()` triggers on `wilaya_fees`/`settings`/`fixed_fees`/
+  `exchange_rates`/`integration_configs` are unchanged from migration 00002
+  (already reviewed in Phase 0), so this is very likely fine, but the
+  phase's explicit "check via SQL" acceptance step is unconfirmed live —
+  worth a 30-second look in the Supabase SQL editor after saving something
+  on the page once. Agent-role redirect out of `/app/settings` was verified
+  by inspection (same `AdminGuardLayout` as every other admin section from
+  Phase 1) but not by logging in as an agent — no second test user exists
+  yet (same gap noted at the end of Phase 0, still deferred to Phase 9).
+- Next chat must know: `npm run build` green, `graphify update .` run.
+  Phase 3 (Products) can now read real `fixed_fees`/exchange-rate data for
+  its cost rollups instead of stubs. The `expenses` route is still
+  DZD-only/client-insert (Phase 0 debt, `ponytail:` comment) — Phase 3 owns
+  folding it into Products and would be a natural place to also convert it
+  to the server-action pattern this phase established.
