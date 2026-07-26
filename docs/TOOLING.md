@@ -1,25 +1,49 @@
 # Tooling for execution chats (Sonnet)
 
-## MCP tools "graphify" and "poneytail"
+## graphify (installed 2026-07-26 — CLI + CLAUDE.md rules)
 
-**Inspected 2026-07-26 (Fable planning chat): neither tool is exposed as an MCP
-tool in this environment.** A tool-registry search for both names returned no
-matches. The only trace is `graphify-out/manifest.json` — a stale file-index
-artifact (mtime/AST-hash map covering unrelated projects), already gitignored.
-Treat it as garbage; do not read it for context.
+Local knowledge-graph CLI (`~/.local/bin/graphify`), no MCP. The graph lives
+in `graphify-out/` (gitignored, regenerated locally): 611 nodes / 49
+communities covering `src/` + `supabase/migrations/`.
 
-**Instruction to Sonnet:** do NOT attempt to call `graphify` or `poneytail`.
-If a future session shows them in the MCP tool list, note their actual
-descriptions in this file first, then propose usage — until then, plan/track
-work with the files below.
+**When Sonnet must use it (rules also injected via CLAUDE.md §graphify):**
 
-## What replaces them
+- Before hunting through unfamiliar code: `graphify query "<question>"`
+  (add `--budget 1500` if truncated) — returns a scoped subgraph, cheaper
+  than grepping around.
+- Relationship questions: `graphify path "A" "B"`; concept overviews:
+  `graphify explain "X"`; blast radius before refactors:
+  `graphify affected "X"`.
+- **After modifying code: `graphify update .`** (AST-only, seconds, no LLM) —
+  end-of-phase requirement alongside the build gate.
+- Don't read `graphify-out/GRAPH_REPORT.md` unless query/path/explain fell
+  short; never read `graphify-out/graph.json` raw.
+
+## ponytail (installed 2026-07-26 — Claude Code plugin skills)
+
+Anti-over-engineering skill set. Not a poney: it forces the laziest solution
+that works (stdlib > deps, one line > fifty, YAGNI).
+
+**When Sonnet must use it:**
+
+- **Invoke the `ponytail:ponytail` skill at the start of every phase's
+  implementation work** (default `full` intensity). This codebase's bar is
+  "simple > clever" (SPEC §10) — ponytail is how we hold it.
+- Before merging a phase: run `ponytail:ponytail-review` on the diff and act
+  on findings (delete speculative abstractions, replace reinvented stdlib).
+- Leave deliberate shortcuts as `// ponytail: <what was deferred>` comments;
+  Phase 10 runs `ponytail:ponytail-debt` to harvest them.
+- Do NOT let ponytail argue away spec'd requirements (RLS policies, audit
+  triggers, zod validation, i18n strings are non-negotiable — it trims HOW,
+  not WHAT).
+
+## What tracks work between chats
 
 | Need | Tool |
 |---|---|
 | Task tracking across chats | `PROGRESS.md` (append a block per phase — format inside the file) |
-| Knowledge/memory between chats | `CLAUDE.md` (conventions) + `docs/*` (facts) — nothing else is shared |
-| Diagrams | Not needed for execution; schema is documented in `docs/DB.md` |
+| Knowledge/memory between chats | `CLAUDE.md` (conventions) + `docs/*` (facts) |
+| Codebase orientation | `graphify query` (above) |
 
 ## Supabase CLI
 

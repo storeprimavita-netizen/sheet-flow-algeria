@@ -44,4 +44,17 @@ the bottom. Format:
 - Next chat must know: the live Supabase project is `apsulsbdrnlesggzzfak`
   (linked). `BENZ Pricing (31).xlsx` in repo root stays untracked (reference
   only — math already ported + verified in `src/lib/pricing.ts`).
-- MCP note: `graphify`/`poneytail` tools are NOT available (docs/TOOLING.md).
+- Tooling update (later on 2026-07-26): user installed **graphify** (CLI
+  knowledge graph, `graphify-out/` regenerated — 611 nodes) and **ponytail**
+  (Claude Code plugin skills). Usage rules: docs/TOOLING.md + CLAUDE.md
+  (session protocol item 5 and §graphify). The earlier "not available" note
+  is obsolete.
+
+## Sonnet starter prompt (paste into each new execution chat)
+
+```
+Read CLAUDE.md, PROGRESS.md, then docs/phases/phase-XX.md.
+Execute that phase only, on branch mnw-XX; read nothing else unless the phase file says so.
+Use `graphify query` to orient instead of broad greps; invoke the ponytail:ponytail skill before writing code and ponytail:ponytail-review before merging.
+When `npm run build` (and `npm test` once it exists) is green: run `graphify update .`, append your handoff block here, merge --no-ff into mnw.
+```
