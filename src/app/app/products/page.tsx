@@ -24,8 +24,6 @@ export default async function ProductsPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  const threshold = LOW_STOCK_THRESHOLD;
-
   return (
     <div className="space-y-6">
       <PageHeader title={t("products.title")} subtitle={t("products.subtitle")}>
@@ -57,7 +55,7 @@ export default async function ProductsPage() {
               <tbody>
                 {products.map((p) => {
                   const out = p.stock <= 0;
-                  const low = !out && p.stock <= threshold;
+                  const low = !out && p.stock <= LOW_STOCK_THRESHOLD;
                   return (
                     <tr key={p.id} className="hover:bg-muted/30">
                       <td>
