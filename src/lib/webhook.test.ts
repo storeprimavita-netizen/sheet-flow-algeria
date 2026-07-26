@@ -1,0 +1,86 @@
+import { createHmac } from "node:crypto";
+
+import { describe, expect, it } from "vitest";
+
+import { lightfunnelProvider, shopifyProvider, verifySignature } from "./webhook";
+
+describe("verifySignature", () => {
+  const secret = "shh";
+  const body = '{"id":1}';
+
+  it("accepts a correctly signed body (hex)", () => {
+    const sig = createHmac("sha256", secret).update(body, "utf8").digest("hex");
+    expect(verifySignature(secret, body, sig, "hex")).toBe(true);
+  });
+  it("accepts a correctly signed body (base64)", () => {
+    const sig = createHmac("sha256", secret).update(body, "utf8").digest("base64");
+    expect(verifySignature(secret, body, sig, "base64")).toBe(true);
+  });
+  it("rejects a tampered body", () => {
+    const sig = createHmac("sha256", secret).update(body, "utf8").digest("hex");
+    expect(verifySignature(secret, '{"id":2}', sig, "hex")).toBe(false);
+  });
+  it("rejects a wrong-length signature without throwing", () => {
+    expect(verifySignature(secret, body, "short", "hex")).toBe(false);
+  });
+});
+
+describe("shopifyProvider.map", () => {
+  it("extracts the unified shape from a typical order payload", () => {
+    const mapped = shopifyProvider.map({
+      id: 123,
+      order_number: 1001,
+      total_price: "4000",
+      created_at: "2026-01-01T00:00:00Z",
+      customer: { first_name: "Amine", last_name: "K", phone: "0555123456" },
+      shipping_address: { city: "Alger", province: "Alger", address1: "Rue X" },
+      line_items: [{ quantity: 2, variant_title: "Rouge / M" }],
+      shipping_lines: [{ price: "400", code: "home" }],
+    });
+    expect(mapped).toMatchObject({
+      external_id: "123",
+      order_number: "1001",
+      quantity: 2,
+      sale_price: 2000,
+      customer: { name: "Amine, K", phone: "0555123456", city: "Alger" },
+      wilaya_name: "Alger",
+      delivery_fee: 400,
+      delivery_type: "home",
+      variant: "Rouge / M",
+    });
+  });
+
+  it("defaults quantity to 1 and leaves wilaya/delivery null when absent", () => {
+    const mapped = shopifyProvider.map({ id: 9, total_price: "100" });
+    expect(mapped.external_id).toBe("9");
+    expect(mapped.quantity).toBe(1);
+    expect(mapped.wilaya_name).toBeNull();
+    expect(mapped.delivery_fee).toBeNull();
+    expect(mapped.delivery_type).toBe("home");
+  });
+});
+
+describe("lightfunnelProvider.map", () => {
+  it("extracts the unified shape from a typical order payload", () => {
+    const mapped = lightfunnelProvider.map({
+      id: "lf-1",
+      total: 3000,
+      created_at: "2026-01-01T00:00:00Z",
+      customer: { full_name: "Sara B", phone: "0666112233" },
+      shipping_address: { city: "Oran", province: "Oran" },
+      line_items: [{ quantity: 1, variant: "Bleu / L" }],
+      shipping_fee: 350,
+      delivery_type: "stopdesk",
+    });
+    expect(mapped).toMatchObject({
+      external_id: "lf-1",
+      quantity: 1,
+      sale_price: 3000,
+      customer: { name: "Sara B", phone: "0666112233", city: "Oran" },
+      wilaya_name: "Oran",
+      delivery_fee: 350,
+      delivery_type: "stopdesk",
+      variant: "Bleu / L",
+    });
+  });
+});

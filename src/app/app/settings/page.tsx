@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 
 import { WorkspaceSection } from "./workspace-section";
 import { IntegrationsSection } from "./integrations-section";
+import { WebhookEventsSection } from "./webhook-events-section";
 import { FeesSection } from "./fees-section";
 import { FixedFeesSection } from "./fixed-fees-section";
 import { ExchangeRatesSection } from "./exchange-rates-section";
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
   const [
     workspaceRes,
     integrationsRes,
+    webhookEventsRes,
     wilayaFeesRes,
     fixedFeesRes,
     exchangeRatesRes,
@@ -39,6 +41,12 @@ export default async function SettingsPage() {
   ] = await Promise.all([
     supabase.from("workspaces").select("*").eq("id", profile.workspaceId).single(),
     supabase.from("integration_configs").select("*").eq("workspace_id", profile.workspaceId),
+    supabase
+      .from("webhook_events")
+      .select("*")
+      .eq("workspace_id", profile.workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(20),
     supabase
       .from("wilaya_fees")
       .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, wilaya:wilayas(name)")
@@ -65,6 +73,7 @@ export default async function SettingsPage() {
       <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
       <WorkspaceSection name={workspaceRes.data?.name ?? ""} />
       <IntegrationsSection configs={integrationsRes.data ?? []} baseUrl={baseUrl} />
+      <WebhookEventsSection events={webhookEventsRes.data ?? []} />
       <FeesSection rows={wilayaFeesRes.data ?? []} />
       <FixedFeesSection fees={fixedFeesRes.data ?? []} />
       <ExchangeRatesSection

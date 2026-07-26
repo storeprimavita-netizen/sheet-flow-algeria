@@ -1,7 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Enums, TablesInsert } from "@/lib/supabase/database.types";
+import { upsertCustomerFromOrder } from "@/lib/customers";
+import type { Database, Enums, Json, TablesInsert } from "@/lib/supabase/database.types";
 
 export type MappedOrder = {
   external_id: string;
@@ -12,10 +16,35 @@ export type MappedOrder = {
   customer?: {
     name?: string | null;
     phone?: string | null;
-    city?: string | null;
+    city?: string | null; // commune
     address?: string | null;
   } | null;
+  wilaya_name?: string | null;
+  delivery_fee?: number | null; // DZD, straight from the payload
+  delivery_type?: "home" | "stopdesk";
+  variant?: string | null;
 };
+
+const mappedOrderSchema = z.object({
+  external_id: z.string().min(1),
+  order_number: z.string().nullable().optional(),
+  quantity: z.number().int().positive().optional(),
+  sale_price: z.number().nonnegative().nullable().optional(),
+  placed_at: z.string().nullable().optional(),
+  customer: z
+    .object({
+      name: z.string().nullable().optional(),
+      phone: z.string().nullable().optional(),
+      city: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  wilaya_name: z.string().nullable().optional(),
+  delivery_fee: z.number().nonnegative().nullable().optional(),
+  delivery_type: z.enum(["home", "stopdesk"]).optional(),
+  variant: z.string().nullable().optional(),
+});
 
 export type ProviderConfig = {
   provider: Enums<"integration_provider">;
@@ -46,122 +75,232 @@ function json(body: unknown, status: number): Response {
 }
 
 /**
- * Verify the provider's HMAC signature, then idempotently upsert the order
- * (keyed on `workspace_id, source, external_id`). Re-deliveries never clobber
- * agent-set confirmation/delivery status — only webhook-owned logistics fields
- * update. No user session → runs entirely through the service-role client.
- *
- * ponytail: single-workspace — takes the one active integration_configs row per
- * provider. Multi-tenant routing (per-workspace endpoints, webhook_events log)
- * lands in Phase 6.
+ * The one active `integration_configs` row for a provider. ponytail:
+ * single-workspace lookup — per-domain multi-tenant routing becomes matching
+ * `config.store_domain` against the payload here later, callers don't change.
  */
-export async function processWebhook(
-  config: ProviderConfig,
-  req: Request,
-): Promise<Response> {
-  const body = await req.text();
-  const signature = req.headers.get(config.signatureHeader) ?? "";
-
-  const supabase = await createAdminClient();
-  const { data: integration } = await supabase
+async function resolveWorkspace(
+  supabase: SupabaseClient<Database>,
+  provider: Enums<"integration_provider">,
+): Promise<{ workspaceId: string; secret: string } | null> {
+  const { data } = await supabase
     .from("integration_configs")
     .select("workspace_id, secret")
-    .eq("provider", config.provider)
+    .eq("provider", provider)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();
+  if (!data?.secret) return null;
+  return { workspaceId: data.workspace_id, secret: data.secret };
+}
 
-  const secret = integration?.secret;
-  if (!integration || !secret) return json({ error: "secret not configured" }, 401);
-  if (!signature || !verifySignature(secret, body, signature, config.encoding)) {
-    return json({ error: "invalid signature" }, 401);
-  }
-  const workspaceId = integration.workspace_id;
+function normalizeWilayaName(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
-  let payload: unknown;
+/** Exact match on the 58-row national reference, substring fallback, else null. */
+async function matchWilayaCode(
+  supabase: SupabaseClient<Database>,
+  name: string | null | undefined,
+): Promise<number | null> {
+  if (!name) return null;
+  const target = normalizeWilayaName(name);
+  const { data } = await supabase.from("wilayas").select("code, name");
+  const rows = data ?? [];
+  const exact = rows.find((w) => normalizeWilayaName(w.name) === target);
+  if (exact) return exact.code;
+  const fuzzy = rows.find(
+    (w) => target.includes(normalizeWilayaName(w.name)) || normalizeWilayaName(w.name).includes(target),
+  );
+  return fuzzy?.code ?? null;
+}
+
+/**
+ * Map → validate → idempotently upsert the order (unique on workspace/source/
+ * external_id; redeliveries only touch logistics fields, never the
+ * confirmation/delivery workflow state agents own) → upsert the customer →
+ * mark the event processed. Shared by the live webhook path and admin replay
+ * so both take the exact same order-writing logic.
+ */
+async function applyMappedOrder(
+  supabase: SupabaseClient<Database>,
+  config: ProviderConfig,
+  workspaceId: string,
+  eventId: string,
+  rawPayload: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const fail = async (error: string) => {
+    await supabase
+      .from("webhook_events")
+      .update({ error, processed_at: new Date().toISOString() })
+      .eq("id", eventId);
+    return { ok: false, error };
+  };
+
+  let mapped: MappedOrder;
   try {
-    payload = JSON.parse(body);
-  } catch {
-    return json({ error: "invalid json" }, 400);
+    mapped = config.map(rawPayload);
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : "mapping threw");
   }
 
-  const mapped = config.map(payload);
-  if (!mapped.external_id) return json({ error: "missing external id" }, 400);
+  const parsed = mappedOrderSchema.safeParse(mapped);
+  if (!parsed.success) {
+    return fail(parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
+  }
+  const m = parsed.data;
+  const c = m.customer;
 
-  // Find or create the customer (unique on workspace + normalized phone; the
-  // customers_normalize_phone trigger normalizes before the conflict check).
-  let customerId: string | null = null;
-  const c = mapped.customer;
-  if (c?.phone) {
-    const { data: customer, error: cErr } = await supabase
-      .from("customers")
-      .upsert(
-        {
-          workspace_id: workspaceId,
-          name: c.name || c.phone,
-          phone: c.phone,
-          phone_raw: c.phone,
-          commune: c.city ?? null,
-          address: c.address ?? null,
-        },
-        { onConflict: "workspace_id,phone" },
-      )
-      .select("id")
+  const wilayaCode = await matchWilayaCode(supabase, m.wilaya_name);
+  const deliveryType = m.delivery_type ?? "home";
+
+  let deliveryFee = m.delivery_fee ?? null;
+  let deliveryFeeSource: Enums<"delivery_fee_source"> = "manual";
+  if (deliveryFee !== null && deliveryFee > 0) {
+    deliveryFeeSource = "payload";
+  } else if (wilayaCode !== null) {
+    const { data: fee } = await supabase
+      .from("wilaya_fees")
+      .select("home_fee, stopdesk_fee")
+      .eq("workspace_id", workspaceId)
+      .eq("wilaya_code", wilayaCode)
       .maybeSingle();
-    if (cErr) return json({ error: cErr.message }, 500);
-    customerId = customer?.id ?? null;
+    if (fee) {
+      deliveryFee = deliveryType === "stopdesk" ? fee.stopdesk_fee : fee.home_fee;
+      deliveryFeeSource = "wilaya_table";
+    }
   }
+
+  let customerId: string | null = null;
+  if (c?.phone) {
+    customerId = await upsertCustomerFromOrder(supabase, {
+      workspaceId,
+      name: c.name || c.phone,
+      phone: c.phone,
+      wilayaCode,
+      commune: c.city ?? null,
+      address: c.address ?? null,
+    });
+  }
+
+  const logistics = {
+    order_number: m.order_number ?? null,
+    webhook_event_id: eventId,
+    customer_id: customerId,
+    customer_name: c?.name ?? null,
+    customer_phone: c?.phone ?? null,
+    wilaya_code: wilayaCode,
+    commune: c?.city ?? null,
+    address: c?.address ?? null,
+    delivery_type: deliveryType,
+    quantity: m.quantity || 1,
+    sale_price: m.sale_price ?? null,
+    delivery_fee: deliveryFee,
+    delivery_fee_source: deliveryFeeSource,
+    variant: m.variant ?? null,
+  };
 
   const { data: existing } = await supabase
     .from("orders")
     .select("id")
     .eq("workspace_id", workspaceId)
     .eq("source", config.provider)
-    .eq("external_id", mapped.external_id)
+    .eq("external_id", m.external_id)
     .maybeSingle();
 
-  if (existing) {
-    // Update only webhook-owned fields; never reset agent workflow state.
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        order_number: mapped.order_number ?? null,
-        customer_id: customerId,
-        customer_name: c?.name ?? null,
-        customer_phone: c?.phone ?? null,
-        quantity: mapped.quantity || 1,
-        sale_price: mapped.sale_price ?? null,
-        commune: c?.city ?? null,
-        address: c?.address ?? null,
-        placed_at: mapped.placed_at ?? null,
-      })
-      .eq("id", existing.id);
-    if (error) return json({ error: error.message }, 500);
-    return json({ ok: true, action: "updated" }, 200);
+  const { error } = existing
+    ? await supabase.from("orders").update(logistics).eq("id", existing.id)
+    : await supabase.from("orders").insert({
+        workspace_id: workspaceId,
+        source: config.provider,
+        external_id: m.external_id,
+        placed_at: m.placed_at ?? new Date().toISOString(),
+        ...logistics,
+      } satisfies TablesInsert<"orders">);
+  if (error) return fail(error.message);
+
+  await Promise.all([
+    supabase
+      .from("webhook_events")
+      .update({ external_id: m.external_id, processed_at: new Date().toISOString(), error: null })
+      .eq("id", eventId),
+    supabase
+      .from("integration_configs")
+      .update({ last_event_at: new Date().toISOString() })
+      .eq("workspace_id", workspaceId)
+      .eq("provider", config.provider),
+  ]);
+
+  return { ok: true };
+}
+
+/**
+ * Verify the provider's HMAC signature, then always store the raw event —
+ * bad signature, bad JSON, and mapping failures all get a row (that's the
+ * audit trail and the replay source) — before mapping/upserting the order.
+ * No user session → runs entirely through the service-role client.
+ */
+export async function processWebhook(config: ProviderConfig, req: Request): Promise<Response> {
+  const body = await req.text();
+  const signature = req.headers.get(config.signatureHeader) ?? "";
+  const supabase = await createAdminClient();
+
+  const integration = await resolveWorkspace(supabase, config.provider);
+  const signatureOk =
+    !!integration && !!signature && verifySignature(integration.secret, body, signature, config.encoding);
+
+  let payload: unknown = {};
+  let parseError: string | null = null;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    payload = { _unparsable: body.slice(0, 5000) };
+    parseError = "invalid json";
   }
 
-  const insert: TablesInsert<"orders"> = {
-    workspace_id: workspaceId,
-    source: config.provider,
-    external_id: mapped.external_id,
-    order_number: mapped.order_number ?? null,
-    customer_id: customerId,
-    customer_name: c?.name ?? null,
-    customer_phone: c?.phone ?? null,
-    quantity: mapped.quantity || 1,
-    sale_price: mapped.sale_price ?? null,
-    commune: c?.city ?? null,
-    address: c?.address ?? null,
-    placed_at: mapped.placed_at ?? new Date().toISOString(),
-  };
-  const { error } = await supabase.from("orders").insert(insert);
-  if (error) return json({ error: error.message }, 500);
-  return json({ ok: true, action: "created" }, 200);
+  const { data: event, error: eventError } = await supabase
+    .from("webhook_events")
+    .insert({
+      workspace_id: integration?.workspaceId ?? null,
+      provider: config.provider,
+      signature_ok: signatureOk,
+      payload: payload as Json,
+      error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
+    })
+    .select("id")
+    .single();
+  if (eventError || !event) return json({ error: eventError?.message ?? "failed to store event" }, 500);
+
+  if (!integration) return json({ error: "secret not configured" }, 401);
+  if (!signatureOk) return json({ error: "invalid signature" }, 401);
+  if (parseError) return json({ error: parseError }, 400);
+
+  const result = await applyMappedOrder(supabase, config, integration.workspaceId, event.id, payload);
+  return json({ ok: result.ok, error: result.error }, 200);
+}
+
+/** Re-run mapping/upsert for one stored event — the Settings → Integrations replay button. */
+export async function replayEvent(eventId: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createAdminClient();
+  const { data: event } = await supabase
+    .from("webhook_events")
+    .select("id, provider, workspace_id, payload")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event) return { ok: false, error: "event not found" };
+  if (!event.workspace_id) return { ok: false, error: "event has no resolved workspace" };
+  const config = event.provider === "shopify" ? shopifyProvider : lightfunnelProvider;
+  return applyMappedOrder(supabase, config, event.workspace_id, event.id, event.payload);
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const num = (v: any) => (v === null || v === undefined || v === "" ? 0 : Number(v) || 0);
 const joinAddr = (parts: any[]) => parts.filter((p) => p !== null && p !== undefined && p !== "").join(", ") || null;
+const deliveryTypeOf = (v: any): "home" | "stopdesk" => (String(v ?? "").toLowerCase() === "stopdesk" ? "stopdesk" : "home");
 
 export const lightfunnelProvider: ProviderConfig = {
   provider: "lightfunnels",
@@ -186,6 +325,10 @@ export const lightfunnelProvider: ProviderConfig = {
         city: ship?.city ?? null,
         address: joinAddr([ship?.address1, ship?.address2, ship?.city, ship?.zip]),
       },
+      wilaya_name: ship?.province ?? ship?.state ?? null,
+      delivery_fee: p?.shipping_fee != null ? num(p.shipping_fee) : null,
+      delivery_type: deliveryTypeOf(p?.delivery_type),
+      variant: items[0]?.variant_title ?? items[0]?.variant ?? null,
     };
   },
 };
@@ -201,6 +344,7 @@ export const shopifyProvider: ProviderConfig = {
     const items: any[] = Array.isArray(p?.line_items) ? p.line_items : [];
     const qty = items.reduce((s, i) => s + num(i?.quantity), 0) || 1;
     const total = num(p?.total_price);
+    const shipLine = Array.isArray(p?.shipping_lines) ? p.shipping_lines[0] : null;
     return {
       external_id: String(p?.id ?? ""),
       order_number: p?.order_number ? String(p.order_number) : p?.name ?? null,
@@ -213,6 +357,10 @@ export const shopifyProvider: ProviderConfig = {
         city: ship?.city ?? null,
         address: joinAddr([ship?.address1, ship?.address2, ship?.city, ship?.zip]),
       },
+      wilaya_name: ship?.province ?? null,
+      delivery_fee: shipLine?.price != null ? num(shipLine.price) : null,
+      delivery_type: deliveryTypeOf(shipLine?.code),
+      variant: items[0]?.variant_title ?? null,
     };
   },
 };

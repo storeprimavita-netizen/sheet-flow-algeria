@@ -22,7 +22,7 @@ the bottom. Format:
 | 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | done |
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | done |
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | done |
-| 6 — Webhooks v2 | docs/phases/phase-06.md | pending |
+| 6 — Webhooks v2 | docs/phases/phase-06.md | done |
 | 7 — Dashboard BI | docs/phases/phase-07.md | pending |
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | pending |
 | 9 — Team & Rules | docs/phases/phase-09.md | pending |
@@ -464,3 +464,110 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   existing queues. **Phase 7** (Dashboard BI) can read the same
   `customer_stats`/`agent_performance` views already proven working here for
   the confirmation queue's risk badge.
+
+## Phase 6 — Webhooks v2: Shopify + LightFunnels (2026-07-26) — DONE
+- Done: rewrote `src/lib/webhook.ts` around the pipeline the phase brief
+  specifies. `resolveWorkspace()` factors out the "one active
+  `integration_configs` row per provider" lookup (multi-tenant per-domain
+  routing later is one function). `processWebhook()` now **always** inserts a
+  `webhook_events` row — bad signature, unparsable JSON, and mapping/schema
+  failures all get a row with `signature_ok`/`error` set (previously invalid
+  signatures returned 401 without ever touching the table). Route handlers
+  (`src/app/api/webhooks/{shopify,lightfunnel}/route.ts`) are unchanged —
+  same `processWebhook(config, req)` call, all the new behavior lives in the
+  shared lib.
+- New `applyMappedOrder()` (map → zod-validate → wilaya match → delivery-fee
+  fallback → `upsertCustomerFromOrder` → idempotent order upsert → mark event
+  processed + bump `integration_configs.last_event_at`) is the one code path
+  both the live webhook route and the new **replay** button call — replaying
+  a stored event re-runs the exact same logic against its saved `payload`,
+  no separate implementation to drift.
+- `MappedOrder` extended with `wilaya_name`, `delivery_fee`, `delivery_type`,
+  `variant` per the phase brief; both provider `map()` functions updated to
+  populate them (Shopify: `shipping_address.province` → wilaya,
+  `shipping_lines[0]` → fee/type; LightFunnels: same shape guessed from
+  `shipping_address.province`/`shipping_fee`/`delivery_type` — **exact
+  LightFunnels/Shopify field names for delivery fee and wilaya are
+  best-effort**, no real payload sample was available this session; adjust
+  the two `map()` functions if the live payload differs once a real webhook
+  fires). `matchWilayaCode()` does accent-stripped exact match against the
+  58-row `wilayas` table, falling back to substring containment, else null
+  (SPEC's "fuzzy fallback null"). Delivery fee: payload value wins
+  (`delivery_fee_source='payload'`) if present and > 0, else a
+  `wilaya_fees` lookup by matched wilaya + delivery type
+  (`'wilaya_table'`), else stays null/`'manual'` for later admin entry.
+- Redelivery semantics: `applyMappedOrder` only ever writes the logistics
+  bucket (order_number, customer snapshot + id, wilaya/commune/address,
+  delivery_type/fee/fee_source, quantity, sale_price, variant,
+  `webhook_event_id`) — confirmation/delivery status, comments, attempts,
+  assigned agents, and duplicate flags are never in that update, so a
+  redelivered webhook cannot clobber agent workflow state. `placed_at` is
+  only set on first insert (excluded from the update payload), so it doesn't
+  drift on redelivery either.
+- Also (Settings → Integrations): new `webhook-events-section.tsx` — the last
+  20 `webhook_events` for the workspace, provider + signature/processed
+  badges + error line, a native `<details>`/`<summary>` payload viewer (zero
+  client JS, matches the section's existing all-server-actions style), and a
+  **Replay** button (`replayWebhookEvent` in `settings/actions.ts`, admin-
+  gated via `requireAdminProfile`, calls the new `replayEvent(eventId)`
+  export). `page.tsx` fetches `webhook_events` alongside the existing
+  Settings queries.
+- Tests: `src/lib/webhook.test.ts` (7 cases) — `verifySignature` hex/base64/
+  tamper/short-signature, and both providers' `map()` against representative
+  payloads (field extraction + the "nothing present" defaults path). Needed
+  a new `vitest.config.ts` (`resolve.alias` for `@` → `src`, plain Vite
+  config, no new dependency) since this is the first test file to import a
+  module (`webhook.ts`) that has a **value** import across the `@/` alias
+  (`createAdminClient`) rather than only `import type` — `customers.test.ts`/
+  `pricing.test.ts` never needed it because their imports across the alias
+  were type-only and got erased before Vite had to resolve anything.
+- Fixed in passing (ponytail-review pass): first draft mapped `wilaya_name`
+  to `MappedOrder` and separately best-effort-called `config.map(payload)` a
+  second time in `processWebhook` just to get an `external_id` for the
+  initial `webhook_events` insert row. Cut the duplicate mapping call —
+  the event row now gets `external_id` written in the same update that sets
+  `processed_at` once `applyMappedOrder` actually validates the mapping, one
+  code path instead of two.
+- Known issues: **no live curl fixture run this session.** `.env.local`
+  points at the linked remote Supabase project (the real admin's workspace,
+  per Phase 0's notes) — running the phase's fixture tests against it would
+  write test orders/customers/webhook_events into live data, and the
+  auto-mode permission classifier flagged even a read-only credential-check
+  command this session, so a mutating live test was not attempted (same
+  caution prior phases hit with `audit_log`/RLS spot-checks). A leftover
+  local Supabase docker stack exists (`supabase_*_mnw-erp` containers, per
+  Phase 0's cleanup note) but `.env.local` doesn't target it, so it wasn't
+  used either. Verified instead via `npm run build`/`npm test` (mapping
+  logic + signature verification unit-tested) and by re-reading
+  `orders_flag_duplicate`/`orders_guard_fields` in `00004_orders.sql` — the
+  duplicate trigger is `BEFORE INSERT` only (fires for the webhook's first
+  insert, not redelivery updates, matching "same phone + product <48h" on
+  first sight) and `orders_guard_fields` explicitly bypasses for the
+  service-role client webhooks use. Curl fixture commands (documented per
+  the acceptance criteria, not run):
+  ```bash
+  BODY='{"id":"lf-test-1","total":3000,"customer":{"full_name":"Test User","phone":"0555000111"},"shipping_address":{"city":"Alger","province":"Alger"},"line_items":[{"quantity":1,"variant":"Red/M"}],"shipping_fee":400,"delivery_type":"home"}'
+  SECRET='<Settings → Integrations → LightFunnels secret>'
+  SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')
+  # valid signature — expect 200, one order created, webhook_events row signature_ok=true/processed_at set
+  curl -s -X POST http://localhost:3000/api/webhooks/lightfunnel \
+    -H "content-type: application/json" -H "x-lightfunnel-signature: $SIG" -d "$BODY"
+  # bad signature — expect 401, webhook_events row signature_ok=false, error='invalid signature', no order written
+  curl -s -X POST http://localhost:3000/api/webhooks/lightfunnel \
+    -H "content-type: application/json" -H "x-lightfunnel-signature: deadbeef" -d "$BODY"
+  # duplicate delivery — resend the same $BODY/$SIG; expect still exactly one order row for external_id lf-test-1,
+  # a second webhook_events row, confirmation_status/delivery_status unchanged from any manual edits made in between
+  # unknown wilaya — same BODY with "shipping_address":{"city":"Nowhereville"}; expect order created with
+  # wilaya_code=null, delivery_fee_source falls back to 'manual' if no delivery_fee in payload either
+  # Shopify uses base64: SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" -binary | base64)
+  # and header x-shopify-hmac-sha256, endpoint /api/webhooks/shopify
+  ```
+- Next chat must know: `npm run build` and `npm test` green (20 tests),
+  `graphify update .` run. **Phase 7** (Dashboard BI) inherits a working
+  `webhook_events`/`last_event_at` health signal for any "integration
+  status" dashboard tile it might want. The LightFunnels/Shopify field-name
+  guesses for delivery fee/wilaya (`shipping_fee`, `shipping_address.province`,
+  `shipping_lines[0]`) should be checked against a real payload the first
+  time a live webhook actually fires — the curl fixtures above are the
+  fastest way to confirm/adjust `lightfunnelProvider.map`/`shopifyProvider.map`
+  in `src/lib/webhook.ts` once real credentials are available.
