@@ -444,7 +444,7 @@ export default async function DashboardPage({
               <div className="text-muted-foreground">{formatDate(nextMeeting.scheduled_at)}</div>
             </div>
           )}
-          <Link href="/app/team" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <Link href="/app/team/meetings" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             {t("dashboard.meeting.viewTeam")}
             <ArrowRight className="h-3 w-3 rtl:rotate-180" />
           </Link>
