@@ -19,6 +19,7 @@
     "total": "Total",
     "searchPlaceholder": "Search…",
     "noMatches": "No matches.",
+    "selected": "selected",
     "deleteConfirm": "Delete this item? This cannot be undone.",
     "updated": "Saved.",
     "error": "Something went wrong.",
