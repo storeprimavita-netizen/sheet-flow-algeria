@@ -13,6 +13,7 @@
     "cash": "Cash",
     "stock": "Stock",
     "reports": "Reports",
+    "roles": "Roles",
     "settings": "Settings"
   },
   "common": {
@@ -295,6 +296,26 @@
     "deposited": "Cash deposited",
     "byCategory": "Expenses by category",
     "noData": "No data in this range."
+  },
+  "roles": {
+    "title": "Roles & access",
+    "subtitle": "Assign roles, invite users, reset passwords",
+    "invite": "Invite user",
+    "email": "Email",
+    "role": "Role",
+    "invited": "Invitation sent.",
+    "reset": "Reset password",
+    "resetSent": "Reset email sent.",
+    "roster": "Team access",
+    "none": "No users yet.",
+    "actions": "Actions"
+  },
+  "reset": {
+    "title": "Set a new password",
+    "subtitle": "Choose a new password for your account.",
+    "password": "New password",
+    "submit": "Update password",
+    "busy": "Please wait..."
   },
   "settings": {
     "title": "Settings",
