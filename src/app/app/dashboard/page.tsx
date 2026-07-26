@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   const links = [
     { href: "/app/orders", icon: ShoppingBag, label: t("nav.orders") },
     { href: "/app/products", icon: Package, label: t("nav.products") },
-    ...(isAdmin ? [{ href: "/app/pricing", icon: Calculator, label: t("pricing.title") }] : []),
+    ...(isAdmin ? [{ href: "/app/products/planner", icon: Calculator, label: t("pricing.title") }] : []),
   ];
 
   return (

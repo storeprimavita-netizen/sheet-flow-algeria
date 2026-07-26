@@ -20,7 +20,7 @@ the bottom. Format:
 | 1 — Shell, six-section IA, guards, Slack removal | docs/phases/phase-01.md | done |
 | 2 — Settings section | docs/phases/phase-02.md | done |
 | 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | done |
-| 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | pending |
+| 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | done |
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | pending |
 | 6 — Webhooks v2 | docs/phases/phase-06.md | pending |
 | 7 — Dashboard BI | docs/phases/phase-07.md | pending |
@@ -288,3 +288,77 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `AdSpendEntry` — call it without `productId`, pass a `products` list —
   and should read this phase's net-profit formula comment before adding any
   aggregate/period-scoped version of it.
+
+## Phase 4 — Pricing engine: scenarios + Real column + tests (2026-07-26) — DONE
+- Done: ported v1's `<ScenarioEngine>` (found via `git log --all -- src/app/app/
+  pricing/scenario-engine.tsx`, deleted in Phase 0) to v2 as
+  `src/app/app/products/scenario-engine.tsx` — same debounced (700ms)
+  autosave + partial-unique select-then-insert/update save pattern, now
+  targeting `product_scenarios` (workspace-scoped, so the insert branch also
+  writes `workspace_id`, unlike v1's single-workspace table). Wired as a 5th
+  tab (`[id]/layout.tsx`) at `/app/products/[id]/pricing`, and kept as the
+  general planner at `/app/products/planner` (`product_id = null`, static
+  segment takes precedence over `[id]` in Next's router — no clash). Deleted
+  the standalone `/app/pricing` stub route per Phase 1's deferred fold-in;
+  dashboard quick link now points at `/app/products/planner`.
+- Real column: `src/lib/pricing-real.ts` (`realInputsForProduct`) builds a
+  `PricingInputs` from `product_stats` (confirmation/delivery rates, sourcing
+  cost), `ad_spend_daily` (all-time ÷ orders_received → per-lead €, last-30-
+  day average → spend_eur_day), `products.sale_price`, and active
+  `fixed_fees`, all converted through the current EUR rate
+  (`fxRateFor`). Returns `hasData: orders_received > 0`; the card renders "—"
+  everywhere instead of computing when false (matches the Statistics tab's
+  existing null-guard convention) since a workspace with zero orders would
+  otherwise show a confidently-wrong 0-profit Real column.
+- Scenario seeding: `src/app/app/products/pricing-data.ts`
+  (`defaultInputs`/`loadScenarios`, also reconstructed from the deleted v1
+  `lib/pricing-server.ts`) seeds fresh scenario rows (same baseline for all
+  three slugs, matching v1) from `DEFAULT_INPUTS`/`seedForProduct()` (both
+  already existed in `pricing.ts`, previously unused) with `euro_price` ←
+  `current_fx_rate`, `delivery_fee_da` ← `settings.return_fee` (via
+  `getSetting`), and the sum of active `fixed_fees` dumped into
+  `salary_month` — v2 doesn't split fixed fees into flexy/salary/rent
+  categories like the v1 sheet, and `computeScenario` only ever sums the
+  three fields, so one bucket is equivalent. Same bucket choice reused in
+  `pricing-real.ts` for consistency.
+- Tests: first test infra in the repo — added `vitest` devDependency +
+  `npm test` script (`vitest run`), `src/lib/pricing.test.ts`. Pinned values
+  were extracted directly from `BENZ Pricing (31).xlsx`'s cell values (parsed
+  its `xl/worksheets/sheet1.xml` + `sharedStrings.xml` with Python's
+  `xml.etree.ElementTree` — regex parsing corrupted self-closing empty
+  cells), not reverse-engineered from the expected output: BEST =
+  `DEFAULT_INPUTS` (already in `pricing.ts`) ⇒ net/order 1025.94, net/month
+  130037.5 (exact); MEDIUM inputs read off the sheet's MEDIUM SCENARIO block
+  (product_price 3000, euro_price 290, lead 2.4€, confirm 70%, delivery 60%,
+  delivery_price 400, packaging 30, sale 5400, spend 100€/day, delivery_fee
+  130, flexy 2500, location 2000, salary 290000) ⇒ net/order −445.24,
+  net/month −233750 (both verified by hand against the formula before
+  writing the test). Plus all-zero-input (no NaN/Infinity) and
+  `normalizeInputs` edge cases (missing keys, numeric strings, non-numeric
+  junk). `src/lib/pricing.ts` formulas untouched, per CLAUDE.md.
+- Fixed in passing (ponytail-review pass): the ported `ScenarioCard` briefly
+  used the *translated* scenario title for `id`/`htmlFor` on its inputs
+  (`${title}_${f.key}`) — would break if any locale's label ever contained a
+  space (invalid HTML id) or two scenarios translated to the same string.
+  Switched to a stable untranslated `id` prop (`"best"/"medium"/"worst"/
+  "real"`), matching v1's original use of `slug`.
+- Known issues: not verified in a live browser against a real logged-in
+  admin session (no credentials available this session) — confirmed instead
+  that `npm run build`/`npm test` are green and that both new routes 307-
+  redirect an unauthenticated request to `/login` without a 500 (proxy/guard
+  wiring intact). Real column will show "—" throughout until Phase 5 lands
+  orders, same expected-zero-data gap Phase 3 already flagged for the
+  Statistics tab. Agent financial-blindness for `product_scenarios` was
+  verified by re-reading the Phase 0-reviewed RLS policy in
+  `00003_products.sql` (admin-only `_adm` policy, no agent select policy) and
+  by confirming `/app/products` is fully behind `AdminGuardLayout` — not
+  exercised live with a second test user (same deferred gap as every prior
+  phase, still parked for Phase 9).
+- Next chat must know: `npm run build` and `npm test` green, `graphify
+  update .` run. **Phase 5** (Orders) is what makes `product_stats` non-zero,
+  which in turn makes the Real column's `hasData` flip true for the first
+  time — worth a manual sanity check against a manually-computed scenario
+  once real orders exist. **Phase 7** (Dashboard BI) — no dependency on this
+  phase's files beyond reading `pricing.ts`/`pricing-real.ts` if it ever
+  wants a workspace-level rollup (not requested here, scoped to per-product +
+  general planner only).

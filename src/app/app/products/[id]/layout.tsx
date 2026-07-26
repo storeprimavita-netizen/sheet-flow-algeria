@@ -24,6 +24,7 @@ export default async function ProductTabsLayout({
     { href: `${base}/expenses`, label: t("expenses") },
     { href: `${base}/stock`, label: t("stock") },
     { href: `${base}/statistics`, label: t("statistics") },
+    { href: `${base}/pricing`, label: t("pricing") },
   ];
 
   return (
