@@ -56,3 +56,10 @@ export const DELIVERY_TYPES = ["home", "stopdesk"] as const;
 export const CURRENCY_CODES = ["DZD", "USD", "EUR"] as const;
 
 export const AD_KINDS = ["test", "scaling"] as const;
+
+// Manual stock-movement entry only allows these two — delivered/returned are
+// written by the order-status trigger, never by hand (Phase 5).
+export const MANUAL_STOCK_REASONS = ["purchase", "correction"] as const;
+
+// ponytail: fixed low-stock threshold; becomes a settings key when a phase needs it tunable
+export const LOW_STOCK_THRESHOLD = 5;

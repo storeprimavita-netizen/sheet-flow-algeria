@@ -43,3 +43,10 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
 export async function requireAdmin(redirectTo = "/app/dashboard"): Promise<void> {
   if (!(await isCurrentUserAdmin())) redirect(redirectTo);
 }
+
+/** Server-action guard: throws instead of redirecting (no response to redirect). */
+export async function requireAdminProfile(): Promise<Profile> {
+  const profile = await getProfile();
+  if (!profile || profile.role !== "admin") throw new Error("Forbidden");
+  return profile;
+}

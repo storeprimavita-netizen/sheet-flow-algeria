@@ -1,76 +1,41 @@
-"use client";
+import { getTranslations } from "next-intl/server";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-
-import { createClient } from "@/lib/supabase/client";
-import type { Enums, Tables, TablesInsert } from "@/lib/supabase/database.types";
+import type { Tables } from "@/lib/supabase/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/field";
-import { PRODUCT_STATUSES } from "@/lib/enums";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PRODUCT_STATUSES, CURRENCY_CODES } from "@/lib/enums";
+import { saveProduct } from "./actions";
 
 type ProductRow = Tables<"products">;
+type ProductCostRow = Tables<"product_costs">;
 
-const num = (v: FormDataEntryValue | null): number | null => {
-  const s = (v ?? "").toString().trim();
-  if (!s) return null;
-  const x = Number(s);
-  return Number.isFinite(x) ? x : null;
-};
+function variantsToText(variants: unknown): string {
+  if (!Array.isArray(variants)) return "";
+  return variants
+    .map((v) => {
+      if (!v || typeof v !== "object") return String(v);
+      const { label, sku } = v as { label?: string; sku?: string };
+      return sku ? `${label ?? ""} | ${sku}` : (label ?? "");
+    })
+    .join("\n");
+}
 
-export function ProductForm({
+export async function ProductForm({
   product,
-  workspaceId,
+  cost,
 }: {
   product?: ProductRow;
-  workspaceId: string;
+  cost?: ProductCostRow | null;
 }) {
-  const router = useRouter();
-  const t = useTranslations();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const t = await getTranslations();
   const editing = Boolean(product?.id);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-
-    const fd = new FormData(e.currentTarget);
-    const opt = (name: string) => String(fd.get(name) ?? "").trim() || null;
-
-    const payload: TablesInsert<"products"> = {
-      workspace_id: workspaceId,
-      name: String(fd.get("name") ?? "").trim(),
-      status: String(fd.get("status") ?? "to_be_tested") as Enums<"product_status">,
-      sku: opt("sku"),
-      category: opt("category"),
-      fabric: opt("fabric"),
-      sale_price: num(fd.get("sale_price")),
-      notes: opt("notes"),
-      is_active: fd.get("is_active") === "on",
-    };
-
-    const supabase = createClient();
-    const { error } = editing
-      ? await supabase.from("products").update(payload).eq("id", product!.id)
-      : await supabase.from("products").insert(payload);
-
-    setBusy(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    router.push("/app/products");
-    router.refresh();
-  }
-
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form action={saveProduct.bind(null, product?.id ?? null)} className="space-y-6">
       <div className="glass-card space-y-4 rounded-xl p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("fields.name")} htmlFor="name">
@@ -94,7 +59,7 @@ export function ProductForm({
           <Field label={t("fields.fabric")} htmlFor="fabric" hint={t("common.optional")}>
             <Input id="fabric" name="fabric" defaultValue={product?.fabric ?? ""} />
           </Field>
-          <Field label={t("fields.price")} htmlFor="sale_price">
+          <Field label={t("fields.price")} htmlFor="sale_price" hint={t("common.optional")}>
             <Input
               id="sale_price"
               name="sale_price"
@@ -105,6 +70,12 @@ export function ProductForm({
             />
           </Field>
         </div>
+        <Field label={t("fields.variants")} htmlFor="variants" hint={t("products.variantsHint")}>
+          <Textarea id="variants" name="variants" rows={3} defaultValue={variantsToText(product?.variants)} />
+        </Field>
+        <Field label={t("fields.images")} htmlFor="images" hint={t("products.imagesHint")}>
+          <Textarea id="images" name="images" rows={3} defaultValue={(product?.images ?? []).join("\n")} />
+        </Field>
         <Field label={t("fields.notes")} htmlFor="notes" hint={t("common.optional")}>
           <Textarea id="notes" name="notes" defaultValue={product?.notes ?? ""} />
         </Field>
@@ -114,17 +85,36 @@ export function ProductForm({
         </label>
       </div>
 
-      {error ? (
-        <p className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</p>
-      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t("products.sourcing")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("fields.costs")} htmlFor="sourcing_cost">
+            <Input
+              id="sourcing_cost"
+              name="sourcing_cost"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              defaultValue={cost?.sourcing_cost ?? 0}
+            />
+          </Field>
+          <Field label={t("fields.currency")} htmlFor="sourcing_currency">
+            <Select id="sourcing_currency" name="sourcing_currency" defaultValue={cost?.sourcing_currency ?? "DZD"}>
+              {CURRENCY_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </CardContent>
+      </Card>
 
       <div className="flex items-center gap-2">
-        <Button type="submit" disabled={busy}>
-          {busy ? t("actions.saving") : t("actions.save")}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => router.back()} disabled={busy}>
-          {t("actions.cancel")}
-        </Button>
+        <Button type="submit">{editing ? t("actions.save") : t("actions.create")}</Button>
       </div>
     </form>
   );

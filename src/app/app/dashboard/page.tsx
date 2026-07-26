@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Package, ArrowRight, Calculator, ShoppingBag, Wallet } from "lucide-react";
+import { Package, ArrowRight, Calculator, ShoppingBag } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin } from "@/lib/rbac";
@@ -27,7 +27,6 @@ export default async function DashboardPage() {
   const links = [
     { href: "/app/orders", icon: ShoppingBag, label: t("nav.orders") },
     { href: "/app/products", icon: Package, label: t("nav.products") },
-    { href: "/app/expenses", icon: Wallet, label: t("expenses.title") },
     ...(isAdmin ? [{ href: "/app/pricing", icon: Calculator, label: t("pricing.title") }] : []),
   ];
 
