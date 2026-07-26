@@ -27,7 +27,8 @@
     "total": "الإجمالي",
     "deleteConfirm": "حذف هذا العنصر؟ لا يمكن التراجع عن ذلك.",
     "updated": "تم الحفظ.",
-    "error": "حدث خطأ ما."
+    "error": "حدث خطأ ما.",
+    "rebuildPending": "هذا القسم قيد إعادة البناء — قادم في مرحلة لاحقة."
   },
   "actions": {
     "new": "جديد",
@@ -51,7 +52,7 @@
     },
     "confirmation_status": {
       "wait_for_confirmation": "بانتظار التأكيد",
-      "not_answer": "لا رد",
+      "no_answer": "لا رد",
       "closed_phone": "الهاتف مغلق",
       "cancelled": "ملغى",
       "confirmed": "مؤكد"
@@ -68,12 +69,24 @@
       "returning": "قيد الإرجاع",
       "returned": "تم الإرجاع"
     },
-    "contact_type": {
+    "supplier_type": {
       "shooting_studio": "ستوديو تصوير",
       "atelier_couture": "ورشة خياطة",
       "emballage": "تغليف",
-      "customer": "عميل",
-      "supplier": "مورّد"
+      "other": "أخرى"
+    },
+    "order_source": {
+      "shopify": "شوبيفاي",
+      "lightfunnels": "لايتفانلز",
+      "manual": "يدوي"
+    },
+    "delivery_type": {
+      "home": "توصيل للمنزل",
+      "stopdesk": "مكتب التوصيل"
+    },
+    "ad_kind": {
+      "test": "تجريبي",
+      "scaling": "توسّع"
     },
     "expense_category": {
       "shooting": "تصوير",
@@ -190,7 +203,11 @@
     "returns_fee": "رسوم الإرجاع / طلب",
     "other_fee": "رسوم أخرى / طلب",
     "cost_order": "التكلفة / طلب",
-    "scenario": { "best": "الأفضل", "medium": "المتوسط", "worst": "الأسوأ" },
+    "scenario": {
+      "best": "الأفضل",
+      "medium": "المتوسط",
+      "worst": "الأسوأ"
+    },
     "groups": {
       "funnel": "مسار الإعلانات",
       "perOrder": "لكل طلب",
@@ -345,12 +362,30 @@
     "subtitle": "مرحباً بعودتك. إليك ما يتم بناؤه.",
     "soon": "قريباً",
     "modules": {
-      "Products": { "title": "المنتجات", "desc": "الكتالوج والتكاليف ودورة الحالة" },
-      "Orders": { "title": "الطلبات", "desc": "طابور التأكيد ← تسليم التوصيل" },
-      "Contacts": { "title": "جهات الاتصال", "desc": "العملاء والموردون والشركاء" },
-      "Expenses": { "title": "المصاريف", "desc": "تكاليف مرتبطة بالمنتجات والطلبات" },
-      "BI": { "title": "التحليلات", "desc": "الهوامش ونسب التوصيل والموثوقية" },
-      "Settings": { "title": "الإعدادات", "desc": "الويبهوك والأسرار والفريق" }
+      "Products": {
+        "title": "المنتجات",
+        "desc": "الكتالوج والتكاليف ودورة الحالة"
+      },
+      "Orders": {
+        "title": "الطلبات",
+        "desc": "طابور التأكيد ← تسليم التوصيل"
+      },
+      "Contacts": {
+        "title": "جهات الاتصال",
+        "desc": "العملاء والموردون والشركاء"
+      },
+      "Expenses": {
+        "title": "المصاريف",
+        "desc": "تكاليف مرتبطة بالمنتجات والطلبات"
+      },
+      "BI": {
+        "title": "التحليلات",
+        "desc": "الهوامش ونسب التوصيل والموثوقية"
+      },
+      "Settings": {
+        "title": "الإعدادات",
+        "desc": "الويبهوك والأسرار والفريق"
+      }
     },
     "kpi": {
       "confirmed": "مؤكدة",

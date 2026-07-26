@@ -2,7 +2,7 @@
  * BENZ Pricing COD unit-economics model — exact replica of the spreadsheet
  * (supabase root: "BENZ Pricing (31).xlsx"). Three scenarios: best / medium / worst.
  *
- * Inputs are the only thing stored (pricing_scenarios.inputs jsonb); every
+ * Inputs are the only thing stored (product_scenarios.inputs jsonb); every
  * derived number below is recomputed in the UI so the math always matches the
  * sheet and never drifts.
  */

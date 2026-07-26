@@ -42,8 +42,7 @@ export default async function ContactsPage() {
                   <th>{t("fields.name")}</th>
                   <th>{t("fields.type")}</th>
                   <th>{t("fields.phone")}</th>
-                  <th>{t("fields.city")}</th>
-                  <th>{t("fields.email")}</th>
+                  <th>{t("fields.location")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -55,11 +54,12 @@ export default async function ContactsPage() {
                       </Link>
                     </td>
                     <td>
-                      <Badge variant="secondary">{t(`status.contact_type.${c.type}`)}</Badge>
+                      <Badge variant="secondary">{t(`status.supplier_type.${c.type}`)}</Badge>
                     </td>
-                    <td className="text-muted-foreground">{c.phone ?? "—"}</td>
-                    <td className="text-muted-foreground">{c.city ?? "—"}</td>
-                    <td className="text-muted-foreground">{c.email ?? "—"}</td>
+                    <td className="text-muted-foreground">
+                      {c.phones.length ? c.phones.join(", ") : "—"}
+                    </td>
+                    <td className="text-muted-foreground">{c.location ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

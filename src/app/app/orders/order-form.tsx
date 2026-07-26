@@ -15,7 +15,7 @@ import { Field } from "@/components/field";
 type ProductOpt = { id: string; name: string; sku: string | null };
 type CustomerOpt = { id: string; name: string };
 
-export function OrderForm() {
+export function OrderForm({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const t = useTranslations();
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ export function OrderForm() {
     const supabase = createClient();
     Promise.all([
       supabase.from("products").select("id, name, sku").eq("is_active", true).order("name"),
-      supabase.from("contacts").select("id, name").eq("type", "customer").order("name"),
+      supabase.from("customers").select("id, name").order("name"),
     ]).then(([p, c]) => {
       setProducts((p.data as ProductOpt[] | null) ?? []);
       setCustomers((c.data as CustomerOpt[] | null) ?? []);
@@ -44,11 +44,12 @@ export function OrderForm() {
     const up = Number(fd.get("unit_price") ?? "");
 
     const payload: TablesInsert<"orders"> = {
+      workspace_id: workspaceId,
       product_id: opt("product_id"),
       customer_id: opt("customer_id"),
       quantity: Math.max(1, Number(fd.get("quantity") ?? 1) || 1),
-      unit_price: Number.isFinite(up) && up > 0 ? up : null,
-      city: opt("city"),
+      sale_price: Number.isFinite(up) && up > 0 ? up : null,
+      commune: opt("city"),
       address: opt("address"),
       source: "manual",
       placed_at: new Date().toISOString(),

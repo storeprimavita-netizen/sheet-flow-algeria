@@ -21,7 +21,7 @@ export default async function OrdersPage() {
   const { data: orders } = await supabase
     .from("orders")
     .select(
-      "id, order_number, quantity, total_amount, confirmation_status, delivery_status, city, placed_at, product:products(name), customer:contacts(name)",
+      "id, order_number, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name), customer:customers(name)",
     )
     .order("created_at", { ascending: false });
 
@@ -66,7 +66,7 @@ export default async function OrdersPage() {
                     </td>
                     <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
                     <td className="text-muted-foreground">{o.customer?.name ?? "—"}</td>
-                    <td>{formatCurrency(o.total_amount)}</td>
+                    <td>{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
                     <td>
                       <Badge
                         variant={o.confirmation_status === "confirmed" ? "default" : "secondary"}

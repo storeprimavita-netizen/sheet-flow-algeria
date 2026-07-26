@@ -27,7 +27,8 @@
     "total": "Total",
     "deleteConfirm": "Delete this item? This cannot be undone.",
     "updated": "Saved.",
-    "error": "Something went wrong."
+    "error": "Something went wrong.",
+    "rebuildPending": "This section is being rebuilt — coming in a later phase."
   },
   "actions": {
     "new": "New",
@@ -51,7 +52,7 @@
     },
     "confirmation_status": {
       "wait_for_confirmation": "Wait for confirmation",
-      "not_answer": "No answer",
+      "no_answer": "No answer",
       "closed_phone": "Phone closed",
       "cancelled": "Cancelled",
       "confirmed": "Confirmed"
@@ -68,12 +69,24 @@
       "returning": "Returning",
       "returned": "Returned"
     },
-    "contact_type": {
+    "supplier_type": {
       "shooting_studio": "Shooting studio",
       "atelier_couture": "Atelier couture",
       "emballage": "Emballage",
-      "customer": "Customer",
-      "supplier": "Supplier"
+      "other": "Other"
+    },
+    "order_source": {
+      "shopify": "Shopify",
+      "lightfunnels": "Lightfunnels",
+      "manual": "Manual"
+    },
+    "delivery_type": {
+      "home": "Home delivery",
+      "stopdesk": "Stop desk"
+    },
+    "ad_kind": {
+      "test": "Test",
+      "scaling": "Scaling"
     },
     "expense_category": {
       "shooting": "Shooting",

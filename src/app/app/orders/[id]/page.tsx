@@ -32,7 +32,7 @@ export default async function OrderDetailPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "*, product:products(name, sku), customer:contacts(name, phone, city)",
+      "*, product:products(name, sku), customer:customers(name, phone, commune)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -47,7 +47,7 @@ export default async function OrderDetailPage({
   }
 
   const { data: events } = await supabase
-    .from("order_events")
+    .from("order_status_history")
     .select("*")
     .eq("order_id", id)
     .order("created_at", { ascending: false });
@@ -55,15 +55,15 @@ export default async function OrderDetailPage({
   const isAdmin = await isCurrentUserAdmin();
 
   // admin: agent rosters for the assignment card
-  let confirmationAgents: { id: string; email: string }[] = [];
-  let deliveryAgents: { id: string; email: string }[] = [];
+  const confirmationAgents: { id: string; email: string }[] = [];
+  const deliveryAgents: { id: string; email: string }[] = [];
   if (isAdmin) {
     const { data: team } = await supabase
-      .from("team_directory")
-      .select("user_id, email, role")
-      .eq("is_team_member", true);
-    for (const r of (team ?? []) as any[]) {
-      const entry = { id: r.user_id, email: r.email ?? r.user_id.slice(0, 8) };
+      .from("profiles")
+      .select("user_id, display_name, role")
+      .eq("is_active", true);
+    for (const r of team ?? []) {
+      const entry = { id: r.user_id, email: r.display_name ?? r.user_id.slice(0, 8) };
       if (r.role === "confirmation_agent") confirmationAgents.push(entry);
       else if (r.role === "delivery_agent") deliveryAgents.push(entry);
     }
@@ -82,13 +82,17 @@ export default async function OrderDetailPage({
       <div className="glass-card grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
         <Meta label={t("fields.customer")}>
-          {order.customer?.name ?? "—"}
-          {order.customer?.phone ? ` · ${order.customer.phone}` : ""}
+          {order.customer?.name ?? order.customer_name ?? "—"}
+          {order.customer?.phone ?? order.customer_phone
+            ? ` · ${order.customer?.phone ?? order.customer_phone}`
+            : ""}
         </Meta>
         <Meta label={t("fields.quantity")}>{order.quantity}</Meta>
-        <Meta label={t("fields.unit_price")}>{formatCurrency(order.unit_price)}</Meta>
-        <Meta label={t("fields.total_amount")}>{formatCurrency(order.total_amount)}</Meta>
-        <Meta label={t("fields.city")}>{order.city ?? "—"}</Meta>
+        <Meta label={t("fields.unit_price")}>{formatCurrency(order.sale_price)}</Meta>
+        <Meta label={t("fields.total_amount")}>
+          {formatCurrency((order.sale_price ?? 0) * order.quantity)}
+        </Meta>
+        <Meta label={t("fields.city")}>{order.commune ?? "—"}</Meta>
         <Meta label={t("fields.address")}>{order.address ?? "—"}</Meta>
         <Meta label={t("fields.source")}>{order.source}</Meta>
         <Meta label={t("fields.placed_at")}>{formatDateTime(order.placed_at)}</Meta>

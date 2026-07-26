@@ -7,70 +7,161 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
-      app_settings: {
-        Row: {
-          key: string
-          updated_at: string
-          value: string
-        }
-        Insert: {
-          key: string
-          updated_at?: string
-          value: string
-        }
-        Update: {
-          key?: string
-          updated_at?: string
-          value?: string
-        }
-        Relationships: []
-      }
-      cash_collections: {
+      ad_spend_daily: {
         Row: {
           amount: number
-          collected_at: string
-          collected_by: string | null
-          deposit_reference: string | null
-          deposited_at: string | null
-          id: string
-          notes: string | null
-          order_id: string
-          status: string
+          amount_dzd: number | null
           created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          fx_rate: number
+          id: string
+          kind: Database["public"]["Enums"]["ad_kind"]
+          product_id: string
+          spent_on: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
           amount: number
-          collected_at?: string
-          collected_by?: string | null
-          deposit_reference?: string | null
-          deposited_at?: string | null
-          id?: string
-          notes?: string | null
-          order_id: string
-          status?: string
+          amount_dzd?: number | null
           created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["ad_kind"]
+          product_id: string
+          spent_on?: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
           amount?: number
-          collected_at?: string
-          collected_by?: string | null
-          deposit_reference?: string | null
-          deposited_at?: string | null
-          id?: string
-          notes?: string | null
-          order_id?: string
-          status?: string
+          amount_dzd?: number | null
           created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["ad_kind"]
+          product_id?: string
+          spent_on?: string
           updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_spend_daily_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_spend_daily_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_spend_daily_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          id: number
+          new_row: Json | null
+          old_row: Json | null
+          row_id: string | null
+          table_name: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          id?: never
+          new_row?: Json | null
+          old_row?: Json | null
+          row_id?: string | null
+          table_name: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          id?: never
+          new_row?: Json | null
+          old_row?: Json | null
+          row_id?: string | null
+          table_name?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_collections: {
+        Row: {
+          amount_dzd: number
+          collected_on: string
+          created_at: string
+          created_by: string | null
+          deposited_on: string | null
+          id: string
+          note: string | null
+          order_id: string | null
+          reference: string | null
+          status: Database["public"]["Enums"]["cash_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_dzd: number
+          collected_on?: string
+          created_at?: string
+          created_by?: string | null
+          deposited_on?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["cash_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount_dzd?: number
+          collected_on?: string
+          created_at?: string
+          created_by?: string | null
+          deposited_on?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          reference?: string | null
+          status?: Database["public"]["Enums"]["cash_status"]
+          updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -80,87 +171,213 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cash_collections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contacts: {
         Row: {
-          city: string | null
           created_at: string
-          email: string | null
           id: string
           location: string | null
           name: string
           notes: string | null
-          phone: string | null
-          type: Database["public"]["Enums"]["contact_type"]
+          phones: string[]
+          type: Database["public"]["Enums"]["supplier_type"]
           updated_at: string
+          workspace_id: string
         }
         Insert: {
-          city?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           location?: string | null
           name: string
           notes?: string | null
-          phone?: string | null
-          type: Database["public"]["Enums"]["contact_type"]
+          phones?: string[]
+          type: Database["public"]["Enums"]["supplier_type"]
           updated_at?: string
+          workspace_id: string
         }
         Update: {
-          city?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           location?: string | null
           name?: string
           notes?: string | null
-          phone?: string | null
-          type?: Database["public"]["Enums"]["contact_type"]
+          phones?: string[]
+          type?: Database["public"]["Enums"]["supplier_type"]
           updated_at?: string
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          commune: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          phone_raw: string | null
+          updated_at: string
+          wilaya_code: number | null
+          workspace_id: string
+        }
+        Insert: {
+          address?: string | null
+          commune?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          phone_raw?: string | null
+          updated_at?: string
+          wilaya_code?: number | null
+          workspace_id: string
+        }
+        Update: {
+          address?: string | null
+          commune?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          phone_raw?: string | null
+          updated_at?: string
+          wilaya_code?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_wilaya_code_fkey"
+            columns: ["wilaya_code"]
+            isOneToOne: false
+            referencedRelation: "wilayas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          id: string
+          rate_dzd: number
+          valid_from: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          rate_dzd: number
+          valid_from?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          rate_dzd?: number
+          valid_from?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
           amount: number
+          amount_dzd: number | null
           category: Database["public"]["Enums"]["expense_category"]
+          contact_id: string | null
           created_at: string
           created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          fx_rate: number
           id: string
-          incurred_on: string
-          notes: string | null
-          order_id: string | null
+          note: string | null
           product_id: string | null
+          spent_on: string
+          updated_at: string
+          workspace_id: string
         }
         Insert: {
           amount: number
+          amount_dzd?: number | null
           category: Database["public"]["Enums"]["expense_category"]
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
           id?: string
-          incurred_on?: string
-          notes?: string | null
-          order_id?: string | null
+          note?: string | null
           product_id?: string | null
+          spent_on?: string
+          updated_at?: string
+          workspace_id: string
         }
         Update: {
           amount?: number
+          amount_dzd?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
           id?: string
-          incurred_on?: string
-          notes?: string | null
-          order_id?: string | null
+          note?: string | null
           product_id?: string | null
+          spent_on?: string
+          updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "expenses_order_id_fkey"
-            columns: ["order_id"]
+            foreignKeyName: "expenses_contact_fk"
+            columns: ["contact_id"]
             isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
             referencedColumns: ["id"]
           },
           {
@@ -170,39 +387,216 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "expenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      order_events: {
+      fixed_fees: {
+        Row: {
+          amount: number
+          amount_dzd: number | null
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          fx_rate: number
+          id: string
+          is_active: boolean
+          label: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          amount_dzd?: number | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
+          id?: string
+          is_active?: boolean
+          label: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          amount_dzd?: number | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          fx_rate?: number
+          id?: string
+          is_active?: boolean
+          label?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_fees_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_configs: {
+        Row: {
+          config: Json
+          is_active: boolean
+          last_event_at: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          secret: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          is_active?: boolean
+          last_event_at?: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          secret?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          is_active?: boolean
+          last_event_at?: string | null
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          secret?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_configs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_objectives: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_done: boolean
+          meeting_id: string
+          position: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          meeting_id: string
+          position?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          meeting_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_objectives_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          attendees: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attendees?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attendees?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
         Row: {
           actor: string | null
           comment: string | null
           created_at: string
-          id: string
+          from_status: string | null
+          id: number
           order_id: string
           stage: string
-          status: string
+          to_status: string
         }
         Insert: {
           actor?: string | null
           comment?: string | null
           created_at?: string
-          id?: string
+          from_status?: string | null
+          id?: never
           order_id: string
           stage: string
-          status: string
+          to_status: string
         }
         Update: {
           actor?: string | null
           comment?: string | null
           created_at?: string
-          id?: string
+          from_status?: string | null
+          id?: never
           order_id?: string
           stage?: string
-          status?: string
+          to_status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "order_events_order_id_fkey"
+            foreignKeyName: "order_status_history_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -213,89 +607,130 @@ export type Database = {
       orders: {
         Row: {
           address: string | null
-          agent_comment: string | null
           assigned_confirmation_agent: string | null
           assigned_delivery_agent: string | null
-          city: string | null
-          confirmation_status: Database["public"]["Enums"]["confirmation_status"]
+          commune: string | null
           confirmation_attempts: number
+          confirmation_comment: string | null
+          confirmation_status: Database["public"]["Enums"]["confirmation_status"]
           created_at: string
           created_by: string | null
           customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_fee: number | null
+          delivery_fee_source: Database["public"]["Enums"]["delivery_fee_source"]
           delivery_status: Database["public"]["Enums"]["delivery_status"]
+          delivery_type: Database["public"]["Enums"]["delivery_type"]
+          duplicate_of: string | null
           external_id: string | null
           id: string
+          is_duplicate_suspect: boolean
           order_number: string | null
           placed_at: string | null
           product_id: string | null
           quantity: number
-          raw_payload: Json | null
-          source: string
-          total_amount: number | null
-          unit_price: number | null
+          sale_price: number | null
+          source: Database["public"]["Enums"]["order_source"]
           updated_at: string
+          variant: string | null
+          webhook_event_id: string | null
+          wilaya_code: number | null
+          workspace_id: string
         }
         Insert: {
           address?: string | null
-          agent_comment?: string | null
           assigned_confirmation_agent?: string | null
           assigned_delivery_agent?: string | null
-          city?: string | null
-          confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
+          commune?: string | null
           confirmation_attempts?: number
+          confirmation_comment?: string | null
+          confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_fee?: number | null
+          delivery_fee_source?: Database["public"]["Enums"]["delivery_fee_source"]
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          delivery_type?: Database["public"]["Enums"]["delivery_type"]
+          duplicate_of?: string | null
           external_id?: string | null
           id?: string
+          is_duplicate_suspect?: boolean
           order_number?: string | null
           placed_at?: string | null
           product_id?: string | null
           quantity?: number
-          raw_payload?: Json | null
-          source?: string
-          total_amount?: number | null
-          unit_price?: number | null
+          sale_price?: number | null
+          source?: Database["public"]["Enums"]["order_source"]
           updated_at?: string
+          variant?: string | null
+          webhook_event_id?: string | null
+          wilaya_code?: number | null
+          workspace_id: string
         }
         Update: {
           address?: string | null
-          agent_comment?: string | null
           assigned_confirmation_agent?: string | null
           assigned_delivery_agent?: string | null
-          city?: string | null
-          confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
+          commune?: string | null
           confirmation_attempts?: number
+          confirmation_comment?: string | null
+          confirmation_status?: Database["public"]["Enums"]["confirmation_status"]
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_fee?: number | null
+          delivery_fee_source?: Database["public"]["Enums"]["delivery_fee_source"]
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          delivery_type?: Database["public"]["Enums"]["delivery_type"]
+          duplicate_of?: string | null
           external_id?: string | null
           id?: string
+          is_duplicate_suspect?: boolean
           order_number?: string | null
           placed_at?: string | null
           product_id?: string | null
           quantity?: number
-          raw_payload?: Json | null
-          source?: string
-          total_amount?: number | null
-          unit_price?: number | null
+          sale_price?: number | null
+          source?: Database["public"]["Enums"]["order_source"]
           updated_at?: string
+          variant?: string | null
+          webhook_event_id?: string | null
+          wilaya_code?: number | null
+          workspace_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "contacts"
+            referencedRelation: "customer_stats"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "customer_profiles"
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
             referencedColumns: ["id"]
           },
           {
@@ -305,123 +740,82 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      products: {
-        Row: {
-          category: string | null
-          cost_confirmation: number
-          cost_delivery: number
-          cost_packaging: number
-          cost_sampling: number
-          cost_scaling_ads: number
-          cost_shooting: number
-          cost_test_ads: number
-          created_at: string
-          created_by: string | null
-          description: string | null
-          fabric: string | null
-          id: string
-          image_url: string | null
-          is_active: boolean
-          material: string | null
-          name: string
-          selling_price: number | null
-          sku: string | null
-          status: Database["public"]["Enums"]["product_status"]
-          stock: number
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          cost_confirmation?: number
-          cost_delivery?: number
-          cost_packaging?: number
-          cost_sampling?: number
-          cost_scaling_ads?: number
-          cost_shooting?: number
-          cost_test_ads?: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          fabric?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          material?: string | null
-          name: string
-          selling_price?: number | null
-          sku?: string | null
-          status?: Database["public"]["Enums"]["product_status"]
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          cost_confirmation?: number
-          cost_delivery?: number
-          cost_packaging?: number
-          cost_sampling?: number
-          cost_scaling_ads?: number
-          cost_shooting?: number
-          cost_test_ads?: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          fabric?: string | null
-          id?: string
-          image_url?: string | null
-          is_active?: boolean
-          material?: string | null
-          name?: string
-          selling_price?: number | null
-          sku?: string | null
-          status?: Database["public"]["Enums"]["product_status"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      stock_movements: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          delta: number
-          id: string
-          note: string | null
-          product_id: string
-          reason: string
-          reference: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          delta: number
-          id?: string
-          note?: string | null
-          product_id: string
-          reason: string
-          reference?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          delta?: number
-          id?: string
-          note?: string | null
-          product_id?: string
-          reason?: string
-          reference?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "stock_movements_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "orders_webhook_event_id_fkey"
+            columns: ["webhook_event_id"]
             isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "webhook_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_wilaya_code_fkey"
+            columns: ["wilaya_code"]
+            isOneToOne: false
+            referencedRelation: "wilayas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
       }
-      pricing_scenarios: {
+      product_costs: {
+        Row: {
+          fx_rate: number
+          product_id: string
+          sourcing_cost: number
+          sourcing_cost_dzd: number | null
+          sourcing_currency: Database["public"]["Enums"]["currency_code"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          fx_rate?: number
+          product_id: string
+          sourcing_cost?: number
+          sourcing_cost_dzd?: number | null
+          sourcing_currency?: Database["public"]["Enums"]["currency_code"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          fx_rate?: number
+          product_id?: string
+          sourcing_cost?: number
+          sourcing_cost_dzd?: number | null
+          sourcing_currency?: Database["public"]["Enums"]["currency_code"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_costs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "product_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_costs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_costs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_scenarios: {
         Row: {
           created_at: string
           id: string
@@ -429,6 +823,7 @@ export type Database = {
           product_id: string | null
           slug: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
           created_at?: string
@@ -437,6 +832,7 @@ export type Database = {
           product_id?: string | null
           slug: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
           created_at?: string
@@ -445,130 +841,540 @@ export type Database = {
           product_id?: string | null
           slug?: string
           updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "pricing_scenarios_product_id_fkey"
+            foreignKeyName: "product_scenarios_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_scenarios_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_scenarios_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      team_roles: {
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          fabric: string | null
+          id: string
+          images: string[]
+          is_active: boolean
+          name: string
+          notes: string | null
+          sale_price: number | null
+          sku: string | null
+          status: Database["public"]["Enums"]["product_status"]
+          stock: number
+          updated_at: string
+          variants: Json
+          workspace_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          fabric?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          sale_price?: number | null
+          sku?: string | null
+          status?: Database["public"]["Enums"]["product_status"]
+          stock?: number
+          updated_at?: string
+          variants?: Json
+          workspace_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          fabric?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          sale_price?: number | null
+          sku?: string | null
+          status?: Database["public"]["Enums"]["product_status"]
+          stock?: number
+          updated_at?: string
+          variants?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           duty: string | null
           is_active: boolean
-          meeting_late_minutes: number
-          slack_channel_id: string | null
-          slack_user_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           duty?: string | null
           is_active?: boolean
-          meeting_late_minutes?: number
-          slack_channel_id?: string | null
-          slack_user_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           duty?: string | null
           is_active?: boolean
-          meeting_late_minutes?: number
-          slack_channel_id?: string | null
-          slack_user_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules_docs: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          position: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_docs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+          workspace_id: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+          workspace_id: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          note: string | null
+          order_id: string | null
+          product_id: string
+          reason: Database["public"]["Enums"]["stock_reason"]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          product_id: string
+          reason: Database["public"]["Enums"]["stock_reason"]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          product_id?: string
+          reason?: Database["public"]["Enums"]["stock_reason"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_order_fk"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          external_id: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          signature_ok: boolean
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          signature_ok?: boolean
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          signature_ok?: boolean
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wilaya_fees: {
+        Row: {
+          home_fee: number
+          stop_shipping: boolean
+          stopdesk_fee: number
+          updated_at: string
+          wilaya_code: number
+          workspace_id: string
+        }
+        Insert: {
+          home_fee?: number
+          stop_shipping?: boolean
+          stopdesk_fee?: number
+          updated_at?: string
+          wilaya_code: number
+          workspace_id: string
+        }
+        Update: {
+          home_fee?: number
+          stop_shipping?: boolean
+          stopdesk_fee?: number
+          updated_at?: string
+          wilaya_code?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wilaya_fees_wilaya_code_fkey"
+            columns: ["wilaya_code"]
+            isOneToOne: false
+            referencedRelation: "wilayas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "wilaya_fees_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wilayas: {
+        Row: {
+          code: number
+          name: string
+        }
+        Insert: {
+          code: number
+          name: string
+        }
+        Update: {
+          code?: number
+          name?: string
         }
         Relationships: []
       }
-      user_roles: {
+      workspaces: {
         Row: {
           created_at: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          id: string
+          name: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          id?: string
+          name: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
     }
     Views: {
-      customer_profiles: {
+      agent_performance: {
         Row: {
-          city: string | null
+          avg_decision_time: string | null
+          confirmed: number | null
+          delivered: number | null
+          lost: number | null
+          orders_handled: number | null
+          stage: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_stats: {
+        Row: {
+          cancelled_orders: number | null
+          commune: string | null
           confirmed_orders: number | null
           delivered_orders: number | null
           id: string | null
           name: string | null
+          no_answer_orders: number | null
           phone: string | null
-          reliability_score: number | null
+          returned_orders: number | null
+          risk_score: number | null
           total_orders: number | null
+          wilaya_code: number | null
+          workspace_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_wilaya_code_fkey"
+            columns: ["wilaya_code"]
+            isOneToOne: false
+            referencedRelation: "wilayas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      team_directory: {
+      product_stats: {
         Row: {
-          duty: string | null
-          email: string | null
-          is_team_member: boolean
-          meeting_late_minutes: number | null
-          role: Database["public"]["Enums"]["app_role"] | null
-          slack_channel_id: string | null
-          slack_user_id: string | null
-          user_id: string
+          ad_spend_dzd: number | null
+          confirmation_rate: number | null
+          delivery_rate: number | null
+          expenses_dzd: number | null
+          id: string | null
+          name: string | null
+          orders_confirmed: number | null
+          orders_delivered: number | null
+          orders_received: number | null
+          orders_returned: number | null
+          revenue_dzd: number | null
+          sourcing_cost_dzd: number | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          stock: number | null
+          workspace_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wilaya_stats: {
+        Row: {
+          confirmed_orders: number | null
+          delivered_orders: number | null
+          delivery_rate: number | null
+          returned_orders: number | null
+          stop_shipping_auto: boolean | null
+          stop_shipping_manual: boolean | null
+          total_orders: number | null
+          wilaya_code: number | null
+          wilaya_name: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_wilaya_code_fkey"
+            columns: ["wilaya_code"]
+            isOneToOne: false
+            referencedRelation: "wilayas"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
-      bootstrap_admin: { Args: { p_email: string }; Returns: string }
-      cash_summary: {
-        Args: never
-        Returns: { outstanding: number; deposited_month: number; collected_month: number }
+      bootstrap_workspace: {
+        Args: { p_email: string; p_workspace_name?: string }
+        Returns: string
       }
-      current_user_role: { Args: never; Returns: string }
-      dashboard_kpis: {
-        Args: never
-        Returns: {
-          today: { confirmed: number; delivered: number; returned: number; revenue: number }
-          month: { confirmed: number; delivered: number; returned: number; revenue: number }
-          queue: { pending_confirmation: number; awaiting_delivery: number }
-          top_product: { name: string; delivered: number } | null
-          totals: { products: number; orders: number; customers: number }
+      current_app_role: { Args: never; Returns: string }
+      current_fx_rate: {
+        Args: {
+          p_currency: Database["public"]["Enums"]["currency_code"]
+          p_ws: string
         }
+        Returns: number
       }
+      current_workspace_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      normalize_dz_phone: { Args: { p: string }; Returns: string }
+      seed_workspace: { Args: { p_ws: string }; Returns: undefined }
     }
     Enums: {
+      ad_kind: "test" | "scaling"
       app_role: "admin" | "confirmation_agent" | "delivery_agent"
+      cash_status: "collected" | "deposited"
       confirmation_status:
         | "wait_for_confirmation"
-        | "not_answer"
+        | "no_answer"
         | "closed_phone"
         | "cancelled"
         | "confirmed"
-      contact_type:
-        | "shooting_studio"
-        | "atelier_couture"
-        | "emballage"
-        | "customer"
-        | "supplier"
+      currency_code: "DZD" | "USD" | "EUR"
+      delivery_fee_source: "payload" | "wilaya_table" | "manual"
       delivery_status:
         | "wait_for_deposit"
         | "bureau_deposited"
@@ -580,6 +1386,7 @@ export type Database = {
         | "delayed"
         | "returning"
         | "returned"
+      delivery_type: "home" | "stopdesk"
       expense_category:
         | "shooting"
         | "packaging"
@@ -589,7 +1396,16 @@ export type Database = {
         | "test_ads"
         | "scaling_ads"
         | "other"
+      integration_provider: "shopify" | "lightfunnels"
+      meeting_status: "planned" | "held" | "cancelled"
+      order_source: "shopify" | "lightfunnels" | "manual"
       product_status: "to_be_tested" | "tested" | "confirmed" | "cancelled"
+      stock_reason: "purchase" | "correction" | "delivered" | "returned"
+      supplier_type:
+        | "shooting_studio"
+        | "atelier_couture"
+        | "emballage"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -717,21 +1533,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ad_kind: ["test", "scaling"],
       app_role: ["admin", "confirmation_agent", "delivery_agent"],
+      cash_status: ["collected", "deposited"],
       confirmation_status: [
         "wait_for_confirmation",
-        "not_answer",
+        "no_answer",
         "closed_phone",
         "cancelled",
         "confirmed",
       ],
-      contact_type: [
-        "shooting_studio",
-        "atelier_couture",
-        "emballage",
-        "customer",
-        "supplier",
-      ],
+      currency_code: ["DZD", "USD", "EUR"],
+      delivery_fee_source: ["payload", "wilaya_table", "manual"],
       delivery_status: [
         "wait_for_deposit",
         "bureau_deposited",
@@ -744,6 +1557,7 @@ export const Constants = {
         "returning",
         "returned",
       ],
+      delivery_type: ["home", "stopdesk"],
       expense_category: [
         "shooting",
         "packaging",
@@ -754,7 +1568,18 @@ export const Constants = {
         "scaling_ads",
         "other",
       ],
+      integration_provider: ["shopify", "lightfunnels"],
+      meeting_status: ["planned", "held", "cancelled"],
+      order_source: ["shopify", "lightfunnels", "manual"],
       product_status: ["to_be_tested", "tested", "confirmed", "cancelled"],
+      stock_reason: ["purchase", "correction", "delivered", "returned"],
+      supplier_type: [
+        "shooting_studio",
+        "atelier_couture",
+        "emballage",
+        "other",
+      ],
     },
   },
 } as const
+

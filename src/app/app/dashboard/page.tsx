@@ -1,14 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
-  CheckCircle2,
-  Truck,
-  Undo2,
   Banknote,
-  ClipboardList,
-  PackageCheck,
   Package,
-  Users,
   ArrowRight,
   Calculator,
   ShoppingBag,
@@ -22,58 +16,20 @@ import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
 
-type Kpis = {
-  today: { confirmed: number; delivered: number; returned: number; revenue: number };
-  month: { confirmed: number; delivered: number; returned: number; revenue: number };
-  queue: { pending_confirmation: number; awaiting_delivery: number };
-  top_product: { name: string; delivered: number } | null;
-  totals: { products: number; orders: number; customers: number };
-};
-
-const ZERO: Kpis = {
-  today: { confirmed: 0, delivered: 0, returned: 0, revenue: 0 },
-  month: { confirmed: 0, delivered: 0, returned: 0, revenue: 0 },
-  queue: { pending_confirmation: 0, awaiting_delivery: 0 },
-  top_product: null,
-  totals: { products: 0, orders: 0, customers: 0 },
-};
-
 export default async function DashboardPage() {
   const t = await getTranslations();
   const isAdmin = await isCurrentUserAdmin();
   const supabase = await createClient();
 
-  const [{ data: kRaw }, { data: recent }] = await Promise.all([
-    supabase.rpc("dashboard_kpis"),
-    supabase
-      .from("orders")
-      .select(
-        "id,order_number,total_amount,confirmation_status,delivery_status,created_at,product:products(name),customer:contacts(name)",
-      )
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
-  const k = (kRaw as Kpis | null) ?? ZERO;
-
-  const kpis = [
-    { key: "confirmed", icon: CheckCircle2, month: k.month.confirmed, today: k.today.confirmed, accent: false },
-    { key: "delivered", icon: Truck, month: k.month.delivered, today: k.today.delivered, accent: false },
-    { key: "returned", icon: Undo2, month: k.month.returned, today: k.today.returned, accent: false },
-    {
-      key: "revenue",
-      icon: Banknote,
-      month: formatCurrency(k.month.revenue),
-      today: formatCurrency(k.today.revenue),
-      accent: true,
-    },
-  ] as const;
-
-  const queue = [
-    { key: "pendingConfirmation", icon: ClipboardList, value: k.queue.pending_confirmation, href: "/app/orders" },
-    { key: "awaitingDelivery", icon: PackageCheck, value: k.queue.awaiting_delivery, href: "/app/orders" },
-    { key: "products", icon: Package, value: k.totals.products, href: "/app/products" },
-    { key: "customers", icon: Users, value: k.totals.customers, href: "/app/contacts" },
-  ] as const;
+  // KPI tiles return with the Phase 7 dashboard RPC (00008_dashboard.sql);
+  // until then the dashboard is recent orders + quick links.
+  const { data: recent } = await supabase
+    .from("orders")
+    .select(
+      "id,order_number,quantity,sale_price,confirmation_status,delivery_status,created_at,product:products(name),customer:customers(name)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(6);
 
   const links = [
     { href: "/app/orders", icon: ShoppingBag, label: t("nav.orders") },
@@ -88,37 +44,6 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gradient">{t("dashboard.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("dashboard.subtitle")}</p>
-      </div>
-
-      {/* KPIs: month value big, today small */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {kpis.map(({ key, icon: Icon, month, today, accent }) => (
-          <div key={key} className="glass-card rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                {t(`dashboard.kpi.${key}`)}
-              </span>
-              <Icon className={`h-4 w-4 ${accent ? "text-primary" : "text-muted-foreground"}`} />
-            </div>
-            <div className={`mt-2 text-2xl font-bold ${accent ? "text-gradient" : ""}`}>{month}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {t("dashboard.kpi.today")}: <span className="font-medium text-foreground">{today}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* queue + totals */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {queue.map(({ key, icon: Icon, value, href }) => (
-          <Link key={key} href={href} className="glass-card rounded-xl p-4 transition-colors hover:bg-muted/30">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{t(`dashboard.queue.${key}`)}</span>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="mt-2 text-2xl font-bold">{value}</div>
-          </Link>
-        ))}
       </div>
 
       {/* recent orders */}
@@ -157,7 +82,7 @@ export default async function DashboardPage() {
                       </td>
                       <td className="text-muted-foreground">{o.customer?.name ?? "—"}</td>
                       <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
-                      <td>{formatCurrency(o.total_amount)}</td>
+                      <td>{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
                       <td>
                         <Badge variant={o.confirmation_status === "confirmed" ? "default" : "secondary"}>
                           {t(`status.confirmation_status.${o.confirmation_status}`)}
