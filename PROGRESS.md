@@ -21,7 +21,7 @@ the bottom. Format:
 | 2 — Settings section | docs/phases/phase-02.md | done |
 | 3 — Products (details/expenses/ad-spend/stock) | docs/phases/phase-03.md | done |
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | done |
-| 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | pending |
+| 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | done |
 | 6 — Webhooks v2 | docs/phases/phase-06.md | pending |
 | 7 — Dashboard BI | docs/phases/phase-07.md | pending |
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | pending |
@@ -362,3 +362,105 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   phase's files beyond reading `pricing.ts`/`pricing-real.ts` if it ever
   wants a workspace-level rollup (not requested here, scoped to per-product +
   general planner only).
+
+## Phase 5 — Orders core: queues, statuses, history, customers, duplicates, cash (2026-07-26) — DONE
+- Done: the flat `/app/orders` list (Phase 0 stub) split into the three views
+  the spec calls for. `/app/orders` is now just a role-based redirect
+  (admin → `all`, confirmation_agent → `confirmation`, delivery_agent →
+  `delivery`). **`/app/orders/all`** (admin-only, new `all/layout.tsx` reusing
+  `AdminGuardLayout`): full column list, a native GET `<form>` filter bar
+  (confirmation/delivery status, product, wilaya, source, agent, date range)
+  and prev/next pagination (`range()`, 25/page) — no client JS, filters live
+  in the URL. **`/app/orders/confirmation`**: queue (`confirmation_status <>
+  'confirmed'`, same filter applied for admin so the "admin sees the same
+  queue" brief line holds instead of admin seeing everything), each row
+  (`confirmation/row.tsx`) shows the duplicate banner
+  (`is_duplicate_suspect`/`duplicate_of`, linking to the original order) and a
+  `customer_stats` risk badge + total/returned/cancelled counts (fetched in
+  one extra `.in(customerIds)` query, not embedded through the view — matches
+  how Phase 3/4 already queried `product_stats` as a separate query rather
+  than trusting PostgREST embedding into a view). Row actions are a single
+  plain form: confirmation status select + comment textarea ("Save"), plus a
+  second submit button with a `formAction` override (the established
+  fixed-fees-section dual-button pattern) that only logs a dial
+  (`confirmation_attempts += 1`, read-then-write — see the `ponytail:` comment
+  on `logConfirmationAttempt`). **`/app/orders/delivery`**: mirror queue
+  (`confirmation_status = 'confirmed'`, any `delivery_status`), one status
+  `<select>` instead of 10 individual buttons (ponytail: same requirement,
+  far less UI). Admin sees an `OrderTabs` switcher (`order-tabs.tsx`, returns
+  `null` for agents — they only ever have one queue, nothing to switch to).
+- Customer upsert: new `src/lib/customers.ts`
+  (`normalizeDzPhone`/`upsertCustomerFromOrder`), `normalizeDzPhone` ported
+  line-for-line from SQL `normalize_dz_phone()` (00001_core.sql) with a
+  matching `src/lib/customers.test.ts` (7 cases: already-normalized, spaced,
+  +213, 00213, 213-no-zero, 9-digit-no-zero, unmatched-passthrough). Used by
+  the new manual-creation action now, and ready for Phase 6's webhook
+  handlers per the phase brief.
+- Manual creation (`/app/orders/new`) converted off Phase 0's client-side
+  `supabase.from("orders").insert(...)` debt onto a real `createOrder` server
+  action (zod-validated) + `upsertCustomerFromOrder`. Rewrote `order-form.tsx`
+  around that: product/wilaya/wilaya_fees lists now come from the server page
+  (no more client `useEffect` fetch), and sale-price/delivery-fee auto-fill
+  is plain DOM writes on change (same no-state pattern as
+  `CurrencyRateFields`) — picking a product fills `sale_price` and populates
+  a `<datalist>` of that product's variant labels (native, no cascading-select
+  JS); picking a wilaya/delivery-type fills `delivery_fee` from `wilaya_fees`
+  and sets a hidden `delivery_fee_source` to `wilaya_table` — editing the fee
+  input by hand flips that hidden field to `manual` (matches the phase
+  brief's two source values, no extra state needed).
+- Timeline actor names: `order_status_history.actor` has no FK (webhooks
+  write null), so `[id]/page.tsx` now resolves a small `actor → display_name`
+  map via a separate `profiles.in(actorIds)` query and passes it into
+  `OrderWorkflow`, which renders it next to each event's timestamp
+  (`orders.systemActor` for null/webhook actors) — this was missing before
+  and the phase's acceptance criterion is explicit ("every transition
+  appears in the timeline with actor + timestamp").
+- Duplicate banner also added to `/app/orders/[id]` (not just the
+  confirmation queue) for consistency — cheap, same JSX as the queue row.
+- Cash (`/app/orders/cash`): rewritten off the `rebuildPending` stub, adapted
+  from v1's `cash-manager.tsx` (found via `git log --all -- src/app/app/cash/
+  cash-manager.tsx`) to the v2 `cash_collections` schema
+  (`amount_dzd`/`collected_on`/`deposited_on`/`reference`, `cash_status`
+  enum) and to zero-client-JS server actions (`cash/actions.ts`:
+  `recordCashCollection`, `markDeposited`). Dropped v1's checkbox
+  multi-select batch-deposit UI — the phase brief only asks for "record
+  per order, mark deposited", so each outstanding row gets its own
+  deposit-reference input + button instead of client-side selection state.
+  "Uncollected" list is delivered orders minus existing
+  `cash_collections.order_id`s (small in-memory diff, not a NOT-EXISTS view).
+- Fixed in passing (ponytail-review pass): the `all` page's agent filter
+  built a raw PostgREST `.or()` string from a URL query param
+  (`assigned_confirmation_agent.eq.${agent},...`) — added a UUID-shape
+  regex guard before interpolating it, since `.or()` takes a raw filter
+  expression (unlike `.eq()`/`.gte()`, which are parameterized).
+- Files: new `src/lib/customers.ts` + `.test.ts`; new
+  `src/app/app/orders/{order-tabs.tsx, all/{layout,page}.tsx,
+  confirmation/{page,row}.tsx, delivery/{page,row}.tsx, cash/actions.ts}`;
+  rewrote `orders/page.tsx` (redirect only), `orders/order-form.tsx`,
+  `orders/new/page.tsx`, `orders/cash/page.tsx`; extended `orders/actions.ts`
+  (`createOrder`, `updateConfirmationStatus`, `logConfirmationAttempt`,
+  `updateDeliveryStatus` — `updateOrderStatus`/`assignAgents` from Phase 0
+  untouched, still used by the detail page); added `DELIVERY_FEE_SOURCES` to
+  `enums.ts`; ~20 new `fields.*`/`orders.*`/`common.*` message keys in both
+  locales (kept new copy short enough to avoid ICU placeholders — the repo
+  had never used them before this phase, so the customer-history line composes
+  existing `common.total`/`status.*` keys instead of adding one).
+- Known issues: not exercised in a live browser (no credentials this
+  session) — verified via `npm run build`/`npm test` green and by reading
+  the RLS policies (`o_sel`/`o_upd` in `00004_orders.sql`) that back every
+  queue's filtering claim. The stock-effect trigger and the duplicate
+  trigger were not re-verified live (same class of gap Phase 3/4 already
+  flagged) — this phase only added UI/actions around them, migration code
+  is untouched. Agent financial-blindness for Orders was verified by
+  re-reading `o_sel`/`o_upd` + `guard_order_fields()`, not exercised live
+  with a second test user (same deferred gap as every prior phase, still
+  parked for Phase 9).
+- Next chat must know: `npm run build` and `npm test` green, `graphify
+  update .` run. **Phase 6** (Webhooks v2) should call
+  `upsertCustomerFromOrder` from `src/lib/customers.ts` exactly as the phase
+  brief says, and reuse `normalizeDzPhone` rather than re-deriving phone
+  logic. It also inherits the `all`-page filter set and `OrderTabs` — no
+  new nav needed for webhook-sourced orders, they just show up in the
+  existing queues. **Phase 7** (Dashboard BI) can read the same
+  `customer_stats`/`agent_performance` views already proven working here for
+  the confirmation queue's risk badge.

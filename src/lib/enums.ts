@@ -53,6 +53,8 @@ export const ORDER_SOURCES = ["shopify", "lightfunnels", "manual"] as const;
 
 export const DELIVERY_TYPES = ["home", "stopdesk"] as const;
 
+export const DELIVERY_FEE_SOURCES = ["payload", "wilaya_table", "manual"] as const;
+
 export const CURRENCY_CODES = ["DZD", "USD", "EUR"] as const;
 
 export const AD_KINDS = ["test", "scaling"] as const;
