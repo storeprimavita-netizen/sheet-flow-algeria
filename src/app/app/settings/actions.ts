@@ -8,6 +8,7 @@ import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, MEETING_SLOT_COUNT } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
+import { replayEvent } from "@/lib/webhook";
 import type { Database } from "@/lib/supabase/database.types";
 
 const num = (fd: FormData, name: string) => Number(fd.get(name) ?? 0);
@@ -54,6 +55,13 @@ export async function saveIntegration(formData: FormData) {
     .from("integration_configs")
     .upsert(patch, { onConflict: "workspace_id,provider" });
   if (error) throw new Error(error.message);
+  revalidatePath("/app/settings");
+}
+
+export async function replayWebhookEvent(eventId: string) {
+  await adminProfile(); // admin-only gate; replayEvent itself uses the service-role client
+  const { error } = await replayEvent(eventId);
+  if (error) throw new Error(error);
   revalidatePath("/app/settings");
 }
 

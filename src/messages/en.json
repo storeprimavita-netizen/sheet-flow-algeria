@@ -357,7 +357,15 @@
       "4": "Thursday",
       "5": "Friday",
       "6": "Saturday"
-    }
+    },
+    "recentEvents": "Recent webhook events",
+    "noEvents": "No events received yet.",
+    "viewPayload": "View payload",
+    "replay": "Replay",
+    "signatureOk": "signature ok",
+    "signatureBad": "signature invalid",
+    "processed": "processed",
+    "pendingEvent": "not processed"
   },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",
