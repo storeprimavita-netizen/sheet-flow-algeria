@@ -12,6 +12,7 @@
     "team": "الفريق",
     "cash": "الخزينة",
     "stock": "المخزون",
+    "reports": "التقارير",
     "settings": "الإعدادات"
   },
   "common": {
@@ -275,6 +276,25 @@
       "adjustment": "تسوية",
       "removal": "إخراج"
     }
+  },
+  "reports": {
+    "title": "التقارير",
+    "subtitle": "نطاق زمني وأرباح وخسائر وتصدير CSV",
+    "range": "النطاق الزمني",
+    "from": "من",
+    "to": "إلى",
+    "apply": "تطبيق",
+    "export": "تصدير CSV",
+    "exportOrders": "الطلبات",
+    "exportExpenses": "المصاريف",
+    "exportCash": "النقد",
+    "revenue": "الإيرادات (المُوصَّلة)",
+    "expenses": "المصاريف",
+    "net": "الصافي",
+    "collected": "النقد المُحصَّل",
+    "deposited": "النقد المُودَع",
+    "byCategory": "المصاريف حسب الفئة",
+    "noData": "لا توجد بيانات في هذا النطاق."
   },
   "settings": {
     "title": "الإعدادات",
