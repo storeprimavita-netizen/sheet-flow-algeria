@@ -93,6 +93,8 @@
   },
   "fields": {
     "name": "الاسم",
+    "label": "التسمية",
+    "currency": "العملة",
     "sku": "رمز المنتج",
     "description": "الوصف",
     "category": "الفئة",
@@ -270,17 +272,47 @@
   },
   "settings": {
     "title": "الإعدادات",
-    "subtitle": "الويبهوك والأسرار والفريق",
-    "webhooks": "نقاط الويبهوك",
-    "webhooksHint": "اضبط هذه الروابط في Lightfunnel / Shopify.",
-    "secrets": "الأسرار المشتركة",
+    "subtitle": "مساحة العمل والتكاملات والرسوم والحدود",
+    "workspace": "مساحة العمل",
+    "integrations": "التكاملات",
+    "storeDomain": "نطاق المتجر",
+    "secret": "سر الويبهوك",
     "secretsHint": "اترك الحقل فارغاً للإبقاء على القيمة الحالية.",
-    "lightfunnelSecret": "سر Lightfunnel",
-    "shopifySecret": "سر Shopify",
+    "healthy": "يستقبل الأحداث",
+    "neverReceived": "لا أحداث بعد",
     "set": "مُعيّن",
     "notSet": "غير مُعيّن",
     "copy": "نسخ",
-    "copied": "تم النسخ"
+    "copied": "تم النسخ",
+    "deliveryFees": "رسوم التوصيل",
+    "homeFee": "رسم المنزل",
+    "stopdeskFee": "رسم مكتب التوصيل",
+    "stopShipping": "إيقاف الشحن",
+    "fixedFees": "الرسوم الثابتة",
+    "noFixedFees": "لا توجد رسوم ثابتة بعد.",
+    "exchangeRates": "أسعار الصرف",
+    "rate": "السعر (دج)",
+    "validFrom": "ساري من",
+    "noRates": "لا توجد إدخالات أسعار صرف بعد.",
+    "thresholds": "الحدود",
+    "returnFee": "رسم الإرجاع (دج)",
+    "duplicateWindowHours": "نافذة التكرار (ساعات)",
+    "minOrders": "الحد الأدنى للطلبات",
+    "minDeliveryRate": "الحد الأدنى لنسبة التوصيل (%)",
+    "riskReturned": "وزن الخطر — مُرجَع",
+    "riskCancelled": "وزن الخطر — ملغى",
+    "riskNoAnswer": "وزن الخطر — لا رد",
+    "meetingSchedule": "جدول الاجتماعات",
+    "meetingHint": "اترك وقت الفترة فارغاً لتعطيلها",
+    "dow": {
+      "0": "الأحد",
+      "1": "الإثنين",
+      "2": "الثلاثاء",
+      "3": "الأربعاء",
+      "4": "الخميس",
+      "5": "الجمعة",
+      "6": "السبت"
+    }
   },
   "login": {
     "subtitle": "سجّل الدخول إلى مساحة عمل الدفع عند الاستلام",
@@ -316,7 +348,7 @@
       },
       "Settings": {
         "title": "الإعدادات",
-        "desc": "الويبهوك والأسرار والفريق"
+        "desc": "مساحة العمل والتكاملات والرسوم والحدود"
       }
     },
     "kpi": {
