@@ -29,6 +29,7 @@ export default async function SettingsPage() {
     integrationsRes,
     webhookEventsRes,
     wilayaFeesRes,
+    wilayaStatsRes,
     fixedFeesRes,
     exchangeRatesRes,
     usdRateRes,
@@ -52,6 +53,8 @@ export default async function SettingsPage() {
       .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, wilaya:wilayas(name)")
       .eq("workspace_id", profile.workspaceId)
       .order("wilaya_code"),
+    // Ph.7 stop-shipping auto flag (dashboard computes the same thing, filtered)
+    supabase.from("wilaya_stats").select("wilaya_code, stop_shipping_auto").eq("workspace_id", profile.workspaceId),
     supabase.from("fixed_fees").select("*").eq("workspace_id", profile.workspaceId).order("created_at"),
     supabase
       .from("exchange_rates")
@@ -74,7 +77,16 @@ export default async function SettingsPage() {
       <WorkspaceSection name={workspaceRes.data?.name ?? ""} />
       <IntegrationsSection configs={integrationsRes.data ?? []} baseUrl={baseUrl} />
       <WebhookEventsSection events={webhookEventsRes.data ?? []} />
-      <FeesSection rows={wilayaFeesRes.data ?? []} />
+      <FeesSection
+        rows={wilayaFeesRes.data ?? []}
+        autoFlagged={
+          new Set(
+            (wilayaStatsRes.data ?? [])
+              .filter((s) => s.stop_shipping_auto && s.wilaya_code !== null)
+              .map((s) => s.wilaya_code as number),
+          )
+        }
+      />
       <FixedFeesSection fees={fixedFeesRes.data ?? []} />
       <ExchangeRatesSection
         rates={exchangeRatesRes.data ?? []}

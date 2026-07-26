@@ -23,7 +23,7 @@ the bottom. Format:
 | 4 — Pricing engine + Real + tests | docs/phases/phase-04.md | done |
 | 5 — Orders core (queues/history/customers/duplicates/cash) | docs/phases/phase-05.md | done |
 | 6 — Webhooks v2 | docs/phases/phase-06.md | done |
-| 7 — Dashboard BI | docs/phases/phase-07.md | pending |
+| 7 — Dashboard BI | docs/phases/phase-07.md | done |
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | pending |
 | 9 — Team & Rules | docs/phases/phase-09.md | pending |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | pending |
@@ -571,3 +571,124 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   time a live webhook actually fires — the curl fixtures above are the
   fastest way to confirm/adjust `lightfunnelProvider.map`/`shopifyProvider.map`
   in `src/lib/webhook.ts` once real credentials are available.
+
+## Phase 7 — Dashboard BI (2026-07-26) — DONE
+- Done: new migration `00008_dashboard.sql` — RPC `dashboard_stats(p_from,
+  p_to, p_product[], p_wilaya[], p_source[], p_conf_agent[], p_deliv_agent[])`
+  returning one jsonb (`stage_counts`, `funnel`, `kpis`, `category_spending`,
+  `per_wilaya`, `per_agent`, `per_product`). The five order-level filters are
+  evaluated once into `v_order_ids`; every downstream aggregate joins
+  `o.id = any(v_order_ids)` instead of repeating the six-clause predicate
+  (a ponytail-review pass caught the first draft repeating it six times).
+  `/app/dashboard` rewritten (`page.tsx`, still behind Phase 1's
+  `AdminGuardLayout`): preset (today/7d/30d) + custom date range, multi-select
+  filters (product/wilaya/source/confirmation-agent/delivery-agent) as a
+  plain GET form (URL-driven, zero client JS) · 5 KPI cards · funnel with
+  CSS-bar drop-off · per-wilaya table+bar with manual/auto 🚫 flags ·
+  per-agent and per-product rate tables · category-spending breakdown ·
+  `AdSpendEntry` widget (Phase 3's component — this is its first call site
+  anywhere in the app, used without `productId` per its documented
+  fallback) · next-meeting card (`meetings`, links to `/app/team`) · CSV
+  export (`export-button.tsx`, client component, reuses the existing
+  `src/lib/csv.ts` — two buttons, filtered orders + a KPI/funnel summary
+  sheet, same two-button shape as the parked v1 `reports-exporter.tsx`).
+- Decisions: **no agent-facing dashboard view was built.** Phase 1 already
+  made `/app/dashboard` admin-only (`AdminGuardLayout` redirects agents to
+  `/app/orders`; the nav shows agents only "Orders", per Phase 1's own
+  "nothing else per SPEC §2" note) — this directly conflicts with this
+  phase's step 5 ("agents landing here get queue counts + personal stats").
+  Since Phase 1's routing is deliberate, already-live, and out of this
+  phase's stated scope ("execute that phase only"), I kept it: agents
+  structurally cannot reach this route, so there is no unreachable branch to
+  build. The RPC still gates every money field behind an explicit
+  `is_admin()` check as defense in depth (see below), so nothing regresses
+  if that routing decision is ever revisited. **Money fields are
+  explicitly `is_admin()`-gated in SQL, not left to RLS alone**: the phase
+  brief's rationale ("financial sub-selects come from admin-only tables ⇒
+  null") only covers `expenses`/`ad_spend_daily`/`product_costs`. Revenue is
+  `Σ orders.sale_price·qty`, and `orders.sale_price` is NOT RLS-hidden from
+  agents (a delivery agent's `o_sel` policy exposes every confirmed order,
+  which is most of the pipeline) — relying on RLS alone would have leaked
+  revenue. Verified both ways live (see reconciliation below). **No `status`
+  filter dimension**, despite SPEC §7 and this phase file's step 2 both
+  listing one: step 1's RPC signature is spelled out with exact param names
+  and has no status param, and a filter the aggregate can't honor would be
+  worse than no filter (inconsistent sections, failing the "every filter
+  combination changes every section consistently" acceptance line). Treated
+  the precise signature as authoritative over the generic prose list.
+  **Settings → Delivery fees gained an "Auto flag" column** (`fees-section.tsx`,
+  wired from a new `wilaya_stats` query in `settings/page.tsx`) — this phase's
+  acceptance criteria explicitly require the auto flag to show in Settings
+  too, and Settings (Phase 2) predates the `wilaya_stats` view (Phase 6), so
+  it never had this; reused the view instead of duplicating the formula.
+- Verification: **a local Supabase docker stack was already running**
+  (leftover from Phase 0, `supabase_db_mnw-erp` on port 54322) with
+  migrations 00001–00007 applied but **missing the standard Supabase
+  `GRANT ... TO anon, authenticated, service_role` statements** (this stack
+  was hand-assembled from raw containers, not `supabase start`, so nothing
+  had ever run them) — every table read `permission denied` under `set role
+  authenticated` until I applied the standard grants directly. With that
+  fixed, I applied `00008_dashboard.sql`, seeded 2 products/3 customers/4
+  orders/2 expenses/1 ad-spend row, and ran `dashboard_stats` as the seeded
+  admin (via `set local role authenticated` + `set_config('request.jwt.claims',
+  ...)`, no real second auth user needed): revenue 11000 = 3000 (order 1,
+  Dress A delivered) + 8000 (order 3, Dress B×2 delivered); invested 5900 =
+  1200 expenses + 2600 ad spend (10€×260) + 2100 sourcing (500×1 + 800×2 for
+  the two delivered orders); net profit 5100; confirmation_rate 75% (3/4);
+  delivery_rate 66.7% (2/3) — all by-hand-verified against the seed before
+  reading the RPC's output. Re-verified after the `v_order_ids` refactor
+  (identical numbers) and spot-checked date (`2026-07-20..21`) and wilaya
+  (`[6]`) filters each narrowing every section consistently (per_wilaya,
+  per_product, kpis all dropped to the matching subset). Set
+  `stop_shipping_rule` to `{min_orders:1,min_delivery_rate:60}` and confirmed
+  wilaya 16 (2 confirmed, 1 delivered = 50% < 60%) flips
+  `stop_shipping_auto` true in both `dashboard_stats` and the plain
+  `wilaya_stats` view (used by the new Settings column). **Flipped the seeded
+  admin's own `profiles.role` to `confirmation_agent` then `delivery_agent`
+  inside a rolled-back transaction** and re-ran the RPC as each: `kpis.*`
+  money fields were `null` in both cases (confirming the explicit gate, not
+  just RLS), `stage_counts.received` correctly shrank to each role's visible
+  queue (1 for confirmation_agent — RLS hides the 3 already-confirmed
+  orders; 3 for delivery_agent — RLS hides the 1 not-yet-confirmed order) —
+  this closes the "agent financial blindness" spot-check every phase since
+  Phase 0 had deferred for lack of a second test user. All seed data deleted
+  and `stop_shipping_rule` reset to the default afterward; `orders`/`products`
+  counts confirmed back to 0. The missing grants are a pre-existing gap in
+  this local docker stack (not caused by this phase, not present on the
+  linked remote project, which is a real Supabase platform that sets them
+  automatically) — not migrated, since a migration file would be wrong for
+  the remote project; only worth knowing if a future session hits the same
+  "permission denied for table X" wall on this same local stack.
+- Files: new `supabase/migrations/00008_dashboard.sql`,
+  `src/app/app/dashboard/export-button.tsx`; rewrote `dashboard/page.tsx`;
+  regenerated `database.types.ts` from the local db (`--db-url`, hand-merged
+  the `dashboard_stats` RPC entry to keep the `--linked` project's
+  `__InternalSupabase` header, matching Phase 0's precedent); extended
+  `settings/page.tsx` + `fees-section.tsx` (auto-flag column); replaced the
+  dead `dashboard.modules`/`kpi`/`queue`/`recent` message keys (unused since
+  Phase 1, confirmed via grep) with the new `dashboard.*` tree in both
+  locales; reused `src/lib/csv.ts`, `src/components/ad-spend-entry.tsx`
+  (first call site), `workbench.assignConfirmation`/`assignDelivery` labels.
+- Known issues: `per_agent` wasn't exercised with real actor data (my SQL
+  seed inserted orders directly as the `postgres` superuser, so
+  `order_status_history.actor` was null throughout — the view/RPC's
+  `h.actor is not null` filter correctly excluded them; a real logged-in
+  session's `auth.uid()` populates this normally, same mechanism Phase 5/6
+  already rely on and already reviewed). Not exercised in an actual browser
+  (no login credentials this session, same class of gap as every prior
+  phase) — verified instead via the live-SQL reconciliation above, which is
+  a stronger check than prior phases had for their acceptance criteria.
+- Next chat must know: `npm run build` and `npm test` green (20 tests, no
+  new test file — `dashboard_stats` is a SQL aggregate with no JS logic to
+  unit-test; its correctness check is the live reconciliation documented
+  above), `graphify update .` run. **Phase 8** (Contacts) doesn't depend on
+  anything here. If a later phase wants a `status` filter dimension on the
+  dashboard after all, extend `dashboard_stats`'s signature (confirmation +
+  delivery status are two different enums — pick which one the SPEC actually
+  means, or add both) and thread it through `page.tsx`'s filter bar the same
+  way the other five params are threaded. The local docker stack's grants
+  fix is not persisted anywhere except this note — if it's ever torn down
+  and recreated by hand again (not via `supabase start`), the same
+  `GRANT ALL ... TO anon, authenticated, service_role` + `ALTER DEFAULT
+  PRIVILEGES` block will be needed again before any RLS-authenticated query
+  will work.

@@ -381,47 +381,53 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "subtitle": "مرحباً بعودتك. إليك ما يتم بناؤه.",
-    "soon": "قريباً",
-    "modules": {
-      "Products": {
-        "title": "المنتجات",
-        "desc": "الكتالوج والتكاليف ودورة الحالة"
-      },
-      "Orders": {
-        "title": "الطلبات",
-        "desc": "طابور التأكيد ← تسليم التوصيل"
-      },
-      "Contacts": {
-        "title": "جهات الاتصال",
-        "desc": "العملاء والموردون والشركاء"
-      },
-      "Expenses": {
-        "title": "المصاريف",
-        "desc": "تكاليف مرتبطة بالمنتجات والطلبات"
-      },
-      "BI": {
-        "title": "التحليلات",
-        "desc": "الهوامش ونسب التوصيل والموثوقية"
-      },
-      "Settings": {
-        "title": "الإعدادات",
-        "desc": "مساحة العمل والتكاملات والرسوم والحدود"
-      }
+    "filters": {
+      "today": "اليوم",
+      "last7": "آخر 7 أيام",
+      "last30": "آخر 30 يوماً"
     },
     "kpi": {
-      "confirmed": "مؤكدة",
-      "delivered": "مُسلّمة",
-      "returned": "مُرجَعة",
       "revenue": "الإيرادات",
-      "today": "اليوم",
-      "month": "هذا الشهر"
+      "invested": "المُستثمَر",
+      "netProfit": "صافي الربح",
+      "confirmationRate": "نسبة التأكيد",
+      "deliveryRate": "نسبة التوصيل"
     },
-    "queue": {
-      "pendingConfirmation": "بانتظار التأكيد",
-      "awaitingDelivery": "بانتظار التوصيل"
+    "funnel": {
+      "title": "القمع",
+      "received": "مُستلمة",
+      "confirmed": "مؤكدة",
+      "shipped": "مشحونة",
+      "delivered": "مُسلّمة",
+      "dropOff": "تسرّب"
     },
-    "recent": "أحدث الطلبات",
-    "noRecent": "لا توجد طلبات بعد."
+    "wilaya": {
+      "title": "حسب الولاية",
+      "stopShippingAuto": "علامة تلقائية",
+      "stopShippingManual": "علامة يدوية"
+    },
+    "byAgent": {
+      "title": "معدلات حسب الموظف",
+      "stage": "المرحلة",
+      "avgDecisionTime": "متوسط وقت القرار"
+    },
+    "byProduct": { "title": "معدلات حسب المنتج" },
+    "categorySpending": { "title": "الإنفاق حسب الفئة" },
+    "export": {
+      "title": "تصدير",
+      "orders": "الطلبات",
+      "summary": "الملخص"
+    },
+    "meeting": {
+      "title": "الاجتماع القادم",
+      "none": "لا يوجد اجتماع قادم.",
+      "viewTeam": "الفريق والقواعد"
+    },
+    "agentView": {
+      "queue": "طابورك",
+      "stats": "إحصائياتك"
+    },
+    "noData": "لا توجد بيانات لهذا الفلتر بعد."
   },
   "role": {
     "admin": "مدير",

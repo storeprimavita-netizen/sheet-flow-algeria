@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { tableClass } from "@/components/field";
 import { saveWilayaFees } from "./actions";
 
@@ -13,7 +14,13 @@ type FeeRow = {
   wilaya: { name: string } | null;
 };
 
-export async function FeesSection({ rows }: { rows: FeeRow[] }) {
+export async function FeesSection({
+  rows,
+  autoFlagged,
+}: {
+  rows: FeeRow[];
+  autoFlagged: Set<number>;
+}) {
   const t = await getTranslations();
 
   return (
@@ -28,6 +35,7 @@ export async function FeesSection({ rows }: { rows: FeeRow[] }) {
                 <th>{t("settings.homeFee")}</th>
                 <th>{t("settings.stopdeskFee")}</th>
                 <th>{t("settings.stopShipping")}</th>
+                <th>{t("dashboard.wilaya.stopShippingAuto")}</th>
               </tr>
             </thead>
             <tbody>
@@ -62,6 +70,7 @@ export async function FeesSection({ rows }: { rows: FeeRow[] }) {
                       className="h-4 w-4"
                     />
                   </td>
+                  <td>{autoFlagged.has(r.wilaya_code) ? <Badge variant="destructive">🚫</Badge> : "—"}</td>
                 </tr>
               ))}
             </tbody>
