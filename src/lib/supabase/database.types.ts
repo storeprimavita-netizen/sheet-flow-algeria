@@ -1364,6 +1364,18 @@ export type Database = {
         Returns: number
       }
       current_workspace_id: { Args: never; Returns: string }
+      dashboard_stats: {
+        Args: {
+          p_conf_agent?: string[]
+          p_deliv_agent?: string[]
+          p_from?: string
+          p_product?: string[]
+          p_source?: Database["public"]["Enums"]["order_source"][]
+          p_to?: string
+          p_wilaya?: number[]
+        }
+        Returns: Json
+      }
       is_admin: { Args: never; Returns: boolean }
       normalize_dz_phone: { Args: { p: string }; Returns: string }
       seed_workspace: { Args: { p_ws: string }; Returns: undefined }

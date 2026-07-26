@@ -377,29 +377,53 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Welcome back. Here's what's being built.",
-    "soon": "soon",
-    "modules": {
-      "Products": { "title": "Products", "desc": "Catalog, costs & status lifecycle" },
-      "Orders": { "title": "Orders", "desc": "Confirmation queue → delivery handoff" },
-      "Contacts": { "title": "Contacts", "desc": "Customers, suppliers & partners" },
-      "Expenses": { "title": "Expenses", "desc": "Costs linked to products & orders" },
-      "BI": { "title": "BI", "desc": "Margins, COD rates & reliability" },
-      "Settings": { "title": "Settings", "desc": "Workspace, integrations, fees & thresholds" }
+    "filters": {
+      "today": "Today",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days"
     },
     "kpi": {
-      "confirmed": "Confirmed",
-      "delivered": "Delivered",
-      "returned": "Returned",
       "revenue": "Revenue",
-      "today": "Today",
-      "month": "This month"
+      "invested": "Invested",
+      "netProfit": "Net profit",
+      "confirmationRate": "Confirmation rate",
+      "deliveryRate": "Delivery rate"
     },
-    "queue": {
-      "pendingConfirmation": "Pending confirmation",
-      "awaitingDelivery": "Awaiting delivery"
+    "funnel": {
+      "title": "Funnel",
+      "received": "Received",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "dropOff": "drop-off"
     },
-    "recent": "Recent orders",
-    "noRecent": "No recent orders yet."
+    "wilaya": {
+      "title": "Per-wilaya",
+      "stopShippingAuto": "Auto flag",
+      "stopShippingManual": "Manual flag"
+    },
+    "byAgent": {
+      "title": "Per-agent rates",
+      "stage": "Stage",
+      "avgDecisionTime": "Avg. decision time"
+    },
+    "byProduct": { "title": "Per-product rates" },
+    "categorySpending": { "title": "Spending by category" },
+    "export": {
+      "title": "Export",
+      "orders": "Orders",
+      "summary": "Summary"
+    },
+    "meeting": {
+      "title": "Next meeting",
+      "none": "No upcoming meeting.",
+      "viewTeam": "Team & Rules"
+    },
+    "agentView": {
+      "queue": "Your queue",
+      "stats": "Your stats"
+    },
+    "noData": "No data for this filter yet."
   },
   "role": {
     "admin": "Admin",
