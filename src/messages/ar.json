@@ -17,6 +17,8 @@
     "optional": "اختياري",
     "all": "الكل",
     "total": "الإجمالي",
+    "searchPlaceholder": "بحث…",
+    "noMatches": "لا توجد نتائج.",
     "deleteConfirm": "حذف هذا العنصر؟ لا يمكن التراجع عن ذلك.",
     "updated": "تم الحفظ.",
     "error": "حدث خطأ ما.",

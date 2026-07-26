@@ -8,7 +8,7 @@ import type { Enums } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { Field, tableClass } from "@/components/field";
-import { Select } from "@/components/ui/select";
+import { MultiSelectSearch } from "@/components/multi-select-search";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
@@ -216,49 +216,39 @@ export default async function DashboardPage({
             <Input type="date" name="to" defaultValue={get("to")} />
           </Field>
           <Field label={t("fields.product")}>
-            <Select name="product" multiple defaultValue={getArr("product")} className="h-20">
-              {(products ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+            <MultiSelectSearch
+              name="product"
+              defaultValues={getArr("product")}
+              options={(products ?? []).map((p) => ({ value: p.id, label: p.name }))}
+            />
           </Field>
           <Field label={t("fields.wilaya")}>
-            <Select name="wilaya" multiple defaultValue={getArr("wilaya")} className="h-20">
-              {(wilayas ?? []).map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
-                </option>
-              ))}
-            </Select>
+            <MultiSelectSearch
+              name="wilaya"
+              defaultValues={getArr("wilaya")}
+              options={(wilayas ?? []).map((w) => ({ value: String(w.code), label: `${w.code}-${w.name}` }))}
+            />
           </Field>
           <Field label={t("fields.source")}>
-            <Select name="source" multiple defaultValue={getArr("source")} className="h-20">
-              {ORDER_SOURCES.map((s) => (
-                <option key={s} value={s}>
-                  {t(`status.order_source.${s}`)}
-                </option>
-              ))}
-            </Select>
+            <MultiSelectSearch
+              name="source"
+              defaultValues={getArr("source")}
+              options={ORDER_SOURCES.map((s) => ({ value: s, label: t(`status.order_source.${s}`) }))}
+            />
           </Field>
           <Field label={t("workbench.assignConfirmation")}>
-            <Select name="conf_agent" multiple defaultValue={getArr("conf_agent")} className="h-20">
-              {confirmationAgents.map((a) => (
-                <option key={a.user_id} value={a.user_id}>
-                  {a.display_name ?? a.user_id.slice(0, 8)}
-                </option>
-              ))}
-            </Select>
+            <MultiSelectSearch
+              name="conf_agent"
+              defaultValues={getArr("conf_agent")}
+              options={confirmationAgents.map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }))}
+            />
           </Field>
           <Field label={t("workbench.assignDelivery")}>
-            <Select name="deliv_agent" multiple defaultValue={getArr("deliv_agent")} className="h-20">
-              {deliveryAgents.map((a) => (
-                <option key={a.user_id} value={a.user_id}>
-                  {a.display_name ?? a.user_id.slice(0, 8)}
-                </option>
-              ))}
-            </Select>
+            <MultiSelectSearch
+              name="deliv_agent"
+              defaultValues={getArr("deliv_agent")}
+              options={deliveryAgents.map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }))}
+            />
           </Field>
         </div>
         <div className="flex items-center gap-2">
@@ -331,7 +321,7 @@ export default async function DashboardPage({
               <tbody>
                 {stats.per_wilaya.map((w) => (
                   <tr key={w.wilaya_code}>
-                    <td>{w.wilaya_name ?? w.wilaya_code}</td>
+                    <td>{w.wilaya_name ? `${w.wilaya_code}-${w.wilaya_name}` : w.wilaya_code}</td>
                     <td>{w.total_orders}</td>
                     <td>{w.confirmed_orders}</td>
                     <td>{w.delivered_orders}</td>
