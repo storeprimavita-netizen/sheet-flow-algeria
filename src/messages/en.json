@@ -12,6 +12,7 @@
     "team": "Team",
     "cash": "Cash",
     "stock": "Stock",
+    "reports": "Reports",
     "settings": "Settings"
   },
   "common": {
@@ -275,6 +276,25 @@
       "adjustment": "Adjustment",
       "removal": "Removal"
     }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Date range, P&L and CSV export",
+    "range": "Date range",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "export": "Export CSV",
+    "exportOrders": "Orders",
+    "exportExpenses": "Expenses",
+    "exportCash": "Cash",
+    "revenue": "Revenue (delivered)",
+    "expenses": "Expenses",
+    "net": "Net",
+    "collected": "Cash collected",
+    "deposited": "Cash deposited",
+    "byCategory": "Expenses by category",
+    "noData": "No data in this range."
   },
   "settings": {
     "title": "Settings",
