@@ -59,7 +59,7 @@ Use `graphify query` to orient instead of broad greps; invoke the ponytail:ponyt
 When `npm run build` (and `npm test` once it exists) is green: run `graphify update .`, append your handoff block here, merge --no-ff into mnw.
 ```
 
-## Phase 0 — DB rebaseline + auth foundation (2026-07-26) — PARTIAL (code complete + build green; remote reset needs the user, see below)
+## Phase 0 — DB rebaseline + auth foundation (2026-07-26) — DONE (remote steps completed later same day, see update at end of block)
 - Done: all code adapted to the v2 schema; `npm run build` green. `rbac.ts`
   now reads `profiles` (`getProfile()` → `{ role, workspaceId }`); orders/
   products/contacts/expenses/dashboard point at v2 tables and every insert
@@ -88,14 +88,21 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `last_event_at`, and assume a single workspace (Phase 6). Delivery-stage
   comments aren't persisted (v2 has only `confirmation_comment`; history
   trigger logs confirmation comments only).
-- Next chat must know: **the remote reset was NOT executed** — the Claude Code
-  permission classifier blocks destructive remote DB commands, so the user
-  must run, in order: (1) `npx supabase db reset --linked` (or the drop-schema
-  block from docs/DB.md §Applying + `npx supabase db push`); (2) sign up
-  `sh.wailbmg@gmail.com` at `/login`; (3) in the SQL editor:
-  `select public.bootstrap_workspace('sh.wailbmg@gmail.com','MNW');`
-  (4) `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
-  (expected no-op) and the phase-00 acceptance spot-checks (agent user sees
-  no financial rows). Until then the deployed app has no working DB. A local
-  Supabase db container (`supabase_db_mnw-erp`, port 54322) was left from
-  type generation — `npx supabase stop` to clean up.
+- Update (same day): remote steps completed. User ran
+  `npx supabase db reset --linked` (v2 migrations applied clean). The v1 login
+  page has NO sign-up (sign-in only), so the admin auth user was created via
+  the Auth admin API: **admin email is `store.prima.vita@gmail.com`** (not
+  sh.wailbmg@gmail.com), temp password handed to user to change.
+  `bootstrap_workspace('store.prima.vita@gmail.com','MNW')` run via PostgREST
+  RPC → workspace `5722eaa0-1342-41dc-8447-f3f680abd3de`, admin profile
+  active, 58 wilaya_fees, 5 settings verified on the remote. Types re-gen'd
+  `--linked` (only delta: `__InternalSupabase` PostgrestVersion header);
+  build green.
+- Next chat must know: admin login = `store.prima.vita@gmail.com`. Remaining
+  acceptance spot-check deferred: create an agent test user and confirm
+  financial blindness (needs a second auth user; natural fit when Phase 9
+  team/invites lands — until then RLS policies are the tested wall from
+  migration review). A local Supabase db container (`supabase_db_mnw-erp`,
+  port 54322) may still be running — `npx supabase stop` to clean up. There is
+  no `supabase/config.toml` (project linked, never `init`ed), so
+  `gen types --local` fails; use `--linked` or `--db-url`.
