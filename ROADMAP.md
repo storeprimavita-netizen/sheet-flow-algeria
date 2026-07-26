@@ -1,4 +1,8 @@
-# MNW COD ERP — Roadmap
+# MNW COD ERP — Roadmap (v1 — HISTORICAL)
+
+> **Superseded 2026-07-26 by the v2 plan.** Current status lives in
+> `PROGRESS.md`; the spec in `docs/SPEC.md`; phases in `docs/phases/`.
+> This file remains as the v1 build record.
 
 Cash-on-delivery e-commerce ERP for brand MNW (Algeria). Next.js 16 + Supabase.
 
