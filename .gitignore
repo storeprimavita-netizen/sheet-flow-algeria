@@ -45,3 +45,6 @@ next-env.d.ts
 
 # supabase local CLI temp
 /supabase/.temp/
+
+# business reference sheets (kept local)
+*.xlsx
