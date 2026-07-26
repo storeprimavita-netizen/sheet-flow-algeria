@@ -140,6 +140,7 @@
     "delivery_fee": "Delivery fee",
     "variant": "Variant",
     "risk": "Risk",
+    "weight": "Weight",
     "agent": "Agent",
     "from": "From",
     "to": "To",
@@ -181,9 +182,20 @@
   "contacts": {
     "title": "Contacts",
     "subtitle": "Customers, suppliers & partners",
-    "new": "New contact",
-    "edit": "Edit contact",
-    "none": "No contacts yet."
+    "customers": "Customers",
+    "suppliers": "Suppliers",
+    "newSupplier": "New supplier",
+    "editSupplier": "Edit supplier",
+    "customersNone": "No customers yet.",
+    "suppliersNone": "No suppliers yet.",
+    "search": "Search name or phone…",
+    "riskBreakdown": "Risk score breakdown",
+    "riskFormulaHint": "risk = min(100, 100 × weighted points ÷ (returned weight × total orders))",
+    "points": "Points",
+    "orderHistory": "Order history",
+    "noOrders": "No orders yet.",
+    "linkedExpenses": "Linked expenses",
+    "noExpenses": "No linked expenses yet."
   },
   "orders": {
     "title": "Orders",

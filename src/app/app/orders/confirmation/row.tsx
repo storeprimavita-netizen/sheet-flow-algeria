@@ -3,22 +3,16 @@ import { getTranslations } from "next-intl/server";
 
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/field";
+import { RiskBadge } from "@/components/risk-badge";
 import { CONFIRMATION_STATUSES } from "@/lib/enums";
 import { updateConfirmationStatus, logConfirmationAttempt } from "../actions";
 
 type OrderRow = Tables<"orders"> & { product: { name: string } | null };
 type CustomerStat = Tables<"customer_stats">;
-
-function riskVariant(score: number): "default" | "secondary" | "destructive" {
-  if (score >= 60) return "destructive";
-  if (score >= 30) return "secondary";
-  return "default";
-}
 
 export async function ConfirmationRow({ order, stat }: { order: OrderRow; stat: CustomerStat | null }) {
   const t = await getTranslations();
@@ -35,7 +29,14 @@ export async function ConfirmationRow({ order, stat }: { order: OrderRow; stat: 
             {formatCurrency((order.sale_price ?? 0) * order.quantity)}
           </p>
           <p className="text-sm text-muted-foreground">
-            {order.customer_name ?? "—"} · {order.customer_phone ?? "—"}
+            {order.customer_id ? (
+              <Link href={`/app/contacts/${order.customer_id}`} className="hover:underline">
+                {order.customer_name ?? "—"}
+              </Link>
+            ) : (
+              order.customer_name ?? "—"
+            )}{" "}
+            · {order.customer_phone ?? "—"}
             {order.commune ? ` · ${order.commune}` : ""}
           </p>
           <p className="text-xs text-muted-foreground">{formatDateTime(order.placed_at)}</p>
@@ -43,9 +44,7 @@ export async function ConfirmationRow({ order, stat }: { order: OrderRow; stat: 
 
         {stat ? (
           <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
-            <Badge variant={riskVariant(stat.risk_score ?? 0)}>
-              {t("fields.risk")}: {stat.risk_score ?? 0}
-            </Badge>
+            <RiskBadge score={stat.risk_score ?? 0} />
             <span>
               {t("common.total")}: {stat.total_orders ?? 0} · {t("status.delivery_status.returned")}:{" "}
               {stat.returned_orders ?? 0} · {t("status.confirmation_status.cancelled")}: {stat.cancelled_orders ?? 0}
