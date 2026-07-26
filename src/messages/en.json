@@ -147,7 +147,8 @@
       "details": "Details",
       "expenses": "Expenses",
       "stock": "Stock",
-      "statistics": "Statistics"
+      "statistics": "Statistics",
+      "pricing": "Pricing"
     },
     "statistics": {
       "received": "Received",
@@ -194,6 +195,7 @@
     "subtitleGeneral": "COD unit-economics planner (best / medium / worst)",
     "subtitleProduct": "COD unit-economics for this product (best / medium / worst)",
     "autosave": "Edits save automatically.",
+    "real": "Real",
     "profit": "Profit",
     "loss": "Loss",
     "netOrder": "Net profit / order",
