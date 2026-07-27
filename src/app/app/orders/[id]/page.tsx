@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserRole, isCurrentUserAdmin } from "@/lib/rbac";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/status-pill";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { DeleteButton } from "@/components/delete-button";
@@ -107,14 +107,10 @@ export default async function OrderDetailPage({
         <Meta label={t("fields.source")}>{order.source}</Meta>
         <Meta label={t("fields.placed_at")}>{formatDateTime(order.placed_at)}</Meta>
         <Meta label={t("fields.confirmation_status")}>
-          <Badge variant={order.confirmation_status === "confirmed" ? "default" : "secondary"}>
-            {t(`status.confirmation_status.${order.confirmation_status}`)}
-          </Badge>
+          <StatusPill kind="confirmation" status={order.confirmation_status} size="sm" />
         </Meta>
         <Meta label={t("fields.delivery_status")}>
-          <Badge variant="secondary">
-            {t(`status.delivery_status.${order.delivery_status}`)}
-          </Badge>
+          <StatusPill kind="delivery" status={order.delivery_status} size="sm" />
         </Meta>
       </div>
 

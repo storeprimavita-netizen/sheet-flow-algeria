@@ -31,6 +31,7 @@ export function MoneyField({
   disabled,
   className,
   id,
+  onChange,
 }: {
   name?: string;
   defaultValue?: number;
@@ -40,6 +41,8 @@ export function MoneyField({
   disabled?: boolean;
   className?: string;
   id?: string;
+  /** fires on user input (not on remount) — e.g. to flag a manual override */
+  onChange?: (value: number) => void;
 }) {
   const [value, setValue] = React.useState(defaultValue);
   const [display, setDisplay] = React.useState(defaultValue ? groupDigits(defaultValue) : "");
@@ -61,6 +64,7 @@ export function MoneyField({
             const n = parseAmount(e.target.value);
             setValue(n);
             setDisplay(e.target.value);
+            onChange?.(n);
           }}
           onBlur={() => setDisplay(value ? groupDigits(value) : "")}
           className="num flex h-9 w-full rounded-md border border-input bg-transparent py-1 pe-12 ps-3 text-end text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"

@@ -40,6 +40,8 @@ export type DataTableProps<T> = {
   pageSize?: number;
   status?: "loading" | "error";
   onRetry?: () => void;
+  /** initial density before the user's saved preference is read */
+  defaultDensity?: Density;
   empty?: { title: string; description?: string; action?: React.ReactNode };
   selectable?: boolean;
   /** rendered in the floating bar; receives selected keys + a clear callback */
@@ -62,6 +64,7 @@ export function DataTable<T>({
   pageSize = 25,
   status,
   onRetry,
+  defaultDensity = "comfortable",
   empty,
   selectable,
   bulkActions,
@@ -73,13 +76,14 @@ export function DataTable<T>({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [density, setDensity] = React.useState<Density>("comfortable");
+  const [density, setDensity] = React.useState<Density>(defaultDensity);
   const [hidden, setHidden] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [focus, setFocus] = React.useState(-1);
 
   React.useEffect(() => {
-    setDensity(localStorage.getItem(`mnw:density:${tableId}`) === "compact" ? "compact" : "comfortable");
+    const savedDensity = localStorage.getItem(`mnw:density:${tableId}`);
+    setDensity(savedDensity === "compact" ? "compact" : savedDensity === "comfortable" ? "comfortable" : defaultDensity);
     const saved = localStorage.getItem(`mnw:cols:${tableId}`);
     // saved visibility wins; otherwise seed from columns marked defaultHidden
     if (saved) {

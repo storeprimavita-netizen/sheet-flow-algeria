@@ -13,7 +13,7 @@ export default async function NewOrderPage() {
   const [{ data: products }, { data: wilayas }, { data: fees }] = await Promise.all([
     supabase
       .from("products")
-      .select("id, name, sku, sale_price, variants")
+      .select("id, name, sku, sale_price, variants, images, status")
       .eq("is_active", true)
       .order("name"),
     supabase.from("wilayas").select("code, name").order("code"),

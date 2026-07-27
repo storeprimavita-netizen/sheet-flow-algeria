@@ -6,11 +6,13 @@ import { useTranslations } from "next-intl";
 import { UserCog } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/native-select";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/field";
 import { assignAgents } from "../actions";
 
 type Agent = { id: string; email: string };
+
+const NONE = "__none"; // Radix Select needs a non-empty sentinel for "unassigned"
 
 export function AssignmentCard({
   orderId,
@@ -27,18 +29,19 @@ export function AssignmentCard({
 }) {
   const t = useTranslations();
   const router = useRouter();
+  const [conf, setConf] = useState(confirmationAgent ?? NONE);
+  const [deliv, setDeliv] = useState(deliveryAgent ?? NONE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
     const res = await assignAgents({
       orderId,
-      confirmationAgent: (String(fd.get("confirmation_agent") ?? "") || null) as string | null,
-      deliveryAgent: (String(fd.get("delivery_agent") ?? "") || null) as string | null,
+      confirmationAgent: conf === NONE ? null : conf,
+      deliveryAgent: deliv === NONE ? null : deliv,
     });
     setBusy(false);
     if (!res.ok) {
@@ -56,30 +59,40 @@ export function AssignmentCard({
       </h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label={t("workbench.assignConfirmation")} htmlFor="confirmation_agent">
-          <Select id="confirmation_agent" name="confirmation_agent" defaultValue={confirmationAgent ?? ""}>
-            <option value="">{t("workbench.unassigned")}</option>
-            {confirmationAgents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.email}
-              </option>
-            ))}
+        <Field label={t("workbench.assignConfirmation")}>
+          <Select value={conf} onValueChange={setConf}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>{t("workbench.unassigned")}</SelectItem>
+              {confirmationAgents.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </Field>
-        <Field label={t("workbench.assignDelivery")} htmlFor="delivery_agent">
-          <Select id="delivery_agent" name="delivery_agent" defaultValue={deliveryAgent ?? ""}>
-            <option value="">{t("workbench.unassigned")}</option>
-            {deliveryAgents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.email}
-              </option>
-            ))}
+        <Field label={t("workbench.assignDelivery")}>
+          <Select value={deliv} onValueChange={setDeliv}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>{t("workbench.unassigned")}</SelectItem>
+              {deliveryAgents.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </Field>
       </div>
 
       {error ? (
-        <p className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{error}</p>
       ) : null}
 
       <Button type="submit" disabled={busy}>

@@ -124,6 +124,56 @@ export async function logConfirmationAttempt(orderId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Bulk actions (All view, admin-only). Selection is capped at one page (~25),
+// so a per-id loop through the same transition RPC is fine here.
+// ponytail: sequential loop, not a batched RPC — switch only if bulk sets ever
+// span hundreds of orders (the UI selects a single page at a time).
+// ---------------------------------------------------------------------------
+const uuidArray = z.array(z.string().uuid()).min(1).max(200);
+
+export async function bulkTransition(
+  ids: string[],
+  stage: "confirmation" | "delivery",
+  status: string,
+): Promise<UpdateResult> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "admin only" };
+  const parsedIds = uuidArray.parse(ids);
+  const key = stage === "confirmation" ? "p_confirmation_status" : "p_delivery_status";
+  const value =
+    stage === "confirmation"
+      ? z.enum(CONFIRMATION_STATUSES).parse(status)
+      : z.enum(DELIVERY_STATUSES).parse(status);
+
+  const supabase = await createClient();
+  for (const id of parsedIds) {
+    const { error } = await supabase.rpc("transition_order_status", { p_order_id: id, [key]: value });
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidatePath("/app/orders/all");
+  return { ok: true };
+}
+
+export async function bulkAssignAgents(
+  ids: string[],
+  confirmationAgent: string | null,
+  deliveryAgent: string | null,
+): Promise<UpdateResult> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "admin only" };
+  const parsedIds = uuidArray.parse(ids);
+  // only send the fields the admin actually chose (empty = leave unchanged)
+  const patch: { assigned_confirmation_agent?: string | null; assigned_delivery_agent?: string | null } = {};
+  if (confirmationAgent !== null) patch.assigned_confirmation_agent = confirmationAgent || null;
+  if (deliveryAgent !== null) patch.assigned_delivery_agent = deliveryAgent || null;
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").update(patch).in("id", parsedIds);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/app/orders/all");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Delivery queue
 // ---------------------------------------------------------------------------
 const deliverySchema = z.object({ status: z.enum(DELIVERY_STATUSES) });
