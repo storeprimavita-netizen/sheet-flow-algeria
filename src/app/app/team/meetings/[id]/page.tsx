@@ -69,7 +69,7 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
         )}
       </div>
 
-      <section className="glass-card space-y-3 rounded-xl p-5">
+      <section className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("team.objectives")}</h2>
         {!objectives?.length ? (
           <p className="text-sm text-muted-foreground">{t("team.objectivesNone")}</p>
@@ -98,7 +98,7 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
         </form>
       </section>
 
-      <section className="glass-card space-y-3 rounded-xl p-5">
+      <section className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("team.attendees")}</h2>
         <form action={setAttendees.bind(null, meeting.id)} className="flex items-start gap-2">
           <MultiSelectSearch name="attendees" options={attendeeOptions} defaultValues={meeting.attendees} />
@@ -106,7 +106,7 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
         </form>
       </section>
 
-      <section className="glass-card space-y-3 rounded-xl p-5">
+      <section className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("team.notes")}</h2>
         <form action={saveMeetingNotes.bind(null, meeting.id)} className="space-y-3">
           <Textarea name="notes" defaultValue={meeting.notes ?? ""} rows={6} />

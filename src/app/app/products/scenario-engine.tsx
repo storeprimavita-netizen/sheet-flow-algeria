@@ -117,7 +117,7 @@ function ScenarioCard({
   const profitable = (r?.net_profit_per_order ?? 0) >= 0;
 
   return (
-    <div className="glass-card space-y-4 rounded-xl p-4">
+    <div className="card-surface space-y-4 rounded-xl p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{title}</h3>
         {r ? (
@@ -187,7 +187,7 @@ function Metric({ label, value, accent }: { label: string; value: string; accent
   return (
     <div className="rounded-lg bg-muted/40 p-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={accent ? "text-sm font-bold text-gradient" : "text-sm font-semibold"}>{value}</div>
+      <div className={accent ? "text-sm font-bold text-foreground" : "text-sm font-semibold"}>{value}</div>
     </div>
   );
 }

@@ -50,3 +50,6 @@ next-env.d.ts
 *.xlsx
 supabase/.branches/
 supabase/.temp/
+
+# Playwright MCP transient output
+.playwright-mcp/

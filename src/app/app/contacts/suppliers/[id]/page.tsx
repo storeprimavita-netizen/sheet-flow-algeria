@@ -37,7 +37,7 @@ export default async function SupplierDetailPage({
       </PageHeader>
       <ContactForm contact={contact} />
 
-      <section className="glass-card space-y-4 rounded-xl p-5">
+      <section className="card-surface space-y-4 rounded-xl p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">{t("contacts.linkedExpenses")}</h2>
           <span className="text-sm text-muted-foreground">

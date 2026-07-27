@@ -10,7 +10,7 @@ export function Empty({
   return (
     <div
       className={cn(
-        "glass-card rounded-xl p-10 text-center text-sm text-muted-foreground",
+        "card-surface rounded-xl p-10 text-center text-sm text-muted-foreground",
         className,
       )}
     >

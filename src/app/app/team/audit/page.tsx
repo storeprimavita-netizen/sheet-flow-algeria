@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { tableClass } from "@/components/field";
 import { TeamTabs } from "../team-tabs";
@@ -97,7 +97,7 @@ export default async function AuditPage({
       {!list.length ? (
         <Empty>{t("team.auditNone")}</Empty>
       ) : (
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

@@ -10,7 +10,7 @@ export async function WebhookEventsSection({ events }: { events: Tables<"webhook
   const t = await getTranslations();
 
   return (
-    <section className="glass-card space-y-4 rounded-xl p-5">
+    <section className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.recentEvents")}</h2>
       {events.length === 0 ? (
         <Empty>{t("settings.noEvents")}</Empty>

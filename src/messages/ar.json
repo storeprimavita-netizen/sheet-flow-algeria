@@ -3,10 +3,48 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "orders": "الطلبات",
+    "all": "كل الطلبات",
+    "confirmation": "التأكيد",
+    "delivery": "التوصيل",
     "products": "المنتجات",
+    "finance": "المالية",
+    "financeOverview": "نظرة عامة",
+    "expenses": "المصاريف",
+    "adSpend": "مصاريف الإعلانات",
+    "income": "الإيرادات",
     "contacts": "جهات الاتصال",
-    "team": "الفريق",
+    "customers": "العملاء",
+    "suppliers": "الموردون",
+    "team": "الفريق والقواعد",
+    "rules": "القواعد",
+    "meetings": "الاجتماعات",
+    "tasks": "المهام",
+    "performance": "الأداء",
+    "users": "المستخدمون",
+    "audit": "سجل التدقيق",
     "settings": "الإعدادات"
+  },
+  "theme": {
+    "dark": "داكن",
+    "light": "فاتح"
+  },
+  "cmd": {
+    "title": "بحث",
+    "placeholder": "اكتب أمرًا أو ابحث…",
+    "empty": "لا نتائج.",
+    "navigate": "الانتقال إلى",
+    "actions": "إجراءات",
+    "search": "بحث",
+    "newOrder": "طلب جديد",
+    "newProduct": "منتج جديد",
+    "newSupplier": "مورد جديد",
+    "addAdSpend": "إضافة مصروف إعلان",
+    "searchCustomers": "ابحث عن العملاء عن \"{q}\""
+  },
+  "shortcuts": {
+    "title": "اختصارات لوحة المفاتيح",
+    "palette": "لوحة الأوامر",
+    "help": "هذه المساعدة"
   },
   "common": {
     "signOut": "تسجيل الخروج",
@@ -99,6 +137,12 @@
       "planned": "مُخطَّط",
       "held": "منعقد",
       "cancelled": "ملغى"
+    },
+    "task_status": {
+      "todo": "للتنفيذ",
+      "doing": "قيد التنفيذ",
+      "blocked": "محظور",
+      "done": "منجز"
     }
   },
   "fields": {

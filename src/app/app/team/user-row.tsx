@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 import { updateUser } from "./actions";
 

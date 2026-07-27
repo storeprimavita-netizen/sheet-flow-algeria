@@ -21,7 +21,7 @@ export async function IntegrationsSection({
   const byProvider = new Map(configs.map((c) => [c.provider, c]));
 
   return (
-    <section className="glass-card space-y-6 rounded-xl p-5">
+    <section className="card-surface space-y-6 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.integrations")}</h2>
       {PROVIDERS.map((provider) => {
         const cfg = byProvider.get(provider);

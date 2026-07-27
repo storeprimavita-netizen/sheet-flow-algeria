@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
 import { DELIVERY_TYPES } from "@/lib/enums";
 import { createOrder } from "./actions";
@@ -69,7 +69,7 @@ export function OrderForm({
 
   return (
     <form action={createOrder} className="space-y-6">
-      <div className="glass-card grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
+      <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
         <Field label={t("fields.product")} htmlFor="product_id">
           <Select id="product_id" name="product_id" required defaultValue="" onChange={onProductChange}>
             <option value="" disabled>
@@ -95,7 +95,7 @@ export function OrderForm({
         </Field>
       </div>
 
-      <div className="glass-card grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
+      <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
         <Field label={t("fields.customer")} htmlFor="customer_name">
           <Input id="customer_name" name="customer_name" required />
         </Field>

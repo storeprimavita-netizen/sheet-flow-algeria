@@ -89,7 +89,7 @@ export default async function OrderDetailPage({
         ) : null}
       </PageHeader>
 
-      <div className="glass-card grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
         <Meta label={t("fields.customer")}>
           {order.customer?.name ?? order.customer_name ?? "—"}

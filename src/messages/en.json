@@ -3,10 +3,48 @@
   "nav": {
     "dashboard": "Dashboard",
     "orders": "Orders",
+    "all": "All orders",
+    "confirmation": "Confirmation",
+    "delivery": "Delivery",
     "products": "Products",
+    "finance": "Finance",
+    "financeOverview": "Overview",
+    "expenses": "Expenses",
+    "adSpend": "Ad spend",
+    "income": "Income",
     "contacts": "Contacts",
-    "team": "Team",
+    "customers": "Customers",
+    "suppliers": "Suppliers",
+    "team": "Team & Rules",
+    "rules": "Rules",
+    "meetings": "Meetings",
+    "tasks": "Tasks",
+    "performance": "Performance",
+    "users": "Users",
+    "audit": "Audit log",
     "settings": "Settings"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light"
+  },
+  "cmd": {
+    "title": "Search",
+    "placeholder": "Type a command or search…",
+    "empty": "No results.",
+    "navigate": "Go to",
+    "actions": "Actions",
+    "search": "Search",
+    "newOrder": "New order",
+    "newProduct": "New product",
+    "newSupplier": "New supplier",
+    "addAdSpend": "Add ad spend",
+    "searchCustomers": "Search customers for \"{q}\""
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "palette": "Command palette",
+    "help": "This help"
   },
   "common": {
     "signOut": "Sign out",
@@ -99,6 +137,12 @@
       "planned": "Planned",
       "held": "Held",
       "cancelled": "Cancelled"
+    },
+    "task_status": {
+      "todo": "To do",
+      "doing": "Doing",
+      "blocked": "Blocked",
+      "done": "Done"
     }
   },
   "fields": {

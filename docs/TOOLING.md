@@ -45,6 +45,19 @@ that works (stdlib > deps, one line > fifty, YAGNI).
 | Knowledge/memory between chats | `CLAUDE.md` (conventions) + `docs/*` (facts) |
 | Codebase orientation | `graphify query` (above) |
 
+## UI phases (11–13) tooling
+
+| Tool | Status | Use |
+|---|---|---|
+| **Playwright MCP** | ✅ available | The mandatory screenshot self-critique. Screenshot every touched screen in both themes → `docs/design/audit/`; fix what the shots show before closing the phase. Highest-value tool for the UI pass. |
+| **shadcn MCP** | ✅ configured (`.mcp.json`) | Install/theme shadcn (Radix) components in phase 11 — replaces the native `<select>`. |
+| **Supabase (local)** | ✅ docker stack | Run the app for screenshots: `docker`-hosted stack at `http://127.0.0.1:54321`, `npx supabase status` for keys, seed users in `scripts/seed-dev.ts` (`admin@seed.mnw` / `SeedDev!2026`). Point a dev server's `NEXT_PUBLIC_SUPABASE_*` at local, not the remote project. |
+| `cod-ui-polish` skill | ✅ `.claude/skills/cod-ui-polish/` | Auto-triggers on any UI work; the design authority. |
+
+The design authority for phases 11–13 is the `cod-ui-polish` skill +
+`docs/design/DESIGN_SYSTEM.md` (approved direction: A — Slate & Emerald) +
+`docs/design/UI_AUDIT.md`.
+
 ## Supabase CLI
 
 - Migrations live in `supabase/migrations/` (v2 baseline). Legacy v1 set is in

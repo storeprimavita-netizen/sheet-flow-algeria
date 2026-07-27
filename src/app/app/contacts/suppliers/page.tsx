@@ -33,7 +33,7 @@ export default async function SuppliersPage() {
       {!contacts?.length ? (
         <Empty>{t("contacts.suppliersNone")}</Empty>
       ) : (
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

@@ -4,7 +4,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRODUCT_STATUSES, CURRENCY_CODES } from "@/lib/enums";
@@ -36,7 +36,7 @@ export async function ProductForm({
 
   return (
     <form action={saveProduct.bind(null, product?.id ?? null)} className="space-y-6">
-      <div className="glass-card space-y-4 rounded-xl p-5">
+      <div className="card-surface space-y-4 rounded-xl p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("fields.name")} htmlFor="name">
             <Input id="name" name="name" required defaultValue={product?.name ?? ""} />

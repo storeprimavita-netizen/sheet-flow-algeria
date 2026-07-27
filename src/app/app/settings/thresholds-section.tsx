@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { MEETING_SLOT_COUNT, type SettingValue } from "@/lib/settings";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { saveThresholds } from "./actions";
 
@@ -26,7 +26,7 @@ export async function ThresholdsSection({
   const slots = Array.from({ length: MEETING_SLOT_COUNT }, (_, i) => meetingSchedule.slots[i] ?? null);
 
   return (
-    <section className="glass-card space-y-6 rounded-xl p-5">
+    <section className="card-surface space-y-6 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.thresholds")}</h2>
       <form action={saveThresholds} className="space-y-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

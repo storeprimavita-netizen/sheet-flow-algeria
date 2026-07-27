@@ -35,14 +35,14 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="glass-card w-full max-w-md rounded-2xl p-8">
+      <div className="card-surface w-full max-w-md rounded-2xl p-8">
         <div className="mb-6 flex items-center justify-end">
           <LocaleSwitcher />
         </div>
 
         <div className="mb-6 text-center">
           <div className="text-5xl">🔑</div>
-          <h1 className="mt-2 text-2xl font-bold text-gradient">{t("title")}</h1>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">{t("title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
 
