@@ -28,7 +28,7 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
-| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table done) |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders done) |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -1268,3 +1268,102 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   column), §4 Finance, §5 Dashboard, §6 Contacts, §7 Team (+Tasks kanban into
   the Phase-11 shell), §8 Settings (grouped cards + Appearance), §9 Option sets
   — one per session, each ending green + screenshotted + a PROGRESS block.
+
+## Phase 12 §2 — Orders (All / Confirmation / Delivery) (2026-07-27) — DONE
+- Scope: section 2 of 9. Re-based all three Orders views onto the Phase-12 §1
+  `<DataTable>` + the Phase-11 status/field system, plus the order detail page
+  and the manual-create form. **Net −172 source lines** (556 del / 384 ins)
+  while adding every checklist feature — the card-stack rows and native
+  `<select>`s were the bulk of what got deleted.
+- **All** (`all/page.tsx` + new `all/orders-all-table.tsx`, client): `<DataTable>`
+  with the full column set the brief lists (sticky order#, date, customer+phone,
+  product **thumbnail**+name, qty, total, delivery fee [hidden by default],
+  wilaya, **source chip** [shopify=info / lightfunnels=violet / manual=neutral],
+  confirmation `<StatusPill>`, delivery `<StatusPill>`, agent [hidden]).
+  **Duplicate chip** on the order cell (links to the original) + a **"Duplicates
+  only"** filter. **Bulk bar**: Set confirmation (menu of confirmation statuses →
+  `bulkTransition`), Assign (conf/deliv agents → `bulkAssignAgents`), Export N
+  (CSV of the selected rows via the existing `csv.ts`). **Detail sheet**:
+  both status pills, customer block with `tel:` link, money block
+  (total + delivery fee, `showMoney={isAdmin}` — hidden for agent roles per the
+  brief), and the **status timeline** (new shared `order-timeline.tsx`, actor +
+  duration-per-stage). Sort (order#/placed_at) + pagination are the DataTable's
+  URL params, read back server-side; filters are a new client
+  `orders-filter-bar.tsx` (Radix Selects + `DateField`, URL-persisted, active
+  chips + clear-all).
+- **Confirmation** (`confirmation/page.tsx` + new `confirmation-table.tsx` /
+  `confirmation-sheet.tsx` / `new-orders-pill.tsx`; **deleted** the old
+  `row.tsx` card-stack): switched to **table + detail sheet** (the decided
+  default). Table cols: order# (+dup chip), customer+`tel:`, product, qty, total,
+  **risk pill** (`<RiskBadge>`, reason on hover), confirmation pill, date. Sheet
+  is the call workflow in the exact checklist order: name → big green `tel:`
+  call link (also logs a dial) → risk badge + attempt count → **previous orders**
+  (other orders by the same customer, one grouped `.in()` query, capped 5) →
+  product/qty/price → **large status buttons** (legal transitions only) →
+  comment → **Save / Save & open next**; **↑/↓** move between queue rows while
+  the sheet is open (keyed `key={order.id}` so fields reset per order). A
+  **"N new orders" pill** polls the workspace queue every 20 s (ponytail:
+  polling, not realtime — never re-sorts under the cursor) and refreshes on
+  click. Handled rows leave the pending filter on refresh (query is
+  `confirmation_status <> 'confirmed'`).
+- **Delivery** (`delivery/page.tsx` + new `delivery-view.tsx` /
+  `delivery-table.tsx` / `delivery-kanban.tsx`; **deleted** old `row.tsx`):
+  **dense table by default** (added a `defaultDensity` prop to `<DataTable>`) +
+  **kanban toggle** (`?view=kanban`). Table: per-row `<StatusSelect>` (legal
+  transitions) + a one-click quick-advance chevron to `next[0]`; delayed/
+  returning rows get a colored leading bar. Kanban: columns per delivery status
+  with counts + empty "Nothing here", cards move by **native HTML5 drag** OR the
+  on-card `<StatusSelect>` (keyboard-accessible equivalent), **only legal
+  transitions accepted** (`transitionsFor`), optimistic move with rollback +
+  toast on failure. Both share one `useAdvanceDelivery()` hook →
+  `updateOrderStatus` (Phase-5 RPC, reused, returns `UpdateResult`).
+- **Detail page + create form** (kill the last native `<select>`s in the
+  section): `order-workflow.tsx` now uses `<StatusSelect>`/`<StatusPill>` and the
+  shared `<OrderTimeline>`; `[id]/page.tsx` status Badges → `<StatusPill>`;
+  `assignment-card.tsx` → Radix `<Select>` (sentinel `__none` = unassigned);
+  `order-form.tsx` fully rebuilt onto `ProductCombobox`/`WilayaCombobox`/
+  `PhoneField`/`MoneyField`/`QuantityStepper` + Radix delivery-type select,
+  React state driving the auto-fill (product→price, wilaya/type→fee; editing the
+  fee flips `delivery_fee_source` to manual). Added an optional `onChange` to
+  `MoneyField` (fires on user input only, so a remount-seeded auto value doesn't
+  trip the "manual" flag). `createOrder` action + its FormData names unchanged.
+- **New server actions** (`actions.ts`): `bulkTransition(ids, stage, status)`
+  and `bulkAssignAgents(ids, conf, deliv)` — both `isCurrentUserAdmin()`-gated,
+  zod-validated ids/status. bulkTransition loops the transition RPC per id
+  (ponytail: selection is capped at one page ~25; a batched RPC only earns its
+  place at hundreds).
+- **Verification (live, local seed stack):** ran the dev server against the
+  **local** Supabase docker (`127.0.0.1:54321`, demo keys) via a gitignored
+  `.env.development.local` (higher precedence than the remote-pointing
+  `.env.local`; **removed after**) — the repo's `npm run dev` wrapper does NOT
+  inherit inline env exports, so the override file is the way to point dev at
+  local. Logged in as `admin@seed.mnw` / `SeedDev!2026` (workspace with the 60
+  seed orders — 22 pending / 38 confirmed). **Screenshots both themes** in
+  `docs/design/audit/`: `orders-all-{light,dark}`, `orders-all-sheet-dark`,
+  `orders-all-bulk-dark`, `orders-confirmation-{dark,light}`,
+  `orders-confirmation-sheet-dark`, `orders-delivery-table-dark`,
+  `orders-delivery-kanban-{dark,light}`, `orders-new-light`. All four states,
+  both themes, keyboard (↑/↓ + Enter), and every drill-through render correctly;
+  console clean except dev-only HMR-reconnect noise from a mid-session server
+  restart. **Fixed from the shots:** order# wrapped when a Duplicate chip was
+  present → added `whitespace-nowrap` (All + Confirmation order cells).
+- Known / for consumers: **All is admin-only** (Phase-1 `AdminGuardLayout`), so
+  the money block is always shown there in practice; `showMoney` is still gated
+  on `isAdmin` as defense in depth. Bulk **Export** covers the currently loaded
+  page (selection doesn't persist across pages in the DataTable) — fine for the
+  25-row page size. CSV export "respects filters" via the already-filtered page
+  rows, not a full-result refetch. The confirmation sheet's status buttons show
+  only the current status for **terminal** orders (cancelled/confirmed) — correct
+  per the status graph, but means a cancelled order in the queue can't be
+  re-opened from the sheet. Delivery status changes and the new-order form were
+  verified visually (render + wiring); the underlying `transition_order_status`
+  RPC + `createOrder` action are unchanged from Phases 5.
+- **Next chat must know:** `npm run build` + `npm test` green (25 pass / 38
+  RLS-suite skipped), forbidden-color grep = 0, no native `<select>` left in
+  `src/app/app/orders`, `graphify update .` run. **Phase 12 §3 (Products)** is
+  next: switch the list to the image-card grid default (table as a persisted
+  toggle), product-context header across tabs, add the pricing **Real** column +
+  break-even, Money/Percent fields with live conversion, Expenses tab on the
+  shared Finance form. Reuse `<DataTable>`, `<StatusPill>`, `order-timeline.tsx`
+  (if a product→orders tab wants a timeline), and the `orders-filter-bar.tsx`
+  pattern for any product filters.

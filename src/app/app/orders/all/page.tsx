@@ -1,21 +1,21 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserAdmin } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/native-select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Field, tableClass } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
-import { Empty } from "@/components/empty";
-import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
 import { OrderTabs } from "../order-tabs";
+import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
+import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
+
+// columns the DataTable exposes as sortable → real order-able DB columns
+const SORT_COLUMNS: Record<string, string> = {
+  order_number: "order_number",
+  placed_at: "placed_at",
+};
 
 export default async function AllOrdersPage({
   searchParams,
@@ -23,23 +23,26 @@ export default async function AllOrdersPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? sp[k] : "");
+  const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : "");
   const page = Math.max(1, Number(get("page")) || 1);
 
   const t = await getTranslations();
   const supabase = await createClient();
 
-  const [{ data: products }, { data: wilayas }, { data: agents }] = await Promise.all([
+  const [{ data: products }, { data: wilayas }, { data: team }] = await Promise.all([
     supabase.from("products").select("id, name").order("name"),
     supabase.from("wilayas").select("code, name").order("code"),
     supabase.from("profiles").select("user_id, display_name, role").eq("is_active", true),
   ]);
-  const agentOpts = (agents ?? []).filter((a) => a.role !== "admin");
+  const agents = (team ?? [])
+    .filter((a) => a.role !== "admin")
+    .map((a) => ({ id: a.user_id, name: a.display_name ?? a.user_id.slice(0, 8), role: a.role }));
+  const nameByUser = new Map((team ?? []).map((a) => [a.user_id, a.display_name ?? a.user_id.slice(0, 8)]));
 
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, quantity, sale_price, confirmation_status, delivery_status, source, placed_at, product:products(name), customer:customers(name, phone)",
+      "id, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
       { count: "exact" },
     );
 
@@ -50,39 +53,69 @@ export default async function AllOrdersPage({
   if (get("product_id")) query = query.eq("product_id", get("product_id"));
   if (get("wilaya_code")) query = query.eq("wilaya_code", Number(get("wilaya_code")));
   if (get("source")) query = query.eq("source", get("source") as Enums<"order_source">);
-  // .or() takes a raw PostgREST filter string — validate the shape before
-  // interpolating a URL param into it.
+  if (get("duplicates")) query = query.eq("is_duplicate_suspect", true);
+  // .or() takes a raw PostgREST filter string — validate the shape first.
   const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
   if (agentId)
     query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
   if (get("from")) query = query.gte("placed_at", get("from"));
   if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
 
+  const sortCol = SORT_COLUMNS[get("sort")] ?? "created_at";
+  const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
+
   const from = (page - 1) * PAGE_SIZE;
   const { data: orders, count } = await query
-    .order("created_at", { ascending: false })
+    .order(sortCol, { ascending })
     .range(from, from + PAGE_SIZE - 1);
 
-  const qs = (overrides: Record<string, string | number>) => {
-    const params = new URLSearchParams();
-    for (const k of [
-      "confirmation_status",
-      "delivery_status",
-      "product_id",
-      "wilaya_code",
-      "source",
-      "agent",
-      "from",
-      "to",
-    ]) {
-      if (get(k)) params.set(k, get(k));
-    }
-    for (const [k, v] of Object.entries(overrides)) params.set(k, String(v));
-    return `?${params.toString()}`;
-  };
+  // status history for the orders on this page → the detail-sheet timeline
+  const orderIds = (orders ?? []).map((o) => o.id);
+  const { data: events } = orderIds.length
+    ? await supabase
+        .from("order_status_history")
+        .select("id, order_id, stage, to_status, actor, created_at, comment")
+        .in("order_id", orderIds)
+    : { data: [] };
+  const eventsByOrder = new Map<string, AllRow["events"]>();
+  for (const e of events ?? []) {
+    const list = eventsByOrder.get(e.order_id) ?? [];
+    list.push({ id: e.id, stage: e.stage, to_status: e.to_status, actor: e.actor, created_at: e.created_at, comment: e.comment });
+    eventsByOrder.set(e.order_id, list);
+  }
+  const actorIds = [...new Set((events ?? []).map((e) => e.actor).filter((a): a is string => !!a))];
+  const actorNames = Object.fromEntries(actorIds.map((id) => [id, nameByUser.get(id) ?? id.slice(0, 8)]));
 
-  const total = count ?? 0;
-  const hasNext = from + PAGE_SIZE < total;
+  const rows: AllRow[] = (orders ?? []).map((o) => ({
+    id: o.id,
+    order_number: o.order_number,
+    placed_at: o.placed_at,
+    customer_name: o.customer_name,
+    customer_phone: o.customer_phone,
+    product_name: o.product?.name ?? null,
+    product_image: o.product?.images?.[0] ?? null,
+    quantity: o.quantity,
+    sale_price: o.sale_price,
+    delivery_fee: o.delivery_fee,
+    wilaya_name: o.wilaya?.name ?? null,
+    source: o.source,
+    confirmation_status: o.confirmation_status,
+    delivery_status: o.delivery_status,
+    agent_name:
+      (o.assigned_confirmation_agent && nameByUser.get(o.assigned_confirmation_agent)) ||
+      (o.assigned_delivery_agent && nameByUser.get(o.assigned_delivery_agent)) ||
+      null,
+    is_duplicate_suspect: o.is_duplicate_suspect ?? false,
+    duplicate_of: o.duplicate_of,
+    commune: o.commune,
+    address: o.address,
+    events: eventsByOrder.get(o.id) ?? [],
+  }));
+
+  const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
+  const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
+  const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
+  const isAdmin = await isCurrentUserAdmin();
 
   return (
     <div className="space-y-6">
@@ -92,152 +125,16 @@ export default async function AllOrdersPage({
 
       <OrderTabs active="all" />
 
-      <form method="get" className="card-surface grid grid-cols-2 gap-3 rounded-xl p-4 sm:grid-cols-4 lg:grid-cols-8">
-        <Field label={t("fields.confirmation_status")} className="col-span-1">
-          <Select name="confirmation_status" defaultValue={get("confirmation_status")}>
-            <option value="">{t("common.all")}</option>
-            {CONFIRMATION_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`status.confirmation_status.${s}`)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.delivery_status")}>
-          <Select name="delivery_status" defaultValue={get("delivery_status")}>
-            <option value="">{t("common.all")}</option>
-            {DELIVERY_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`status.delivery_status.${s}`)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.product")}>
-          <Select name="product_id" defaultValue={get("product_id")}>
-            <option value="">{t("common.all")}</option>
-            {(products ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.wilaya")}>
-          <Select name="wilaya_code" defaultValue={get("wilaya_code")}>
-            <option value="">{t("common.all")}</option>
-            {(wilayas ?? []).map((w) => (
-              <option key={w.code} value={w.code}>
-                {w.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.source")}>
-          <Select name="source" defaultValue={get("source")}>
-            <option value="">{t("common.all")}</option>
-            {ORDER_SOURCES.map((s) => (
-              <option key={s} value={s}>
-                {t(`status.order_source.${s}`)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.agent")}>
-          <Select name="agent" defaultValue={get("agent")}>
-            <option value="">{t("common.all")}</option>
-            {agentOpts.map((a) => (
-              <option key={a.user_id} value={a.user_id}>
-                {a.display_name ?? a.user_id.slice(0, 8)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={t("fields.from")}>
-          <Input type="date" name="from" defaultValue={get("from")} />
-        </Field>
-        <Field label={t("fields.to")}>
-          <Input type="date" name="to" defaultValue={get("to")} />
-        </Field>
-        <div className="col-span-2 flex items-end gap-2 sm:col-span-4 lg:col-span-8">
-          <Button type="submit">{t("actions.search")}</Button>
-          <ButtonLink href="/app/orders/all" variant="ghost">
-            {t("actions.cancel")}
-          </ButtonLink>
-        </div>
-      </form>
+      <OrdersFilterBar products={productOpts} wilayas={wilayaOpts} agents={agentOpts} />
 
-      {!orders?.length ? (
-        <Empty>{t("orders.none")}</Empty>
-      ) : (
-        <div className="card-surface overflow-hidden rounded-xl">
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th>{t("orders.title")}</th>
-                  <th>{t("fields.product")}</th>
-                  <th>{t("fields.customer")}</th>
-                  <th>{t("fields.total_amount")}</th>
-                  <th>{t("fields.confirmation_status")}</th>
-                  <th>{t("fields.delivery_status")}</th>
-                  <th>{t("fields.placed_at")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-muted/30">
-                    <td>
-                      <Link href={`/app/orders/${o.id}`} className="font-medium hover:underline">
-                        {o.order_number ?? o.id.slice(0, 8)}
-                      </Link>
-                    </td>
-                    <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
-                    <td className="text-muted-foreground">{o.customer?.name ?? "—"}</td>
-                    <td>{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
-                    <td>
-                      <Badge variant={o.confirmation_status === "confirmed" ? "default" : "secondary"}>
-                        {t(`status.confirmation_status.${o.confirmation_status}`)}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge
-                        variant={
-                          o.delivery_status === "delivered"
-                            ? "default"
-                            : o.delivery_status === "returned" || o.delivery_status === "cancelled"
-                              ? "destructive"
-                              : "secondary"
-                        }
-                      >
-                        {t(`status.delivery_status.${o.delivery_status}`)}
-                      </Badge>
-                    </td>
-                    <td className="text-muted-foreground">{formatDate(o.placed_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t border-border p-3 text-sm text-muted-foreground">
-            <span>
-              {t("common.total")}: {total}
-            </span>
-            <div className="flex gap-2">
-              {page > 1 ? (
-                <ButtonLink href={qs({ page: page - 1 })} variant="outline" size="sm">
-                  {t("common.prev")}
-                </ButtonLink>
-              ) : null}
-              {hasNext ? (
-                <ButtonLink href={qs({ page: page + 1 })} variant="outline" size="sm">
-                  {t("common.next")}
-                </ButtonLink>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
+      <OrdersAllTable
+        rows={rows}
+        total={count ?? 0}
+        pageSize={PAGE_SIZE}
+        showMoney={isAdmin}
+        agents={agents}
+        actorNames={actorNames}
+      />
     </div>
   );
 }

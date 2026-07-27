@@ -8,12 +8,11 @@ import type { Tables } from "@/lib/supabase/database.types";
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
-import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/format";
-import { CONFIRMATION_STATUSES, DELIVERY_STATUSES } from "@/lib/enums";
+import { StatusPill } from "@/components/status-pill";
+import { StatusSelect } from "@/components/status-select";
 import { updateOrderStatus } from "./actions";
+import { OrderTimeline } from "./order-timeline";
 
 type OrderRow = Tables<"orders">;
 type EventRow = Tables<"order_status_history">;
@@ -71,12 +70,8 @@ export function OrderWorkflow({
     <div className="space-y-6">
       <form onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">
-            {t("fields.confirmation_status")}: {t(`status.confirmation_status.${order.confirmation_status}`)}
-          </Badge>
-          <Badge variant="secondary">
-            {t("fields.delivery_status")}: {t(`status.delivery_status.${order.delivery_status}`)}
-          </Badge>
+          <StatusPill kind="confirmation" status={order.confirmation_status} />
+          <StatusPill kind="delivery" status={order.delivery_status} />
         </div>
 
         {order.confirmation_comment ? (
@@ -87,29 +82,13 @@ export function OrderWorkflow({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {canConfirm ? (
-            <Field label={t("fields.confirmation_status")} htmlFor="confirmation_status">
-              <Select
-                id="confirmation_status"
-                name="confirmation_status"
-                defaultValue={order.confirmation_status}
-              >
-                {CONFIRMATION_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(`status.confirmation_status.${s}`)}
-                  </option>
-                ))}
-              </Select>
+            <Field label={t("fields.confirmation_status")}>
+              <StatusSelect kind="confirmation" name="confirmation_status" value={order.confirmation_status} />
             </Field>
           ) : null}
           {canDeliver ? (
-            <Field label={t("fields.delivery_status")} htmlFor="delivery_status">
-              <Select id="delivery_status" name="delivery_status" defaultValue={order.delivery_status}>
-                {DELIVERY_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(`status.delivery_status.${s}`)}
-                  </option>
-                ))}
-              </Select>
+            <Field label={t("fields.delivery_status")}>
+              <StatusSelect kind="delivery" name="delivery_status" value={order.delivery_status} />
             </Field>
           ) : null}
         </div>
@@ -142,35 +121,7 @@ export function OrderWorkflow({
 
       <div className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("orders.history")}</h2>
-        {!events.length ? (
-          <p className="text-sm text-muted-foreground">{t("orders.eventsNone")}</p>
-        ) : (
-          <ul className="space-y-3">
-            {events.map((ev) => (
-              <li
-                key={ev.id}
-                className="flex flex-col gap-1 border-s-2 border-border ps-3 text-sm"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">
-                    {ev.stage === "confirmation"
-                      ? t("fields.confirmation_status")
-                      : t("fields.delivery_status")}
-                  </Badge>
-                  <span className="font-medium">
-                    {ev.stage === "confirmation"
-                      ? t(`status.confirmation_status.${ev.to_status}`)
-                      : t(`status.delivery_status.${ev.to_status}`)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {ev.actor ? actorNames[ev.actor] : t("orders.systemActor")} · {formatDateTime(ev.created_at)}
-                  </span>
-                </div>
-                {ev.comment ? <p className="text-muted-foreground">{ev.comment}</p> : null}
-              </li>
-            ))}
-          </ul>
-        )}
+        <OrderTimeline events={events} actorNames={actorNames} />
       </div>
     </div>
   );
