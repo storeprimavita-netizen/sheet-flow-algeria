@@ -28,6 +28,7 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table done) |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -1199,3 +1200,71 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `format.ts` when Phase 12 touches feature money cells (design wants
   `1 234 567 DA`, not `1,234,567`). The design-preview `/design-preview` route
   is the mirror to check every Phase 12/13 change against.
+
+## Phase 12 §1 — Data-table foundation (2026-07-27) — DONE
+- Scope: Phase 12 is **one section per session** (9 sections). This session
+  built **Section 1 only — the reusable data-table** the other 8 sections
+  depend on ("do first"). Sections 2–9 (Orders, Products, Finance, Dashboard,
+  Contacts, Team, Settings, Option sets) remain, one per future session.
+- Done: `src/components/data-table/{types.ts,data-table.tsx}` — a generic
+  `<DataTable<T>>` per `components.md`. Features, all working (verified live):
+  **URL-persisted sort** (`?sort=<colId>&dir=asc|desc`, click a sortable
+  header to toggle; resets `?page`), **server pagination** (`?page=`, driven by
+  `total`+`pageSize` → prev/next), **sticky header** (`thead` sticky top-0 on
+  `bg-surface`) + **sticky first column** (`col.sticky` → `sticky start-0`,
+  logical prop so RTL pins the inline-start col), **column-visibility menu**
+  (DropdownMenu of checkbox items; `defaultHidden` cols seeded on mount;
+  persisted in `localStorage mnw:cols:<tableId>`), **density toggle**
+  (comfortable 44px / compact 36px rows, persisted `mnw:density:<tableId>`),
+  **row selection** (per-row + header select-all with indeterminate) → a
+  **floating bulk-action bar** (`bulkActions(keys, clear)` render prop),
+  **trailing kebab** per row (`rowActions(row)`), **row→detail sheet**
+  (`renderSheet(row)`, opened on row click, **deep-linked via `?row=<key>`**,
+  Escape/overlay closes → clears the param), **keyboard row nav** (↑/↓ moves a
+  focused-row highlight, Enter opens the sheet), and **all four states**
+  (loading skeleton rows / empty with title+description+action / error with
+  retry / populated). Numeric columns right-aligned + `.num` tabular; status
+  column centered.
+- Column API (`types.ts`): `{ id, header, cell(row), align?, numeric?,
+  sortable?, sticky?, defaultHidden?, alwaysVisible?, width? }`. The table owns
+  sort + pagination + column-vis + density + selection + sheet; **filters stay
+  per-page** (each section builds its own filter bar that writes other URL
+  params — the table only reads what it needs). Parent server component reads
+  `sort`/`dir`/`page` from searchParams and queries; the table is the
+  presentational + interaction layer. Message keys: new `table.*`
+  (columns/compact/comfortable/page/loading/error/retry) in en+ar.
+- **Deliberate simplification:** virtualization is **deferred** (a `ponytail:`
+  comment marks it) — server pagination caps rendered rows at ~`pageSize` (25),
+  so `@tanstack/react-virtual` only earns its place when a view renders 200+
+  unpaginated rows. No new dependency added this section.
+- **Proven in `/design-preview`** (§6 "Data table" rewritten from the old
+  static sample to a live `<DataTable>` demo with 6 sample orders + a
+  ready/loading/empty/error state switcher): exercised sort (Total asc
+  reordered the rows + arrow), sticky Order column, Phone column hidden by
+  default via the column menu, density toggle, select-all → "6 selected /
+  Assign agent / Export 6" bulk bar, kebab, and click-row → sheet
+  (`?row=o1042`, Escape closed + cleared the param). This is the pattern the
+  real Orders/Products/Finance tables will instantiate in later sessions.
+- **Screenshot self-critique (both themes, live on the local seed stack):**
+  `docs/design/audit/datatable-{dark,light}.png`, `datatable-sheet-dark.png`,
+  `datatable-bulk-dark.png`, `datatable-empty-light.png`. Both themes correct;
+  console clean (0 errors) through sort/select/sheet/state interactions;
+  ponytail-review pass merged two mount effects into one (−6 lines).
+- **Known / for the consumers:** deep-link `?row=` only opens the sheet if the
+  key matches a row on the current page — real pages that deep-link to an
+  arbitrary order should fetch that row for the sheet (the foundation passes
+  the already-loaded row object). The floating bulk bar keeps its count when
+  toggled to the empty state in the demo (selection persists across a result
+  change) — a demo artifact, harmless in real use. `onRetry` is a caller hook
+  (the demo just flips local state back to ready); real pages wire it to a
+  refetch / `router.refresh()`.
+- **Next chat must know:** `npm run build` + `npm test` green (25 pass / 38
+  RLS-suite skipped, unchanged — no test file for the table, its behavior is
+  the live design-preview reconciliation above), forbidden-color grep = 0,
+  `graphify update .` run. **Phase 12 §2 (Orders)** is the next session:
+  instantiate `<DataTable>` for Orders/All (missing columns + duplicate chip +
+  bulk + detail sheet), convert Confirmation from the card-stack to
+  table+sheet, Delivery table + kanban toggle. §3 Products (card grid + Real
+  column), §4 Finance, §5 Dashboard, §6 Contacts, §7 Team (+Tasks kanban into
+  the Phase-11 shell), §8 Settings (grouped cards + Appearance), §9 Option sets
+  — one per session, each ending green + screenshotted + a PROGRESS block.

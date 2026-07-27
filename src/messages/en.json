@@ -46,6 +46,15 @@
     "palette": "Command palette",
     "help": "This help"
   },
+  "table": {
+    "columns": "Columns",
+    "compact": "Compact rows",
+    "comfortable": "Comfortable rows",
+    "page": "Page",
+    "loading": "Loading…",
+    "error": "Couldn't load the data.",
+    "retry": "Retry"
+  },
   "common": {
     "signOut": "Sign out",
     "soon": "soon",
