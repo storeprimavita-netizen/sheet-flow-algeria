@@ -575,6 +575,18 @@
     },
     "noData": "No data for this filter yet."
   },
+  "finance": {
+    "subtitleOverview": "Invested vs revenue vs net profit for the period",
+    "subtitleAdSpend": "Daily ad spend across all products",
+    "subtitleIncome": "Revenue derived from delivered orders — nothing entered by hand",
+    "spendByProduct": "Spend by product",
+    "incomeByProduct": "Income by product",
+    "fixedFeesNote": "Active fixed fees, applied monthly",
+    "returnFeeTotal": "Return fees",
+    "noExpensesInRange": "No expenses in this range.",
+    "noAdSpendInRange": "No ad spend in this range.",
+    "noIncomeInRange": "No delivered orders in this range."
+  },
   "role": {
     "admin": "Admin",
     "confirmation_agent": "Confirmation agent",
