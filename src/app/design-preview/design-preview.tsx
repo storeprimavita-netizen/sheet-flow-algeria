@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { MoreHorizontal, Trash2, Pencil } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { tableClass } from "@/components/field";
+import { DataTable } from "@/components/data-table/data-table";
+import type { Column } from "@/components/data-table/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
@@ -353,65 +356,11 @@ export function DesignPreview() {
 
             {/* 6 — Data table */}
             <Section title="6 · Data table">
-              <div className="card-surface overflow-hidden">
-                <table className={tableClass}>
-                  <thead>
-                    <tr>
-                      <th className="w-8"><Checkbox /></th>
-                      <th>Order</th>
-                      <th>Customer</th>
-                      <th className="text-end">Total ↓</th>
-                      <th>Status</th>
-                      <th className="w-8" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ["1042", "Amine B.", 8200, "confirmed"],
-                      ["1041", "Sara K.", 5400, "wait_for_confirmation"],
-                      ["1040", "Yacine M.", 12750, "no_answer"],
-                      ["1039", "Lina T.", 3600, "cancelled"],
-                    ].map(([id, cust, total, st]) => (
-                      <tr key={id as string} className="hover:bg-surface-raised">
-                        <td><Checkbox /></td>
-                        <td className="num">{id}</td>
-                        <td>{cust}</td>
-                        <td className="num text-end">{(total as number).toLocaleString("en-US").replace(/,/g, " ")} DA</td>
-                        <td><StatusPill kind="confirmation" status={st as string} size="sm" /></td>
-                        <td>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Row actions">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem><Pencil className="h-4 w-4" /> Edit</DropdownMenuItem>
-                              <DropdownMenuItem destructive><Trash2 className="h-4 w-4" /> Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="card-surface space-y-2 p-4">
-                  <p className="text-xs font-medium text-muted-foreground">Loading</p>
-                  <Skeleton /><Skeleton /><Skeleton />
-                </div>
-                <div className="card-surface p-4 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">No orders yet</p>
-                  <p className="mt-1">Create your first order to see it here.</p>
-                  <Button size="sm" className="mt-3">New order</Button>
-                </div>
-                <div className="card-surface p-4 text-sm">
-                  <p className="font-medium text-danger">Couldn&apos;t load orders</p>
-                  <p className="mt-1 text-muted-foreground">The request timed out.</p>
-                  <Button size="sm" variant="outline" className="mt-3">Retry</Button>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Sort (Order / Total), sticky first column, column menu (Phone hidden by default), density toggle,
+                row select + bulk bar, kebab, click a row → detail sheet (deep-linked <code>?row=</code>), four states.
+              </p>
+              <DataTableDemo />
             </Section>
 
             {/* 7 — Cards & charts */}
@@ -498,4 +447,117 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function Skeleton() {
   return <div className="h-4 w-full animate-pulse rounded bg-surface-raised" />;
+}
+
+type DemoRow = { id: string; num: string; customer: string; phone: string; total: number; status: string };
+const DEMO_ROWS: DemoRow[] = [
+  { id: "o1042", num: "1042", customer: "Amine Benali", phone: "0555123456", total: 8200, status: "confirmed" },
+  { id: "o1041", num: "1041", customer: "Sara Khelifi", phone: "0661998877", total: 5400, status: "wait_for_confirmation" },
+  { id: "o1040", num: "1040", customer: "Yacine Meziane", phone: "0770445566", total: 12750, status: "no_answer" },
+  { id: "o1039", num: "1039", customer: "Lina Toumi", phone: "0555221144", total: 3600, status: "cancelled" },
+  { id: "o1038", num: "1038", customer: "Karim Saïdi", phone: "0699112233", total: 9900, status: "closed_phone" },
+  { id: "o1037", num: "1037", customer: "Nour Haddad", phone: "0540667788", total: 4200, status: "confirmed" },
+];
+
+function fmt(n: number) {
+  return `${n.toLocaleString("en-US").replace(/,/g, " ")} DA`;
+}
+
+function DataTableDemo() {
+  const sp = useSearchParams();
+  const [state, setState] = React.useState<"ready" | "loading" | "empty" | "error">("ready");
+
+  const sortId = sp.get("sort");
+  const dir = sp.get("dir") === "desc" ? "desc" : "asc";
+  const rows = [...DEMO_ROWS];
+  if (sortId === "total") rows.sort((a, b) => (dir === "asc" ? a.total - b.total : b.total - a.total));
+  else if (sortId === "num") rows.sort((a, b) => (dir === "asc" ? a.num.localeCompare(b.num) : b.num.localeCompare(a.num)));
+
+  const columns: Column<DemoRow>[] = [
+    { id: "num", header: "Order", sortable: true, sticky: true, width: "w-20", cell: (r) => <span className="num">{r.num}</span> },
+    { id: "customer", header: "Customer", cell: (r) => r.customer },
+    {
+      id: "phone",
+      header: "Phone",
+      defaultHidden: true,
+      cell: (r) => (
+        <a href={`tel:${r.phone}`} className="num text-info hover:underline" onClick={(e) => e.stopPropagation()}>
+          {r.phone}
+        </a>
+      ),
+    },
+    { id: "total", header: "Total", numeric: true, sortable: true, cell: (r) => fmt(r.total) },
+    {
+      id: "status",
+      header: "Status",
+      align: "center",
+      cell: (r) => <StatusPill kind="confirmation" status={r.status} size="sm" />,
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {(["ready", "loading", "empty", "error"] as const).map((s) => (
+          <Button key={s} size="sm" variant={state === s ? "default" : "outline"} onClick={() => setState(s)}>
+            {s}
+          </Button>
+        ))}
+      </div>
+      <DataTable<DemoRow>
+        tableId="demo-orders"
+        columns={columns}
+        rows={state === "empty" || state === "loading" || state === "error" ? [] : rows}
+        rowKey={(r) => r.id}
+        status={state === "loading" ? "loading" : state === "error" ? "error" : undefined}
+        onRetry={() => setState("ready")}
+        empty={{
+          title: "No orders yet",
+          description: "Create your first order to see it here.",
+          action: <Button size="sm">New order</Button>,
+        }}
+        total={rows.length}
+        pageSize={25}
+        selectable
+        bulkActions={(keys) => (
+          <>
+            <Button size="sm" variant="outline">Assign agent</Button>
+            <Button size="sm" variant="outline">Export {keys.length}</Button>
+          </>
+        )}
+        rowActions={(r) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Row actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Pencil className="h-4 w-4" /> Edit {r.num}
+              </DropdownMenuItem>
+              <DropdownMenuItem destructive>
+                <Trash2 className="h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        renderSheet={(r) => ({
+          title: `Order ${r.num}`,
+          body: (
+            <div className="space-y-3 text-sm">
+              <StatusPill kind="confirmation" status={r.status} />
+              <div className="space-y-1">
+                <p className="font-medium">{r.customer}</p>
+                <a href={`tel:${r.phone}`} className="num text-info hover:underline">
+                  {r.phone}
+                </a>
+              </div>
+              <p className="num text-lg font-semibold">{fmt(r.total)}</p>
+            </div>
+          ),
+        })}
+      />
+    </div>
+  );
 }
