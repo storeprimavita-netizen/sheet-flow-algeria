@@ -27,6 +27,7 @@ the bottom. Format:
 | 8 — Contacts (customers/suppliers) | docs/phases/phase-08.md | done |
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
+| 11 — Design system foundation | docs/phases/phase-11.md | done |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -1058,3 +1059,143 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `product_sku`/`product_name` extraction in both `map()` functions against
   them (same field-name-guess caveat Phase 6 left for wilaya/delivery-fee,
   now extended to product matching).
+
+## Phase 11 — Design system foundation (2026-07-27) — DONE
+- Done: the full token layer + component tools everything restyles onto in
+  phases 12–13. **No feature-page restyling** (that's Phase 12) beyond the
+  mechanical de-decoration required by acceptance. Verified live in a real
+  browser (local seed stack) — first phase with actual UI screenshots.
+- **Step 1 — Tokens (`src/app/globals.css`, full rewrite):** Direction A
+  "Slate & Emerald" role tokens on `:root` (dark, the default) with a complete
+  **`.light`** sibling; every semantic pair (success/warning/danger/info/
+  neutral) + extended hues (indigo/cyan/violet/orange/rose) as tinted-bg /
+  strong-fg pairs, chart-1..5, `--surface`/`--surface-raised`/`--border-strong`/
+  `--text-muted`/`--text-faint`/`--overlay`/`--focus`. Legacy shadcn color
+  names (`--color-card`, `--color-muted-foreground`, `--color-destructive`, …)
+  are **aliased** to the new role tokens in `@theme inline` so the ~87
+  `text-muted-foreground` / `bg-card` / etc. usages across feature pages keep
+  working untouched (audit's "extend, don't replace" rule). Deleted
+  `--gradient-*`, `--shadow-glow`, `.glass-card`, `.text-gradient`, and the
+  body radial-gradient. Added `.num` (tabular-nums), `.card-surface` (the flat
+  tokened card that replaces `glass-card`), `.surface-raised`, motion keyframes
+  + `prefers-reduced-motion`. **Mechanically swept 59 `glass-card` →
+  `card-surface` and 6 `text-gradient` → `text-foreground` across 40 feature
+  files** (sed; de-decoration, not restyle) so the acceptance grep is zero.
+- **Step 2 — Theme switch:** `src/lib/theme.ts` (cookie `theme`, same pattern
+  as locale), root `layout.tsx` reads it → `<html class>` (defaults dark),
+  `ThemeToggle` (`src/components/theme-toggle.tsx`) flips the `<html>` class
+  immediately (no flash) + persists the cookie + `router.refresh()`. Sonner
+  `<Toaster>` mounted in the root layout.
+- **Step 3 — Radix primitives (installed `@radix-ui/react-{select,popover,
+  dialog,dropdown-menu,tooltip,checkbox,switch}` + `cmdk` + `sonner`; no shadcn
+  CLI — direct install gives full token control, avoids the Tailwind-v4 init
+  friction):** new `components/ui/{select,popover,dialog,sheet,dropdown-menu,
+  tooltip,checkbox,switch,command,combobox,chip}.tsx`, all themed to
+  `--surface-raised` + `--border-strong` + shadow. **The native `<select>` bug
+  fix (UI_AUDIT G2):** the old native select moved to
+  `components/ui/native-select.tsx` (20 legacy feature importers repointed
+  there mechanically — no API change, keeps forms working); `ui/select.tsx` is
+  now the Radix Select. Verified live: the open dropdown surfaces correctly &
+  readably in **both** themes (white-on-white gone). `Combobox` = Popover +
+  Command (cmdk), posts via hidden input for plain forms, optional inline
+  `+ Create`.
+- **Step 4 — Status system:** `src/lib/statuses.ts` is the source of truth —
+  each status exports `key`/`label`(i18n)/`token`/`icon`(lucide)/`next[]`/
+  `terminal`/`requiresConfirm`, for all four kinds
+  (confirmation/delivery/product/task; task_status i18n keys added new).
+  `<Chip>` (shared base, token→static-class map so Tailwind sees literals),
+  `<StatusPill>` (dot/icon + label, tinted), `<StatusSelect>` (pill in trigger
+  AND every option, offers only `next[]`), and **`RiskBadge` rebuilt** off the
+  old solid `Badge` into the shield-icon pill grammar (green shield-check /
+  amber shield-alert / red shield-x) — it's a shared component, so this
+  improves the confirmation queue + contacts views without rewiring their
+  logic; made it sync (`useTranslations`) so it works in both server & client
+  trees. **Feature pages not yet rewired to these** (Phase 12).
+- **Step 5 — Field components (`src/components/fields/`):** MoneyField
+  (tabular, space separators, DA/USD suffix, live DZD conversion line, no
+  spinners, hidden-input value), PercentField (clamp 0–100), PhoneField (DZ
+  normalize on blur + `dupHint` link slot), WilayaCombobox/CommuneCombobox
+  (dependent, disabled-with-reason)/ProductCombobox (thumb + status pill),
+  QuantityStepper, DateField (native date — ponytail: platform picker, US
+  format caveat noted)/DateRangeField (7 presets), CategorySelect (icon per
+  expense category), OptionSelect/OptionMultiSelect (Notion-style chips +
+  `+ Create`, auto-color by hash; option-sets backend still stubbed → Phase
+  12), AutoTextarea, SettingSwitch. All take `name` so they drop into plain
+  server-action forms later. **Proven in `/design-preview`, not yet swapped
+  into feature pages** (Phase 12).
+- **Step 6 — `/design-preview`** (`src/app/design-preview/`, gated
+  `NODE_ENV!=='production'`): every token + component in both themes, with a
+  theme toggle (flips `<html>` so Radix portals theme correctly) + RTL toggle,
+  and a **live contrast readout** — a canvas-sampling WCAG harness measures
+  every semantic pair's fg over its tint-composited-over-surface, per theme,
+  and flags anything < 4.5:1. **This caught 5 light-theme pairs under 4.5**
+  (warning 4.20, info 4.46, cyan 3.56, orange 4.47, primary-fg 4.34) — the
+  DESIGN_SYSTEM §3 values missing their own stated "clears 4.5:1" bar — so I
+  darkened those light foregrounds (+ the light `--primary`) until all pass in
+  both themes. Deviation from the literal §3 light values, in service of §3's
+  own contract; dark values are unchanged.
+- **Step 7 — Navigation rebuild (`app-shell.tsx` + `nav-model.tsx` +
+  `command-palette.tsx`):** always-expanded subsections (Orders →
+  All/Confirmation/Delivery, Finance → Overview/Expenses/Ad spend/Income,
+  Contacts → Customers/Suppliers, Team → Rules/Meetings/Tasks/Performance/
+  Users/Audit log), active = bg tint + left accent bar + colored icon
+  (longest-prefix match so `/app/contacts` vs `/app/contacts/suppliers` don't
+  both light up), live counters (Confirmation pending / Delivery
+  wait-for-deposit, RLS-scoped in `app/layout.tsx`; Tasks = 0 until the
+  feature exists), muted at zero, collapsible icon-rail persisted in
+  localStorage. **⌘K palette** (Radix Dialog + cmdk): role-filtered navigate +
+  admin quick-actions + customer search (routes to `/app/contacts?q=`).
+  `?` opens a shortcut overlay. Finance links render for admin only
+  (`visibleNav` filters by role; agents see only their own Orders queue).
+- **Route shells:** `/app/finance/{,overview,ad-spend,income}` redirect to the
+  existing pages (dashboard / cash), `/app/finance/expenses` +
+  `/app/team/tasks` are `rebuildPending` placeholders — all admin-guarded via
+  one-line `AdminGuardLayout` re-exports. Phase 12 builds Finance + Tasks for
+  real.
+- **Screenshot self-critique (MANDATORY — done this session):** ran the app
+  against the local seed docker stack (`.env.local` targets the real remote, so
+  I overrode `NEXT_PUBLIC_SUPABASE_URL`→`127.0.0.1:54321` + the public demo
+  keys for the dev server only — never touched remote data), drove it with the
+  Playwright MCP at 1440×900. Captured `docs/design/audit/`:
+  `preview-{dark,light}.png` (both themes, contrast all-pass),
+  `select-open-light.png` (Radix dropdown surfaced/readable — G2 fixed),
+  `shell-{dark,light}.png`, `shell-collapsed-light.png`, `cmdk-dark.png`.
+  **Fixed what the screenshots + console surfaced:** (1) the 5 light contrast
+  fails above; (2) `CommandPalette` wrapped its trigger `<Button>` in a
+  `<button>` → nested-button hydration error → changed to `<span>`; (3) the
+  palette rendered section + child nav items sharing an href (`/app/contacts`,
+  `/app/team`) → duplicate-key React error → palette now lists leaf
+  destinations only. Post-fix console is clean; ⌘K verified opening AND
+  navigating (clicked Products → routed); collapse rail + both-theme toggle
+  verified live.
+- **Acceptance:** forbidden-color grep over `src` = **0**; both themes correct
+  on `/design-preview` with every gated pair ≥ 4.5:1 (readout shows all pass);
+  Radix Select/Combobox surfaced+readable both themes; StatusPill renders every
+  status w/ icon, StatusSelect shows pill in trigger+options and only legal
+  transitions; sidebar all-subsections-expanded with Finance admin-only, live
+  counters (saw 18 confirmation / 26 delivery on seed data), ⌘K opens+navigates;
+  `npm run build` + `npm test` green (25 pass / 38 RLS-suite skipped, unchanged).
+- **Known issues / deferred:** feature pages still use `native-select` +
+  `format.ts` (comma money separators, not the design's spaces) + old
+  per-page card markup — **all Phase 12** ("section realignment"), explicitly
+  out of Phase 11 scope ("this phase makes the tools; phase 12 uses them").
+  `DateField` is the native date input (shows OS-locale format, e.g.
+  mm/dd/yyyy) — ponytail: a JS calendar was disproportionate; revisit if the
+  US-format display is unacceptable. `/design-preview` section headings are
+  English literals (dev-only tool, not user-facing — skipped i18n bloat).
+  Command-palette entity search is customer-only via `?q=` routing (order-ID /
+  product live search hooks in Phase 12). Option-sets backend still stubbed
+  (OptionSelect/MultiSelect operate on prop lists + `onCreate` callback) —
+  Phase 12 wires the `option_sets`/`options` tables. Agent-role nav filtering
+  (Finance hidden) is code-verified via `visibleNav` + RLS, not re-exercised
+  with a live agent login this session (financial blindness already proven at
+  the DB layer in Phases 7/10).
+- **Next chat must know:** `npm run build` + `npm test` green, `graphify
+  update .` run (1123 nodes). **Phase 12** now has the whole toolbox: swap
+  `native-select`→Radix `Select`/`StatusSelect`, raw inputs→`components/fields/
+  *`, per-page cards→`card-surface`, ad-hoc status text→`<StatusPill>`, and
+  build Finance Overview/Expenses/Ad spend/Income + Tasks kanban into the
+  route shells this phase stubbed. Money-format-in-spaces should move into
+  `format.ts` when Phase 12 touches feature money cells (design wants
+  `1 234 567 DA`, not `1,234,567`). The design-preview `/design-preview` route
+  is the mirror to check every Phase 12/13 change against.

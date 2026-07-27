@@ -47,6 +47,32 @@ Supabase (Postgres/Auth/RLS) + Vercel. Currency DZD (USD/EUR stored with rate).
   `amount_dzd`.
 - Pricing math lives ONLY in `src/lib/pricing.ts` — never fork the formulas.
 
+## UI & design (phases 11–13 and any UI work after)
+
+The `cod-ui-polish` skill (`.claude/skills/cod-ui-polish/` — SKILL.md +
+`references/*`) is the design authority; `docs/design/DESIGN_SYSTEM.md` holds
+the concrete token values. **Approved direction: A — Slate & Emerald.** Rules:
+
+- **No hardcoded colors.** Every color is a CSS variable from `globals.css`.
+  `text-white`, `bg-white`, `#hex`, `rgb()`, `glass-card`, `text-gradient` in
+  feature code are bugs — grep the files you touch before finishing.
+- **Dark is the default theme; light must be equally correct.** Verify both.
+- **Statuses through one source** (`src/lib/statuses.ts` + `<StatusPill>`),
+  never ad-hoc colored text. System statuses have fixed keys; taxonomy fields
+  are user-extensible option sets.
+- **No raw `<input>`/native `<select>` in feature code** — use
+  `components/fields/*` and the Radix Select/Combobox (the native `<select>`
+  caused the white-on-white dropdown bug).
+- **Four states always**: loading (skeleton) / empty (with action) / error
+  (reason + retry) / populated. Money is tabular, DZD, thousands-separated.
+- **Screenshot self-critique is MANDATORY at the end of every UI task**: run the
+  app, screenshot each screen you touched in **both themes** with the Playwright
+  MCP, fix what the screenshots show, and note in `PROGRESS.md` what was
+  captured and fixed. If no browser MCP is available, say so explicitly rather
+  than silently skipping. (To run locally: the Supabase docker stack + a dev
+  server pointed at `http://127.0.0.1:54321`; seed users are in `scripts/
+  seed-dev.ts`.)
+
 ## RLS rules of thumb (the wall is the DB, UI is cosmetic)
 
 - Every business table: `workspace_id` + policy

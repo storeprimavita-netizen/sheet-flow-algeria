@@ -4,7 +4,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { formatDate } from "@/lib/format";
 import { Field, tableClass } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { addExchangeRate } from "./actions";
@@ -20,7 +20,7 @@ export async function ExchangeRatesSection({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <section className="glass-card space-y-4 rounded-xl p-5">
+    <section className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.exchangeRates")}</h2>
 
       <div className="grid grid-cols-2 gap-3 sm:max-w-md">

@@ -27,7 +27,7 @@ export default async function RulesPage() {
       <TeamTabs active="rules" />
 
       {admin && (
-        <section className="glass-card space-y-4 rounded-xl p-5">
+        <section className="card-surface space-y-4 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("team.newRule")}</h2>
           <form action={saveRuleDoc.bind(null, null)} className="space-y-4">
             <Field label={t("team.ruleTitle")}>
@@ -46,7 +46,7 @@ export default async function RulesPage() {
       ) : (
         <div className="space-y-4">
           {list.map((d, i) => (
-            <section key={d.id} className="glass-card space-y-4 rounded-xl p-5">
+            <section key={d.id} className="card-surface space-y-4 rounded-xl p-5">
               {admin ? (
                 <>
                   <div className="flex items-center justify-between gap-2">

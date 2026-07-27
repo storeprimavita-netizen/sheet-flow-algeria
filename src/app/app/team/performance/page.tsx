@@ -28,7 +28,7 @@ export default async function PerformancePage() {
       {!list.length ? (
         <Empty>{t("team.performanceNone")}</Empty>
       ) : (
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

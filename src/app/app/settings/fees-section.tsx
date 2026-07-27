@@ -24,7 +24,7 @@ export async function FeesSection({
   const t = await getTranslations();
 
   return (
-    <section className="glass-card space-y-4 rounded-xl p-5">
+    <section className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.deliveryFees")}</h2>
       <form action={saveWilayaFees} className="space-y-4">
         <div className="max-h-[28rem] overflow-auto">

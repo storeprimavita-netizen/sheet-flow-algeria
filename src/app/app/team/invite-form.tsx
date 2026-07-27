@@ -8,7 +8,7 @@ import { UserPlus } from "lucide-react";
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
 import { inviteUser } from "./actions";
 
@@ -41,7 +41,7 @@ export function InviteForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="glass-card space-y-4 rounded-xl p-5">
+    <form ref={formRef} onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         <UserPlus className="h-4 w-4" />
         {t("team.invite")}

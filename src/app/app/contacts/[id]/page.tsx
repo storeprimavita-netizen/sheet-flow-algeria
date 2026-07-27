@@ -8,7 +8,7 @@ import { getSetting } from "@/lib/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Field, tableClass } from "@/components/field";
@@ -65,7 +65,7 @@ export default async function CustomerDetailPage({
       </PageHeader>
 
       {isAdmin ? (
-        <form action={saveCustomer.bind(null, id)} className="glass-card grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
+        <form action={saveCustomer.bind(null, id)} className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
           <Field label={t("fields.name")} htmlFor="name">
             <Input id="name" name="name" required defaultValue={customer.name} />
           </Field>
@@ -90,7 +90,7 @@ export default async function CustomerDetailPage({
           </div>
         </form>
       ) : (
-        <div className="glass-card grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3">
+        <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3">
           <Meta label={t("fields.wilaya")}>
             {customer.wilaya_code ? (wilayaName.get(customer.wilaya_code) ?? customer.wilaya_code) : "—"}
           </Meta>
@@ -99,7 +99,7 @@ export default async function CustomerDetailPage({
         </div>
       )}
 
-      <section className="glass-card space-y-3 rounded-xl p-5">
+      <section className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("contacts.riskBreakdown")}</h2>
         <p className="text-xs text-muted-foreground">{t("contacts.riskFormulaHint")}</p>
         <table className={tableClass}>
@@ -143,7 +143,7 @@ export default async function CustomerDetailPage({
         {!orders?.length ? (
           <Empty>{t("contacts.noOrders")}</Empty>
         ) : (
-          <div className="glass-card overflow-hidden rounded-xl">
+          <div className="card-surface overflow-hidden rounded-xl">
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>

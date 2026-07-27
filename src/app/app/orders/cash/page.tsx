@@ -50,7 +50,7 @@ export default async function CashPage() {
                 <form
                   key={o.id}
                   action={recordCashCollection.bind(null, o.id)}
-                  className="glass-card flex flex-wrap items-end gap-3 rounded-xl p-3"
+                  className="card-surface flex flex-wrap items-end gap-3 rounded-xl p-3"
                 >
                   <div className="min-w-[12rem] flex-1">
                     <div className="font-medium">{o.order_number ?? o.id.slice(0, 8)}</div>
@@ -89,7 +89,7 @@ export default async function CashPage() {
               <form
                 key={c.id}
                 action={markDeposited.bind(null, c.id)}
-                className="glass-card flex flex-wrap items-end gap-3 rounded-xl p-3"
+                className="card-surface flex flex-wrap items-end gap-3 rounded-xl p-3"
               >
                 <div className="min-w-[12rem] flex-1">
                   <div className="font-medium">{c.order?.order_number ?? "—"}</div>
@@ -114,7 +114,7 @@ export default async function CashPage() {
         {!deposits.length ? (
           <Empty>{t("cash.noDeposits")}</Empty>
         ) : (
-          <div className="glass-card overflow-hidden rounded-xl">
+          <div className="card-surface overflow-hidden rounded-xl">
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>

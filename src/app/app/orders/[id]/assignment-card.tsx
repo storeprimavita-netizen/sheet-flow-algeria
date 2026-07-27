@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { UserCog } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
 import { assignAgents } from "../actions";
 
@@ -49,7 +49,7 @@ export function AssignmentCard({
   }
 
   return (
-    <form onSubmit={onSubmit} className="glass-card space-y-4 rounded-xl p-5">
+    <form onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         <UserCog className="h-4 w-4" />
         {t("workbench.assignment")}

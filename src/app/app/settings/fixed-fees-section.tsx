@@ -5,7 +5,7 @@ import { CURRENCY_CODES } from "@/lib/enums";
 import { formatCurrency } from "@/lib/format";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { saveFixedFee, deleteFixedFee } from "./actions";
 
@@ -18,7 +18,7 @@ export async function FixedFeesSection({ fees }: { fees: Tables<"fixed_fees">[] 
   ));
 
   return (
-    <section className="glass-card space-y-4 rounded-xl p-5">
+    <section className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.fixedFees")}</h2>
 
       {!fees.length ? (

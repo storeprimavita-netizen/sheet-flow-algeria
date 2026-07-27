@@ -196,7 +196,7 @@ export default async function DashboardPage({
       <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.subtitle")} />
 
       {/* filter bar */}
-      <form method="get" className="glass-card space-y-3 rounded-xl p-4">
+      <form method="get" className="card-surface space-y-3 rounded-xl p-4">
         <div className="flex flex-wrap gap-2">
           <ButtonLink href={presetQs(today, today)} variant="outline" size="sm">
             {t("dashboard.filters.today")}
@@ -268,7 +268,7 @@ export default async function DashboardPage({
           [t("dashboard.kpi.confirmationRate"), stats.kpis.confirmation_rate !== null ? `${stats.kpis.confirmation_rate}%` : "—"],
           [t("dashboard.kpi.deliveryRate"), stats.kpis.delivery_rate !== null ? `${stats.kpis.delivery_rate}%` : "—"],
         ].map(([label, value]) => (
-          <div key={label} className="glass-card rounded-xl p-4">
+          <div key={label} className="card-surface rounded-xl p-4">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-1 text-lg font-semibold">{value}</div>
           </div>
@@ -276,7 +276,7 @@ export default async function DashboardPage({
       </div>
 
       {/* funnel */}
-      <div className="glass-card space-y-3 rounded-xl p-5">
+      <div className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("dashboard.funnel.title")}</h2>
         {stats.funnel.map((f, i) => {
           const prev = i > 0 ? stats.funnel[i - 1].count : null;
@@ -298,7 +298,7 @@ export default async function DashboardPage({
       </div>
 
       {/* per-wilaya */}
-      <div className="glass-card overflow-hidden rounded-xl">
+      <div className="card-surface overflow-hidden rounded-xl">
         <h2 className="p-5 pb-0 text-sm font-semibold">{t("dashboard.wilaya.title")}</h2>
         {!stats.per_wilaya.length ? (
           <div className="p-5">
@@ -345,7 +345,7 @@ export default async function DashboardPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* per-agent */}
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <h2 className="p-5 pb-0 text-sm font-semibold">{t("dashboard.byAgent.title")}</h2>
           {!stats.per_agent.length ? (
             <div className="p-5">
@@ -382,7 +382,7 @@ export default async function DashboardPage({
         </div>
 
         {/* per-product */}
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <h2 className="p-5 pb-0 text-sm font-semibold">{t("dashboard.byProduct.title")}</h2>
           {!stats.per_product.length ? (
             <div className="p-5">
@@ -417,7 +417,7 @@ export default async function DashboardPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* category spending */}
-        <div className="glass-card space-y-3 rounded-xl p-5">
+        <div className="card-surface space-y-3 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.categorySpending.title")}</h2>
           {!stats.category_spending.length ? (
             <Empty>{t("dashboard.noData")}</Empty>
@@ -434,7 +434,7 @@ export default async function DashboardPage({
         </div>
 
         {/* next meeting */}
-        <div className="glass-card space-y-2 rounded-xl p-5">
+        <div className="card-surface space-y-2 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.meeting.title")}</h2>
           {!nextMeeting ? (
             <p className="text-sm text-muted-foreground">{t("dashboard.meeting.none")}</p>

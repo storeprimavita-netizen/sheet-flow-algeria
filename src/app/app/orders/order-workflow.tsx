@@ -8,7 +8,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/format";
@@ -69,7 +69,7 @@ export function OrderWorkflow({
 
   return (
     <div className="space-y-6">
-      <form onSubmit={onSubmit} className="glass-card space-y-4 rounded-xl p-5">
+      <form onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
             {t("fields.confirmation_status")}: {t(`status.confirmation_status.${order.confirmation_status}`)}
@@ -140,7 +140,7 @@ export function OrderWorkflow({
         </div>
       </form>
 
-      <div className="glass-card space-y-3 rounded-xl p-5">
+      <div className="card-surface space-y-3 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("orders.history")}</h2>
         {!events.length ? (
           <p className="text-sm text-muted-foreground">{t("orders.eventsNone")}</p>

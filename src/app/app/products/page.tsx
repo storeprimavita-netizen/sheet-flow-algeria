@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, PRODUCT_STATUSES } from "@/lib/enums";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -35,7 +35,7 @@ export default async function ProductsPage() {
       {!products?.length ? (
         <Empty>{t("products.none")}</Empty>
       ) : (
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

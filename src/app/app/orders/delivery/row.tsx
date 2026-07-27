@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/field";
 import { DELIVERY_STATUSES } from "@/lib/enums";
@@ -16,7 +16,7 @@ export async function DeliveryRow({ order }: { order: OrderRow }) {
   const t = await getTranslations();
 
   return (
-    <div className="glass-card space-y-4 rounded-xl p-5">
+    <div className="card-surface space-y-4 rounded-xl p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/app/orders/${order.id}`} className="font-medium hover:underline">

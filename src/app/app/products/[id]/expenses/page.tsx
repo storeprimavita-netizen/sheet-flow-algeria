@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/format";
 import { EXPENSE_CATEGORIES } from "@/lib/enums";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CurrencyRateFields } from "@/components/currency-rate-fields";
@@ -38,7 +38,7 @@ export default async function ProductExpensesPage({
 
   return (
     <div className="space-y-6">
-      <section className="glass-card space-y-4 rounded-xl p-5">
+      <section className="card-surface space-y-4 rounded-xl p-5">
         <h2 className="text-sm font-semibold">{t("expenses.title")}</h2>
 
         {!expenses?.length ? (

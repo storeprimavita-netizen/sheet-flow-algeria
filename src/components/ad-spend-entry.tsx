@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { AD_KINDS } from "@/lib/enums";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { CurrencyRateFields } from "@/components/currency-rate-fields";
 import { upsertAdSpend } from "@/app/app/products/actions";
@@ -23,7 +23,7 @@ export async function AdSpendEntry({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <form action={upsertAdSpend} className="glass-card space-y-4 rounded-xl p-5">
+    <form action={upsertAdSpend} className="card-surface space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("products.adSpend")}</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {productId ? (

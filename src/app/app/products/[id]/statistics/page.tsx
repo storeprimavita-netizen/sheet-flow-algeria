@@ -81,14 +81,14 @@ export default async function ProductStatisticsPage({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiles.map(([label, value]) => (
-          <div key={label} className="glass-card rounded-xl p-4">
+          <div key={label} className="card-surface rounded-xl p-4">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-1 text-lg font-semibold">{value}</div>
           </div>
         ))}
       </div>
 
-      <div className="glass-card rounded-xl p-5">
+      <div className="card-surface rounded-xl p-5">
         <h2 className="mb-3 text-sm font-semibold">{t("products.statistics.expensesByCategory")}</h2>
         {byCategory.size === 0 ? (
           <p className="text-sm text-muted-foreground">{t("expenses.none")}</p>

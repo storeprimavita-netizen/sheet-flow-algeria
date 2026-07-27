@@ -64,7 +64,7 @@ async function MeetingList({
 }) {
   const t = await getTranslations();
   return (
-    <div className="glass-card divide-y divide-border rounded-xl">
+    <div className="card-surface divide-y divide-border rounded-xl">
       {meetings.map((m) => (
         <Link
           key={m.id}

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, tableClass } from "@/components/field";
@@ -92,7 +92,7 @@ export default async function AllOrdersPage({
 
       <OrderTabs active="all" />
 
-      <form method="get" className="glass-card grid grid-cols-2 gap-3 rounded-xl p-4 sm:grid-cols-4 lg:grid-cols-8">
+      <form method="get" className="card-surface grid grid-cols-2 gap-3 rounded-xl p-4 sm:grid-cols-4 lg:grid-cols-8">
         <Field label={t("fields.confirmation_status")} className="col-span-1">
           <Select name="confirmation_status" defaultValue={get("confirmation_status")}>
             <option value="">{t("common.all")}</option>
@@ -170,7 +170,7 @@ export default async function AllOrdersPage({
       {!orders?.length ? (
         <Empty>{t("orders.none")}</Empty>
       ) : (
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className="card-surface overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className={tableClass}>
               <thead>

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { CURRENCY_CODES } from "@/lib/enums";
 import { Field } from "@/components/field";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Input } from "@/components/ui/input";
 
 /**

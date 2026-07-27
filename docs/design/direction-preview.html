@@ -1,0 +1,282 @@
+<title>MNW ERP — Design Directions</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #0d1017;
+    color: #e6e9ef;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  header.page { margin-bottom: 28px; }
+  header.page .eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: #7c8497; font-weight: 600; margin: 0 0 8px;
+  }
+  header.page h1 { font-size: 30px; line-height: 1.15; margin: 0 0 10px; font-weight: 650; text-wrap: balance; }
+  header.page p { margin: 0; max-width: 62ch; color: #a3abbd; font-size: 15px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0 4px; font-size: 13px; color: #a3abbd; }
+  .legend b { color: #e6e9ef; font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 24px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .cell { display: flex; flex-direction: column; gap: 10px; }
+  .cell .caption { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .cell .caption .name { font-weight: 650; font-size: 15px; }
+  .cell .caption .name span { color: #7c8497; font-weight: 500; }
+  .cell .caption .theme {
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: #7c8497; font-weight: 600;
+  }
+
+  /* ---------- App vignette: everything reads a token ---------- */
+  .app {
+    --radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 148px 1fr;
+    min-height: 430px;
+    font-size: 13px;
+  }
+  .app .side {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 12px 10px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .app .brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 12px; }
+  .app .brand .mark {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--primary); color: var(--primary-fg);
+    display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  }
+  .app .brand .bn { font-weight: 650; font-size: 13px; }
+  .app .nav {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px; border-radius: 6px; color: var(--text-muted);
+  }
+  .app .nav .ico { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid currentColor; opacity: .8; }
+  .app .nav.sub { padding-left: 26px; font-size: 12px; }
+  .app .nav.active {
+    background: color-mix(in oklab, var(--primary) 16%, transparent);
+    color: var(--text);
+    box-shadow: inset 2px 0 0 var(--primary);
+  }
+  .app .nav.active .ico { color: var(--primary); opacity: 1; }
+
+  .app .main { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .app .h { display: flex; align-items: center; justify-content: space-between; }
+  .app .h h2 { margin: 0; font-size: 17px; font-weight: 650; }
+  .app .h .btns { display: flex; gap: 8px; }
+  .btn {
+    font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    border-radius: 6px; padding: 7px 12px; border: 1px solid transparent;
+  }
+  .btn.primary { background: var(--primary); color: var(--primary-fg); }
+  .btn.ghost { background: transparent; color: var(--text-muted); border-color: var(--border-strong); }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 11px 12px; }
+  .kpi .lbl { color: var(--text-muted); font-size: 11px; }
+  .kpi .val { font-size: 21px; font-weight: 650; margin-top: 3px; }
+  .kpi .val.pos { color: var(--success-fg); }
+  .kpi .val.neg { color: var(--danger-fg); }
+  .kpi .spark { margin-top: 6px; display: block; width: 100%; height: 22px; }
+
+  table.t { width: 100%; border-collapse: collapse; }
+  .t th { text-align: left; font-size: 11px; font-weight: 500; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  .t td { padding: 7px 6px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .t td.r, .t th.r { text-align: right; }
+  .t tr:last-child td { border-bottom: 0; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .pill.success { color: var(--success-fg); background: var(--success-bg); }
+  .pill.neutral { color: var(--neutral-fg); background: var(--neutral-bg); }
+  .pill.warning { color: var(--warning-fg); background: var(--warning-bg); }
+  .pill.danger  { color: var(--danger-fg);  background: var(--danger-bg); }
+  .pill.indigo  { color: var(--indigo-fg);  background: var(--indigo-bg); }
+  .pill.rose    { color: var(--rose-fg);    background: var(--rose-bg); }
+
+  .field { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .field .fl { font-size: 11px; color: var(--text-muted); }
+  .field .fi {
+    margin-top: 5px; display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-raised); border: 1px solid var(--border-strong);
+    border-radius: 6px; padding: 8px 10px;
+  }
+  .field .fi input {
+    all: unset; flex: 1; color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right;
+  }
+  .field .fi .suf { color: var(--text-muted); font-size: 12px; font-weight: 600; padding-left: 8px; }
+  .field .conv { margin-top: 5px; font-size: 11px; color: var(--text-faint); }
+
+  .pillrow { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  footer.note { margin-top: 40px; color: #7c8497; font-size: 13px; border-top: 1px solid #232838; padding-top: 16px; }
+  footer.note code { background: #171b26; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+  /* =========================================================
+     TOKENS — exact values from docs/design/DESIGN_SYSTEM.md
+     Shared semantic pairs (§3) + per-direction surfaces (§1)
+     ========================================================= */
+
+  /* Direction A — Slate & Emerald */
+  .app[data-dir="a"][data-theme="dark"] {
+    --bg: oklch(0.16 0.02 250); --surface: oklch(0.205 0.022 250); --surface-raised: oklch(0.255 0.026 250);
+    --border: oklch(1 0 0 / 9%); --border-strong: oklch(1 0 0 / 18%);
+    --text: oklch(0.96 0.006 250); --text-muted: oklch(0.72 0.016 250); --text-faint: oklch(0.55 0.014 250);
+    --primary: oklch(0.70 0.13 162); --primary-fg: oklch(0.16 0.02 250);
+  }
+  .app[data-dir="a"][data-theme="light"] {
+    --bg: oklch(0.985 0.003 250); --surface: oklch(1 0 0); --surface-raised: oklch(0.995 0.004 250);
+    --border: oklch(0.22 0.03 250 / 12%); --border-strong: oklch(0.22 0.03 250 / 22%);
+    --text: oklch(0.22 0.02 250); --text-muted: oklch(0.46 0.02 250); --text-faint: oklch(0.62 0.018 250);
+    --primary: oklch(0.55 0.14 162); --primary-fg: oklch(0.99 0 0);
+  }
+
+  /* Direction B — Graphite & Azure */
+  .app[data-dir="b"][data-theme="dark"] {
+    --bg: oklch(0.17 0.004 265); --surface: oklch(0.212 0.005 265); --surface-raised: oklch(0.262 0.007 265);
+    --border: oklch(1 0 0 / 10%); --border-strong: oklch(1 0 0 / 19%);
+    --text: oklch(0.95 0.004 265); --text-muted: oklch(0.71 0.008 265); --text-faint: oklch(0.54 0.008 265);
+    --primary: oklch(0.68 0.15 248); --primary-fg: oklch(0.15 0.01 265);
+  }
+  .app[data-dir="b"][data-theme="light"] {
+    --bg: oklch(0.985 0.002 265); --surface: oklch(1 0 0); --surface-raised: oklch(0.996 0.003 265);
+    --border: oklch(0.2 0.01 265 / 12%); --border-strong: oklch(0.2 0.01 265 / 22%);
+    --text: oklch(0.21 0.01 265); --text-muted: oklch(0.45 0.012 265); --text-faint: oklch(0.61 0.012 265);
+    --primary: oklch(0.55 0.17 248); --primary-fg: oklch(0.99 0 0);
+  }
+
+  /* Shared semantic pairs — dark */
+  .app[data-theme="dark"] {
+    --success-fg: oklch(0.80 0.14 158); --success-bg: oklch(0.80 0.14 158 / 15%);
+    --warning-fg: oklch(0.83 0.13 78);  --warning-bg: oklch(0.83 0.13 78 / 15%);
+    --danger-fg:  oklch(0.72 0.16 25);  --danger-bg:  oklch(0.72 0.16 25 / 16%);
+    --neutral-fg: oklch(0.74 0.02 250); --neutral-bg: oklch(1 0 0 / 8%);
+    --indigo-fg:  oklch(0.72 0.14 275); --indigo-bg:  oklch(0.72 0.14 275 / 15%);
+    --rose-fg:    oklch(0.70 0.17 10);  --rose-bg:    oklch(0.70 0.17 10 / 16%);
+  }
+  /* Shared semantic pairs — light */
+  .app[data-theme="light"] {
+    --success-fg: oklch(0.48 0.13 158); --success-bg: oklch(0.48 0.13 158 / 12%);
+    --warning-fg: oklch(0.55 0.12 70);  --warning-bg: oklch(0.55 0.12 70 / 13%);
+    --danger-fg:  oklch(0.52 0.19 25);  --danger-bg:  oklch(0.52 0.19 25 / 12%);
+    --neutral-fg: oklch(0.45 0.02 250); --neutral-bg: oklch(0.2 0.02 250 / 7%);
+    --indigo-fg:  oklch(0.50 0.16 275); --indigo-bg:  oklch(0.50 0.16 275 / 12%);
+    --rose-fg:    oklch(0.50 0.19 10);  --rose-bg:    oklch(0.50 0.19 10 / 12%);
+  }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <p class="eyebrow">MNW COD ERP · Phase 11 design direction</p>
+    <h1>Two directions, both themes — pick one before we write tokens</h1>
+    <p>The same dashboard vignette rendered four ways. Both directions are dark-first,
+    high-contrast and quiet, built for an ops team that lives in this tool all day. They
+    differ only in surface hue and the single accent color — the status-pill palette is
+    identical in both, because status is the primary information in a COD dashboard.</p>
+    <div class="legend">
+      <span><b>Direction A — Slate&nbsp;&amp;&nbsp;Emerald:</b> cool slate surfaces, restrained emerald accent. Evolves today's look, lowest risk.</span>
+      <span><b>Direction B — Graphite&nbsp;&amp;&nbsp;Azure:</b> near-neutral graphite, confident azure accent. Neutral ground makes statuses pop hardest.</span>
+    </div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <footer class="note">
+    Colors are the exact OKLCH tokens in <code>docs/design/DESIGN_SYSTEM.md</code>.
+    Type is shown in the system UI font; production uses <b>IBM&nbsp;Plex&nbsp;Sans</b>
+    (already loaded) with tabular numerals on every figure. Decorative glass/gradient
+    panels from the current build are intentionally gone here.
+  </footer>
+</div>
+
+<template id="vignette">
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="mark">M</span><span class="bn">MNW ERP</span></div>
+      <div class="nav active"><span class="ico"></span>Dashboard</div>
+      <div class="nav"><span class="ico"></span>Orders</div>
+      <div class="nav sub">Confirmation</div>
+      <div class="nav sub">Delivery</div>
+      <div class="nav"><span class="ico"></span>Products</div>
+      <div class="nav"><span class="ico"></span>Finance</div>
+      <div class="nav"><span class="ico"></span>Contacts</div>
+    </div>
+    <div class="main">
+      <div class="h">
+        <h2>Dashboard</h2>
+        <div class="btns"><button class="btn ghost">Last 30 days</button><button class="btn primary">Add ad spend</button></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Revenue</div><div class="val num">135 900 DA</div>
+          <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline fill="none" stroke="var(--primary)" stroke-width="2" points="0,18 15,15 30,16 45,10 60,12 75,6 100,4"/></svg></div>
+        <div class="kpi"><div class="lbl">Net profit</div><div class="val neg num">−195 178 DA</div>
+          <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline fill="none" stroke="var(--danger-fg)" stroke-width="2" points="0,6 15,8 30,7 45,12 60,14 75,18 100,20"/></svg></div>
+        <div class="kpi"><div class="lbl">Delivery rate</div><div class="val pos num">50.0%</div>
+          <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none"><polyline fill="none" stroke="var(--success-fg)" stroke-width="2" points="0,14 15,12 30,13 45,10 60,11 75,9 100,8"/></svg></div>
+      </div>
+      <table class="t">
+        <thead><tr><th>Order</th><th>Customer</th><th class="r">Total</th><th>Confirmation</th><th>Delivery</th></tr></thead>
+        <tbody>
+          <tr><td class="num">SEED-0045</td><td>Anis Khiar</td><td class="r num">7 800 DA</td>
+            <td><span class="pill success"><span class="dot"></span>Confirmed</span></td>
+            <td><span class="pill rose"><span class="dot"></span>Returned</span></td></tr>
+          <tr><td class="num">SEED-0001</td><td>Amina Belkacem</td><td class="r num">9 800 DA</td>
+            <td><span class="pill neutral"><span class="dot"></span>Wait for confirm</span></td>
+            <td><span class="pill indigo"><span class="dot"></span>In transit</span></td></tr>
+          <tr><td class="num">SEED-0020</td><td>Sabrina Larbi</td><td class="r num">6 200 DA</td>
+            <td><span class="pill warning"><span class="dot"></span>No answer</span></td>
+            <td><span class="pill neutral"><span class="dot"></span>Wait deposit</span></td></tr>
+          <tr><td class="num">SEED-0033</td><td>Youcef Haddad</td><td class="r num">5 400 DA</td>
+            <td><span class="pill danger"><span class="dot"></span>Cancelled</span></td>
+            <td><span class="pill neutral"><span class="dot"></span>—</span></td></tr>
+        </tbody>
+      </table>
+      <div class="field">
+        <div class="fl">Ad spend · Cost / lead</div>
+        <div class="fi"><input class="num" value="2.00" readonly><span class="suf">EUR</span></div>
+        <div class="conv">≈ 520 DA at 260.0</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  const panels = [
+    { dir: "a", theme: "dark",  name: "Direction A", sub: "Slate & Emerald" },
+    { dir: "b", theme: "dark",  name: "Direction B", sub: "Graphite & Azure" },
+    { dir: "a", theme: "light", name: "Direction A", sub: "Slate & Emerald" },
+    { dir: "b", theme: "light", name: "Direction B", sub: "Graphite & Azure" },
+  ];
+  const grid = document.getElementById("grid");
+  const tpl = document.getElementById("vignette");
+  for (const p of panels) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    const cap = document.createElement("div");
+    cap.className = "caption";
+    cap.innerHTML = `<span class="name">${p.name} <span>· ${p.sub}</span></span><span class="theme">${p.theme}</span>`;
+    const app = tpl.content.firstElementChild.cloneNode(true);
+    app.setAttribute("data-dir", p.dir);
+    app.setAttribute("data-theme", p.theme);
+    cell.append(cap, app);
+    grid.append(cell);
+  }
+</script>

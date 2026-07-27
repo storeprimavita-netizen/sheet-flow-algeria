@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, MANUAL_STOCK_REASONS } from "@/lib/enums";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/empty";
@@ -37,7 +37,7 @@ export default async function ProductStockPage({
 
   return (
     <div className="space-y-6">
-      <div className="glass-card flex items-center gap-3 rounded-xl p-5">
+      <div className="card-surface flex items-center gap-3 rounded-xl p-5">
         <span className="text-sm text-muted-foreground">{t("stock.onHand")}</span>
         <Badge variant={out ? "destructive" : low ? "secondary" : "outline"} className="text-base">
           {product.stock}
@@ -47,7 +47,7 @@ export default async function ProductStockPage({
 
       <form
         action={addStockMovement.bind(null, id)}
-        className="glass-card grid grid-cols-2 items-end gap-4 rounded-xl p-5 sm:grid-cols-4"
+        className="card-surface grid grid-cols-2 items-end gap-4 rounded-xl p-5 sm:grid-cols-4"
       >
         <Field label={t("stock.delta")} htmlFor="delta">
           <Input id="delta" name="delta" type="number" step="1" required />
@@ -74,7 +74,7 @@ export default async function ProductStockPage({
         {!movements?.length ? (
           <Empty>{t("stock.noHistory")}</Empty>
         ) : (
-          <div className="glass-card overflow-hidden rounded-xl">
+          <div className="card-surface overflow-hidden rounded-xl">
             <div className="overflow-x-auto">
               <table className={tableClass}>
                 <thead>
