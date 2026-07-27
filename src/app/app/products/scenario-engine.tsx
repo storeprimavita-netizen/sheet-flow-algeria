@@ -4,12 +4,14 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
-import { Input } from "@/components/ui/input";
 import { Field } from "@/components/field";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/chip";
+import { MoneyField } from "@/components/fields/money-field";
+import { PercentField } from "@/components/fields/percent-field";
 import {
   PRICING_FIELDS,
   SCENARIO_SLUGS,
+  breakEvenDeliveryPct,
   computeScenario,
   type PricingInputs,
   type ScenarioResult,
@@ -40,8 +42,7 @@ export function ScenarioEngine({
   latest.current = scenarios;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function set(slug: ScenarioSlug, key: keyof PricingInputs, raw: string) {
-    const n = Number(raw);
+  function set(slug: ScenarioSlug, key: keyof PricingInputs, n: number) {
     const value = Number.isFinite(n) ? n : 0;
     setScenarios((s) => ({ ...s, [slug]: { ...s[slug], [key]: value } }));
     setStatus("saving");
@@ -75,9 +76,9 @@ export function ScenarioEngine({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {status === "saving" ? <Badge variant="secondary">{t("actions.saving")}</Badge> : null}
-        {status === "saved" ? <Badge variant="outline">{t("common.updated")}</Badge> : null}
-        {status === "error" ? <Badge variant="destructive">{t("common.error")}</Badge> : null}
+        {status === "saving" ? <Chip token="neutral" size="sm">{t("actions.saving")}</Chip> : null}
+        {status === "saved" ? <Chip token="success" size="sm">{t("common.updated")}</Chip> : null}
+        {status === "error" ? <Chip token="danger" size="sm">{t("common.error")}</Chip> : null}
         <span>{t("pricing.autosave")}</span>
       </div>
 
@@ -109,21 +110,22 @@ function ScenarioCard({
   id: string;
   title: string;
   inputs: PricingInputs;
-  onChange?: (key: keyof PricingInputs, value: string) => void;
+  onChange?: (key: keyof PricingInputs, value: number) => void;
   noData?: boolean;
 }) {
   const t = useTranslations();
   const r: ScenarioResult | null = useMemo(() => (noData ? null : computeScenario(inputs)), [inputs, noData]);
   const profitable = (r?.net_profit_per_order ?? 0) >= 0;
+  const breakEven = useMemo(() => (noData ? null : breakEvenDeliveryPct(inputs)), [inputs, noData]);
 
   return (
     <div className="card-surface space-y-4 rounded-xl p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{title}</h3>
         {r ? (
-          <Badge variant={profitable ? "default" : "destructive"}>
+          <Chip token={profitable ? "success" : "danger"} size="sm">
             {profitable ? t("pricing.profit") : t("pricing.loss")}
-          </Badge>
+          </Chip>
         ) : null}
       </div>
 
@@ -132,6 +134,19 @@ function ScenarioCard({
         <Metric label={t("pricing.netOrder")} value={formatCurrency(r?.net_profit_per_order ?? null)} accent />
         <Metric label={t("pricing.netMonth")} value={formatCurrency(r?.net_profit_per_month ?? null)} accent />
       </div>
+
+      {/* break-even delivery rate */}
+      {r ? (
+        <div className="rounded-lg bg-muted/40 p-2 text-xs">
+          {breakEven === null ? (
+            <span className="text-danger">{t("pricing.breakEvenNever")}</span>
+          ) : (
+            <span className={inputs.delivery_pct >= breakEven ? "text-success" : "text-warning"}>
+              {t("pricing.breakEven", { pct: breakEven })}
+            </span>
+          )}
+        </div>
+      ) : null}
 
       {/* derived breakdown */}
       <div className="space-y-1 border-y border-border py-3 text-xs">
@@ -161,15 +176,21 @@ function ScenarioCard({
               <div className="grid grid-cols-2 gap-2">
                 {PRICING_FIELDS.filter((f) => f.group === g).map((f) => (
                   <Field key={f.key} label={t(`pricing.fields.${f.key}`)} htmlFor={`${id}_${f.key}`}>
-                    <Input
-                      id={`${id}_${f.key}`}
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={inputs[f.key] ?? 0}
-                      onChange={(e) => onChange(f.key, e.target.value)}
-                      className="text-xs"
-                    />
+                    {f.percent ? (
+                      <PercentField
+                        id={`${id}_${f.key}`}
+                        defaultValue={inputs[f.key]}
+                        onChange={(v) => onChange(f.key, v)}
+                      />
+                    ) : (
+                      <MoneyField
+                        id={`${id}_${f.key}`}
+                        defaultValue={inputs[f.key]}
+                        currency={f.euro ? "EUR" : "DZD"}
+                        rate={inputs.euro_price}
+                        onChange={(v) => onChange(f.key, v)}
+                      />
+                    )}
                   </Field>
                 ))}
               </div>

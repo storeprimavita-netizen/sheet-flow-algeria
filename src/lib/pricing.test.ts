@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_INPUTS, computeScenario, normalizeInputs, type PricingInputs } from "./pricing";
+import {
+  DEFAULT_INPUTS,
+  breakEvenDeliveryPct,
+  computeScenario,
+  normalizeInputs,
+  type PricingInputs,
+} from "./pricing";
 
 // Exact inputs from "BENZ Pricing (31).xlsx" MEDIUM SCENARIO block, extracted
 // straight from the sheet's cell values (not re-derived from the expected
@@ -41,6 +47,25 @@ describe("computeScenario", () => {
       expect(Number.isFinite(value)).toBe(true);
       expect(value).toBe(0);
     }
+  });
+});
+
+describe("breakEvenDeliveryPct", () => {
+  it("returns the rate where net profit crosses zero, and profit holds above it", () => {
+    const be = breakEvenDeliveryPct(MEDIUM_INPUTS);
+    expect(be).not.toBeNull();
+    // profitable at the reported rate, unprofitable just below it
+    expect(computeScenario({ ...MEDIUM_INPUTS, delivery_pct: be! }).net_profit_per_order).toBeGreaterThanOrEqual(0);
+    expect(computeScenario({ ...MEDIUM_INPUTS, delivery_pct: be! - 0.5 }).net_profit_per_order).toBeLessThan(0);
+  });
+
+  it("returns a low rate when the inputs are already very profitable", () => {
+    // BEST breaks even far below its 65% delivery assumption
+    expect(breakEvenDeliveryPct(DEFAULT_INPUTS)!).toBeLessThan(DEFAULT_INPUTS.delivery_pct);
+  });
+
+  it("returns null when a sale below cost can never break even", () => {
+    expect(breakEvenDeliveryPct({ ...DEFAULT_INPUTS, sale_price: 1 })).toBeNull();
   });
 });
 

@@ -1,27 +1,69 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { LOW_STOCK_THRESHOLD, PRODUCT_STATUSES } from "@/lib/enums";
-import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/native-select";
-import { Button } from "@/components/ui/button";
+import { getProfile } from "@/lib/rbac";
+import { netProfit } from "@/lib/product-metrics";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
-import { Empty } from "@/components/empty";
-import { tableClass } from "@/components/field";
-import { setProductStatus } from "./actions";
+import { ProductsView, type ProductRow } from "./products-view";
+
+const SPARK_DAYS = 30;
 
 export default async function ProductsPage() {
   const t = await getTranslations();
+  const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("*, product_costs(sourcing_cost_dzd)")
-    .order("created_at", { ascending: false });
+  const since = new Date(Date.now() - SPARK_DAYS * 86400000);
+  const sinceISO = since.toISOString().slice(0, 10);
+
+  const [{ data: products }, { data: stats }, { data: fees }, { data: recentOrders }] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id, name, sku, category, status, sale_price, stock, images, created_at")
+      .order("created_at", { ascending: false }),
+    supabase.from("product_stats").select("*").eq("workspace_id", profile.workspaceId),
+    supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
+    supabase.from("orders").select("product_id, placed_at").gte("placed_at", since.toISOString()),
+  ]);
+
+  const statById = new Map((stats ?? []).map((s) => [s.id, s]));
+  const fixedFeesTotal = (fees ?? []).reduce((sum, f) => sum + (f.amount_dzd ?? 0), 0);
+  const totalDelivered = (stats ?? []).reduce((sum, s) => sum + (s.orders_delivered ?? 0), 0);
+
+  // per-product daily order counts over the last 30 days (sparkline)
+  const sparks = new Map<string, number[]>();
+  const dayIndex = (iso: string) =>
+    Math.floor((new Date(iso).getTime() - since.getTime()) / 86400000);
+  for (const o of recentOrders ?? []) {
+    if (!o.product_id || !o.placed_at) continue;
+    let arr = sparks.get(o.product_id);
+    if (!arr) sparks.set(o.product_id, (arr = new Array(SPARK_DAYS).fill(0)));
+    const i = dayIndex(o.placed_at);
+    if (i >= 0 && i < SPARK_DAYS) arr[i] += 1;
+  }
+
+  const rows: ProductRow[] = (products ?? []).map((p) => {
+    const s = statById.get(p.id);
+    const { net } = s
+      ? netProfit(s, fixedFeesTotal, totalDelivered)
+      : { net: null as number | null };
+    return {
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      category: p.category,
+      image: p.images?.[0] ?? null,
+      status: p.status,
+      sale_price: p.sale_price,
+      stock: p.stock,
+      delivery_rate: s?.delivery_rate ?? null,
+      net_profit: s && (s.orders_delivered ?? 0) > 0 ? net : null,
+      created_at: p.created_at,
+      spark: sparks.get(p.id) ?? new Array(SPARK_DAYS).fill(0),
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -32,79 +74,7 @@ export default async function ProductsPage() {
         </ButtonLink>
       </PageHeader>
 
-      {!products?.length ? (
-        <Empty>{t("products.none")}</Empty>
-      ) : (
-        <div className="card-surface overflow-hidden rounded-xl">
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th />
-                  <th>{t("fields.name")}</th>
-                  <th>{t("fields.category")}</th>
-                  <th>{t("fields.price")}</th>
-                  <th>{t("stock.stock")}</th>
-                  <th>{t("products.costTotal")}</th>
-                  <th>{t("fields.status")}</th>
-                  <th>{t("fields.placed_at")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => {
-                  const out = p.stock <= 0;
-                  const low = !out && p.stock <= LOW_STOCK_THRESHOLD;
-                  return (
-                    <tr key={p.id} className="hover:bg-muted/30">
-                      <td>
-                        {p.images[0] ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- external supplier URLs, no next/image domain config this phase
-                          <img src={p.images[0]} alt="" className="h-8 w-8 rounded object-cover" />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-muted" />
-                        )}
-                      </td>
-                      <td>
-                        <Link
-                          href={`/app/products/${p.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {p.name}
-                        </Link>
-                        <div className="text-xs text-muted-foreground">{p.sku ?? "—"}</div>
-                      </td>
-                      <td className="text-muted-foreground">{p.category ?? "—"}</td>
-                      <td>{formatCurrency(p.sale_price)}</td>
-                      <td>
-                        <Badge variant={out ? "destructive" : low ? "secondary" : "outline"}>
-                          {p.stock}
-                          {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
-                        </Badge>
-                      </td>
-                      <td>{formatCurrency(p.product_costs?.sourcing_cost_dzd)}</td>
-                      <td>
-                        <form action={setProductStatus.bind(null, p.id)} className="flex items-center gap-1">
-                          <Select name="status" defaultValue={p.status} className="h-7 py-0 text-xs">
-                            {PRODUCT_STATUSES.map((s) => (
-                              <option key={s} value={s}>
-                                {t(`status.product_status.${s}`)}
-                              </option>
-                            ))}
-                          </Select>
-                          <Button type="submit" size="sm" variant="ghost">
-                            {t("actions.save")}
-                          </Button>
-                        </form>
-                      </td>
-                      <td className="text-muted-foreground">{formatDate(p.created_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <ProductsView rows={rows} />
     </div>
   );
 }

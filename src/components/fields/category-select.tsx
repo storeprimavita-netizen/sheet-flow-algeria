@@ -23,7 +23,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-const ICONS: Record<(typeof EXPENSE_CATEGORIES)[number], IconType> = {
+export const CATEGORY_ICONS: Record<(typeof EXPENSE_CATEGORIES)[number], IconType> = {
   shooting: Camera,
   packaging: Box,
   sampling: FlaskRound,
@@ -56,7 +56,7 @@ export function CategorySelect({
       </SelectTrigger>
       <SelectContent>
         {EXPENSE_CATEGORIES.map((c) => {
-          const Icon = ICONS[c];
+          const Icon = CATEGORY_ICONS[c];
           return (
             <SelectItem key={c} value={c}>
               <span className="flex items-center gap-2">

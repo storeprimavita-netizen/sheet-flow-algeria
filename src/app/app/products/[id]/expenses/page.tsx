@@ -4,15 +4,10 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
-import { EXPENSE_CATEGORIES } from "@/lib/enums";
-import { Field } from "@/components/field";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CurrencyRateFields } from "@/components/currency-rate-fields";
-import { DeleteButton } from "@/components/delete-button";
-import { saveExpense } from "../../actions";
+import { netProfit } from "@/lib/product-metrics";
+import { cn } from "@/lib/utils";
+import { AdSpendForm } from "@/components/finance/ad-spend-form";
+import { ExpenseTable } from "@/components/finance/expense-table";
 
 export default async function ProductExpensesPage({
   params,
@@ -24,114 +19,53 @@ export default async function ProductExpensesPage({
   const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: product }, { data: expenses }, { data: suppliers }, usdRate, eurRate] = await Promise.all([
-    supabase.from("products").select("id").eq("id", id).maybeSingle(),
-    supabase.from("expenses").select("*").eq("product_id", id).order("spent_on", { ascending: false }),
-    supabase.from("contacts").select("id, name").order("name"),
-    supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
-    supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
-  ]);
+  const [{ data: product }, { data: expenses }, { data: suppliers }, { data: stats }, { data: allStats }, { data: fees }, usdRate, eurRate] =
+    await Promise.all([
+      supabase.from("products").select("id").eq("id", id).maybeSingle(),
+      supabase.from("expenses").select("*").eq("product_id", id).order("spent_on", { ascending: false }),
+      supabase.from("contacts").select("id, name").order("name"),
+      supabase.from("product_stats").select("*").eq("id", id).maybeSingle(),
+      supabase.from("product_stats").select("orders_delivered").eq("workspace_id", profile.workspaceId),
+      supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
+      supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
+      supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
+    ]);
   if (!product) notFound();
 
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
-  const today = new Date().toISOString().slice(0, 10);
+
+  const fixedFeesTotal = (fees ?? []).reduce((s, f) => s + (f.amount_dzd ?? 0), 0);
+  const totalDelivered = (allStats ?? []).reduce((s, p) => s + (p.orders_delivered ?? 0), 0);
+  const income = stats?.revenue_dzd ?? 0;
+  const spend = (stats?.expenses_dzd ?? 0) + (stats?.ad_spend_dzd ?? 0);
+  const net = stats ? netProfit(stats, fixedFeesTotal, totalDelivered).net : 0;
 
   return (
     <div className="space-y-6">
-      <section className="card-surface space-y-4 rounded-xl p-5">
+      {/* income (auto from delivered orders) / spend / net — side by side */}
+      <div className="grid grid-cols-3 gap-3">
+        <Kpi label={t("products.income")} value={formatCurrency(income)} tone="success" />
+        <Kpi label={t("products.spend")} value={formatCurrency(spend)} tone="danger" />
+        <Kpi label={t("products.statistics.netProfit")} value={formatCurrency(net)} tone={net >= 0 ? "success" : "danger"} />
+      </div>
+
+      <AdSpendForm productId={id} rates={rates} />
+
+      <section className="space-y-3">
         <h2 className="text-sm font-semibold">{t("expenses.title")}</h2>
-
-        {!expenses?.length ? (
-          <p className="text-sm text-muted-foreground">{t("expenses.none")}</p>
-        ) : (
-          <div className="space-y-3">
-            {expenses.map((e) => (
-              <form
-                key={e.id}
-                action={saveExpense.bind(null, e.id, id)}
-                className="grid grid-cols-2 items-end gap-2 border-b border-border pb-3 sm:grid-cols-7"
-              >
-                <Field label={t("fields.category")}>
-                  <Select name="category" defaultValue={e.category}>
-                    {EXPENSE_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {t(`status.expense_category.${c}`)}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label={t("fields.amount")}>
-                  <Input name="amount" type="number" step="0.01" min="0" required defaultValue={e.amount} />
-                </Field>
-                <CurrencyRateFields defaultCurrency={e.currency} defaultRate={e.fx_rate} rates={rates} />
-                <Field label={t("fields.incurred_on")}>
-                  <Input name="spent_on" type="date" required defaultValue={e.spent_on} />
-                </Field>
-                <Field label={t("fields.supplier")} hint={t("common.optional")}>
-                  <Select name="contact_id" defaultValue={e.contact_id ?? ""}>
-                    <option value="">{t("fields.none")}</option>
-                    {(suppliers ?? []).map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <div className="flex gap-2 sm:col-span-7">
-                  <Field label={t("fields.notes")} hint={t("common.optional")} className="grow">
-                    <Input name="note" defaultValue={e.note ?? ""} />
-                  </Field>
-                  <Badge variant="outline" className="self-center">
-                    {formatCurrency(e.amount_dzd)}
-                  </Badge>
-                  <Button type="submit" size="sm" className="self-end">
-                    {t("actions.save")}
-                  </Button>
-                  <DeleteButton table="expenses" id={e.id} redirectTo={`/app/products/${id}/expenses`} className="self-end" />
-                </div>
-              </form>
-            ))}
-          </div>
-        )}
-
-        <form
-          action={saveExpense.bind(null, null, id)}
-          className="grid grid-cols-2 items-end gap-2 border-t border-border pt-4 sm:grid-cols-7"
-        >
-          <Field label={t("fields.category")}>
-            <Select name="category" defaultValue={EXPENSE_CATEGORIES[0]}>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {t(`status.expense_category.${c}`)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t("fields.amount")}>
-            <Input name="amount" type="number" step="0.01" min="0" required />
-          </Field>
-          <CurrencyRateFields defaultCurrency="DZD" defaultRate={1} rates={rates} />
-          <Field label={t("fields.incurred_on")}>
-            <Input name="spent_on" type="date" required defaultValue={today} />
-          </Field>
-          <Field label={t("fields.supplier")} hint={t("common.optional")}>
-            <Select name="contact_id" defaultValue="">
-              <option value="">{t("fields.none")}</option>
-              {(suppliers ?? []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t("fields.notes")} hint={t("common.optional")} className="sm:col-span-2">
-            <Input name="note" />
-          </Field>
-          <Button type="submit" size="sm">
-            {t("actions.create")}
-          </Button>
-        </form>
+        <ExpenseTable expenses={expenses ?? []} productId={id} suppliers={suppliers ?? []} rates={rates} />
       </section>
+    </div>
+  );
+}
+
+function Kpi({ label, value, tone }: { label: string; value: string; tone: "success" | "danger" | "neutral" }) {
+  return (
+    <div className="card-surface rounded-xl p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn("num mt-1 text-lg font-semibold", tone === "success" ? "text-success" : tone === "danger" ? "text-danger" : "")}>
+        {value}
+      </div>
     </div>
   );
 }

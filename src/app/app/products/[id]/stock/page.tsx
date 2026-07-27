@@ -6,9 +6,9 @@ import { formatDateTime } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, MANUAL_STOCK_REASONS } from "@/lib/enums";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Chip } from "@/components/ui/chip";
+import { EnumSelect } from "@/components/fields/enum-select";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
 import { addStockMovement } from "../../actions";
@@ -39,10 +39,10 @@ export default async function ProductStockPage({
     <div className="space-y-6">
       <div className="card-surface flex items-center gap-3 rounded-xl p-5">
         <span className="text-sm text-muted-foreground">{t("stock.onHand")}</span>
-        <Badge variant={out ? "destructive" : low ? "secondary" : "outline"} className="text-base">
-          {product.stock}
+        <Chip token={out ? "danger" : low ? "warning" : "neutral"}>
+          <span className="num">{product.stock}</span>
           {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
-        </Badge>
+        </Chip>
       </div>
 
       <form
@@ -52,14 +52,12 @@ export default async function ProductStockPage({
         <Field label={t("stock.delta")} htmlFor="delta">
           <Input id="delta" name="delta" type="number" step="1" required />
         </Field>
-        <Field label={t("stock.reason")} htmlFor="reason">
-          <Select id="reason" name="reason" defaultValue="purchase">
-            {MANUAL_STOCK_REASONS.map((r) => (
-              <option key={r} value={r}>
-                {t(`stock.reasons.${r}`)}
-              </option>
-            ))}
-          </Select>
+        <Field label={t("stock.reason")}>
+          <EnumSelect
+            name="reason"
+            defaultValue="purchase"
+            options={MANUAL_STOCK_REASONS.map((r) => ({ value: r, label: t(`stock.reasons.${r}`) }))}
+          />
         </Field>
         <Field label={t("stock.note")} htmlFor="note" hint={t("common.optional")} className="sm:col-span-2">
           <Input id="note" name="note" />
@@ -87,13 +85,13 @@ export default async function ProductStockPage({
                 </thead>
                 <tbody>
                   {movements.map((m) => (
-                    <tr key={m.id} className="hover:bg-muted/30">
+                    <tr key={m.id} className="hover:bg-surface-raised">
                       <td className="text-muted-foreground">{formatDateTime(m.created_at)}</td>
-                      <td className={m.delta > 0 ? "text-emerald-600" : "text-destructive"}>
+                      <td className={m.delta > 0 ? "num text-success" : "num text-danger"}>
                         {m.delta > 0 ? `+${m.delta}` : m.delta}
                       </td>
                       <td>
-                        <Badge variant="secondary">{t(`stock.reasons.${m.reason}`)}</Badge>
+                        <Chip token="neutral" size="sm">{t(`stock.reasons.${m.reason}`)}</Chip>
                       </td>
                       <td className="text-muted-foreground">{m.note ?? "—"}</td>
                     </tr>

@@ -4,10 +4,12 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/native-select";
+import { EnumSelect } from "@/components/fields/enum-select";
+import { SettingSwitch } from "@/components/fields/setting-switch";
 import { Field } from "@/components/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRODUCT_STATUSES, CURRENCY_CODES } from "@/lib/enums";
+import { StatusPill } from "@/components/status-pill";
 import { saveProduct } from "./actions";
 
 type ProductRow = Tables<"products">;
@@ -47,14 +49,15 @@ export async function ProductForm({
           <Field label={t("fields.category")} htmlFor="category" hint={t("common.optional")}>
             <Input id="category" name="category" defaultValue={product?.category ?? ""} />
           </Field>
-          <Field label={t("fields.status")} htmlFor="status">
-            <Select id="status" name="status" defaultValue={product?.status ?? "to_be_tested"}>
-              {PRODUCT_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {t(`status.product_status.${s}`)}
-                </option>
-              ))}
-            </Select>
+          <Field label={t("fields.status")}>
+            <EnumSelect
+              name="status"
+              defaultValue={product?.status ?? "to_be_tested"}
+              options={PRODUCT_STATUSES.map((s) => ({
+                value: s,
+                label: <StatusPill kind="product" status={s} size="sm" />,
+              }))}
+            />
           </Field>
           <Field label={t("fields.fabric")} htmlFor="fabric" hint={t("common.optional")}>
             <Input id="fabric" name="fabric" defaultValue={product?.fabric ?? ""} />
@@ -79,10 +82,7 @@ export async function ProductForm({
         <Field label={t("fields.notes")} htmlFor="notes" hint={t("common.optional")}>
           <Textarea id="notes" name="notes" defaultValue={product?.notes ?? ""} />
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="is_active" defaultChecked={product?.is_active ?? true} />
-          {t("fields.active")}
-        </label>
+        <SettingSwitch name="is_active" label={t("fields.active")} defaultChecked={product?.is_active ?? true} />
       </div>
 
       <Card>
@@ -101,14 +101,12 @@ export async function ProductForm({
               defaultValue={cost?.sourcing_cost ?? 0}
             />
           </Field>
-          <Field label={t("fields.currency")} htmlFor="sourcing_currency">
-            <Select id="sourcing_currency" name="sourcing_currency" defaultValue={cost?.sourcing_currency ?? "DZD"}>
-              {CURRENCY_CODES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
+          <Field label={t("fields.currency")}>
+            <EnumSelect
+              name="sourcing_currency"
+              defaultValue={cost?.sourcing_currency ?? "DZD"}
+              options={CURRENCY_CODES.map((c) => ({ value: c, label: c }))}
+            />
           </Field>
         </CardContent>
       </Card>

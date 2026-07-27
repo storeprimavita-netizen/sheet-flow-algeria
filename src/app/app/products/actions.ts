@@ -15,6 +15,8 @@ import {
   MANUAL_STOCK_REASONS,
 } from "@/lib/enums";
 
+export type UpdateResult = { ok: true } | { ok: false; error: string };
+
 const lines = (text: string) => text.split("\n").map((l) => l.trim()).filter(Boolean);
 
 // "label | sku" per line, sku optional — the "simple jsonb list editor" the phase brief calls for.
@@ -102,38 +104,56 @@ export async function saveProduct(id: string | null, formData: FormData) {
 }
 
 export async function setProductStatus(id: string, formData: FormData) {
+  return setProductStatusValue(id, String(formData.get("status")));
+}
+
+/** Client-callable status change (product card kebab) → {ok} for a toast. */
+export async function setProductStatusValue(id: string, value: string): Promise<UpdateResult> {
   const { workspaceId } = await adminProfile();
-  const status = z.enum(PRODUCT_STATUSES).parse(formData.get("status"));
+  const parsed = z.enum(PRODUCT_STATUSES).safeParse(value);
+  if (!parsed.success) return { ok: false, error: "Invalid status" };
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("products")
-    .update({ status })
+    .update({ status: parsed.data })
     .eq("id", id)
     .eq("workspace_id", workspaceId);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/app/products");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
 // Expenses (per-product tab)
 // ---------------------------------------------------------------------------
+const nullableUuid = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() && v.trim() !== "__none" ? v.trim() : null),
+  z.string().uuid().nullable(),
+);
+
 const expenseSchema = z.object({
+  id: nullableUuid,
+  product_id: nullableUuid,
   category: z.enum(EXPENSE_CATEGORIES),
   amount: z.coerce.number().min(0),
   currency: z.enum(CURRENCY_CODES),
   fx_rate: z.coerce.number().positive(),
   spent_on: z.string().min(1),
   note: optionalText,
-  contact_id: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
-    z.string().uuid().nullable(),
-  ),
+  contact_id: nullableUuid,
 });
 
-export async function saveExpense(id: string | null, productId: string, formData: FormData) {
+/**
+ * Shared expense upsert — the SAME action behind `<ExpenseForm>` on the product
+ * Expenses tab (product pre-filled) and Finance → Expenses (product optional).
+ * `id`/`product_id` travel in the form so one component serves both places.
+ */
+export async function saveExpense(formData: FormData): Promise<UpdateResult> {
   const { workspaceId } = await adminProfile();
-  const input = expenseSchema.parse({
+  const parsed = expenseSchema.safeParse({
+    id: formData.get("id"),
+    product_id: formData.get("product_id"),
     category: formData.get("category"),
     amount: formData.get("amount"),
     currency: formData.get("currency"),
@@ -142,14 +162,18 @@ export async function saveExpense(id: string | null, productId: string, formData
     note: formData.get("note"),
     contact_id: formData.get("contact_id"),
   });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { id, ...input } = parsed.data;
 
   const supabase = await createClient();
-  const patch = { workspace_id: workspaceId, product_id: productId, ...input };
+  const patch = { workspace_id: workspaceId, ...input };
   const { error } = id
     ? await supabase.from("expenses").update(patch).eq("id", id).eq("workspace_id", workspaceId)
     : await supabase.from("expenses").insert(patch);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/app/products/${productId}/expenses`);
+  if (error) return { ok: false, error: error.message };
+  if (input.product_id) revalidatePath(`/app/products/${input.product_id}/expenses`);
+  revalidatePath("/app/finance/expenses");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -191,9 +215,9 @@ const adSpendSchema = z.object({
   fx_rate: z.coerce.number().positive(),
 });
 
-export async function upsertAdSpend(formData: FormData) {
+export async function upsertAdSpend(formData: FormData): Promise<UpdateResult> {
   const { workspaceId } = await adminProfile();
-  const input = adSpendSchema.parse({
+  const parsed = adSpendSchema.safeParse({
     product_id: formData.get("product_id"),
     spent_on: formData.get("spent_on"),
     kind: formData.get("kind"),
@@ -201,11 +225,15 @@ export async function upsertAdSpend(formData: FormData) {
     currency: formData.get("currency"),
     fx_rate: formData.get("fx_rate"),
   });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const input = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("ad_spend_daily")
     .upsert({ workspace_id: workspaceId, ...input }, { onConflict: "workspace_id,product_id,spent_on,kind" });
-  if (error) throw new Error(error.message);
-  revalidatePath(`/app/products/${input.product_id}`);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/app/products/${input.product_id}/expenses`);
+  revalidatePath("/app/finance/ad-spend");
+  return { ok: true };
 }
