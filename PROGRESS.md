@@ -28,7 +28,7 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
-| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders done) |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance done) |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -1454,3 +1454,105 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   `components/finance/*` (the same `<ExpenseForm>`/`<ExpenseTable>`/`<AdSpendForm>`
   proven here), `dashboard_stats` for the date-filtered overview, and the
   `components/stats/*` KPI/Funnel tiles.
+
+## Phase 12 §4 — Finance (2026-07-27) — DONE
+- Scope: section 4 of 9. Built the four real Finance subsections (`overview`,
+  `expenses`, `ad-spend`, `income`) behind the existing `AdminGuardLayout`,
+  replacing the four `redirect()`/`Empty` stubs from Phase 11/§3. Reused
+  `components/finance/{expense-form,expense-table,ad-spend-form}.tsx` and
+  `components/stats/*` per the handoff — no parallel record forms, no forked
+  pricing/net-profit math.
+- **New `finance-tabs.tsx`** (mirrors `OrderTabs`/`ContactTabs`/`TeamTabs`,
+  `TabsNav`-based) and **`finance-filter-bar.tsx`** (mirrors
+  `orders-filter-bar.tsx`: URL-persisted product/category/kind + date-range
+  with Today/7d/30d presets, active-filter chips, clear-all), one component
+  reused across all four pages via `showProduct`/`showCategory`/`showKind`
+  props instead of four bespoke bars. Also exports `financeQs()`, a tiny
+  query-string builder both Overview and Income use for their drill-through
+  links (deduped during ponytail-review — was copy-pasted into both files
+  first draft).
+- **Overview**: date-range (+ optional product) filtered `dashboard_stats` RPC
+  for Revenue/Invested/Net profit KPI cards (Revenue/Invested link out;
+  Net profit has no natural single destination, left as a plain tile),
+  **Spending by category** (RPC's `category_spending`, each row linking to
+  Expenses filtered by that category), and a new **Spend by product** panel —
+  computed by fetching raw `expenses`/`ad_spend_daily` rows for the same
+  date range (grouped in JS by `product_id`, same aggregation style
+  `ExpenseTable`'s category totals already use) since `dashboard_stats` only
+  returns per-product *revenue*, not spend, and extending the RPC was out of
+  scope for a UI-pass section. **Fixed fees** line reuses the same
+  active-`fixed_fees` sum Products/Statistics already computes, linking to
+  Settings.
+- **Expenses**: `FinanceFilterBar` (product+category+date, `showCategory`) over
+  a plain `expenses` query honoring `from`/`to`/`product`/`category` from the
+  URL, rendered through the **unmodified `<ExpenseTable>`** — same sheet, same
+  `saveExpense` action, same category-total chips as the product Expenses tab.
+  Confirmed live: opening "New expense" here is the identical form Products
+  §3 uses (interconnection Rule 1).
+- **Ad spend**: new **`components/finance/ad-spend-table.tsx`** (list view —
+  didn't exist before this section, only the quick-entry `<AdSpendForm>` did)
+  with a product column, a `Chip` kind badge (test=info, scaling=violet), and
+  row edit/delete via the same `<AdSpendForm>`. **Extended `<AdSpendForm>`**
+  with optional `defaultValues`/`onDone` for edit mode: date and kind render
+  as locked read-only text (not editable fields) when editing, because
+  `upsertAdSpend` upserts on `(workspace_id,product_id,spent_on,kind)` — an
+  edit that changed date or kind would upsert a *new* row under a different
+  conflict key instead of updating the one being edited, leaving a stale
+  duplicate. Only amount/currency are editable, which keeps the conflict key
+  identical and makes the upsert a true update. Verified live (screenshot):
+  edit sheet shows locked "2026-07-25 · Test" with amount pre-filled and the
+  DZD conversion line correct.
+- **Income**: **no manual entry** — queries `orders` where
+  `delivery_status in (delivered, returned)` for the date range, aggregates
+  in JS by product (delivered count + revenue, returned count), multiplies
+  returned count by `settings.return_fee.amount` (`getSetting`) for a
+  **return-fees** column, and shows delivered/revenue/returned/return-fees/net
+  per product plus workspace totals. Delivered/returned counts link to
+  `/app/orders/all` filtered to that product+status; product name links to
+  its Statistics tab. Deliberately did **not** touch `/app/orders/cash`
+  (physical cash-collection reconciliation, a different concept the phase
+  brief doesn't mention) — Income is the *financial reporting* view of
+  revenue, Cash is the *operational* collect/deposit workflow; the old stub
+  redirected Income to Cash, which conflated the two, and this section
+  corrects that by giving Income its own real page.
+- **RLS verified** (no migration touched): `expenses`/`ad_spend_daily` (and
+  `fixed_fees`/`contacts`) carry a single admin-only `_adm` policy
+  (`is_admin()`-gated, `for all`) from `00003_products.sql`, already exercised
+  generically by Phase 10's `rls.test.ts` — combined with the untouched
+  `AdminGuardLayout` on `/app/finance`, the section is invisible+unreachable
+  for agents at both the RLS and route-guard layers, not just hidden nav.
+- **Screenshot self-critique (both themes, local seed stack)**: ran dev
+  against local Supabase (`127.0.0.1:54321`, demo keys) via a gitignored
+  `.env.development.local` (**deleted after**), already-authenticated as
+  `admin@seed.mnw`. `docs/design/audit/finance-{overview,expenses,ad-spend,
+  income}-{dark,light}.png` (8 shots) + `finance-expenses-new-sheet-dark`,
+  `finance-adspend-edit-sheet-dark`, `finance-expenses-filtered-category-light`
+  (drill-through from Overview → Expenses?category=shooting verified live:
+  filter select pre-set, active chip, table correctly narrowed). All four
+  subsections, both themes, tab switcher, filter bar + presets, create/edit
+  sheets render correctly; console clean (0 errors/warnings) through the
+  whole pass. No fixes needed from the shots.
+- Known / for consumers: **§5 Dashboard** should reuse `finance-filter-bar.tsx`'s
+  shape (or the component itself) for its sticky filter bar rather than
+  rewriting `dashboard/page.tsx`'s existing raw-`<Input type="date">` filter
+  form from scratch, and should turn the still-inline `<AdSpendForm>` on
+  `/app/dashboard` into the 4-field quick-actions modal the brief calls for
+  (this section did not touch the Dashboard page itself — only added the new
+  `<AdSpendTable>` list, which Dashboard doesn't use). "Spend by product" on
+  Overview has no RPC backing (JS-aggregated raw rows) — if a future section
+  needs the same breakdown server-aggregated, extend `dashboard_stats` rather
+  than re-deriving it a third time. `expenses`/`ad_spend_daily` queries in the
+  three list pages don't paginate beyond `<DataTable>`'s own page size — fine
+  at this app's scale, revisit if a workspace's raw row count ever grows large
+  enough to matter.
+- **Next chat must know:** `npm run build` + `npm test` green (28 pass / 38
+  RLS-suite skipped, unchanged — no new test file; this section is UI/queries
+  over already-tested `settings.ts`/`format.ts`, nothing new to unit-test),
+  forbidden-color grep = 0 on touched files, no native `<select>`/raw
+  `<input>` in `src/app/app/finance` or `src/components/finance`, `graphify
+  update .` run (1241 nodes). **Phase 12 §5 (Dashboard)** is next: sticky
+  filter bar (reuse `finance-filter-bar.tsx`'s pattern), KPI cards with
+  delta+sparkline+click-to-filter (`components/stats/kpi-tile.tsx` already
+  supports `delta`/`spark`), the per-wilaya choropleth (new build), and the
+  ad-spend quick-action modal (replace the inline `<AdSpendForm>` currently
+  sitting at the bottom of `/app/dashboard`).
