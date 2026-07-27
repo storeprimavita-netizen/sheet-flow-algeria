@@ -72,7 +72,8 @@
     "error": "Something went wrong.",
     "rebuildPending": "This section is being rebuilt — coming in a later phase.",
     "prev": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "viewAll": "View all"
   },
   "actions": {
     "new": "New",
@@ -220,7 +221,9 @@
       "expenses": "Expenses",
       "stock": "Stock",
       "statistics": "Statistics",
-      "pricing": "Pricing"
+      "pricing": "Pricing",
+      "overview": "Overview",
+      "orders": "Orders"
     },
     "statistics": {
       "received": "Received",
@@ -235,7 +238,15 @@
       "netProfit": "Net profit",
       "adCostPerDelivered": "Ad cost / delivered",
       "profitPerDelivered": "Profit / delivered"
-    }
+    },
+    "emptyHint": "Add your first product to start tracking costs and performance.",
+    "viewGrid": "Grid view",
+    "viewTable": "Table view",
+    "income": "Income",
+    "spend": "Spend",
+    "funnel": "Funnel",
+    "ordersEmptyHint": "No orders for this product yet.",
+    "statsEmptyHint": "Stats appear once this product receives orders."
   },
   "contacts": {
     "title": "Contacts",
@@ -302,7 +313,8 @@
     "subtitle": "Costs linked to products & orders",
     "new": "New expense",
     "edit": "Edit expense",
-    "none": "No expenses yet."
+    "none": "No expenses yet.",
+    "emptyHint": "Add an expense to track costs for this product."
   },
   "pricing": {
     "title": "Pricing scenarios",
@@ -322,7 +334,11 @@
     "returns_fee": "Returns fee / order",
     "other_fee": "Other fee / order",
     "cost_order": "Cost / order",
-    "scenario": { "best": "Best", "medium": "Medium", "worst": "Worst" },
+    "scenario": {
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
     "groups": {
       "funnel": "Ad funnel",
       "perOrder": "Per order",
@@ -343,7 +359,9 @@
       "flexy_month": "Flexy / month",
       "location_day": "Rent + electricity / day",
       "salary_month": "Salary / month"
-    }
+    },
+    "breakEven": "Break-even: needs ≥ {pct}% delivery rate to profit.",
+    "breakEvenNever": "Never profitable at these inputs."
   },
   "team": {
     "title": "Team & Rules",
@@ -535,8 +553,12 @@
       "stage": "Stage",
       "avgDecisionTime": "Avg. decision time"
     },
-    "byProduct": { "title": "Per-product rates" },
-    "categorySpending": { "title": "Spending by category" },
+    "byProduct": {
+      "title": "Per-product rates"
+    },
+    "categorySpending": {
+      "title": "Spending by category"
+    },
     "export": {
       "title": "Export",
       "orders": "Orders",

@@ -9,12 +9,15 @@ export function PercentField({
   disabled,
   className,
   id,
+  onChange,
 }: {
   name?: string;
   defaultValue?: number;
   disabled?: boolean;
   className?: string;
   id?: string;
+  /** fires on user input with the numeric value (0 for empty) */
+  onChange?: (value: number) => void;
 }) {
   const [value, setValue] = React.useState(defaultValue?.toString() ?? "");
 
@@ -34,7 +37,11 @@ export function PercentField({
         dir="ltr"
         disabled={disabled}
         value={value}
-        onChange={(e) => setValue(e.target.value.replace(/[^\d.]/g, ""))}
+        onChange={(e) => {
+          const clean = e.target.value.replace(/[^\d.]/g, "");
+          setValue(clean);
+          onChange?.(Number(clean) || 0);
+        }}
         onBlur={clamp}
         className="num flex h-9 w-full rounded-md border border-input bg-transparent py-1 pe-8 ps-3 text-end text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       />

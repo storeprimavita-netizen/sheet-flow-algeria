@@ -15,7 +15,7 @@ import { ButtonLink } from "@/components/button-link";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { Badge } from "@/components/ui/badge";
-import { AdSpendEntry } from "@/components/ad-spend-entry";
+import { AdSpendForm } from "@/components/finance/ad-spend-form";
 import { DashboardExportButtons, type OrderExportRow } from "./export-button";
 
 // Dashboard is admin-only (AdminGuardLayout redirects agents to /app/orders —
@@ -451,7 +451,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <AdSpendEntry products={products ?? []} rates={rates} />
+      <AdSpendForm products={products ?? []} rates={rates} />
 
       <DashboardExportButtons orders={exportRows} summary={summaryRows} />
     </div>

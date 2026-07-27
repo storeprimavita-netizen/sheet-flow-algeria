@@ -115,6 +115,25 @@ export type ScenarioResult = {
 };
 
 /**
+ * Lowest delivery rate (%) at which net profit per order turns non-negative,
+ * holding every other input fixed — the pricing tab's break-even indicator
+ * ("needs ≥ X% delivery rate to profit at these inputs"). Scans 0.5→100 since
+ * the model isn't cheaply invertible (delivery_pct feeds four derived lines).
+ * Returns null when the inputs never break even within a 100% delivery rate.
+ *
+ * ponytail: 0.5%-step linear scan (~200 computeScenario calls); a bisection
+ * would be tidier but the model isn't guaranteed monotonic, so scan-first is safer.
+ */
+export function breakEvenDeliveryPct(i: PricingInputs): number | null {
+  for (let pct = 0.5; pct <= 100; pct += 0.5) {
+    if (computeScenario({ ...i, delivery_pct: pct }).net_profit_per_order >= 0) {
+      return Math.round(pct * 10) / 10;
+    }
+  }
+  return null;
+}
+
+/**
  * Reproduce the spreadsheet formulas cell-for-cell. Every division is guarded
  * so empty inputs (WORST) yield 0 instead of #DIV/0!.
  */

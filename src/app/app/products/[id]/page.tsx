@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { ProductForm } from "../product-form";
 
@@ -12,7 +10,6 @@ export default async function ProductDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const t = await getTranslations();
 
   const supabase = await createClient();
   const [{ data: product }, { data: cost }] = await Promise.all([
@@ -24,10 +21,10 @@ export default async function ProductDetailsPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("products.edit")} subtitle={product.name}>
-        <DeleteButton table="products" id={product.id} redirectTo="/app/products" />
-      </PageHeader>
       <ProductForm product={product} cost={cost} />
+      <div className="flex justify-end border-t border-border pt-4">
+        <DeleteButton table="products" id={product.id} redirectTo="/app/products" />
+      </div>
     </div>
   );
 }

@@ -1367,3 +1367,90 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   shared Finance form. Reuse `<DataTable>`, `<StatusPill>`, `order-timeline.tsx`
   (if a product→orders tab wants a timeline), and the `orders-filter-bar.tsx`
   pattern for any product filters.
+
+## Phase 12 §3 — Products (2026-07-27) — DONE
+- Scope: section 3 of 9. Rebuilt the Products section onto the §1 `<DataTable>`
+  + §2 status/field system, and built the shared Finance/Stats components §4/§5
+  will reuse. **Net roughly flat on tracked files (+431/−427)** while adding the
+  card grid, break-even, shared expense/ad-spend forms, and killing every native
+  `<select>` — the card-stack table markup and native selects were the deletions.
+- **List → image-card grid is the default; table is a persisted toggle**
+  (`?view=table`). New `products-view.tsx` (client): grid of fixed-height cards
+  (image/placeholder, name, `<StatusPill kind="product">`, sale price, delivery
+  rate, **net-profit color-coded** with drill-through to the Stats tab, **30-day
+  order-count sparkline**, kebab with Edit + status change) OR the `<DataTable>`
+  table view (sticky name, stock chip, rate, net profit, status pill). `page.tsx`
+  now fetches `product_stats` + active `fixed_fees` + last-30-day orders and
+  computes net profit via the new shared `src/lib/product-metrics.ts` (`netProfit`
+  extracted from the old statistics page so grid + stats share ONE formula).
+  Sparkline is a new dep-free inline-SVG `components/ui/sparkline.tsx`.
+- **Product-context header across all tabs** (`[id]/layout.tsx`): breadcrumb +
+  image + name + status pill, above a new **active-aware** `product-tabs.tsx`
+  (client, `usePathname`). Tabs: Overview · Pricing · Expenses · **Orders** (new)
+  · Stock · Statistics. **New Orders tab** (`[id]/orders/`) — lean `<DataTable>`
+  of this product's orders (order#→detail, status pills) + "View all" →
+  `/app/orders/all?product_id=…` (interconnection product→orders). Overview
+  (`[id]/page.tsx`) dropped its duplicate PageHeader (header is now in the
+  layout); Delete is separated + red at the bottom.
+- **Pricing (`scenario-engine.tsx`)**: inputs are now `MoneyField` (DA/EUR suffix
+  + live "≈ … DA at rate" conversion) / `PercentField` (added an `onChange` to
+  PercentField for the autosave engine); the read-only **Real** column already
+  existed (Phase 4). Added a **break-even indicator** per card via new
+  `breakEvenDeliveryPct(inputs)` in `src/lib/pricing.ts` (0.5%-step scan, since
+  the model isn't cheaply invertible) — "needs ≥ X% delivery rate to profit" in
+  success/warning by whether the card's delivery rate clears it, or "Never
+  profitable at these inputs" in danger. 3 new cases in `pricing.test.ts`
+  (crossing point + already-profitable + never). `pricing.ts` scenario formulas
+  untouched (CLAUDE.md).
+- **Expenses tab + shared Finance components** (interconnection Rule 1): built
+  `components/finance/{expense-form,expense-table,ad-spend-form}.tsx` +
+  `components/fields/money-currency-field.tsx` — the SAME components §4 Finance
+  will reuse unfiltered. `saveExpense` refactored to `(formData)` reading
+  `id`/`product_id` from the form (was `.bind(id, productId)`) so one form serves
+  the product tab (product locked) and Finance (product via `ProductCombobox`);
+  `saveExpense`/`upsertAdSpend`/`setProductStatusValue` now return
+  `UpdateResult` for client toasts. `[id]/expenses` now shows **income (auto from
+  delivered orders) / spend / net profit side-by-side**, the ad-spend quick form
+  pinned on top, category totals, and the shared expense table (edit via sheet,
+  delete). **Deleted the old native-select `ad-spend-entry.tsx`** and repointed
+  the Dashboard to `<AdSpendForm>` (§5 will make it the 4-field modal).
+- **Stats tab** reuses new shared `components/stats/{kpi-tile,funnel}.tsx`
+  (KpiTile: big tabular number, optional delta/sparkline/drill-through — the
+  delta/spark props are for §5 Dashboard; Funnel: stepped bars + drop-off %).
+  KPIs drill to the product Orders tab; expenses-by-category uses the shared
+  `CATEGORY_ICONS` (exported from `category-select.tsx`).
+- **Every native `<select>` in the section is gone**, replaced by a new reusable
+  `components/fields/enum-select.tsx` (Radix Select for **system enums** — product
+  status, currency, stock reason, ad kind; the taxonomy counterpart is §9's
+  `OptionSelect`). product-form status → EnumSelect showing the StatusPill, active
+  checkbox → `SettingSwitch`, sourcing currency → EnumSelect; stock reason →
+  EnumSelect, its status Badges → `<Chip>` tokens, `text-emerald-600`/
+  `text-destructive` → `text-success`/`text-danger`.
+- **Screenshot self-critique (both themes, local seed stack)**: ran dev against
+  local Supabase (`127.0.0.1:54321`, demo keys) via a gitignored
+  `.env.development.local` (**deleted after**), logged in as `admin@seed.mnw`.
+  `docs/design/audit/products-{grid,table,overview,pricing,expenses,stats,orders,
+  stock}-{dark,light}.png` (16 shots). All four states, both themes, active-tab
+  highlight, drill-throughs, EUR live conversion, break-even coloring render
+  correctly; **this session's console is clean** (only DevTools/HMR noise — the
+  nested-button hydration + duplicate-key warnings in the log are from an earlier
+  session's `/app/contacts`/`/app/team`, not this section). No fixes needed from
+  the shots.
+- Known / for consumers: **§4 Finance** reuses `components/finance/*` directly —
+  pass `products` (no `productId`) for the unfiltered view; `saveExpense` already
+  accepts an optional `product_id`. **§5 Dashboard** reuses `components/stats/*`
+  (KpiTile's `delta`/`spark` are ready) and should turn `<AdSpendForm>` into the
+  4-field Quick-actions modal. Stock stays a 6th tab (real functionality, not in
+  the checklist's 5 but not forbidden). Per-wilaya-for-one-product is **not** on
+  the Stats tab — no data source; the dashboard choropleth is §5. Net profit on
+  cards/tiles shows "—" until a product has delivered orders (Real-column
+  convention). `formatCurrency` still renders "DZD" (not "DA") — unchanged from
+  the codebase, not touched this phase.
+- **Next chat must know:** `npm run build` + `npm test` green (28 pass / 38
+  RLS-suite skipped), forbidden-color grep = 0 on touched files, no native
+  `<select>` in `src/app/app/products` or `src/components/finance`, `graphify
+  update .` run. **Phase 12 §4 (Finance)** is next: build the real Overview/
+  Expenses/Ad spend/Income under the existing `AdminGuardLayout`, reusing
+  `components/finance/*` (the same `<ExpenseForm>`/`<ExpenseTable>`/`<AdSpendForm>`
+  proven here), `dashboard_stats` for the date-filtered overview, and the
+  `components/stats/*` KPI/Funnel tiles.
