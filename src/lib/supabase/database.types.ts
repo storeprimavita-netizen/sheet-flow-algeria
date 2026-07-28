@@ -1366,8 +1366,11 @@ export type Database = {
       current_workspace_id: { Args: never; Returns: string }
       dashboard_stats: {
         Args: {
+          p_agent?: string[]
           p_conf_agent?: string[]
+          p_confirmation_status?: Database["public"]["Enums"]["confirmation_status"][]
           p_deliv_agent?: string[]
+          p_delivery_status?: Database["public"]["Enums"]["delivery_status"][]
           p_from?: string
           p_product?: string[]
           p_source?: Database["public"]["Enums"]["order_source"][]

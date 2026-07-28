@@ -200,9 +200,13 @@
 }
 
 @layer utilities {
-  /* tabular numerals — apply to every money / percent / count cell */
+  /* tabular numerals — apply to every money / percent / count cell.
+     unicode-bidi keeps signed numbers (e.g. "−36.7%") from being visually
+     reordered to "36.7%−" inside an RTL (Arabic) document. */
   .num {
     font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
   }
   /* flat tokened card surface (replaces the removed .glass-card decoration) */
   .card-surface {

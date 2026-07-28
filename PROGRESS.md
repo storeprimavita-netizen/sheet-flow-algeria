@@ -1556,3 +1556,92 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   supports `delta`/`spark`), the per-wilaya choropleth (new build), and the
   ad-spend quick-action modal (replace the inline `<AdSpendForm>` currently
   sitting at the bottom of `/app/dashboard`).
+
+## Phase 12 §5 — Dashboard (2026-07-28) — DONE
+- Scope: section 5 of 9. Rewrote `/app/dashboard` end-to-end: sticky
+  URL-persisted filter bar (date range + product/wilaya/source/agent/
+  confirmation/delivery), 6 KPI tiles wired for real
+  (delta-vs-previous-period + sparkline + click-to-filter, using
+  `components/stats/kpi-tile.tsx` as-is), funnel + profit/spend time chart,
+  per-wilaya table beside a new Algeria choropleth, per-agent + per-product
+  rate tables, spend-by-category bars, next-meeting/open-tasks cards, and a
+  quick-actions row with a 4-field **Add ad spend modal** replacing the
+  inline `<AdSpendForm>` that used to sit at the bottom of the page.
+- **`dashboard_stats` RPC extended** (`supabase/migrations/
+  00010_dashboard_filters_daily.sql`): added `p_confirmation_status`,
+  `p_delivery_status`, `p_agent` (ORs across confirmation/delivery agent)
+  filter params, and a `daily` jsonb array (per-day received/confirmed/
+  delivered/revenue/invested via `generate_series`, defaults to trailing 30
+  days, capped at 365) plus `stop_shipping_min_orders` in the return — both
+  feed the KPI sparklines/deltas and the time chart. Had to explicitly `drop
+  function` the old signature first — `create or replace` with new params
+  creates a second overload instead of replacing it, which breaks every
+  existing call site with an ambiguous-function error until dropped.
+- **Algeria choropleth** (`components/dashboard/algeria-map.tsx`): no
+  mapping library/geodata in the repo, so it's a hand-placed 58-wilaya grid
+  cartogram (schematic, not true borders — documented as such in the file),
+  verified complete/collision-free by `algeria-map.test.ts`. 5-step token
+  color scale on delivery rate, gated by the *same* `confirmedOrders <
+  min_orders` threshold `stop_shipping_auto` uses (a totalOrders-based first
+  draft gave a different "no data" set than the table's own stop-shipping
+  flag — fixed to use confirmedOrders so map and table always agree).
+  Table (source of truth for numbers) and map share hover state and both
+  drill through to `/app/orders/all?wilaya_code=`; map stacks below the
+  table on narrow screens (`grid-cols-1 lg:grid-cols-[1fr_auto]`), verified
+  at 390px.
+- **Two pre-existing Next 16 RSC violations found and fixed at the root**,
+  not worked around locally: (1) `financeQs` lived in a `"use client"` file
+  (`finance-filter-bar.tsx`) and was being called from server components —
+  Next 16 forbids calling any function exported from a client module from
+  server code, even a pure one. This was already 500-ing Finance Overview
+  and Income (Phase 12 §4), not something this section introduced. Fixed by
+  extracting `financeQs`/`ordersQs`/`DashboardFilters` into a new plain
+  module `src/lib/query-string.ts` and repointing all three pages' imports.
+  (2) `WilayaSection` (client) was going to receive a `wilayaHref` closure
+  as a prop from the server `page.tsx` — functions can't cross that
+  boundary either — fixed by passing plain serializable `filters` data and
+  calling `ordersQs()` internally in the client component instead.
+- **RTL bug found and fixed in a shared utility, not new to this section**:
+  signed numbers rendered with a literal `−` prefix (funnel drop-off %,
+  net-profit KPI) were visually reordering to `36.7%−` inside the Arabic
+  (RTL) document — a bidi effect on the shared `.num` class
+  (`src/app/globals.css`), used everywhere money/percent/counts are
+  formatted. Fixed once at the class (`direction: ltr; unicode-bidi:
+  isolate;`) rather than per call site, since every negative-number display
+  in the app routes through `.num`. Verified via
+  `docs/design/audit/dashboard-ar-rtl.png` before/after.
+  Deliberately simplified vs. the old multi-select Orders/Finance filter
+  bars: `dashboard-filter-bar.tsx` uses single-value Radix `Select`s per
+  dimension (not multi-select), consistent with the RPC's own
+  single-or-array param shape and the decided-defaults brief; also
+  remembers the last-used filter set per user via `localStorage`
+  (`mnw:dashboardFilters`), restored on next visit only when the URL has no
+  params of its own.
+- No charting library added — `time-chart.tsx`/`Sparkline`/`Funnel` are
+  hand-rolled inline SVG, matching the convention already established by
+  `components/stats/*` in §3.
+- **Screenshot self-critique (both themes + RTL + mobile, local seed
+  stack)**: `docs/design/audit/dashboard-{dark,light}.png` (full page, both
+  themes correct — map colors, KPI cards, all sections render), `dashboard-
+  ar-rtl.png` (Arabic/RTL — caught and fixed the `.num` bidi bug above,
+  re-verified after the fix), `dashboard-mobile.png` (390px — map correctly
+  stacks below the per-wilaya table). Live-tested the **Add ad spend**
+  modal end-to-end: opened from the Quick actions row, selected a product,
+  entered an amount, saved, confirmed the row landed in `ad_spend_daily`
+  with the correct `amount_dzd` conversion, then deleted the test row.
+- Known / for next section: **Phase 12 §6 (Contacts)** is next. "My open
+  tasks" card is an honest empty state (`t("dashboard.myTasks.none")`) —
+  there's no tasks table yet; wire it up once a later phase adds one, don't
+  fake data. `dashboard_stats`'s `daily` series is capped at 365 rows —
+  fine for any realistic filter range, revisit only if unbounded multi-year
+  date ranges become a real use case.
+- **Next chat must know:** `npm run build` + `npm test` green (30 pass / 38
+  RLS-suite skipped — no new test file beyond `algeria-map.test.ts`'s
+  grid-completeness check), forbidden-color grep = 0 and no native
+  `<select>`/raw `<input>` across all files touched this section (including
+  the `.num` fix and the two RSC-boundary fixes), `graphify update .` run
+  (1268 nodes, 3002 edges, 105 communities). `stop_shipping_rule` restored
+  to `{min_orders:10, min_delivery_rate:40}` after temporarily lowering it
+  to verify map coloring against seed data (seed data only has 3-5 orders
+  per wilaya, so most wilayas legitimately show "no data" at the real
+  threshold — that's correct behavior, not a bug).

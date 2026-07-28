@@ -7,7 +7,8 @@ import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { FinanceTabs } from "../finance-tabs";
-import { FinanceFilterBar, financeQs } from "../finance-filter-bar";
+import { FinanceFilterBar } from "../finance-filter-bar";
+import { financeQs } from "@/lib/query-string";
 
 type DashboardKpis = {
   kpis: {
