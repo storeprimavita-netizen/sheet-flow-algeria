@@ -141,6 +141,11 @@ export default async function DashboardPage({
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
   ]);
   const stats = rpcData as unknown as DashboardStats;
+  // Defends against an RPC that hasn't been migrated yet (daily/
+  // stop_shipping_min_orders are new fields) — degrade to empty sparklines
+  // instead of a hard crash if the DB is behind the app.
+  stats.daily ??= [];
+  stats.stop_shipping_min_orders ??= 10;
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
 
   // delta-vs-previous-period only makes sense for a bounded range — an

@@ -1645,3 +1645,33 @@ When `npm run build` (and `npm test` once it exists) is green: run `graphify upd
   to verify map coloring against seed data (seed data only has 3-5 orders
   per wilaya, so most wilayas legitimately show "no data" at the real
   threshold — that's correct behavior, not a bug).
+
+## Addendum — user feedback on §5, redirect before §6 (2026-07-28)
+
+Real user feedback arrived after using the merged §5 Dashboard (not from the
+architect's brief). Written up as its own inserted phase,
+**`docs/phases/phase-12b-ux-fixes.md`** — read it in full before touching
+code. Covers: a real RTL bug (sidebar likely invisible in Arabic at desktop
+widths — root cause already diagnosed, see the doc's §1), folding
+theme/language/sign-out into an avatar dropdown menu, shortening the
+too-tall always-expanded nav, moving the brand mark out of the sidebar
+header, replacing the §5 grid-cartogram map with a real interactive
+wilaya map (deliberately reverses `components.md`'s "no mapping library"
+default — update that doc once built), proper success/danger color usage
+for profit/invested/rates in the dashboard's tables and charts, a
+decision-point on whether confirmation/delivery status breakdown charts fit
+on the existing Dashboard or need their own page, and vivid per-option
+colors in selects (should route through the existing status/option-set
+color system, not a new one — check whether §9 Option sets already plans
+this before duplicating it).
+
+Also added **`docs/TESTING.md`**: the permanent local test account
+(`admin@seed.mnw` / `confirmation@seed.mnw` / `delivery@seed.mnw`, password
+`SeedDev!2026`, workspace "MNW Seed") already existed via
+`scripts/seed-dev.ts` (idempotent, deterministic) — it just wasn't written
+up anywhere for quick reference. Use it to spot-check after every task
+instead of re-deriving login/seed state each time.
+
+**Phase 12b is next**, not §6 (Contacts) — building the next section on a
+sidebar that's broken in Arabic just compounds the fix later. §6 resumes
+once 12b is merged.
