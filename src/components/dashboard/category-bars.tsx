@@ -1,7 +1,10 @@
 import Link from "next/link";
 
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { Empty } from "@/components/empty";
+import { TOKEN_DOT_CLASS } from "@/components/ui/chip";
+import { EXPENSE_CATEGORY_TOKEN } from "@/lib/statuses";
 
 /**
  * Composition of spend by category — horizontal bars sorted by value, each
@@ -31,7 +34,10 @@ export function CategoryBars({
               <span className="num font-medium">{formatCurrency(r.amount_dzd)}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-surface-raised">
-              <div className="h-full rounded-full bg-info" style={{ width: `${Math.max(2, (100 * r.amount_dzd) / max)}%` }} />
+              <div
+                className={cn("h-full rounded-full", TOKEN_DOT_CLASS[EXPENSE_CATEGORY_TOKEN[r.category] ?? "neutral"])}
+                style={{ width: `${Math.max(2, (100 * r.amount_dzd) / max)}%` }}
+              />
             </div>
           </Link>
         </li>

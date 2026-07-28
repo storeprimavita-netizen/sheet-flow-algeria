@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateField } from "@/components/fields/date-field";
 import { Chip } from "@/components/ui/chip";
+import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { EXPENSE_CATEGORIES, AD_KINDS } from "@/lib/enums";
+import { EXPENSE_CATEGORY_TOKEN, type StatusToken } from "@/lib/statuses";
 
-type Opt = { value: string; label: string };
+type Opt = { value: string; label: string; token?: StatusToken };
 
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
@@ -44,7 +46,11 @@ export function FinanceFilterBar({
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
-  const categoryOpts: Opt[] = EXPENSE_CATEGORIES.map((c) => ({ value: c, label: t(`status.expense_category.${c}`) }));
+  const categoryOpts: Opt[] = EXPENSE_CATEGORIES.map((c) => ({
+    value: c,
+    label: t(`status.expense_category.${c}`),
+    token: EXPENSE_CATEGORY_TOKEN[c],
+  }));
   const kindOpts: Opt[] = AD_KINDS.map((k) => ({ value: k, label: t(`status.ad_kind.${k}`) }));
 
   const selects: { key: string; label: string; opts: Opt[] }[] = [
@@ -101,7 +107,7 @@ export function FinanceFilterBar({
                 <SelectItem value={ALL}>{t("common.all")}</SelectItem>
                 {s.opts.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                    <SelectOptionRow label={o.label} token={o.token} />
                   </SelectItem>
                 ))}
               </SelectContent>

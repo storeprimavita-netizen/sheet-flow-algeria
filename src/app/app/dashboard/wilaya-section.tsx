@@ -11,22 +11,11 @@ import { ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { tableClass } from "@/components/field";
 import { Empty } from "@/components/empty";
 import { AlgeriaMap, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import { RateCell } from "@/components/stats/rate-bar";
 
 export type WilayaRow = WilayaMapDatum & {
   deliveredOrders: number;
 };
-
-function RateBar({ pct }: { pct: number }) {
-  const clamped = Math.max(0, Math.min(100, pct));
-  return (
-    <div className="h-2 w-16 overflow-hidden rounded-full bg-surface-raised">
-      <div
-        className={cn("h-full rounded-full", clamped >= 70 ? "bg-success" : clamped >= 40 ? "bg-warning" : "bg-danger")}
-        style={{ width: `${clamped}%` }}
-      />
-    </div>
-  );
-}
 
 /**
  * Per-wilaya table (source of truth for numbers) beside the Algeria choropleth
@@ -81,12 +70,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
                 <td className="num">{w.confirmedOrders}</td>
                 <td className="num">{w.deliveredOrders}</td>
                 <td className="min-w-28">
-                  <div className="flex items-center gap-2">
-                    <RateBar pct={w.deliveryRate ?? 0} />
-                    <span className="num w-10 shrink-0 text-end text-xs">
-                      {w.deliveryRate !== null ? `${w.deliveryRate}%` : "—"}
-                    </span>
-                  </div>
+                  <RateCell pct={w.deliveryRate ?? 0} label={w.deliveryRate !== null ? `${w.deliveryRate}%` : "—"} />
                 </td>
                 <td>
                   {w.stopShippingManual || w.stopShippingAuto ? (

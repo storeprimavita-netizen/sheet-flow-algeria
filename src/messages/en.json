@@ -554,6 +554,10 @@
       "stopShippingManual": "Manual flag",
       "noData": "No data"
     },
+    "statusBreakdown": {
+      "confirmationTitle": "Confirmation status breakdown",
+      "deliveryTitle": "Delivery status breakdown"
+    },
     "byAgent": {
       "title": "Per-agent rates",
       "stage": "Stage",

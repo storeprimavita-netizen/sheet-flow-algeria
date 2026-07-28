@@ -14,7 +14,8 @@ import {
 import { useTranslations } from "next-intl";
 
 import { EXPENSE_CATEGORIES } from "@/lib/enums";
-import type { IconType } from "@/lib/statuses";
+import { EXPENSE_CATEGORY_TOKEN, type IconType } from "@/lib/statuses";
+import { ColorDot } from "@/components/ui/chip";
 import {
   Select,
   SelectTrigger,
@@ -62,6 +63,7 @@ export function CategorySelect({
               <span className="flex items-center gap-2">
                 <Icon className="h-4 w-4 text-muted-foreground" />
                 {t(`status.expense_category.${c}`)}
+                <ColorDot token={EXPENSE_CATEGORY_TOKEN[c]} className="ms-auto" />
               </span>
             </SelectItem>
           );

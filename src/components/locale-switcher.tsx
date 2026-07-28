@@ -8,7 +8,7 @@ import { Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /** Toggles the `locale` cookie and re-renders server components. */
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ className }: { className?: string }) {
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -26,7 +26,7 @@ export function LocaleSwitcher() {
       type="button"
       variant="ghost"
       size="sm"
-      className="w-full"
+      className={className ?? "w-full"}
       onClick={toggle}
       disabled={isPending}
     >
