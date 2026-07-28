@@ -17,6 +17,25 @@ export const TOKEN_CLASS: Record<StatusToken, string> = {
   rose: "text-rose bg-rose-bg",
 };
 
+/** Static token→solid-fill class map (dots, bars, map cells — full-strength color, not the soft tint). */
+export const TOKEN_DOT_CLASS: Record<StatusToken, string> = {
+  neutral: "bg-neutral",
+  success: "bg-success",
+  warning: "bg-warning",
+  danger: "bg-danger",
+  info: "bg-info",
+  indigo: "bg-indigo",
+  cyan: "bg-cyan",
+  violet: "bg-violet",
+  orange: "bg-orange",
+  rose: "bg-rose",
+};
+
+/** Small vivid swatch for select options/legends that don't warrant a full Chip pill. */
+export function ColorDot({ token, className }: { token: StatusToken; className?: string }) {
+  return <span className={cn("inline-block h-2.5 w-2.5 shrink-0 rounded-full", TOKEN_DOT_CLASS[token], className)} aria-hidden />;
+}
+
 /**
  * Shared base for status pills and user-created option chips: tinted bg +
  * strong fg from one token palette. Optional leading dot / icon.

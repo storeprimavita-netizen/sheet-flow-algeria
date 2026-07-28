@@ -10,11 +10,19 @@ import type { Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { SignOutButton } from "@/app/app/dashboard/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { visibleNav, type NavLeaf, type CounterKey } from "@/components/nav-model";
 
 const COLLAPSE_KEY = "mnw:sidebar-collapsed";
@@ -98,10 +106,13 @@ export function AppShell({
   }
 
   const nav = (
-    <nav className="flex-1 space-y-4 overflow-y-auto p-3">
-      {sections.map((section) =>
-        section.children && !collapsed ? (
-          <div key={section.key} className="space-y-0.5">
+    <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {sections.map((section) => {
+        if (!section.children || collapsed) return <Leaf key={section.href} item={section} />;
+        const sectionActive =
+          activeHref === section.href || section.children.some((c) => c.href === activeHref);
+        return (
+          <div key={section.key} className="space-y-0.5 pb-1">
             <Link
               href={section.href}
               onClick={() => setOpen(false)}
@@ -110,14 +121,10 @@ export function AppShell({
               <section.icon className="h-4 w-4" />
               {t(`nav.${section.key}`)}
             </Link>
-            {section.children.map((c) => (
-              <Leaf key={c.href} item={c} child />
-            ))}
+            {sectionActive && section.children.map((c) => <Leaf key={c.href} item={c} child />)}
           </div>
-        ) : (
-          <Leaf key={section.href} item={section} />
-        ),
-      )}
+        );
+      })}
     </nav>
   );
 
@@ -128,19 +135,10 @@ export function AppShell({
           className={cn(
             "fixed inset-y-0 start-0 z-40 flex flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
             collapsed ? "w-16" : "w-64",
-            open ? "translate-x-0" : "-translate-x-full rtl:translate-x-full",
+            open ? "max-md:translate-x-0" : "max-md:-translate-x-full max-md:rtl:translate-x-full",
           )}
         >
-          <div className="flex h-16 items-center gap-2 border-b border-border px-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xl">
-              🛍️
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-foreground">MNW ERP</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("tagline")}</div>
-              </div>
-            )}
+          <div className="flex h-14 items-center border-b border-border px-3">
             <Button
               variant="ghost"
               size="icon"
@@ -154,42 +152,49 @@ export function AppShell({
 
           {nav}
 
-          <div className={cn("space-y-2 border-t border-border p-3", collapsed && "px-2")}>
-            {!collapsed ? (
-              <div className="flex items-center gap-3 px-1">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-                  {initial}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium" title={user.email}>
-                    {user.email}
-                  </div>
-                  <div className="mt-0.5">
-                    {role ? (
-                      <Badge variant={role === "admin" ? "default" : "secondary"}>{t(`role.${role}`)}</Badge>
-                    ) : (
-                      <Badge variant="outline">{t("common.noRole")}</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+          <div className={cn("border-t border-border p-3", collapsed && "px-2")}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  title={collapsed ? user.email : undefined}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md py-1 text-start transition-colors hover:bg-surface-raised",
+                    collapsed ? "justify-center px-1" : "px-1",
+                  )}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
                     {initial}
                   </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">{user.email}</TooltipContent>
-              </Tooltip>
-            )}
-            {!collapsed && (
-              <>
-                <ThemeToggle />
-                <LocaleSwitcher />
-                <SignOutButton />
-              </>
-            )}
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{user.email}</div>
+                      <div className="mt-0.5">
+                        {role ? (
+                          <Badge variant={role === "admin" ? "default" : "secondary"}>{t(`role.${role}`)}</Badge>
+                        ) : (
+                          <Badge variant="outline">{t("common.noRole")}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-56">
+                <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <ThemeToggle className="w-full justify-start" />
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <LocaleSwitcher className="w-full justify-start" />
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem destructive asChild>
+                  <SignOutButton className="w-full justify-start border-0 bg-transparent shadow-none hover:bg-transparent" />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </aside>
 
@@ -209,6 +214,17 @@ export function AppShell({
                 <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">⌘K</kbd>
               </Button>
             </CommandPalette>
+            <div className="ms-auto flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-lg">
+                🛍️
+              </div>
+              <div className="hidden min-w-0 sm:block">
+                <div className="text-sm font-semibold leading-tight text-foreground">MNW ERP</div>
+                <div className="text-[10px] uppercase leading-tight tracking-wider text-muted-foreground">
+                  {t("tagline")}
+                </div>
+              </div>
+            </div>
           </header>
           <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>

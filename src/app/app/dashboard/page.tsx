@@ -12,8 +12,10 @@ import { tableClass } from "@/components/field";
 import { ButtonLink } from "@/components/button-link";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { Funnel } from "@/components/stats/funnel";
+import { RateCell } from "@/components/stats/rate-bar";
 import { TimeChart } from "@/components/dashboard/time-chart";
 import { CategoryBars } from "@/components/dashboard/category-bars";
+import { StatusBreakdownBars } from "@/components/dashboard/status-breakdown-bars";
 import { AddAdSpendModal } from "@/components/dashboard/add-ad-spend-modal";
 import { WilayaSection, type WilayaRow } from "./wilaya-section";
 import { DashboardFilterBar, type Opt } from "./dashboard-filter-bar";
@@ -71,6 +73,8 @@ type DashboardStats = {
   }[];
   daily: { day: string; orders_received: number; orders_confirmed: number; orders_delivered: number; revenue_dzd: number; invested_dzd: number }[];
   stop_shipping_min_orders: number;
+  confirmation_breakdown: { status: string; count: number }[];
+  delivery_breakdown: { status: string; count: number }[];
 };
 
 /** Signed % change vs the previous period, or null when it can't be computed. */
@@ -146,6 +150,8 @@ export default async function DashboardPage({
   // instead of a hard crash if the DB is behind the app.
   stats.daily ??= [];
   stats.stop_shipping_min_orders ??= 10;
+  stats.confirmation_breakdown ??= [];
+  stats.delivery_breakdown ??= [];
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
 
   // delta-vs-previous-period only makes sense for a bounded range — an
@@ -298,6 +304,20 @@ export default async function DashboardPage({
         </div>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* confirmation status breakdown */}
+        <div className="card-surface space-y-3 rounded-xl p-5">
+          <h2 className="text-sm font-semibold">{t("dashboard.statusBreakdown.confirmationTitle")}</h2>
+          <StatusBreakdownBars kind="confirmation" rows={stats.confirmation_breakdown} emptyLabel={t("dashboard.noData")} />
+        </div>
+
+        {/* delivery status breakdown */}
+        <div className="card-surface space-y-3 rounded-xl p-5">
+          <h2 className="text-sm font-semibold">{t("dashboard.statusBreakdown.deliveryTitle")}</h2>
+          <StatusBreakdownBars kind="delivery" rows={stats.delivery_breakdown} emptyLabel={t("dashboard.noData")} />
+        </div>
+      </div>
+
       {/* per-wilaya table + choropleth */}
       <WilayaSection rows={wilayaRows} minOrders={stats.stop_shipping_min_orders} filters={filters} />
 
@@ -322,21 +342,25 @@ export default async function DashboardPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.per_agent.map((a, i) => (
-                    <tr key={`${a.user_id}-${a.stage}-${i}`}>
-                      <td>
-                        <Link href={ordersQs(filters, { agent: a.user_id })} className="hover:underline">
-                          {a.display_name ?? a.user_id.slice(0, 8)}
-                        </Link>
-                      </td>
-                      <td className="capitalize">{a.stage}</td>
-                      <td className="num">{a.orders_handled}</td>
-                      <td className="num">
-                        {a.stage === "confirmation" ? a.confirmed : a.delivered}/{a.orders_handled}
-                      </td>
-                      <td className="num">{a.avg_decision_seconds != null ? `${(a.avg_decision_seconds / 3600).toFixed(1)}h` : "—"}</td>
-                    </tr>
-                  ))}
+                  {stats.per_agent.map((a, i) => {
+                    const done = a.stage === "confirmation" ? a.confirmed : a.delivered;
+                    const pct = a.orders_handled > 0 ? (100 * done) / a.orders_handled : 0;
+                    return (
+                      <tr key={`${a.user_id}-${a.stage}-${i}`}>
+                        <td>
+                          <Link href={ordersQs(filters, { agent: a.user_id })} className="hover:underline">
+                            {a.display_name ?? a.user_id.slice(0, 8)}
+                          </Link>
+                        </td>
+                        <td className="capitalize">{a.stage}</td>
+                        <td className="num">{a.orders_handled}</td>
+                        <td className="min-w-28">
+                          <RateCell pct={pct} label={`${done}/${a.orders_handled}`} labelWidth="w-14" />
+                        </td>
+                        <td className="num">{a.avg_decision_seconds != null ? `${(a.avg_decision_seconds / 3600).toFixed(1)}h` : "—"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -369,8 +393,12 @@ export default async function DashboardPage({
                           {p.name}
                         </Link>
                       </td>
-                      <td className="num">{p.confirmation_rate !== null ? `${p.confirmation_rate}%` : "—"}</td>
-                      <td className="num">{p.delivery_rate !== null ? `${p.delivery_rate}%` : "—"}</td>
+                      <td className="min-w-28">
+                        <RateCell pct={p.confirmation_rate ?? 0} label={p.confirmation_rate !== null ? `${p.confirmation_rate}%` : "—"} />
+                      </td>
+                      <td className="min-w-28">
+                        <RateCell pct={p.delivery_rate ?? 0} label={p.delivery_rate !== null ? `${p.delivery_rate}%` : "—"} />
+                      </td>
                       <td className="num">{formatCurrency(p.revenue_dzd)}</td>
                     </tr>
                   ))}

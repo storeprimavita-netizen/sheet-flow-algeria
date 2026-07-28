@@ -28,7 +28,8 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
-| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance done) |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance, §5 Dashboard done) |
+| 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -1675,3 +1676,128 @@ instead of re-deriving login/seed state each time.
 **Phase 12b is next**, not §6 (Contacts) — building the next section on a
 sidebar that's broken in Arabic just compounds the fix later. §6 resumes
 once 12b is merged.
+
+## Phase 12b — Navigation, color & map fixes (2026-07-28) — DONE
+
+- **Done:** all 8 items from `docs/phases/phase-12b-ux-fixes.md`.
+  1. RTL sidebar bug fixed (`app-shell.tsx`): mobile-drawer transform classes
+     scoped to `max-md:`, so `md:translate-x-0` unconditionally wins at
+     desktop widths regardless of RTL/open state. This was the reported
+     "sidebar invisible in Arabic" bug — confirmed via screenshot at desktop
+     width in Arabic (previously-broken case), now visible.
+  2. Avatar row is now a `DropdownMenu` (reused the existing Radix
+     primitive) holding theme toggle, language switcher, sign out — sidebar
+     footer down from ~4 stacked rows to one.
+  3. Nav sections collapse to just the parent link unless they contain the
+     active page (accordion, auto-expand on navigation). Combined with #2,
+     the sidebar no longer needs scrolling to see all top-level sections.
+  4. Brand mark moved from the sidebar header into the top bar, trailing
+     side (`ms-auto`), so it's on the right in LTR and the left in RTL.
+  5. Replaced the hand-placed 58-cell grid cartogram with a real choropleth:
+     `d3-geo` (Mercator projection fit to Algeria's true national outline)
+     + `d3-delaunay` (Voronoi cells from each wilaya's real chef-lieu
+     lat/lon, clipped to the outline via an SVG `clipPath`). New file
+     `src/lib/geo/algeria-wilayas.ts` holds the 58 centroids + outline ring
+     (centroids from a public dataset with swapped lat/lon fields,
+     corrected; outline from a public Algeria boundary GeoJSON — both
+     baked into the repo, no runtime fetch). Same behavior as before:
+     5-step token color scale, `confirmedOrders < min_orders` neutral gate,
+     hover sync with the table both ways, click-to-filter, mobile stacking.
+     `algeria-map.test.ts` now checks the centroid set (58 codes, real
+     lat/lon range) and the outline ring instead of the old grid.
+  6. Semantic colors: `time-chart.tsx` net-profit line now
+     success/danger by sign (matching the KPI tile's tone), invested line
+     now danger (dashed, so it stays visually distinct from net-profit when
+     both are red) instead of orange; `funnel.tsx` bars colored by
+     drop-off severity; per-agent/per-product rate cells now use the same
+     `RateBar`/`RateCell` treatment `wilaya-section.tsx` already had
+     (extracted to `src/components/stats/rate-bar.tsx`, one shared
+     implementation, no more copies).
+  7. Added confirmation/delivery status breakdown charts
+     (`status-breakdown-bars.tsx`) to the existing Dashboard — fit fine at
+     the smaller-version size, no standalone analytics page needed. Needed
+     a new RPC field: migration `00011_dashboard_status_breakdown.sql` adds
+     `confirmation_breakdown`/`delivery_breakdown` (per-status counts) to
+     `dashboard_stats()`, same filtered order set the rest of the function
+     already computes. Types regenerated (`--local`).
+  8. Vivid per-option colors: extended the **existing** status/color system
+     (`src/lib/statuses.ts` + a new `ColorDot`/`TOKEN_DOT_CLASS` pair in
+     `components/ui/chip.tsx`) rather than building a second one. Two new
+     fixed-enum token maps (`ORDER_SOURCE_TOKEN`, `EXPENSE_CATEGORY_TOKEN`)
+     — these are Postgres enums like statuses, not `option_sets` (checked
+     Phase 12 §9's plan first: that's a whole DB-backed user-editable
+     taxonomy system, out of scope here, so this doesn't duplicate it, and
+     §9 can adopt the same token approach for user-created options later).
+     Wired into every enum `Select` in the app (dashboard/orders/finance
+     filter bars, the shared `CategorySelect`) and into `category-bars.tsx`
+     (was flat `bg-info` for every category, now per-category color).
+     Entity pickers (product/wilaya/agent) intentionally left uncolored —
+     they're dynamic lists, not a taxonomy, so there's no source-of-truth
+     color to draw from without inventing an ad-hoc one.
+- **Files:** `src/components/app-shell.tsx`,
+  `src/{app/app/dashboard,app/app/orders,app/app/finance}/*filter-bar.tsx`,
+  `src/app/app/dashboard/{page,wilaya-section}.tsx`,
+  `src/components/dashboard/{algeria-map,algeria-map.test,category-bars,time-chart,status-breakdown-bars}.tsx`
+  (new: `status-breakdown-bars.tsx`), `src/components/fields/{category-select,select-option-row}.tsx`
+  (new: `select-option-row.tsx`), `src/components/stats/{funnel,rate-bar}.tsx`
+  (new: `rate-bar.tsx`), `src/components/{locale-switcher,ui/chip}.tsx`,
+  `src/lib/{statuses,geo/algeria-wilayas}.ts` (new: `geo/algeria-wilayas.ts`),
+  `supabase/migrations/00011_dashboard_status_breakdown.sql`,
+  `src/lib/supabase/database.types.ts` (regenerated),
+  `src/messages/{en,ar}.json`, `package.json`/`package-lock.json`
+  (+`d3-geo`, `d3-delaunay`, `@types/d3-geo`, `@types/d3-delaunay`),
+  `.claude/skills/cod-ui-polish/references/components.md` (Navigation +
+  Map sections updated to describe the shipped behavior, not the reversed
+  phase-11 defaults).
+- **Decisions:** map uses a Voronoi-from-real-centroids approximation
+  clipped to the true national outline rather than full per-wilaya
+  administrative boundaries — this repo has no lightweight source for
+  those (the only public GeoJSON found was 22MB unsimplified or missing
+  most wilayas), and the phase doc explicitly allowed "simplified geometry
+  ... this is a choropleth, not a routing map." Status-breakdown charts
+  went on the existing Dashboard (smaller-version option), not a new
+  `/app/analytics` page — fit without feeling cramped at current seed-data
+  volume; revisit if a future phase's data volume changes that. Applied
+  two extra ponytail-review simplifications beyond the phase's own list:
+  extracted `RateCell` (bar + label, was duplicated 4x) and
+  `SelectOptionRow` (dot-or-plain-label SelectItem content, was duplicated
+  3x) into shared components.
+- **Known issues:** local Supabase grants gap discovered while testing —
+  a fresh `supabase db reset` leaves `service_role`/`authenticated`/`anon`
+  without base table GRANTs (only `Dxtm`, no `SELECT`/`INSERT`/`UPDATE`/
+  `DELETE`), because no migration in this repo ever issues
+  `ALTER DEFAULT PRIVILEGES`/`GRANT` — the working local setup this whole
+  project has relied on must have been patched by hand at some point,
+  outside of any migration file, so it doesn't survive a real reset. Not
+  a phase-12b bug and out of scope to fix here, but it will bite the next
+  session that needs to reset+reseed: for now, after `supabase db reset`,
+  run this once before seeding (local docker only, never against a linked
+  project):
+  ```sql
+  GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+  GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+  ```
+  A real fix belongs in its own migration (with per-table review — some of
+  these are financial/admin-only tables where a blanket grant is fine
+  since RLS is still the real wall, but worth doing deliberately, not
+  copy-pasted from this note). The local DB was reset+reseeded during this
+  phase (to apply migration 00011) using this workaround; row counts match
+  `docs/TESTING.md` (60 orders, 5 products, etc.) — verified via UI.
+- **Screenshot self-critique:** ran via Playwright MCP against
+  `admin@seed.mnw` on the local stack — `docs/design/audit/phase-12b/`
+  (10 screenshots): Dashboard in English/dark (full + nav-collapsed +
+  final sanity pass), the avatar dropdown open, Arabic desktop dark (the
+  exact previously-broken RTL case — confirmed fixed), Arabic mobile
+  closed/open drawer dark, Arabic desktop light, English desktop light.
+  Nothing needed fixing after the color/map/nav work — all four states
+  (loading/empty/error/populated) already existed on Dashboard from §5 and
+  weren't touched.
+- **Next chat must know:** `npm run build` + `npm test` (31 pass / 38
+  skipped) green. Forbidden-color grep = 0 on every file touched. Resume
+  Phase 12 §6 (Contacts) next — read `docs/phases/phase-12.md` §6 and
+  `docs/phases/section-checklists.md`. If you need to reset+reseed the
+  local DB, apply the grants workaround above first (see Known issues).

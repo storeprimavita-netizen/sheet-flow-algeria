@@ -16,6 +16,7 @@ export function Funnel({ stages }: { stages: { label: string; count: number; hre
         const pctOfTop = top > 0 ? (s.count / top) * 100 : 0;
         const prev = stages[i - 1]?.count;
         const drop = i > 0 && prev && prev > 0 ? ((prev - s.count) / prev) * 100 : null;
+        const barColor = drop === null ? "bg-primary" : drop >= 40 ? "bg-danger" : drop >= 20 ? "bg-warning" : "bg-success";
         const label = (
           <span className="flex items-baseline justify-between gap-2 text-sm">
             <span className="text-muted-foreground">{s.label}</span>
@@ -35,7 +36,7 @@ export function Funnel({ stages }: { stages: { label: string; count: number; hre
               label
             )}
             <div className="h-2 overflow-hidden rounded-full bg-surface-raised">
-              <div className={cn("h-full rounded-full bg-primary")} style={{ width: `${Math.max(2, pctOfTop)}%` }} />
+              <div className={cn("h-full rounded-full", barColor)} style={{ width: `${Math.max(2, pctOfTop)}%` }} />
             </div>
           </div>
         );

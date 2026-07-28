@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateField } from "@/components/fields/date-field";
 import { Chip } from "@/components/ui/chip";
+import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
+import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses";
 
-export type Opt = { value: string; label: string };
+export type Opt = { value: string; label: string; token?: StatusToken };
 
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
@@ -40,9 +42,21 @@ export function OrdersFilterBar({
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
-  const confOpts: Opt[] = CONFIRMATION_STATUSES.map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }));
-  const delivOpts: Opt[] = DELIVERY_STATUSES.map((s) => ({ value: s, label: t(`status.delivery_status.${s}`) }));
-  const sourceOpts: Opt[] = ORDER_SOURCES.map((s) => ({ value: s, label: t(`status.order_source.${s}`) }));
+  const confOpts: Opt[] = CONFIRMATION_STATUSES.map((s) => ({
+    value: s,
+    label: t(`status.confirmation_status.${s}`),
+    token: getStatus("confirmation", s)?.token,
+  }));
+  const delivOpts: Opt[] = DELIVERY_STATUSES.map((s) => ({
+    value: s,
+    label: t(`status.delivery_status.${s}`),
+    token: getStatus("delivery", s)?.token,
+  }));
+  const sourceOpts: Opt[] = ORDER_SOURCES.map((s) => ({
+    value: s,
+    label: t(`status.order_source.${s}`),
+    token: ORDER_SOURCE_TOKEN[s],
+  }));
 
   const selects: { key: string; label: string; opts: Opt[] }[] = [
     { key: "confirmation_status", label: t("fields.confirmation_status"), opts: confOpts },
@@ -79,7 +93,7 @@ export function OrdersFilterBar({
                 <SelectItem value={ALL}>{t("common.all")}</SelectItem>
                 {s.opts.map((o) => (
                   <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                    <SelectOptionRow label={o.label} token={o.token} />
                   </SelectItem>
                 ))}
               </SelectContent>

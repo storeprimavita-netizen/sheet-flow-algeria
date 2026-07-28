@@ -554,6 +554,10 @@
       "stopShippingManual": "علامة يدوية",
       "noData": "لا توجد بيانات"
     },
+    "statusBreakdown": {
+      "confirmationTitle": "توزيع حالة التأكيد",
+      "deliveryTitle": "توزيع حالة التوصيل"
+    },
     "byAgent": {
       "title": "معدلات حسب الموظف",
       "stage": "المرحلة",

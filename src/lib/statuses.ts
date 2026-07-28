@@ -154,6 +154,30 @@ export function getStatus(kind: StatusKind, key: string): StatusDef | undefined 
   return STATUS_KINDS[kind]?.[key];
 }
 
+/**
+ * Colors for fixed (non-transitional) enum fields — same token palette as
+ * statuses, so a source or category swatch reads as the same visual language
+ * as a status pill. Not `option_sets` (Phase 12 §9): those are user-editable
+ * taxonomies with their own color picker; these are Postgres enum values
+ * (`src/lib/enums.ts`), fixed like statuses, just without transitions.
+ */
+export const ORDER_SOURCE_TOKEN: Record<string, StatusToken> = {
+  shopify: "success",
+  lightfunnels: "cyan",
+  manual: "violet",
+};
+
+export const EXPENSE_CATEGORY_TOKEN: Record<string, StatusToken> = {
+  shooting: "violet",
+  packaging: "cyan",
+  sampling: "warning",
+  confirmation: "info",
+  delivery: "indigo",
+  test_ads: "orange",
+  scaling_ads: "danger",
+  other: "neutral",
+};
+
 /** Current status + its legal next states (both as full defs), for a status select. */
 export function transitionsFor(kind: StatusKind, current: string): StatusDef[] {
   const def = getStatus(kind, current);

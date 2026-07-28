@@ -50,7 +50,7 @@ Mapping: trends over time → line · comparisons across categories/wilayas/agen
 
 ## Map (dashboard only)
 
-One map in the entire app: delivery rate by wilaya, sitting beside its table. Inline SVG of Algeria's 58 wilayas, no tiles, no mapping library, no zoom/pan. Colored on a 4–5 step scale built from tokens (low rate → danger, high → success), with a legend showing the ranges. Wilayas below the minimum order threshold render neutral as "not enough data", never as a false extreme. Hover syncs highlight with the table row both ways; click filters the dashboard. "Stop shipping" wilayas get a distinct outline. Stacks below the table on narrow screens.
+One map in the entire app: delivery rate by wilaya, sitting beside its table. Inline SVG, no tiles, no tile server or API key, no zoom/pan. Real geography: `d3-geo` (Mercator projection fit to Algeria's national outline) + `d3-delaunay` (Voronoi cells from each wilaya's real chef-lieu coordinates, clipped to the outline) — `src/components/dashboard/algeria-map.tsx`, data in `src/lib/geo/algeria-wilayas.ts`. This repo doesn't carry full per-wilaya administrative boundaries (multi-MB even simplified), so cell edges are a Voronoi approximation, not true admin lines — it reads as Algeria's actual shape, not a grid, which is what matters for a "spot the pattern" choropleth. Colored on a 4–5 step scale built from tokens (low rate → danger, high → success), with a legend showing the ranges. Wilayas below the minimum order threshold render neutral as "not enough data", never as a false extreme. Hover syncs highlight with the table row both ways; click filters the dashboard. "Stop shipping" wilayas get a distinct outline. Stacks below the table on narrow screens.
 
 ## Kanban board (Tasks, and optionally Delivery)
 
@@ -58,7 +58,7 @@ Columns from the status set, counts in headers, cards sized to content with a ma
 
 ## Navigation
 
-Persistent left sidebar with **subsections always expanded** (nothing hidden behind an accordion click):
+Persistent left sidebar. **Only the active section's subsections are expanded** — every other section with children collapses to just its parent link (accordion, auto-expand on navigation, not user-toggled):
 
 ```
 Dashboard · Orders (All / Confirmation / Delivery) · Products ·
@@ -69,7 +69,7 @@ Performance / Users / Audit log) · Settings
 
 Finance is hidden entirely for agent roles (RLS-backed, not just hidden in the UI).
 
-Active item: background tint + left accent bar + colored icon. Live badges on Confirmation (pending), Delivery (awaiting deposit), Tasks (my open) — muted at zero. Collapses to an icon rail with tooltips; state persists. **⌘K command palette**: jump anywhere, search orders by phone or ID, search products and customers, run actions ("Add ad spend", "New order"). `?` shows the shortcut overlay.
+Active item: background tint + left accent bar + colored icon. Live badges on Confirmation (pending), Delivery (awaiting deposit), Tasks (my open) — muted at zero. Collapses to an icon rail with tooltips; state persists. The sidebar footer is a single avatar row that opens a dropdown menu (theme toggle, language switcher, sign out) rather than three stacked buttons. The brand mark (logo + name) lives in the top bar, not the sidebar header. **⌘K command palette**: jump anywhere, search orders by phone or ID, search products and customers, run actions ("Add ad spend", "New order"). `?` shows the shortcut overlay.
 
 ## States and feedback
 
