@@ -1,29 +1,29 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ListTodo } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { ORDER_SOURCES } from "@/lib/enums";
-import { Field, tableClass } from "@/components/field";
-import { MultiSelectSearch } from "@/components/multi-select-search";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ButtonLink } from "@/components/button-link";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
-import { Badge } from "@/components/ui/badge";
-import { AdSpendForm } from "@/components/finance/ad-spend-form";
+import { tableClass } from "@/components/field";
+import { ButtonLink } from "@/components/button-link";
+import { KpiTile } from "@/components/stats/kpi-tile";
+import { Funnel } from "@/components/stats/funnel";
+import { TimeChart } from "@/components/dashboard/time-chart";
+import { CategoryBars } from "@/components/dashboard/category-bars";
+import { AddAdSpendModal } from "@/components/dashboard/add-ad-spend-modal";
+import { WilayaSection, type WilayaRow } from "./wilaya-section";
+import { DashboardFilterBar, type Opt } from "./dashboard-filter-bar";
+import { financeQs, ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { DashboardExportButtons, type OrderExportRow } from "./export-button";
 
 // Dashboard is admin-only (AdminGuardLayout redirects agents to /app/orders —
 // Phase 1's "agents see only Orders, nothing else" per SPEC §2). The RPC
 // still gates money fields behind is_admin() as a second layer (RLS is the
-// wall, UI is cosmetic), but there is no agent-facing view to build here:
-// agents get their queue counts + personal stats from the Orders queues
-// themselves (Phase 5), not from this route.
+// wall, UI is cosmetic), but there is no agent-facing view to build here.
 
 type DashboardStats = {
   is_admin: boolean;
@@ -69,20 +69,21 @@ type DashboardStats = {
     delivery_rate: number | null;
     revenue_dzd: number;
   }[];
+  daily: { day: string; orders_received: number; orders_confirmed: number; orders_delivered: number; revenue_dzd: number; invested_dzd: number }[];
+  stop_shipping_min_orders: number;
 };
 
-function Bar({ pct, className = "bg-primary" }: { pct: number; className?: string }) {
-  const clamped = Math.max(0, Math.min(100, pct));
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-      <div className={`h-full rounded-full ${className}`} style={{ width: `${clamped}%` }} />
-    </div>
-  );
+/** Signed % change vs the previous period, or null when it can't be computed. */
+function pctDelta(curr: number | null | undefined, prev: number | null | undefined): number | null {
+  if (curr == null || prev == null) return null;
+  if (prev === 0) return curr === 0 ? 0 : null;
+  return ((curr - prev) / Math.abs(prev)) * 100;
 }
 
-function hours(seconds: number | null): string {
-  if (seconds === null) return "—";
-  return `${(seconds / 3600).toFixed(1)}h`;
+function isoDaysAgo(from: string, n: number): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
 }
 
 export default async function DashboardPage({
@@ -91,13 +92,7 @@ export default async function DashboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? sp[k] : "");
-  const getArr = (k: string): string[] => {
-    const v = sp[k];
-    if (!v) return [];
-    return Array.isArray(v) ? v : [v];
-  };
-  const MULTI_KEYS = ["product", "wilaya", "source", "conf_agent", "deliv_agent"];
+  const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : "");
 
   const t = await getTranslations();
   const profile = (await getProfile())!;
@@ -116,26 +111,48 @@ export default async function DashboardPage({
       .limit(1)
       .maybeSingle(),
   ]);
-  const confirmationAgents = (team ?? []).filter((a) => a.role === "confirmation_agent");
-  const deliveryAgents = (team ?? []).filter((a) => a.role === "delivery_agent");
+  const agents = (team ?? []).filter((a) => a.role !== "admin");
 
-  const filters = {
-    p_from: get("from") || undefined,
-    p_to: get("to") || undefined,
-    p_product: getArr("product").length ? getArr("product") : undefined,
-    p_wilaya: getArr("wilaya").length ? getArr("wilaya").map(Number) : undefined,
-    p_source: getArr("source").length ? (getArr("source") as Enums<"order_source">[]) : undefined,
-    p_conf_agent: getArr("conf_agent").length ? getArr("conf_agent") : undefined,
-    p_deliv_agent: getArr("deliv_agent").length ? getArr("deliv_agent") : undefined,
+  const filters: DashboardFilters = {
+    from: get("from") || undefined,
+    to: get("to") || undefined,
+    product: get("product") || undefined,
+    wilaya: get("wilaya") || undefined,
+    source: get("source") || undefined,
+    agent: get("agent") || undefined,
+    confirmation_status: get("confirmation_status") || undefined,
+    delivery_status: get("delivery_status") || undefined,
+  };
+
+  const rpcParams = {
+    p_from: filters.from,
+    p_to: filters.to,
+    p_product: filters.product ? [filters.product] : undefined,
+    p_wilaya: filters.wilaya ? [Number(filters.wilaya)] : undefined,
+    p_source: filters.source ? [filters.source as Enums<"order_source">] : undefined,
+    p_agent: filters.agent ? [filters.agent] : undefined,
+    p_confirmation_status: filters.confirmation_status ? [filters.confirmation_status as Enums<"confirmation_status">] : undefined,
+    p_delivery_status: filters.delivery_status ? [filters.delivery_status as Enums<"delivery_status">] : undefined,
   };
 
   const [{ data: rpcData }, usdRate, eurRate] = await Promise.all([
-    supabase.rpc("dashboard_stats", filters),
+    supabase.rpc("dashboard_stats", rpcParams),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
   ]);
   const stats = rpcData as unknown as DashboardStats;
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
+
+  // delta-vs-previous-period only makes sense for a bounded range — an
+  // unfiltered "all time" view has no natural "previous" to compare against.
+  let prevStats: DashboardStats | null = null;
+  if (filters.from && filters.to) {
+    const lengthDays = Math.round((new Date(filters.to).getTime() - new Date(filters.from).getTime()) / 86400000) + 1;
+    const prevTo = isoDaysAgo(filters.from, 1);
+    const prevFrom = isoDaysAgo(prevTo, lengthDays - 1);
+    const { data: prevData } = await supabase.rpc("dashboard_stats", { ...rpcParams, p_from: prevFrom, p_to: prevTo });
+    prevStats = prevData as unknown as DashboardStats;
+  }
 
   // CSV export needs raw rows, not aggregates — same filter set as the RPC,
   // applied via PostgREST instead of SQL.
@@ -147,13 +164,16 @@ export default async function DashboardPage({
       "order_number, placed_at, quantity, sale_price, confirmation_status, delivery_status, product:products(name), customer:customers(name), wilaya:wilayas(name)",
     )
     .limit(5000);
-  if (filters.p_from) orderQuery = orderQuery.gte("placed_at", filters.p_from);
-  if (filters.p_to) orderQuery = orderQuery.lte("placed_at", `${filters.p_to}T23:59:59`);
-  if (filters.p_product) orderQuery = orderQuery.in("product_id", filters.p_product);
-  if (filters.p_wilaya) orderQuery = orderQuery.in("wilaya_code", filters.p_wilaya);
-  if (filters.p_source) orderQuery = orderQuery.in("source", filters.p_source);
-  if (filters.p_conf_agent) orderQuery = orderQuery.in("assigned_confirmation_agent", filters.p_conf_agent);
-  if (filters.p_deliv_agent) orderQuery = orderQuery.in("assigned_delivery_agent", filters.p_deliv_agent);
+  if (filters.from) orderQuery = orderQuery.gte("placed_at", filters.from);
+  if (filters.to) orderQuery = orderQuery.lte("placed_at", `${filters.to}T23:59:59`);
+  if (filters.product) orderQuery = orderQuery.eq("product_id", filters.product);
+  if (filters.wilaya) orderQuery = orderQuery.eq("wilaya_code", Number(filters.wilaya));
+  if (filters.source) orderQuery = orderQuery.eq("source", filters.source as Enums<"order_source">);
+  if (filters.confirmation_status) orderQuery = orderQuery.eq("confirmation_status", filters.confirmation_status as Enums<"confirmation_status">);
+  if (filters.delivery_status) orderQuery = orderQuery.eq("delivery_status", filters.delivery_status as Enums<"delivery_status">);
+  // .or() takes a raw PostgREST filter string — validate the shape first (same guard orders/all uses).
+  const agentId = filters.agent && /^[0-9a-f-]{36}$/i.test(filters.agent) ? filters.agent : "";
+  if (agentId) orderQuery = orderQuery.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
   const { data: exportOrders } = await orderQuery;
 
   const exportRows: OrderExportRow[] = (exportOrders ?? []).map((o) => ({
@@ -180,168 +200,101 @@ export default async function DashboardPage({
     { label: t("dashboard.funnel.delivered"), value: stats.stage_counts.delivered },
   ];
 
-  const today = new Date().toISOString().slice(0, 10);
-  const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+  const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
+  const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: `${w.code}-${w.name}` }));
+  const agentOpts: Opt[] = agents.map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }));
 
-  const presetQs = (from: string, to: string) => {
-    const params = new URLSearchParams();
-    for (const k of MULTI_KEYS) for (const v of getArr(k)) params.append(k, v);
-    params.set("from", from);
-    params.set("to", to);
-    return `?${params.toString()}`;
-  };
+  const spark = (pick: (d: DashboardStats["daily"][number]) => number) => stats.daily.map(pick);
+
+  const wilayaRows: WilayaRow[] = stats.per_wilaya.map((w) => ({
+    code: w.wilaya_code,
+    name: w.wilaya_name,
+    totalOrders: w.total_orders,
+    confirmedOrders: w.confirmed_orders,
+    deliveredOrders: w.delivered_orders,
+    deliveryRate: w.delivery_rate,
+    stopShippingManual: w.stop_shipping_manual,
+    stopShippingAuto: w.stop_shipping_auto,
+  }));
+
+  const netProfit = stats.kpis.net_profit_dzd ?? 0;
+  const productsForForm = (products ?? []).map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.subtitle")} />
 
-      {/* filter bar */}
-      <form method="get" className="card-surface space-y-3 rounded-xl p-4">
-        <div className="flex flex-wrap gap-2">
-          <ButtonLink href={presetQs(today, today)} variant="outline" size="sm">
-            {t("dashboard.filters.today")}
-          </ButtonLink>
-          <ButtonLink href={presetQs(daysAgo(6), today)} variant="outline" size="sm">
-            {t("dashboard.filters.last7")}
-          </ButtonLink>
-          <ButtonLink href={presetQs(daysAgo(29), today)} variant="outline" size="sm">
-            {t("dashboard.filters.last30")}
-          </ButtonLink>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-          <Field label={t("fields.from")}>
-            <Input type="date" name="from" defaultValue={get("from")} />
-          </Field>
-          <Field label={t("fields.to")}>
-            <Input type="date" name="to" defaultValue={get("to")} />
-          </Field>
-          <Field label={t("fields.product")}>
-            <MultiSelectSearch
-              name="product"
-              defaultValues={getArr("product")}
-              options={(products ?? []).map((p) => ({ value: p.id, label: p.name }))}
-            />
-          </Field>
-          <Field label={t("fields.wilaya")}>
-            <MultiSelectSearch
-              name="wilaya"
-              defaultValues={getArr("wilaya")}
-              options={(wilayas ?? []).map((w) => ({ value: String(w.code), label: `${w.code}-${w.name}` }))}
-            />
-          </Field>
-          <Field label={t("fields.source")}>
-            <MultiSelectSearch
-              name="source"
-              defaultValues={getArr("source")}
-              options={ORDER_SOURCES.map((s) => ({ value: s, label: t(`status.order_source.${s}`) }))}
-            />
-          </Field>
-          <Field label={t("workbench.assignConfirmation")}>
-            <MultiSelectSearch
-              name="conf_agent"
-              defaultValues={getArr("conf_agent")}
-              options={confirmationAgents.map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }))}
-            />
-          </Field>
-          <Field label={t("workbench.assignDelivery")}>
-            <MultiSelectSearch
-              name="deliv_agent"
-              defaultValues={getArr("deliv_agent")}
-              options={deliveryAgents.map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }))}
-            />
-          </Field>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button type="submit">{t("actions.search")}</Button>
-          <ButtonLink href="/app/dashboard" variant="ghost">
-            {t("actions.cancel")}
-          </ButtonLink>
-        </div>
-      </form>
+      <DashboardFilterBar products={productOpts} wilayas={wilayaOpts} agents={agentOpts} />
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {[
-          [t("dashboard.kpi.revenue"), formatCurrency(stats.kpis.revenue_dzd)],
-          [t("dashboard.kpi.invested"), formatCurrency(stats.kpis.invested_dzd)],
-          [t("dashboard.kpi.netProfit"), formatCurrency(stats.kpis.net_profit_dzd)],
-          [t("dashboard.kpi.confirmationRate"), stats.kpis.confirmation_rate !== null ? `${stats.kpis.confirmation_rate}%` : "—"],
-          [t("dashboard.kpi.deliveryRate"), stats.kpis.delivery_rate !== null ? `${stats.kpis.delivery_rate}%` : "—"],
-        ].map(([label, value]) => (
-          <div key={label} className="card-surface rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">{label}</div>
-            <div className="mt-1 text-lg font-semibold">{value}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <KpiTile
+          label={t("dashboard.kpi.revenue")}
+          value={formatCurrency(stats.kpis.revenue_dzd)}
+          tone="success"
+          delta={pctDelta(stats.kpis.revenue_dzd, prevStats?.kpis.revenue_dzd)}
+          spark={spark((d) => d.revenue_dzd)}
+          href={ordersQs(filters, { delivery_status: "delivered" })}
+        />
+        <KpiTile
+          label={t("dashboard.kpi.invested")}
+          value={formatCurrency(stats.kpis.invested_dzd)}
+          tone="danger"
+          delta={pctDelta(stats.kpis.invested_dzd, prevStats?.kpis.invested_dzd)}
+          spark={spark((d) => d.invested_dzd)}
+          href={`/app/finance/expenses${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`}
+        />
+        <KpiTile
+          label={t("dashboard.kpi.netProfit")}
+          value={formatCurrency(stats.kpis.net_profit_dzd)}
+          tone={netProfit >= 0 ? "success" : "danger"}
+          delta={pctDelta(stats.kpis.net_profit_dzd, prevStats?.kpis.net_profit_dzd)}
+          spark={spark((d) => d.revenue_dzd - d.invested_dzd)}
+        />
+        <KpiTile
+          label={t("dashboard.kpi.confirmationRate")}
+          value={stats.kpis.confirmation_rate !== null ? `${stats.kpis.confirmation_rate}%` : "—"}
+          delta={pctDelta(stats.kpis.confirmation_rate, prevStats?.kpis.confirmation_rate)}
+          spark={spark((d) => (d.orders_received > 0 ? (100 * d.orders_confirmed) / d.orders_received : 0))}
+          href={ordersQs(filters)}
+        />
+        <KpiTile
+          label={t("dashboard.kpi.deliveryRate")}
+          value={stats.kpis.delivery_rate !== null ? `${stats.kpis.delivery_rate}%` : "—"}
+          delta={pctDelta(stats.kpis.delivery_rate, prevStats?.kpis.delivery_rate)}
+          spark={spark((d) => (d.orders_confirmed > 0 ? (100 * d.orders_delivered) / d.orders_confirmed : 0))}
+          href={ordersQs(filters, { delivery_status: "delivered" })}
+        />
+        <KpiTile
+          label={t("dashboard.kpi.orders")}
+          value={String(stats.stage_counts.received)}
+          delta={pctDelta(stats.stage_counts.received, prevStats?.stage_counts.received)}
+          spark={spark((d) => d.orders_received)}
+          href={ordersQs(filters)}
+        />
       </div>
 
-      {/* funnel */}
-      <div className="card-surface space-y-3 rounded-xl p-5">
-        <h2 className="text-sm font-semibold">{t("dashboard.funnel.title")}</h2>
-        {stats.funnel.map((f, i) => {
-          const prev = i > 0 ? stats.funnel[i - 1].count : null;
-          const dropOff = prev && prev > 0 ? Math.round(100 * (1 - f.count / prev)) : null;
-          const pct = stats.stage_counts.received > 0 ? (100 * f.count) / stats.stage_counts.received : 0;
-          return (
-            <div key={f.stage} className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{t(`dashboard.funnel.${f.stage as "received" | "confirmed" | "shipped" | "delivered"}`)}</span>
-                <span>
-                  {f.count}
-                  {dropOff !== null ? ` · -${dropOff}% ${t("dashboard.funnel.dropOff")}` : ""}
-                </span>
-              </div>
-              <Bar pct={pct} />
-            </div>
-          );
-        })}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* funnel */}
+        <div className="card-surface space-y-3 rounded-xl p-5">
+          <h2 className="text-sm font-semibold">{t("dashboard.funnel.title")}</h2>
+          <Funnel
+            stages={stats.funnel.map((f) => ({
+              label: t(`dashboard.funnel.${f.stage as "received" | "confirmed" | "shipped" | "delivered"}`),
+              count: f.count,
+            }))}
+          />
+        </div>
+
+        {/* profit/spend over time */}
+        <div className="card-surface space-y-3 rounded-xl p-5">
+          <h2 className="text-sm font-semibold">{t("dashboard.timeChart.title")}</h2>
+          <TimeChart daily={stats.daily} />
+        </div>
       </div>
 
-      {/* per-wilaya */}
-      <div className="card-surface overflow-hidden rounded-xl">
-        <h2 className="p-5 pb-0 text-sm font-semibold">{t("dashboard.wilaya.title")}</h2>
-        {!stats.per_wilaya.length ? (
-          <div className="p-5">
-            <Empty>{t("dashboard.noData")}</Empty>
-          </div>
-        ) : (
-          <div className="overflow-x-auto p-5 pt-3">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th>{t("fields.wilaya")}</th>
-                  <th>{t("common.total")}</th>
-                  <th>{t("dashboard.funnel.confirmed")}</th>
-                  <th>{t("dashboard.funnel.delivered")}</th>
-                  <th>{t("dashboard.kpi.deliveryRate")}</th>
-                  <th>{t("dashboard.wilaya.stopShippingManual")}</th>
-                  <th>{t("dashboard.wilaya.stopShippingAuto")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.per_wilaya.map((w) => (
-                  <tr key={w.wilaya_code}>
-                    <td>{w.wilaya_name ? `${w.wilaya_code}-${w.wilaya_name}` : w.wilaya_code}</td>
-                    <td>{w.total_orders}</td>
-                    <td>{w.confirmed_orders}</td>
-                    <td>{w.delivered_orders}</td>
-                    <td className="min-w-32">
-                      <div className="flex items-center gap-2">
-                        <Bar pct={w.delivery_rate ?? 0} />
-                        <span className="w-10 shrink-0 text-end text-xs">
-                          {w.delivery_rate !== null ? `${w.delivery_rate}%` : "—"}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{w.stop_shipping_manual ? <Badge variant="destructive">🚫</Badge> : "—"}</td>
-                    <td>{w.stop_shipping_auto ? <Badge variant="destructive">🚫</Badge> : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* per-wilaya table + choropleth */}
+      <WilayaSection rows={wilayaRows} minOrders={stats.stop_shipping_min_orders} filters={filters} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* per-agent */}
@@ -366,13 +319,17 @@ export default async function DashboardPage({
                 <tbody>
                   {stats.per_agent.map((a, i) => (
                     <tr key={`${a.user_id}-${a.stage}-${i}`}>
-                      <td>{a.display_name ?? a.user_id.slice(0, 8)}</td>
-                      <td className="capitalize">{a.stage}</td>
-                      <td>{a.orders_handled}</td>
                       <td>
+                        <Link href={ordersQs(filters, { agent: a.user_id })} className="hover:underline">
+                          {a.display_name ?? a.user_id.slice(0, 8)}
+                        </Link>
+                      </td>
+                      <td className="capitalize">{a.stage}</td>
+                      <td className="num">{a.orders_handled}</td>
+                      <td className="num">
                         {a.stage === "confirmation" ? a.confirmed : a.delivered}/{a.orders_handled}
                       </td>
-                      <td>{hours(a.avg_decision_seconds)}</td>
+                      <td className="num">{a.avg_decision_seconds != null ? `${(a.avg_decision_seconds / 3600).toFixed(1)}h` : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -402,10 +359,14 @@ export default async function DashboardPage({
                 <tbody>
                   {stats.per_product.map((p) => (
                     <tr key={p.product_id}>
-                      <td>{p.name}</td>
-                      <td>{p.confirmation_rate !== null ? `${p.confirmation_rate}%` : "—"}</td>
-                      <td>{p.delivery_rate !== null ? `${p.delivery_rate}%` : "—"}</td>
-                      <td>{formatCurrency(p.revenue_dzd)}</td>
+                      <td>
+                        <Link href={`/app/products/${p.product_id}/statistics`} className="hover:underline">
+                          {p.name}
+                        </Link>
+                      </td>
+                      <td className="num">{p.confirmation_rate !== null ? `${p.confirmation_rate}%` : "—"}</td>
+                      <td className="num">{p.delivery_rate !== null ? `${p.delivery_rate}%` : "—"}</td>
+                      <td className="num">{formatCurrency(p.revenue_dzd)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -419,18 +380,11 @@ export default async function DashboardPage({
         {/* category spending */}
         <div className="card-surface space-y-3 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.categorySpending.title")}</h2>
-          {!stats.category_spending.length ? (
-            <Empty>{t("dashboard.noData")}</Empty>
-          ) : (
-            <ul className="space-y-1 text-sm">
-              {stats.category_spending.map((c) => (
-                <li key={c.category} className="flex justify-between">
-                  <span className="text-muted-foreground">{t(`status.expense_category.${c.category}`)}</span>
-                  <span>{formatCurrency(c.amount_dzd)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <CategoryBars
+            rows={stats.category_spending.map((c) => ({ category: c.category, label: t(`status.expense_category.${c.category}`), amount_dzd: c.amount_dzd }))}
+            hrefFor={(category) => `/app/finance/expenses${financeQs({ from: filters.from, to: filters.to }, { category, product: filters.product })}`}
+            emptyLabel={t("dashboard.noData")}
+          />
         </div>
 
         {/* next meeting */}
@@ -451,7 +405,29 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <AdSpendForm products={products ?? []} rates={rates} />
+      {/* my open tasks — no tasks table yet (Phase 12 §7 builds it); an honest
+          empty state beats a fake board. */}
+      <div className="card-surface space-y-2 rounded-xl p-5">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <ListTodo className="h-4 w-4 text-muted-foreground" />
+          {t("dashboard.myTasks.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t("dashboard.myTasks.none")}</p>
+      </div>
+
+      {/* quick actions */}
+      <div className="card-surface space-y-3 rounded-xl p-5">
+        <h2 className="text-sm font-semibold">{t("dashboard.quickActions.title")}</h2>
+        <div className="flex flex-wrap gap-2">
+          <AddAdSpendModal products={productsForForm} rates={rates} />
+          <ButtonLink href="/app/orders/new" variant="outline">
+            {t("orders.new")}
+          </ButtonLink>
+          <ButtonLink href="/app/finance/expenses" variant="outline">
+            {t("expenses.new")}
+          </ButtonLink>
+        </div>
+      </div>
 
       <DashboardExportButtons orders={exportRows} summary={summaryRows} />
     </div>

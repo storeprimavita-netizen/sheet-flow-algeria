@@ -15,15 +15,6 @@ type Opt = { value: string; label: string };
 
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
-/** Builds a `?from=&to=&...` query string, carrying the current date range into a drill-through link. */
-export function financeQs(dateRange: { from?: string; to?: string }, extra: Record<string, string | undefined>): string {
-  const params = new URLSearchParams();
-  if (dateRange.from) params.set("from", dateRange.from);
-  if (dateRange.to) params.set("to", dateRange.to);
-  for (const [k, v] of Object.entries(extra)) if (v) params.set(k, v);
-  return `?${params.toString()}`;
-}
-
 /**
  * URL-persisted filter bar shared by every Finance subsection (date range +
  * optional product/category/kind) — same shape as orders-filter-bar.tsx.

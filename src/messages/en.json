@@ -522,7 +522,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Welcome back. Here's what's being built.",
+    "subtitle": "Filtered overview of orders, spend, and delivery performance.",
     "filters": {
       "today": "Today",
       "last7": "Last 7 days",
@@ -533,7 +533,11 @@
       "invested": "Invested",
       "netProfit": "Net profit",
       "confirmationRate": "Confirmation rate",
-      "deliveryRate": "Delivery rate"
+      "deliveryRate": "Delivery rate",
+      "orders": "Orders"
+    },
+    "timeChart": {
+      "title": "Profit and spend over time"
     },
     "funnel": {
       "title": "Funnel",
@@ -545,8 +549,10 @@
     },
     "wilaya": {
       "title": "Per-wilaya",
+      "stopShipping": "Stop shipping",
       "stopShippingAuto": "Auto flag",
-      "stopShippingManual": "Manual flag"
+      "stopShippingManual": "Manual flag",
+      "noData": "No data"
     },
     "byAgent": {
       "title": "Per-agent rates",
@@ -564,10 +570,17 @@
       "orders": "Orders",
       "summary": "Summary"
     },
+    "quickActions": {
+      "title": "Quick actions"
+    },
     "meeting": {
       "title": "Next meeting",
       "none": "No upcoming meeting.",
       "viewTeam": "Team & Rules"
+    },
+    "myTasks": {
+      "title": "My open tasks",
+      "none": "Task board isn't built yet — coming in a later phase."
     },
     "agentView": {
       "queue": "Your queue",
