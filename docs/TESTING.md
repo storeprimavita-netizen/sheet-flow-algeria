@@ -44,6 +44,11 @@ can't see another workspace's rows.
 - 3 contacts, 10 expenses, 48 ad-spend rows (mixed test/scaling kind, mixed
   EUR/USD/DZD), 2 meetings (one planned ~3 days out), 2 rules docs.
 - Exchange rates: EUR 260, USD 240 (fixed, not live — deterministic seed).
+- `stop_shipping_rule` is overridden to `{min_orders: 3, min_delivery_rate: 40}`
+  for this workspace only (the real default every other workspace gets from
+  `seed_workspace()` is `min_orders: 10`) — at 10 the dashboard's wilaya map
+  never colors anything against this seed's ~5 orders/wilaya. Don't take this
+  `3` as the "right" production default; it's a demo-data accommodation.
 
 ## Re-seeding / resetting
 
