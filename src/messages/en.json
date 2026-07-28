@@ -203,7 +203,8 @@
     "agent": "Agent",
     "from": "From",
     "to": "To",
-    "none": "—"
+    "none": "—",
+    "lastOrder": "Last order"
   },
   "products": {
     "title": "Products",
@@ -263,8 +264,7 @@
     "points": "Points",
     "orderHistory": "Order history",
     "noOrders": "No orders yet.",
-    "linkedExpenses": "Linked expenses",
-    "noExpenses": "No linked expenses yet."
+    "linkedExpenses": "Linked expenses"
   },
   "orders": {
     "title": "Orders",

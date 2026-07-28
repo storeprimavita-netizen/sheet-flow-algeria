@@ -1,15 +1,13 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { normalizeDzPhone } from "@/lib/customers";
+import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Empty } from "@/components/empty";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { tableClass } from "@/components/field";
-import { RiskBadge } from "@/components/risk-badge";
 import { ContactTabs } from "./tabs";
+import { CustomersTable, type CustomerRow, type CustomerOrder } from "./customers-table";
 
 export default async function CustomersPage({
   searchParams,
@@ -38,6 +36,64 @@ export default async function CustomersPage({
     customers = data ?? [];
   }
 
+  const customerIds = customers.map((c) => c.id);
+  const { data: orders } = customerIds.length
+    ? await supabase
+        .from("orders")
+        .select(
+          "id, customer_id, order_number, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)",
+        )
+        .in("customer_id", customerIds)
+        .order("placed_at", { ascending: false })
+    : { data: [] };
+
+  const ordersByCustomer = new Map<string, CustomerOrder[]>();
+  const lastOrderAt = new Map<string, string | null>();
+  for (const o of orders ?? []) {
+    if (!o.customer_id) continue;
+    const list = ordersByCustomer.get(o.customer_id) ?? [];
+    list.push({
+      id: o.id,
+      order_number: o.order_number,
+      product_name: o.product?.name ?? null,
+      quantity: o.quantity,
+      sale_price: o.sale_price,
+      confirmation_status: o.confirmation_status,
+      delivery_status: o.delivery_status,
+      placed_at: o.placed_at,
+    });
+    ordersByCustomer.set(o.customer_id, list);
+    if (!lastOrderAt.has(o.customer_id)) lastOrderAt.set(o.customer_id, o.placed_at);
+  }
+
+  const rows: CustomerRow[] = sortRows(
+    customers
+      .filter((c): c is typeof c & { id: string } => Boolean(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name ?? "—",
+        phone: c.phone ?? "—",
+        wilaya_name: c.wilaya_code ? (wilayaName.get(c.wilaya_code) ?? String(c.wilaya_code)) : null,
+        commune: c.commune,
+        total_orders: c.total_orders ?? 0,
+        delivered_orders: c.delivered_orders ?? 0,
+        returned_orders: c.returned_orders ?? 0,
+        cancelled_orders: c.cancelled_orders ?? 0,
+        no_answer_orders: c.no_answer_orders ?? 0,
+        risk_score: c.risk_score ?? 0,
+        last_order_at: lastOrderAt.get(c.id) ?? null,
+        orders: ordersByCustomer.get(c.id) ?? [],
+      })),
+    {
+      name: (r) => r.name.toLowerCase(),
+      total_orders: (r) => r.total_orders,
+      risk: (r) => r.risk_score,
+      last_order: (r) => r.last_order_at ?? "",
+    },
+    typeof sp.sort === "string" ? sp.sort : null,
+    sp.dir === "desc" ? "desc" : "asc",
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("contacts.title")} subtitle={t("contacts.subtitle")} />
@@ -49,48 +105,7 @@ export default async function CustomersPage({
         <Button type="submit">{t("actions.search")}</Button>
       </form>
 
-      {!customers.length ? (
-        <Empty>{t("contacts.customersNone")}</Empty>
-      ) : (
-        <div className="card-surface overflow-hidden rounded-xl">
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th>{t("fields.name")}</th>
-                  <th>{t("fields.phone")}</th>
-                  <th>{t("fields.wilaya")}</th>
-                  <th>{t("common.total")}</th>
-                  <th>{t("status.delivery_status.delivered")}</th>
-                  <th>{t("status.delivery_status.returned")}</th>
-                  <th>{t("fields.risk")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/30">
-                    <td>
-                      <Link href={`/app/contacts/${c.id}`} className="font-medium hover:underline">
-                        {c.name}
-                      </Link>
-                    </td>
-                    <td className="text-muted-foreground">{c.phone}</td>
-                    <td className="text-muted-foreground">
-                      {c.wilaya_code ? (wilayaName.get(c.wilaya_code) ?? c.wilaya_code) : "—"}
-                    </td>
-                    <td>{c.total_orders ?? 0}</td>
-                    <td>{c.delivered_orders ?? 0}</td>
-                    <td>{c.returned_orders ?? 0}</td>
-                    <td>
-                      <RiskBadge score={c.risk_score ?? 0} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <CustomersTable rows={rows} />
     </div>
   );
 }

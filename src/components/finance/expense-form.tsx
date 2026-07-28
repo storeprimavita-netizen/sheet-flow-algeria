@@ -30,6 +30,7 @@ export function ExpenseForm({
   productId,
   products,
   suppliers,
+  contactId,
   rates,
   onDone,
 }: {
@@ -37,6 +38,7 @@ export function ExpenseForm({
   productId?: string;
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   suppliers: { id: string; name: string }[];
+  contactId?: string;
   rates: { USD: number; EUR: number };
   onDone?: () => void;
 }) {
@@ -63,6 +65,7 @@ export function ExpenseForm({
     <form onSubmit={onSubmit} className="space-y-4">
       <input type="hidden" name="id" value={expense?.id ?? ""} />
       {productId ? <input type="hidden" name="product_id" value={productId} /> : null}
+      {contactId ? <input type="hidden" name="contact_id" value={contactId} /> : null}
 
       {!productId ? (
         <Field label={t("fields.product")} hint={t("common.optional")}>
@@ -91,13 +94,15 @@ export function ExpenseForm({
         <Field label={t("fields.incurred_on")}>
           <DateField name="spent_on" defaultValue={expense?.spent_on ?? today} />
         </Field>
-        <Field label={t("fields.supplier")} hint={t("common.optional")}>
-          <EnumSelect
-            name="contact_id"
-            defaultValue={expense?.contact_id ?? "__none"}
-            options={[{ value: "__none", label: t("fields.none") }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
-          />
-        </Field>
+        {!contactId ? (
+          <Field label={t("fields.supplier")} hint={t("common.optional")}>
+            <EnumSelect
+              name="contact_id"
+              defaultValue={expense?.contact_id ?? "__none"}
+              options={[{ value: "__none", label: t("fields.none") }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
+            />
+          </Field>
+        ) : null}
       </div>
 
       <Field label={t("fields.notes")} hint={t("common.optional")}>

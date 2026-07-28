@@ -178,6 +178,13 @@ export const EXPENSE_CATEGORY_TOKEN: Record<string, StatusToken> = {
   other: "neutral",
 };
 
+export const SUPPLIER_TYPE_TOKEN: Record<string, StatusToken> = {
+  shooting_studio: "violet",
+  atelier_couture: "cyan",
+  emballage: "orange",
+  other: "neutral",
+};
+
 /** Current status + its legal next states (both as full defs), for a status select. */
 export function transitionsFor(kind: StatusKind, current: string): StatusDef[] {
   const def = getStatus(kind, current);
