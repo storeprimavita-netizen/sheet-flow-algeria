@@ -28,7 +28,7 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
-| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance, §5 Dashboard done) |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance, §5 Dashboard, §6 Contacts done) |
 | 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
 
 ## Planning (2026-07-26, Fable) — DONE
@@ -1896,3 +1896,119 @@ getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
   against `localhost`; use a tunnel or a deployed URL for that step), then
   test one push end-to-end. Local DB was reset to apply migration 00012 —
   same grants workaround as above was needed again after reset.
+
+## Phase 12 §6 — Contacts (2026-07-28) — DONE
+
+- Scope: section 6 of 9. Rebuilt Contacts (Customers + Suppliers) onto the
+  §1 `<DataTable>` and the status/field system — the section had been left
+  on Phase 8's plain HTML tables and native `<select>`.
+- **Customers** (`contacts/page.tsx` + new `customers-table.tsx`, client):
+  `<DataTable>` with the checklist's columns (name, phone `tel:` link,
+  wilaya, total/delivered/returned, `<RiskBadge>` now showing its `reason`
+  prop for the first time — "1 Returned · 1 Cancelled" etc., computed from
+  the same counts as the risk-breakdown table — and a `defaultHidden` "Last
+  order" column). Sort is in-memory (new `sortRows()` in `lib/utils.ts`,
+  shared with Suppliers below) since the list isn't paginated at this
+  app's scale. **Detail sheet**: risk badge + reason, phone/wilaya/commune,
+  stat tiles, and a **full order-history timeline** (every order, not
+  capped like the confirmation queue's "previous orders" — the checklist
+  asked for "full") with dual status pills, linking each order and an
+  "Open full page" icon to `/app/contacts/[id]` for editing. "Last order"
+  and the sheet's order list both come from one extra `orders` query
+  grouped by `customer_id` in JS (Phase 5's established pattern), not a DB
+  view change.
+- **Customer full page** (`[id]/page.tsx`): risk-score Badge → `<RiskBadge>`,
+  order-history Badges → `<StatusPill>`, money cells gained `.num`. The
+  native wilaya `<select>` couldn't just become `WilayaCombobox` in place —
+  passing a fixed `customer.wilaya_code` as the Combobox's `value` prop
+  with no `onChange` pins it forever (Combobox is `value ?? internal`, so a
+  parent-supplied `value` that never changes overrides every click). Fixed
+  by extracting a new client **`<CustomerForm>`** (`contacts/customer-form.tsx`,
+  local `useState` for the wilaya code, submits through the existing
+  `saveCustomer` server action via `.bind()` — confirmed against Next 16's
+  own docs that `.bind()` on a server action works from a Client Component
+  same as a Server Component) — this is also the shared `<CustomerForm>`
+  `interconnection.md` calls for, not just a bugfix-shaped detour.
+  Live-verified interactively: opened the combobox, picked a different
+  wilaya, confirmed the trigger label actually updates (not stuck on the
+  initial value).
+- **Suppliers list** (`suppliers/page.tsx` + new `suppliers-table.tsx`):
+  `<DataTable>` with a type chip (icon + token color: shooting_studio
+  camera/violet, atelier_couture scissors/cyan, emballage package/orange,
+  other ellipsis/neutral — new `SUPPLIER_TYPE_TOKEN` in `lib/statuses.ts`
+  + `SupplierTypeSelect`/`SUPPLIER_TYPE_ICONS` in new
+  `components/fields/supplier-type-select.tsx`, mirroring §3's
+  `CategorySelect`/`CATEGORY_ICONS`), click-to-call phone, and a
+  **linked-expenses total column** (one extra `expenses` query grouped by
+  `contact_id` in JS, same shape as the customer "last order" query).
+  Row kebab → Edit link; name cell links straight to the detail page (no
+  sheet here — suppliers are full CRUD records with their own edit form,
+  matching how the Products grid links to a full page rather than a sheet).
+- **Supplier form** (`contact-form.tsx`): native `<select>` → `SupplierTypeSelect`,
+  raw phone `<Input>` → `PhoneField`. Both are plain uncontrolled fields
+  (Radix `defaultValue` / `PhoneField`'s own internal `useState(defaultValue)`)
+  so, unlike the wilaya combobox above, they work directly in the existing
+  async server-component form with no client-wrapper needed.
+- **Supplier detail — now the third home of the shared expense component**
+  (interconnection.md names it explicitly: "Supplier detail" alongside the
+  product Expenses tab and Finance → Expenses, "opening it from a supplier
+  pre-fills the supplier"). Deleted the old hand-rolled read-only expense
+  table and replaced it with the real `<ExpenseTable contactId={id} .../>`,
+  giving suppliers add/edit/delete for the first time. Required two small,
+  symmetric additions to the shared components (mirroring the existing
+  `productId` lock): `ExpenseForm` gained `contactId?` (hidden input +
+  skips rendering the supplier picker when set) and `ExpenseTable` gained
+  `contactId?` (threaded to the form) plus a **new "Product" column**
+  (previously missing entirely — `ExpenseTable` had a supplier column but
+  never a product one) shown whenever `contactId` is set and hidden
+  whenever `productId` is set, and vice versa for the supplier column, so
+  neither locked context shows a redundant always-the-same value. Also
+  added the missing `revalidatePath(/app/contacts/suppliers/${contact_id})`
+  to `saveExpense` (had `product_id`'s revalidate but not `contact_id`'s).
+  Live-verified: "New expense" from a supplier's page opens the sheet with
+  no Supplier field, a Product picker, and saves against the same
+  `saveExpense` action the product tab and Finance use.
+- **ponytail-review pass**: extracted the two near-identical ~12-line
+  "read `?sort=`/`?dir=`, sort an array in memory" blocks (Customers +
+  Suppliers pages) into `sortRows()` in `lib/utils.ts`. Also moved
+  `SupplierTypeChip` out of the shared `supplier-type-select.tsx` (it only
+  had one call site, in `suppliers-table.tsx`) into a local unexported
+  `TypeChip` there, matching `expense-table.tsx`'s existing `CategoryChip`
+  convention (colocated with its sole consumer, not exported for a second
+  caller that doesn't exist yet).
+- **Screenshot self-critique (dark + light + Arabic/RTL, local seed
+  stack)**: an already-running `npm run dev` (local Supabase docker,
+  `admin@seed.mnw` session) on port 3000 was reused rather than starting a
+  second instance. `docs/design/audit/contacts-{customers,suppliers}-{dark,
+  light}.png`, `contacts-customer-{sheet,detail}-dark.png`,
+  `contacts-customer-detail-light.png`, `contacts-supplier-detail-{dark,
+  light}.png`, `contacts-supplier-newexpense-dark.png`,
+  `contacts-customers-ar-rtl.png`. All four states, both themes, sheet +
+  full-page drill-through, click-to-call, and the Arabic/RTL customers list
+  (sidebar mirrored, risk pill translated, no layout breakage) render
+  correctly; console clean (0 errors/warnings) through the whole pass. No
+  fixes needed from the shots — the only real bug found this session (the
+  Combobox `value`-without-`onChange` pinning) was caught by interaction
+  testing, not the screenshots, and is written up above.
+- Known / for consumers: Customers list is unpaginated (fetches the whole
+  workspace, same as before this session) — fine at this app's seed scale
+  (24 customers), revisit with real `<DataTable total=/>` server pagination
+  if a workspace's customer count ever grows large. `sortRows()` is a
+  small in-memory sort meant for exactly this unpaginated-list shape — a
+  server-paginated list (like Orders/All) still needs its own `.order()`
+  mapping, not this helper. `ExpenseTable`'s new Product column is now live
+  on Finance → Expenses and the product Expenses tab too (both previously
+  had no product column at all) — purely additive, not a regression, but
+  worth knowing before touching that component again.
+- **Next chat must know:** `npm run build` + `npm test` green (31 pass / 38
+  RLS-suite skipped, unchanged — no new test file; this section is UI/
+  queries over already-tested `customer_stats`/RLS, nothing new to
+  unit-test), forbidden-color grep = 0, no native `<select>`/raw `<input>`
+  in `src/app/app/contacts`, `graphify update .` run (1366 nodes, 3289
+  edges, 113 communities). **Phase 12 §7 (Team & Rules)** is next: Rules/
+  Meetings/Tasks-kanban/Performance/Users/Audit-log onto the same table +
+  status + field components — read `docs/phases/phase-12.md` §7 and
+  `.claude/skills/cod-ui-polish/references/section-checklists.md` first.
+  If merge conflicts appear touching `lib/statuses.ts` or `lib/utils.ts`,
+  this session only appended `SUPPLIER_TYPE_TOKEN` and `sortRows()`
+  respectively — nothing else in those files changed.

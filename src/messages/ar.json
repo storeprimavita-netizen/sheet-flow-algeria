@@ -203,7 +203,8 @@
     "agent": "الموظف",
     "from": "من",
     "to": "إلى",
-    "none": "—"
+    "none": "—",
+    "lastOrder": "آخر طلب"
   },
   "products": {
     "title": "المنتجات",
@@ -263,8 +264,7 @@
     "points": "النقاط",
     "orderHistory": "سجل الطلبات",
     "noOrders": "لا توجد طلبات بعد.",
-    "linkedExpenses": "المصاريف المرتبطة",
-    "noExpenses": "لا توجد مصاريف مرتبطة بعد."
+    "linkedExpenses": "المصاريف المرتبطة"
   },
   "orders": {
     "title": "الطلبات",

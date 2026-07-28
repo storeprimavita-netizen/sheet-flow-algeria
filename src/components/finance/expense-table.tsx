@@ -43,12 +43,14 @@ export function ExpenseTable({
   productId,
   products,
   suppliers,
+  contactId,
   rates,
 }: {
   expenses: ExpenseRow[];
   productId?: string;
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   suppliers: { id: string; name: string }[];
+  contactId?: string;
   rates: { USD: number; EUR: number };
 }) {
   const t = useTranslations();
@@ -57,6 +59,7 @@ export function ExpenseTable({
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
   const supplierName = React.useMemo(() => new Map(suppliers.map((s) => [s.id, s.name])), [suppliers]);
+  const productName = React.useMemo(() => new Map((products ?? []).map((p) => [p.id, p.name])), [products]);
 
   const totalsByCategory = React.useMemo(() => {
     const m = new Map<string, number>();
@@ -76,7 +79,12 @@ export function ExpenseTable({
   const columns: Column<ExpenseRow>[] = [
     { id: "spent_on", header: t("fields.incurred_on"), sticky: true, cell: (e) => formatDate(e.spent_on) },
     { id: "category", header: t("fields.category"), cell: (e) => <CategoryChip category={e.category} /> },
-    { id: "supplier", header: t("fields.supplier"), cell: (e) => (e.contact_id ? supplierName.get(e.contact_id) ?? "—" : "—") },
+    ...(productId
+      ? []
+      : [{ id: "product", header: t("fields.product"), cell: (e: ExpenseRow) => (e.product_id ? productName.get(e.product_id) ?? "—" : "—") }]),
+    ...(contactId
+      ? []
+      : [{ id: "supplier", header: t("fields.supplier"), cell: (e: ExpenseRow) => (e.contact_id ? supplierName.get(e.contact_id) ?? "—" : "—") }]),
     {
       id: "amount",
       header: t("fields.amount"),
@@ -149,6 +157,7 @@ export function ExpenseTable({
                   productId={productId}
                   products={products}
                   suppliers={suppliers}
+                  contactId={contactId}
                   rates={rates}
                   onDone={() => setEditing(null)}
                 />

@@ -172,6 +172,7 @@ export async function saveExpense(formData: FormData): Promise<UpdateResult> {
     : await supabase.from("expenses").insert(patch);
   if (error) return { ok: false, error: error.message };
   if (input.product_id) revalidatePath(`/app/products/${input.product_id}/expenses`);
+  if (input.contact_id) revalidatePath(`/app/contacts/suppliers/${input.contact_id}`);
   revalidatePath("/app/finance/expenses");
   return { ok: true };
 }

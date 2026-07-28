@@ -1,23 +1,46 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
+import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
-import { Empty } from "@/components/empty";
-import { tableClass } from "@/components/field";
 import { ContactTabs } from "../tabs";
+import { SuppliersTable, type SupplierRow } from "./suppliers-table";
 
-export default async function SuppliersPage() {
+export default async function SuppliersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
   const t = await getTranslations();
   const supabase = await createClient();
 
-  const { data: contacts } = await supabase
-    .from("contacts")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data: contacts }, { data: expenses }] = await Promise.all([
+    supabase.from("contacts").select("*").order("created_at", { ascending: false }),
+    supabase.from("expenses").select("contact_id, amount_dzd").not("contact_id", "is", null),
+  ]);
+
+  const totalByContact = new Map<string, number>();
+  for (const e of expenses ?? []) {
+    if (!e.contact_id) continue;
+    totalByContact.set(e.contact_id, (totalByContact.get(e.contact_id) ?? 0) + (e.amount_dzd ?? 0));
+  }
+
+  const rows: SupplierRow[] = sortRows(
+    (contacts ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      phones: c.phones ?? [],
+      location: c.location,
+      expensesTotal: totalByContact.get(c.id) ?? 0,
+    })),
+    { name: (r) => r.name.toLowerCase(), expenses: (r) => r.expensesTotal },
+    typeof sp.sort === "string" ? sp.sort : null,
+    sp.dir === "desc" ? "desc" : "asc",
+  );
 
   return (
     <div className="space-y-6">
@@ -30,42 +53,7 @@ export default async function SuppliersPage() {
 
       <ContactTabs active="suppliers" />
 
-      {!contacts?.length ? (
-        <Empty>{t("contacts.suppliersNone")}</Empty>
-      ) : (
-        <div className="card-surface overflow-hidden rounded-xl">
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th>{t("fields.name")}</th>
-                  <th>{t("fields.type")}</th>
-                  <th>{t("fields.phone")}</th>
-                  <th>{t("fields.location")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contacts.map((c) => (
-                  <tr key={c.id} className="hover:bg-muted/30">
-                    <td>
-                      <Link href={`/app/contacts/suppliers/${c.id}`} className="font-medium hover:underline">
-                        {c.name}
-                      </Link>
-                    </td>
-                    <td>
-                      <Badge variant="secondary">{t(`status.supplier_type.${c.type}`)}</Badge>
-                    </td>
-                    <td className="text-muted-foreground">
-                      {c.phones.length ? c.phones.join(", ") : "—"}
-                    </td>
-                    <td className="text-muted-foreground">{c.location ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <SuppliersTable rows={rows} />
     </div>
   );
 }

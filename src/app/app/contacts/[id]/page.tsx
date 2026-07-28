@@ -6,16 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile, isCurrentUserAdmin } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Field, tableClass } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { RiskBadge } from "@/components/risk-badge";
-import { saveCustomer } from "../actions";
+import { StatusPill } from "@/components/status-pill";
+import { CustomerForm } from "../customer-form";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -65,30 +61,7 @@ export default async function CustomerDetailPage({
       </PageHeader>
 
       {isAdmin ? (
-        <form action={saveCustomer.bind(null, id)} className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
-          <Field label={t("fields.name")} htmlFor="name">
-            <Input id="name" name="name" required defaultValue={customer.name} />
-          </Field>
-          <Field label={t("fields.wilaya")} htmlFor="wilaya_code">
-            <Select id="wilaya_code" name="wilaya_code" defaultValue={customer.wilaya_code ?? ""}>
-              <option value="">{t("fields.none")}</option>
-              {(wilayas ?? []).map((w) => (
-                <option key={w.code} value={w.code}>
-                  {w.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label={t("fields.city")} htmlFor="commune" hint={t("common.optional")}>
-            <Input id="commune" name="commune" defaultValue={customer.commune ?? ""} />
-          </Field>
-          <Field label={t("fields.notes")} htmlFor="notes" hint={t("common.optional")}>
-            <Textarea id="notes" name="notes" defaultValue={customer.notes ?? ""} />
-          </Field>
-          <div className="sm:col-span-2">
-            <Button type="submit">{t("actions.save")}</Button>
-          </div>
-        </form>
+        <CustomerForm customer={customer} wilayas={wilayas ?? []} />
       ) : (
         <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3">
           <Meta label={t("fields.wilaya")}>
@@ -114,27 +87,27 @@ export default async function CustomerDetailPage({
           <tbody>
             <tr>
               <td>{t("status.delivery_status.returned")}</td>
-              <td>{returned}</td>
-              <td>{weights.returned}</td>
-              <td>{weights.returned * returned}</td>
+              <td className="num">{returned}</td>
+              <td className="num">{weights.returned}</td>
+              <td className="num">{weights.returned * returned}</td>
             </tr>
             <tr>
               <td>{t("status.confirmation_status.cancelled")}</td>
-              <td>{cancelled}</td>
-              <td>{weights.cancelled}</td>
-              <td>{weights.cancelled * cancelled}</td>
+              <td className="num">{cancelled}</td>
+              <td className="num">{weights.cancelled}</td>
+              <td className="num">{weights.cancelled * cancelled}</td>
             </tr>
             <tr>
               <td>{t("status.confirmation_status.no_answer")}</td>
-              <td>{noAnswer}</td>
-              <td>{weights.no_answer}</td>
-              <td>{weights.no_answer * noAnswer}</td>
+              <td className="num">{noAnswer}</td>
+              <td className="num">{weights.no_answer}</td>
+              <td className="num">{weights.no_answer * noAnswer}</td>
             </tr>
           </tbody>
         </table>
-        <div className="text-sm text-muted-foreground">
-          {t("common.total")}: {total} · {t("fields.risk")} = min(100, round(100 × {points} ÷ ({weights.returned} × {total}))) ={" "}
-          <Badge variant="outline">{stat?.risk_score ?? 0}</Badge>
+        <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          {t("common.total")}: {total} · {t("fields.risk")} = min(100, round(100 × {points} ÷ ({weights.returned} × {total}))) =
+          <RiskBadge score={stat?.risk_score ?? 0} size="sm" />
         </div>
       </section>
 
@@ -160,29 +133,17 @@ export default async function CustomerDetailPage({
                   {orders.map((o) => (
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td>
-                        <Link href={`/app/orders/${o.id}`} className="font-medium hover:underline">
+                        <Link href={`/app/orders/${o.id}`} className="num font-medium hover:underline">
                           {o.order_number ?? o.id.slice(0, 8)}
                         </Link>
                       </td>
                       <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
-                      <td>{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
+                      <td className="num">{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
                       <td>
-                        <Badge variant={o.confirmation_status === "confirmed" ? "default" : "secondary"}>
-                          {t(`status.confirmation_status.${o.confirmation_status}`)}
-                        </Badge>
+                        <StatusPill kind="confirmation" status={o.confirmation_status} size="sm" />
                       </td>
                       <td>
-                        <Badge
-                          variant={
-                            o.delivery_status === "delivered"
-                              ? "default"
-                              : o.delivery_status === "returned" || o.delivery_status === "cancelled"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
-                          {t(`status.delivery_status.${o.delivery_status}`)}
-                        </Badge>
+                        <StatusPill kind="delivery" status={o.delivery_status} size="sm" />
                       </td>
                       <td className="text-muted-foreground">{formatDate(o.placed_at)}</td>
                     </tr>
