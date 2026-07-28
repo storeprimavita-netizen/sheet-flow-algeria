@@ -1255,6 +1255,98 @@ export type Database = {
         }
         Relationships: []
       }
+      zr_shipments: {
+        Row: {
+          created_at: string
+          last_synced_at: string | null
+          order_id: string
+          parcel_id: string
+          pushed_at: string
+          state: string | null
+          state_updated_at: string | null
+          tracking_number: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_synced_at?: string | null
+          order_id: string
+          parcel_id: string
+          pushed_at?: string
+          state?: string | null
+          state_updated_at?: string | null
+          tracking_number?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          last_synced_at?: string | null
+          order_id?: string
+          parcel_id?: string
+          pushed_at?: string
+          state?: string | null
+          state_updated_at?: string | null
+          tracking_number?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zr_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zr_shipments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zr_territories: {
+        Row: {
+          code: number | null
+          id: string
+          level: string
+          name: string
+          parent_id: string | null
+          synced_at: string
+          workspace_id: string
+        }
+        Insert: {
+          code?: number | null
+          id: string
+          level: string
+          name: string
+          parent_id?: string | null
+          synced_at?: string
+          workspace_id: string
+        }
+        Update: {
+          code?: number | null
+          id?: string
+          level?: string
+          name?: string
+          parent_id?: string | null
+          synced_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zr_territories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       agent_performance: {
@@ -1445,7 +1537,7 @@ export type Database = {
         | "test_ads"
         | "scaling_ads"
         | "other"
-      integration_provider: "shopify" | "lightfunnels"
+      integration_provider: "shopify" | "lightfunnels" | "zrexpress"
       meeting_status: "planned" | "held" | "cancelled"
       order_source: "shopify" | "lightfunnels" | "manual"
       product_status: "to_be_tested" | "tested" | "confirmed" | "cancelled"
@@ -1620,7 +1712,7 @@ export const Constants = {
         "scaling_ads",
         "other",
       ],
-      integration_provider: ["shopify", "lightfunnels"],
+      integration_provider: ["shopify", "lightfunnels", "zrexpress"],
       meeting_status: ["planned", "held", "cancelled"],
       order_source: ["shopify", "lightfunnels", "manual"],
       product_status: ["to_be_tested", "tested", "confirmed", "cancelled"],

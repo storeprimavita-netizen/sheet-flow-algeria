@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { upsertCustomerFromOrder } from "@/lib/customers";
+import { normalizeText, jsonResponse } from "@/lib/utils";
 import type { Database, Enums, Json, TablesInsert } from "@/lib/supabase/database.types";
 
 export type MappedOrder = {
@@ -50,8 +51,12 @@ const mappedOrderSchema = z.object({
   product_name: z.string().nullable().optional(),
 });
 
+// Only source webhooks (order-creation) run through this pipeline — a
+// narrower type than the full integration_provider enum (which now also
+// includes zrexpress, a push-out integration with its own webhook handler
+// in zrexpress-webhook.ts, never an order source).
 export type ProviderConfig = {
-  provider: Enums<"integration_provider">;
+  provider: Exclude<Enums<"order_source">, "manual">;
   signatureHeader: string;
   encoding: "hex" | "base64";
   map: (payload: unknown) => MappedOrder;
@@ -69,13 +74,6 @@ export function verifySignature(
   const b = Buffer.from(signature);
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
-}
-
-function json(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 }
 
 /**
@@ -98,27 +96,19 @@ async function resolveWorkspace(
   return { workspaceId: data.workspace_id, secret: data.secret };
 }
 
-function normalizeName(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
 /** Exact match on the 58-row national reference, substring fallback, else null. */
 async function matchWilayaCode(
   supabase: SupabaseClient<Database>,
   name: string | null | undefined,
 ): Promise<number | null> {
   if (!name) return null;
-  const target = normalizeName(name);
+  const target = normalizeText(name);
   const { data } = await supabase.from("wilayas").select("code, name");
   const rows = data ?? [];
-  const exact = rows.find((w) => normalizeName(w.name) === target);
+  const exact = rows.find((w) => normalizeText(w.name) === target);
   if (exact) return exact.code;
   const fuzzy = rows.find(
-    (w) => target.includes(normalizeName(w.name)) || normalizeName(w.name).includes(target),
+    (w) => target.includes(normalizeText(w.name)) || normalizeText(w.name).includes(target),
   );
   return fuzzy?.code ?? null;
 }
@@ -145,11 +135,11 @@ async function matchProduct(
     if (bySku) return bySku.id;
   }
   if (name) {
-    const target = normalizeName(name);
-    const exact = rows.find((p) => normalizeName(p.name) === target);
+    const target = normalizeText(name);
+    const exact = rows.find((p) => normalizeText(p.name) === target);
     if (exact) return exact.id;
     const fuzzy = rows.find(
-      (p) => target.includes(normalizeName(p.name)) || normalizeName(p.name).includes(target),
+      (p) => target.includes(normalizeText(p.name)) || normalizeText(p.name).includes(target),
     );
     if (fuzzy) return fuzzy.id;
   }
@@ -312,14 +302,14 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
     })
     .select("id")
     .single();
-  if (eventError || !event) return json({ error: eventError?.message ?? "failed to store event" }, 500);
+  if (eventError || !event) return jsonResponse({ error: eventError?.message ?? "failed to store event" }, 500);
 
-  if (!integration) return json({ error: "secret not configured" }, 401);
-  if (!signatureOk) return json({ error: "invalid signature" }, 401);
-  if (parseError) return json({ error: parseError }, 400);
+  if (!integration) return jsonResponse({ error: "secret not configured" }, 401);
+  if (!signatureOk) return jsonResponse({ error: "invalid signature" }, 401);
+  if (parseError) return jsonResponse({ error: parseError }, 400);
 
   const result = await applyMappedOrder(supabase, config, integration.workspaceId, event.id, payload);
-  return json({ ok: result.ok, error: result.error }, 200);
+  return jsonResponse({ ok: result.ok, error: result.error }, 200);
 }
 
 /** Re-run mapping/upsert for one stored event — the Settings → Integrations replay button. */

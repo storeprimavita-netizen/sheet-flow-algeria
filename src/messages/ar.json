@@ -289,6 +289,15 @@
     "duplicate": "مكرر",
     "duplicatesOnly": "المكررة فقط",
     "clearFilters": "مسح الكل",
+    "zrexpress": {
+      "title": "ZR Express",
+      "send": "إرسال إلى ZR Express",
+      "tracking": "رقم التتبع",
+      "pendingTracking": "سيُخصَّص قريبًا",
+      "state": "الحالة",
+      "stateUnknown": "غير معروفة",
+      "refresh": "تحديث الحالة"
+    },
     "emptyHint": "لا توجد طلبات مطابقة لهذه المرشحات — وسّع النطاق أو امسحها.",
     "confirmationEmptyHint": "طابور التأكيد فارغ. ستظهر الطلبات الجديدة هنا.",
     "deliveryEmptyHint": "لا توجد طلبات مؤكدة بانتظار التوصيل.",
@@ -511,7 +520,19 @@
     "signatureOk": "التوقيع صحيح",
     "signatureBad": "التوقيع غير صالح",
     "processed": "تمت المعالجة",
-    "pendingEvent": "لم تتم المعالجة"
+    "pendingEvent": "لم تتم المعالجة",
+    "zrexpress": {
+      "title": "ZR Express",
+      "description": "أرسل الطلبات المؤكدة ذات التوصيل المنزلي إلى ZR Express وتتبّع حالة الطرد.",
+      "tenantId": "معرّف المستأجر",
+      "apiKey": "مفتاح API",
+      "syncTerritories": "مزامنة المناطق",
+      "territoriesSynced": "تمت مزامنة المناطق",
+      "territoriesNotSynced": "لم تتم المزامنة بعد — زامن قبل إرسال الطلبات.",
+      "registerWebhook": "تسجيل ويب هوك الحالة",
+      "webhookRegistered": "الويب هوك مسجَّل",
+      "webhookNotRegistered": "الويب هوك غير مسجَّل"
+    }
   },
   "login": {
     "subtitle": "سجّل الدخول إلى مساحة عمل الدفع عند الاستلام",

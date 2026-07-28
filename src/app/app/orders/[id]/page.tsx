@@ -10,6 +10,7 @@ import { Empty } from "@/components/empty";
 import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
+import { ZRShipmentCard } from "./zr-shipment-card";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -67,6 +68,7 @@ export default async function OrderDetailPage({
   // admin: agent rosters for the assignment card
   const confirmationAgents: { id: string; email: string }[] = [];
   const deliveryAgents: { id: string; email: string }[] = [];
+  let zrShipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null = null;
   if (isAdmin) {
     const { data: team } = await supabase
       .from("profiles")
@@ -76,6 +78,19 @@ export default async function OrderDetailPage({
       const entry = { id: r.user_id, email: r.display_name ?? r.user_id.slice(0, 8) };
       if (r.role === "confirmation_agent") confirmationAgents.push(entry);
       else if (r.role === "delivery_agent") deliveryAgents.push(entry);
+    }
+
+    const { data: shipment } = await supabase
+      .from("zr_shipments")
+      .select("tracking_number, state, state_updated_at")
+      .eq("order_id", order.id)
+      .maybeSingle();
+    if (shipment) {
+      zrShipment = {
+        trackingNumber: shipment.tracking_number,
+        state: shipment.state,
+        stateUpdatedAt: shipment.state_updated_at,
+      };
     }
   }
 
@@ -134,6 +149,8 @@ export default async function OrderDetailPage({
           deliveryAgents={deliveryAgents}
         />
       ) : null}
+
+      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} /> : null}
     </div>
   );
 }

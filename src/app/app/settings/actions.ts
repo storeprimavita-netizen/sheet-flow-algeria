@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { headers } from "next/headers";
+
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, MEETING_SLOT_COUNT } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
 import { replayEvent } from "@/lib/webhook";
+import { searchZRTerritories, createZRWebhookEndpoint, getZRCredentials, zrErrorMessage } from "@/lib/integrations/zrexpress";
 import type { Database } from "@/lib/supabase/database.types";
 
 const num = (fd: FormData, name: string) => Number(fd.get(name) ?? 0);
@@ -62,6 +65,101 @@ export async function replayWebhookEvent(eventId: string) {
   await adminProfile(); // admin-only gate; replayEvent itself uses the service-role client
   const { error } = await replayEvent(eventId);
   if (error) throw new Error(error);
+  revalidatePath("/app/settings");
+}
+
+// ---------------------------------------------------------------------------
+// ZR Express (delivery-company push integration)
+// ---------------------------------------------------------------------------
+const zrConfigSchema = z.object({
+  tenant_id: z.string().trim().min(1),
+  api_key: z.string().trim(),
+});
+
+export async function saveZRExpressConfig(formData: FormData) {
+  const { workspaceId } = await adminProfile();
+  const input = zrConfigSchema.parse({
+    tenant_id: formData.get("tenant_id"),
+    api_key: formData.get("api_key"),
+  });
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("integration_configs")
+    .select("config")
+    .eq("workspace_id", workspaceId)
+    .eq("provider", "zrexpress")
+    .maybeSingle();
+  const existingConfig = (existing?.config as { tenant_id?: string; api_key?: string } | null) ?? {};
+
+  const { error } = await supabase.from("integration_configs").upsert(
+    {
+      workspace_id: workspaceId,
+      provider: "zrexpress",
+      config: {
+        tenant_id: input.tenant_id,
+        // blank = keep existing key (the input is a password field, never pre-filled)
+        api_key: input.api_key || existingConfig.api_key,
+      },
+    },
+    { onConflict: "workspace_id,provider" },
+  );
+  if (error) throw new Error(error.message);
+  revalidatePath("/app/settings");
+}
+
+export async function syncZRTerritories() {
+  const { workspaceId } = await adminProfile();
+  const supabase = await createClient();
+  const creds = await getZRCredentials(supabase, workspaceId);
+
+  let territories;
+  try {
+    territories = await searchZRTerritories(creds);
+  } catch (e) {
+    throw new Error(zrErrorMessage(e, "Failed to reach ZR Express."));
+  }
+
+  await supabase.from("zr_territories").delete().eq("workspace_id", workspaceId);
+  if (territories.length) {
+    const { error } = await supabase.from("zr_territories").insert(
+      territories.map((t) => ({
+        workspace_id: workspaceId,
+        id: t.id,
+        code: t.code,
+        name: t.name,
+        level: t.level,
+        parent_id: t.parentId,
+      })),
+    );
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/app/settings");
+}
+
+export async function registerZRWebhook() {
+  const { workspaceId } = await adminProfile();
+  const supabase = await createClient();
+  const creds = await getZRCredentials(supabase, workspaceId);
+
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const baseUrl = (process.env.APP_URL ?? `${proto}://${host}`).replace(/\/$/, "");
+
+  let secret: string;
+  try {
+    ({ secret } = await createZRWebhookEndpoint(creds, `${baseUrl}/api/webhooks/zrexpress`));
+  } catch (e) {
+    throw new Error(zrErrorMessage(e, "Failed to reach ZR Express."));
+  }
+
+  const { error } = await supabase
+    .from("integration_configs")
+    .update({ secret, is_active: true })
+    .eq("workspace_id", workspaceId)
+    .eq("provider", "zrexpress");
+  if (error) throw new Error(error.message);
   revalidatePath("/app/settings");
 }
 

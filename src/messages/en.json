@@ -289,6 +289,15 @@
     "duplicate": "Duplicate",
     "duplicatesOnly": "Duplicates only",
     "clearFilters": "Clear all",
+    "zrexpress": {
+      "title": "ZR Express",
+      "send": "Send to ZR Express",
+      "tracking": "Tracking number",
+      "pendingTracking": "assigned shortly",
+      "state": "Status",
+      "stateUnknown": "unknown",
+      "refresh": "Refresh status"
+    },
     "emptyHint": "No orders match these filters — widen the range or clear them.",
     "confirmationEmptyHint": "The confirmation queue is clear. New orders will land here.",
     "deliveryEmptyHint": "No confirmed orders waiting on delivery.",
@@ -511,7 +520,19 @@
     "signatureOk": "signature ok",
     "signatureBad": "signature invalid",
     "processed": "processed",
-    "pendingEvent": "not processed"
+    "pendingEvent": "not processed",
+    "zrexpress": {
+      "title": "ZR Express",
+      "description": "Push confirmed, home-delivery orders to ZR Express and track their parcel status.",
+      "tenantId": "Tenant ID",
+      "apiKey": "API key",
+      "syncTerritories": "Sync territories",
+      "territoriesSynced": "Territories synced",
+      "territoriesNotSynced": "Not synced yet — sync before sending orders.",
+      "registerWebhook": "Register status webhook",
+      "webhookRegistered": "webhook registered",
+      "webhookNotRegistered": "webhook not registered"
+    }
   },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",
