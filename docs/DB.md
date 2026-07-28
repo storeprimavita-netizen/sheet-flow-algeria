@@ -61,6 +61,8 @@ Finally regenerate types:
 | `cash_collections` | 00004 | COD cash → deposit reconciliation | admin only |
 | `rules_docs` | 00005 | markdown blocks | all read, admin write |
 | `meetings` / `meeting_objectives` | 00005 | trigger: no 'held' without objectives | all read, admin write |
+| `zr_territories` | 00012 | cached ZR Express wilaya/commune territory tree (id/code/name/level/parent_id), refreshed by an admin "Sync territories" action — used to resolve `orders.wilaya_code`/`commune` into ZR's own territory UUIDs when pushing a parcel | admin only |
+| `zr_shipments` | 00012 | one row per order pushed to ZR Express: `parcel_id`, `tracking_number`, `state` (their workflow state name, free text — not mapped onto our `delivery_status`) | all read, admin write |
 
 ## Order triggers (00004)
 

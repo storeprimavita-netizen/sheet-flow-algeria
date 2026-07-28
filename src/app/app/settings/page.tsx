@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 
 import { WorkspaceSection } from "./workspace-section";
 import { IntegrationsSection } from "./integrations-section";
+import { ZRExpressSection } from "./zrexpress-section";
 import { WebhookEventsSection } from "./webhook-events-section";
 import { FeesSection } from "./fees-section";
 import { FixedFeesSection } from "./fixed-fees-section";
@@ -27,6 +28,7 @@ export default async function SettingsPage() {
   const [
     workspaceRes,
     integrationsRes,
+    zrTerritoryCountRes,
     webhookEventsRes,
     wilayaFeesRes,
     wilayaStatsRes,
@@ -42,6 +44,10 @@ export default async function SettingsPage() {
   ] = await Promise.all([
     supabase.from("workspaces").select("*").eq("id", profile.workspaceId).single(),
     supabase.from("integration_configs").select("*").eq("workspace_id", profile.workspaceId),
+    supabase
+      .from("zr_territories")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", profile.workspaceId),
     supabase
       .from("webhook_events")
       .select("*")
@@ -76,6 +82,10 @@ export default async function SettingsPage() {
       <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
       <WorkspaceSection name={workspaceRes.data?.name ?? ""} />
       <IntegrationsSection configs={integrationsRes.data ?? []} baseUrl={baseUrl} />
+      <ZRExpressSection
+        config={(integrationsRes.data ?? []).find((c) => c.provider === "zrexpress") ?? null}
+        territoryCount={zrTerritoryCountRes.count ?? 0}
+      />
       <WebhookEventsSection events={webhookEventsRes.data ?? []} />
       <FeesSection
         rows={wilayaFeesRes.data ?? []}

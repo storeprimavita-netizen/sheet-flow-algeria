@@ -8,6 +8,14 @@ import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
 import { isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { upsertCustomerFromOrder } from "@/lib/customers";
+import { normalizeText } from "@/lib/utils";
+import {
+  getZRCredentials,
+  createZRParcel,
+  getZRParcel,
+  toInternationalDzPhone,
+  zrErrorMessage,
+} from "@/lib/integrations/zrexpress";
 import {
   CONFIRMATION_STATUSES,
   DELIVERY_STATUSES,
@@ -76,6 +84,166 @@ export async function assignAgents(params: {
 
   revalidatePath(`/app/orders/${params.orderId}`);
   revalidatePath("/app/orders");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// ZR Express — push a confirmed order as a parcel, refresh its status.
+// Admin-only: needs the ZR API key, which only admins can read (RLS).
+// ---------------------------------------------------------------------------
+export async function pushOrderToZRExpress(orderId: string): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const supabase = await createClient();
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("*, product:products(name)")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.confirmation_status !== "confirmed") {
+    return { ok: false, error: "Only confirmed orders can be sent to ZR Express." };
+  }
+  if (order.delivery_type !== "home") {
+    return { ok: false, error: "Only home-delivery orders can be sent to ZR Express yet — stop-desk needs a hub picker that isn't built." };
+  }
+  if (!order.wilaya_code || !order.commune) {
+    return { ok: false, error: "Order needs a wilaya and commune before it can be sent." };
+  }
+  if (!order.customer_phone) {
+    return { ok: false, error: "Order has no customer phone." };
+  }
+
+  const { data: existing } = await supabase
+    .from("zr_shipments")
+    .select("order_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (existing) return { ok: false, error: "This order was already sent to ZR Express." };
+
+  let creds;
+  try {
+    creds = await getZRCredentials(supabase, workspaceId);
+  } catch (e) {
+    return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
+  }
+
+  const { data: wilayaTerritory } = await supabase
+    .from("zr_territories")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("level", "wilaya")
+    .eq("code", order.wilaya_code)
+    .maybeSingle();
+  if (!wilayaTerritory) {
+    return { ok: false, error: "Wilaya not found in ZR Express's territory list — sync territories in Settings." };
+  }
+
+  const { data: communeTerritories } = await supabase
+    .from("zr_territories")
+    .select("id, name")
+    .eq("workspace_id", workspaceId)
+    .eq("level", "commune")
+    .eq("parent_id", wilayaTerritory.id);
+  const target = normalizeText(order.commune);
+  const rows = communeTerritories ?? [];
+  const communeTerritory =
+    rows.find((c) => normalizeText(c.name) === target) ??
+    rows.find((c) => target.includes(normalizeText(c.name)) || normalizeText(c.name).includes(target));
+  if (!communeTerritory) {
+    return {
+      ok: false,
+      error: `Commune "${order.commune}" not found in ZR Express's list for this wilaya — check spelling or sync territories in Settings.`,
+    };
+  }
+
+  const productName = order.product?.name ?? "Item";
+  const amount = (order.sale_price ?? 0) * order.quantity + (order.delivery_fee ?? 0);
+
+  let parcel: { id: string };
+  try {
+    parcel = await createZRParcel(creds, {
+      customerName: order.customer_name ?? "—",
+      phone: toInternationalDzPhone(order.customer_phone),
+      cityTerritoryId: wilayaTerritory.id,
+      districtTerritoryId: communeTerritory.id,
+      street: order.address,
+      productName,
+      quantity: order.quantity,
+      unitPrice: order.sale_price ?? 0,
+      description: `${order.quantity}x ${productName}`.slice(0, 250),
+      amount,
+      externalId: order.id,
+    });
+  } catch (e) {
+    return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
+  }
+
+  // Best-effort follow-up read for the tracking number — the create response
+  // only returns the parcel id. If this fails the parcel still exists on
+  // ZR's side; "Refresh status" on the order picks it up later.
+  let trackingNumber: string | null = null;
+  let state: string | null = null;
+  try {
+    const detail = await getZRParcel(creds, parcel.id);
+    trackingNumber = detail.trackingNumber;
+    state = detail.state?.name ?? null;
+  } catch {
+    // swallow — see comment above
+  }
+
+  const { error } = await supabase.from("zr_shipments").insert({
+    order_id: orderId,
+    workspace_id: workspaceId,
+    parcel_id: parcel.id,
+    tracking_number: trackingNumber,
+    state,
+    state_updated_at: state ? new Date().toISOString() : null,
+    last_synced_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/app/orders/${orderId}`);
+  return { ok: true };
+}
+
+export async function refreshZRShipmentStatus(orderId: string): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const supabase = await createClient();
+
+  const { data: shipment } = await supabase
+    .from("zr_shipments")
+    .select("parcel_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (!shipment) return { ok: false, error: "Not sent to ZR Express yet." };
+
+  let creds;
+  try {
+    creds = await getZRCredentials(supabase, workspaceId);
+  } catch (e) {
+    return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
+  }
+
+  let detail;
+  try {
+    detail = await getZRParcel(creds, shipment.parcel_id);
+  } catch (e) {
+    return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
+  }
+
+  const { error } = await supabase
+    .from("zr_shipments")
+    .update({
+      tracking_number: detail.trackingNumber,
+      state: detail.state?.name ?? null,
+      state_updated_at: new Date().toISOString(),
+      last_synced_at: new Date().toISOString(),
+    })
+    .eq("order_id", orderId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/app/orders/${orderId}`);
   return { ok: true };
 }
 

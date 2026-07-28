@@ -1801,3 +1801,98 @@ once 12b is merged.
   Phase 12 §6 (Contacts) next — read `docs/phases/phase-12.md` §6 and
   `docs/phases/section-checklists.md`. If you need to reset+reseed the
   local DB, apply the grants workaround above first (see Known issues).
+
+## Addendum — ZR Express delivery-company integration (2026-07-28) — DONE
+
+Out-of-band user request (not a numbered phase.md — API docs were
+`https://docs.zrexpress.app`, fetched live: `llms.txt` site map, then
+`docs/authentication.md`, `reference/createparcelendpoint.md`,
+`reference/searchterritoriesendpoint.md`, `reference/
+getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
+`docs/webhook-event-types.md`). Branch `mnw-zrexpress`.
+
+- **Done:** push a confirmed, home-delivery order to ZR Express as a parcel;
+  track its tracking number/state from the order detail page; receive
+  ZR's status-change webhook.
+  - **Schema** (`supabase/migrations/00012_zr_express.sql`): added
+    `'zrexpress'` to `integration_provider`; new `zr_territories` (cached
+    wilaya/commune tree from ZR's `/territories/search`, admin-only) and
+    `zr_shipments` (one row per pushed order: `parcel_id`,
+    `tracking_number`, `state`; all-read/admin-write, same shape as
+    `wilaya_fees`).
+  - **Credentials**: reuses `integration_configs` (provider='zrexpress')
+    — `config.tenant_id` + `config.api_key` for outbound calls,
+    `secret` holds the Svix `whsec_...` webhook-signing secret (same
+    column shopify/lightfunnels use for their own HMAC secret, different
+    scheme).
+  - **Client** (`src/lib/integrations/zrexpress.ts`): `searchZRTerritories`
+    (paginated), `createZRParcel`, `getZRParcel`, `createZRWebhookEndpoint`.
+    `X-Tenant`/`X-Api-Key` headers, base URL `https://api.zrexpress.app/api/v1`.
+  - **Settings → Integrations**: new ZR Express card
+    (`zrexpress-section.tsx`) — tenant ID + API key form, "Sync
+    territories" button (paginates and caches the tree), "Register status
+    webhook" button (calls ZR's endpoint-registration API, stores the
+    returned `whsec_` secret).
+  - **Order detail** (`zr-shipment-card.tsx` + `orders/actions.ts`
+    `pushOrderToZRExpress`/`refreshZRShipmentStatus`, admin-only): validates
+    confirmed + home-delivery + wilaya/commune/phone present, matches the
+    wilaya by `zr_territories.code` (same official Algerian wilaya
+    numbering ZR uses — no manual mapping needed) and the commune by
+    normalized-name lookup scoped to that wilaya, converts the phone to
+    `+213` international format, creates the parcel, immediately fetches
+    the tracking number (create only returns the parcel id).
+  - **Inbound webhook** (`/api/webhooks/zrexpress`,
+    `zrexpress-webhook.ts`): Svix signature verification (`svix-id`/
+    `svix-timestamp`/`svix-signature`, HMAC-SHA256, 5-minute replay
+    tolerance) — different scheme from `webhook.ts`'s single-header HMAC,
+    so it's its own small verifier, not bent into that one. Stores every
+    event in `webhook_events` (provider='zrexpress') like the other
+    integrations; on `parcel.state.updated` updates `zr_shipments.state`
+    only.
+  - Extracted `normalizeText` (was `webhook.ts`-private `normalizeName`)
+    and `jsonResponse` (was duplicated in both webhook files) to
+    `src/lib/utils.ts` — both webhook pipelines share them now instead of
+    each having its own copy. Added `zrErrorMessage(e, fallback)` to
+    `zrexpress.ts` so every call site's catch block is one line.
+- **Deliberately deferred (scope cuts, not oversights):**
+  - **Stop-desk delivery isn't supported** — ZR's `deliveryType:
+    "pickup-point"` needs a `hubId` (their facility), and there's no hub
+    picker UI. `pushOrderToZRExpress` rejects non-`home` orders with a
+    clear message. Home-only covers the common case; add hub search if
+    stop-desk-via-ZR is actually needed.
+  - **ZR's parcel state is never written back to `orders.delivery_status`.**
+    ZR's states are a tenant-configurable workflow (their own Workflow
+    endpoint), not a fixed enum — no safe static mapping exists. An admin
+    reads the ZR state next to our own status on the order page and
+    updates ours by hand. A real fix needs a per-tenant state-mapping UI,
+    not a hardcoded guess.
+  - **Commune matching is name-based, best-effort.** `orders.commune` is
+    free text (not FK'd to anything); if it doesn't match a synced ZR
+    territory name closely enough, the push fails with an actionable
+    error rather than guessing wrong. No inline "pick from ZR's list"
+    UI on the order form — `orders.commune`'s existing free-text `Input`
+    is unchanged.
+  - **Product catalog isn't synced to ZR** — every parcel uses
+    `stockType: "none"` (no ZR product/SKU association), correct for this
+    app's dropshipping/COD model where ZR doesn't hold stock.
+- **Verified:** `npm run build` + `npm test` green, forbidden-color grep
+  clean on the two new UI files, Settings → ZR Express card and the order
+  detail card screenshot-checked visually (dark theme) — tenant/API-key
+  form, sync/register buttons and their status badges, "Send to ZR
+  Express" button all render correctly. **Did not click "Send to ZR
+  Express" or the sync/register buttons** — Claude Code's own safety
+  classifier correctly blocked it as a live call to a real third-party
+  API; traced the validation path by hand instead (confirms
+  confirmation_status/delivery_type/wilaya/commune/phone before ever
+  reaching `getZRCredentials`, which throws immediately since no
+  credentials are configured in this seed workspace). **The full
+  create-parcel → track → webhook round trip has not been exercised
+  against ZR's real API** — do that first with real sandbox/production
+  credentials before relying on this in production.
+- **Next chat must know:** to actually use this, an admin needs a real ZR
+  Express account: get tenant ID + API key (their portal → API Rest →
+  Token API), paste into Settings → ZR Express, Sync territories, Register
+  status webhook (needs a publicly reachable `APP_URL` — won't work
+  against `localhost`; use a tunnel or a deployed URL for that step), then
+  test one push end-to-end. Local DB was reset to apply migration 00012 —
+  same grants workaround as above was needed again after reset.
