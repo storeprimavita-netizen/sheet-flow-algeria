@@ -664,6 +664,20 @@ async function main() {
   const seedWsResult = await admin.rpc("seed_workspace", { p_ws: ws });
   if (seedWsResult.error) throw new Error(`seed_workspace: ${seedWsResult.error.message}`);
 
+  // seed_workspace()'s stop_shipping_rule default (min_orders: 10) is sized
+  // for a real workspace, not this demo's ~5 orders/wilaya — override it
+  // here (dev-only) so the dashboard's wilaya choropleth actually colors
+  // instead of showing every wilaya as "not enough data".
+  await must(
+    await admin
+      .from("settings")
+      .upsert(
+        { workspace_id: ws, key: "stop_shipping_rule", value: { min_orders: 3, min_delivery_rate: 40 } },
+        { onConflict: "workspace_id,key" },
+      ),
+    "settings upsert (stop_shipping_rule)",
+  );
+
   await must(
     await admin
       .from("profiles")
