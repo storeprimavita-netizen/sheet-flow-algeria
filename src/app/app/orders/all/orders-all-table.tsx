@@ -48,6 +48,7 @@ export type AllRow = {
   duplicate_of: string | null;
   commune: string | null;
   address: string | null;
+  tags: { id: string; label: string; token: StatusToken }[];
   events: TimelineEvent[];
 };
 
@@ -189,6 +190,21 @@ export function OrdersAllTable({
       cell: (r) => <StatusPill kind="delivery" status={r.delivery_status} size="sm" />,
     },
     { id: "agent", header: t("fields.agent"), defaultHidden: true, cell: (r) => r.agent_name ?? "—" },
+    {
+      id: "tags",
+      header: t("fields.tags"),
+      defaultHidden: true,
+      cell: (r) =>
+        r.tags.length ? (
+          <div className="flex flex-wrap gap-1">
+            {r.tags.map((tag) => (
+              <Chip key={tag.id} token={tag.token} size="sm">{tag.label}</Chip>
+            ))}
+          </div>
+        ) : (
+          "—"
+        ),
+    },
   ];
 
   return (

@@ -4,6 +4,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
+import { getAllOptionSets, getOptionUsageCounts, type OptionSetKey } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 
 import { WorkspaceSection } from "./workspace-section";
@@ -15,6 +16,7 @@ import { FixedFeesSection } from "./fixed-fees-section";
 import { ExchangeRatesSection } from "./exchange-rates-section";
 import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
+import { OptionsSection } from "./options-section";
 import { AppearanceSection } from "./appearance-section";
 
 const NAV_SECTIONS = [
@@ -25,6 +27,7 @@ const NAV_SECTIONS = [
   ["exchange-rates", "settings.exchangeRates"],
   ["engine-rules", "settings.engineRules"],
   ["meeting-schedule", "settings.meetingSchedule"],
+  ["options", "settings.options.title"],
   ["appearance", "settings.appearance"],
 ] as const;
 
@@ -93,6 +96,11 @@ export default async function SettingsPage() {
 
   const rates = { USD: usdRateRes.data ?? 1, EUR: eurRateRes.data ?? 1 };
 
+  const optionSets = await getAllOptionSets(profile.workspaceId);
+  const optionUsage = Object.fromEntries(
+    await Promise.all(optionSets.map(async (s) => [s.key, await getOptionUsageCounts(profile.workspaceId, s.key)])),
+  ) as Record<OptionSetKey, Record<string, number>>;
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
@@ -143,6 +151,7 @@ export default async function SettingsPage() {
             stopShippingRule={stopShippingRule}
           />
           <MeetingScheduleSection meetingSchedule={meetingSchedule} />
+          <OptionsSection sets={optionSets} usage={optionUsage} />
           <AppearanceSection />
         </div>
       </div>

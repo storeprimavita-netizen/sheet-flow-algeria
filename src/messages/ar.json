@@ -86,7 +86,10 @@
     "back": "رجوع",
     "search": "بحث",
     "view": "عرض",
-    "confirm": "تأكيد"
+    "confirm": "تأكيد",
+    "add": "إضافة",
+    "rename": "إعادة تسمية",
+    "select": "اختر…"
   },
   "status": {
     "product_status": {
@@ -168,8 +171,11 @@
     "sku": "رمز المنتج",
     "description": "الوصف",
     "category": "الفئة",
+    "subcategory": "الفئة الفرعية",
     "material": "الخامة",
     "fabric": "القماش",
+    "tags": "الوسوم",
+    "cancellationReason": "سبب الإلغاء",
     "status": "الحالة",
     "price": "سعر البيع",
     "costs": "التكاليف",
@@ -563,6 +569,28 @@
       "registerWebhook": "تسجيل ويب هوك الحالة",
       "webhookRegistered": "الويب هوك مسجَّل",
       "webhookNotRegistered": "الويب هوك غير مسجَّل"
+    },
+    "options": {
+      "title": "الخيارات",
+      "subtitle": "التصنيفات التي ينمّيها فريقك بمرور الوقت — أنشئ أو أعد تسمية أو غيّر لون أو رتّب أو أرشف أو ادمج أي قيمة أدناه.",
+      "multi": "اختيار متعدد",
+      "empty": "لا توجد خيارات بعد.",
+      "addPlaceholder": "خيار جديد…",
+      "moveUp": "تحريك للأعلى",
+      "moveDown": "تحريك للأسفل",
+      "mergeInto": "دمج مع…",
+      "mergeConfirm": "دمج \"{from}\" مع \"{to}\"؟ سيتم إعادة توجيه كل سجل يستخدم \"{from}\" ثم حذفه.",
+      "archive": "أرشفة",
+      "unarchive": "إلغاء الأرشفة",
+      "archivedHint": "خيار مؤرشف",
+      "usageCount": "{count, plural, =0 {غير مستخدم} one {استخدام واحد} other {# استخدامات}}",
+      "sets": {
+        "product_category": "فئة المنتج",
+        "product_fabric": "القماش",
+        "expense_subcategory": "فئة فرعية للمصروف",
+        "order_tag": "الوسوم",
+        "cancellation_reason": "سبب الإلغاء"
+      }
     }
   },
   "login": {

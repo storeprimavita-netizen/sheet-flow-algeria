@@ -48,21 +48,24 @@ Finally regenerate types:
 | `exchange_rates` | 00002 | manual date-stamped USD/EUR→DZD; latest wins | admin only |
 | `integration_configs` | 00002 | per provider: config jsonb, secret, `last_event_at` health | admin only |
 | `webhook_events` | 00002 | raw payloads for debug/replay; written by service role | admin read |
-| `products` | 00003 | NON-financial only: name, category, fabric, status, sale_price, variants jsonb, images, stock, notes | all read, admin write |
+| `products` | 00003, 00014 | NON-financial only: name, `category_option_id`/`fabric_option_id` (FK → `options`, was free text before 00014), status, sale_price, variants jsonb, images, stock, notes | all read, admin write |
 | `product_costs` | 00003 | 1:1 sourcing cost + currency + fx (the split enforces agent financial blindness) | admin only |
 | `product_scenarios` | 00003 | BENZ inputs jsonb per slug best/medium/worst; `product_id null` = general planner (partial unique indexes) | admin only |
-| `expenses` | 00003 | multi-currency + generated `amount_dzd`; optional product/supplier link | admin only |
+| `expenses` | 00003, 00014 | multi-currency + generated `amount_dzd`; optional product/supplier link; optional `subcategory_option_id` (FK → `options`) | admin only |
 | `ad_spend_daily` | 00003 | unique (product, day, kind test/scaling) | admin only |
 | `stock_movements` | 00003 | trigger maintains `products.stock`; reasons purchase/correction/delivered/returned | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
-| `orders` | 00004 | see SPEC §3; unique (workspace, source, external_id) | admin all; conf agent: `confirmation_status <> 'confirmed'`; delivery agent: confirmed only |
+| `orders` | 00004, 00014 | see SPEC §3; unique (workspace, source, external_id); optional `cancellation_reason_option_id` (FK → `options`, set when confirmation/delivery status goes cancelled/returned) | admin all; conf agent: `confirmation_status <> 'confirmed'`; delivery agent: confirmed only |
 | `order_status_history` | 00004 | stage/from/to/comment/actor/ts; written by trigger | read with parent order |
 | `cash_collections` | 00004 | COD cash → deposit reconciliation | admin only |
+| `order_tags` | 00014 | join table (order_id, option_id) — multi-select tags, own `workspace_id` for RLS | all read/insert/delete (tagging isn't financial) |
 | `rules_docs` | 00005 | markdown blocks | all read, admin write |
 | `meetings` / `meeting_objectives` | 00005 | trigger: no 'held' without objectives | all read, admin write |
 | `zr_territories` | 00012 | cached ZR Express wilaya/commune territory tree (id/code/name/level/parent_id), refreshed by an admin "Sync territories" action — used to resolve `orders.wilaya_code`/`commune` into ZR's own territory UUIDs when pushing a parcel | admin only |
 | `zr_shipments` | 00012 | one row per order pushed to ZR Express: `parcel_id`, `tracking_number`, `state` (their workflow state name, free text — not mapped onto our `delivery_status`) | all read, admin write |
+| `option_sets` | 00014 | user-editable taxonomies (key, label, allows_multi) — see `.claude/skills/cod-ui-polish/references/option-sets.md`. 5 seeded: `product_category`, `product_fabric`, `expense_subcategory`, `order_tag` (multi), `cancellation_reason` | all read, admin write |
+| `options` | 00014 | one row per value in a set (label, color_token, icon, sort_order, archived_at) — referencing tables store the option **id**, never the label | all read+insert (inline "+ Create"), admin update/delete (rename/recolor/reorder/archive/merge) |
 
 ## Order triggers (00004)
 

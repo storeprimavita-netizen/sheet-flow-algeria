@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ad_spend_daily: {
@@ -355,6 +330,7 @@ export type Database = {
           note: string | null
           product_id: string | null
           spent_on: string
+          subcategory_option_id: string | null
           updated_at: string
           workspace_id: string
         }
@@ -371,6 +347,7 @@ export type Database = {
           note?: string | null
           product_id?: string | null
           spent_on?: string
+          subcategory_option_id?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -387,6 +364,7 @@ export type Database = {
           note?: string | null
           product_id?: string | null
           spent_on?: string
+          subcategory_option_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -410,6 +388,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_subcategory_option_id_fkey"
+            columns: ["subcategory_option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
             referencedColumns: ["id"]
           },
           {
@@ -604,6 +589,98 @@ export type Database = {
           },
         ]
       }
+      option_sets: {
+        Row: {
+          allows_multi: boolean
+          created_at: string
+          id: string
+          key: string
+          label: string
+          workspace_id: string
+        }
+        Insert: {
+          allows_multi?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          workspace_id: string
+        }
+        Update: {
+          allows_multi?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_sets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      options: {
+        Row: {
+          archived_at: string | null
+          color_token: string
+          created_at: string
+          created_by: string | null
+          icon: string | null
+          id: string
+          label: string
+          set_id: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color_token?: string
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          label: string
+          set_id: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          color_token?: string
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          label?: string
+          set_id?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "options_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "option_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "options_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_status_history: {
         Row: {
           actor: string | null
@@ -645,11 +722,55 @@ export type Database = {
           },
         ]
       }
+      order_tags: {
+        Row: {
+          created_at: string
+          option_id: string
+          order_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          option_id: string
+          order_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          option_id?: string
+          order_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_tags_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_tags_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_tags_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address: string | null
           assigned_confirmation_agent: string | null
           assigned_delivery_agent: string | null
+          cancellation_reason_option_id: string | null
           commune: string | null
           confirmation_attempts: number
           confirmation_comment: string | null
@@ -683,6 +804,7 @@ export type Database = {
           address?: string | null
           assigned_confirmation_agent?: string | null
           assigned_delivery_agent?: string | null
+          cancellation_reason_option_id?: string | null
           commune?: string | null
           confirmation_attempts?: number
           confirmation_comment?: string | null
@@ -716,6 +838,7 @@ export type Database = {
           address?: string | null
           assigned_confirmation_agent?: string | null
           assigned_delivery_agent?: string | null
+          cancellation_reason_option_id?: string | null
           commune?: string | null
           confirmation_attempts?: number
           confirmation_comment?: string | null
@@ -746,6 +869,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_cancellation_reason_option_id_fkey"
+            columns: ["cancellation_reason_option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
@@ -910,10 +1040,10 @@ export type Database = {
       }
       products: {
         Row: {
-          category: string | null
+          category_option_id: string | null
           created_at: string
           created_by: string | null
-          fabric: string | null
+          fabric_option_id: string | null
           id: string
           images: string[]
           is_active: boolean
@@ -928,10 +1058,10 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          category?: string | null
+          category_option_id?: string | null
           created_at?: string
           created_by?: string | null
-          fabric?: string | null
+          fabric_option_id?: string | null
           id?: string
           images?: string[]
           is_active?: boolean
@@ -946,10 +1076,10 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          category?: string | null
+          category_option_id?: string | null
           created_at?: string
           created_by?: string | null
-          fabric?: string | null
+          fabric_option_id?: string | null
           id?: string
           images?: string[]
           is_active?: boolean
@@ -964,6 +1094,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_category_option_id_fkey"
+            columns: ["category_option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_fabric_option_id_fkey"
+            columns: ["fabric_option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -1764,9 +1908,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ad_kind: ["test", "scaling"],

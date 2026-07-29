@@ -1,11 +1,14 @@
 import { getTranslations } from "next-intl/server";
 
 import type { Tables } from "@/lib/supabase/database.types";
+import { getProfile } from "@/lib/rbac";
+import { getOptionSet } from "@/lib/option-sets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EnumSelect } from "@/components/fields/enum-select";
 import { SettingSwitch } from "@/components/fields/setting-switch";
+import { OptionSelect } from "@/components/fields/option-select";
 import { Field } from "@/components/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRODUCT_STATUSES, CURRENCY_CODES } from "@/lib/enums";
@@ -35,6 +38,11 @@ export async function ProductForm({
 }) {
   const t = await getTranslations();
   const editing = Boolean(product?.id);
+  const { workspaceId } = (await getProfile())!;
+  const [categories, fabrics] = await Promise.all([
+    getOptionSet(workspaceId, "product_category"),
+    getOptionSet(workspaceId, "product_fabric"),
+  ]);
 
   return (
     <form action={saveProduct.bind(null, product?.id ?? null)} className="space-y-6">
@@ -46,8 +54,14 @@ export async function ProductForm({
           <Field label={t("fields.sku")} htmlFor="sku" hint={t("common.optional")}>
             <Input id="sku" name="sku" defaultValue={product?.sku ?? ""} />
           </Field>
-          <Field label={t("fields.category")} htmlFor="category" hint={t("common.optional")}>
-            <Input id="category" name="category" defaultValue={product?.category ?? ""} />
+          <Field label={t("fields.category")} hint={t("common.optional")}>
+            <OptionSelect
+              setKey="product_category"
+              name="category_option_id"
+              value={product?.category_option_id ?? undefined}
+              options={categories.map((c) => ({ value: c.id, label: c.label, token: c.color_token, archived: !!c.archived_at }))}
+              placeholder={t("fields.category")}
+            />
           </Field>
           <Field label={t("fields.status")}>
             <EnumSelect
@@ -59,8 +73,14 @@ export async function ProductForm({
               }))}
             />
           </Field>
-          <Field label={t("fields.fabric")} htmlFor="fabric" hint={t("common.optional")}>
-            <Input id="fabric" name="fabric" defaultValue={product?.fabric ?? ""} />
+          <Field label={t("fields.fabric")} hint={t("common.optional")}>
+            <OptionSelect
+              setKey="product_fabric"
+              name="fabric_option_id"
+              value={product?.fabric_option_id ?? undefined}
+              options={fabrics.map((f) => ({ value: f.id, label: f.label, token: f.color_token, archived: !!f.archived_at }))}
+              placeholder={t("fields.fabric")}
+            />
           </Field>
           <Field label={t("fields.price")} htmlFor="sale_price" hint={t("common.optional")}>
             <Input

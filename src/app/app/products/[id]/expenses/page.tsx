@@ -6,6 +6,7 @@ import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
 import { netProfit } from "@/lib/product-metrics";
 import { cn } from "@/lib/utils";
+import { getOptionSet } from "@/lib/option-sets";
 import { AdSpendForm } from "@/components/finance/ad-spend-form";
 import { ExpenseTable } from "@/components/finance/expense-table";
 
@@ -19,7 +20,7 @@ export default async function ProductExpensesPage({
   const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: product }, { data: expenses }, { data: suppliers }, { data: stats }, { data: allStats }, { data: fees }, usdRate, eurRate] =
+  const [{ data: product }, { data: expenses }, { data: suppliers }, { data: stats }, { data: allStats }, { data: fees }, usdRate, eurRate, subcategories] =
     await Promise.all([
       supabase.from("products").select("id").eq("id", id).maybeSingle(),
       supabase.from("expenses").select("*").eq("product_id", id).order("spent_on", { ascending: false }),
@@ -29,6 +30,7 @@ export default async function ProductExpensesPage({
       supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
       supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
       supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
+      getOptionSet(profile.workspaceId, "expense_subcategory"),
     ]);
   if (!product) notFound();
 
@@ -53,7 +55,7 @@ export default async function ProductExpensesPage({
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold">{t("expenses.title")}</h2>
-        <ExpenseTable expenses={expenses ?? []} productId={id} suppliers={suppliers ?? []} rates={rates} />
+        <ExpenseTable expenses={expenses ?? []} productId={id} suppliers={suppliers ?? []} subcategories={subcategories} rates={rates} />
       </section>
     </div>
   );

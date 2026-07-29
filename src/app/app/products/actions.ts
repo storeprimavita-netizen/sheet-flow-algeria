@@ -33,6 +33,10 @@ const optionalNumber = z.preprocess((v) => {
 }, z.number().min(0).nullable());
 
 const optionalText = z.string().trim().optional().transform((v) => v || null);
+const nullableUuid = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() && v.trim() !== "__none" ? v.trim() : null),
+  z.string().uuid().nullable(),
+);
 
 // ---------------------------------------------------------------------------
 // Product (Details tab) — upserts `products` + its 1:1 `product_costs` row.
@@ -40,8 +44,8 @@ const optionalText = z.string().trim().optional().transform((v) => v || null);
 const productSchema = z.object({
   name: z.string().trim().min(1),
   sku: optionalText,
-  category: optionalText,
-  fabric: optionalText,
+  category_option_id: nullableUuid,
+  fabric_option_id: nullableUuid,
   status: z.enum(PRODUCT_STATUSES),
   sale_price: optionalNumber,
   notes: optionalText,
@@ -54,8 +58,8 @@ export async function saveProduct(id: string | null, formData: FormData) {
   const input = productSchema.parse({
     name: formData.get("name"),
     sku: formData.get("sku"),
-    category: formData.get("category"),
-    fabric: formData.get("fabric"),
+    category_option_id: formData.get("category_option_id"),
+    fabric_option_id: formData.get("fabric_option_id"),
     status: formData.get("status"),
     sale_price: formData.get("sale_price"),
     notes: formData.get("notes"),
@@ -68,8 +72,8 @@ export async function saveProduct(id: string | null, formData: FormData) {
     workspace_id: workspaceId,
     name: input.name,
     sku: input.sku,
-    category: input.category,
-    fabric: input.fabric,
+    category_option_id: input.category_option_id,
+    fabric_option_id: input.fabric_option_id,
     status: input.status,
     sale_price: input.sale_price,
     notes: input.notes,
@@ -127,15 +131,11 @@ export async function setProductStatusValue(id: string, value: string): Promise<
 // ---------------------------------------------------------------------------
 // Expenses (per-product tab)
 // ---------------------------------------------------------------------------
-const nullableUuid = z.preprocess(
-  (v) => (typeof v === "string" && v.trim() && v.trim() !== "__none" ? v.trim() : null),
-  z.string().uuid().nullable(),
-);
-
 const expenseSchema = z.object({
   id: nullableUuid,
   product_id: nullableUuid,
   category: z.enum(EXPENSE_CATEGORIES),
+  subcategory_option_id: nullableUuid,
   amount: z.coerce.number().min(0),
   currency: z.enum(CURRENCY_CODES),
   fx_rate: z.coerce.number().positive(),
@@ -155,6 +155,7 @@ export async function saveExpense(formData: FormData): Promise<UpdateResult> {
     id: formData.get("id"),
     product_id: formData.get("product_id"),
     category: formData.get("category"),
+    subcategory_option_id: formData.get("subcategory_option_id"),
     amount: formData.get("amount"),
     currency: formData.get("currency"),
     fx_rate: formData.get("fx_rate"),

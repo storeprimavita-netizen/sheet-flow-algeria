@@ -10,6 +10,7 @@ import { LayoutGrid, Table2, MoreHorizontal, Pencil, Image as ImageIcon } from "
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, PRODUCT_STATUSES } from "@/lib/enums";
+import type { StatusToken } from "@/lib/statuses";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
 import { Chip } from "@/components/ui/chip";
@@ -31,7 +32,7 @@ export type ProductRow = {
   id: string;
   name: string;
   sku: string | null;
-  category: string | null;
+  category: { label: string; token: StatusToken } | null;
   image: string | null;
   status: string;
   sale_price: number | null;
@@ -120,7 +121,11 @@ export function ProductsView({ rows }: { rows: ProductRow[] }) {
         </div>
       ),
     },
-    { id: "category", header: t("fields.category"), cell: (r) => r.category ?? "—" },
+    {
+      id: "category",
+      header: t("fields.category"),
+      cell: (r) => (r.category ? <Chip token={r.category.token} size="sm">{r.category.label}</Chip> : "—"),
+    },
     { id: "sale_price", header: t("fields.price"), numeric: true, sortable: true, cell: (r) => formatCurrency(r.sale_price) },
     {
       id: "stock",

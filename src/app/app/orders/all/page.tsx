@@ -1,8 +1,9 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin } from "@/lib/rbac";
+import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
+import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { OrderTabs } from "../order-tabs";
@@ -71,12 +72,28 @@ export default async function AllOrdersPage({
 
   // status history for the orders on this page → the detail-sheet timeline
   const orderIds = (orders ?? []).map((o) => o.id);
-  const { data: events } = orderIds.length
-    ? await supabase
-        .from("order_status_history")
-        .select("id, order_id, stage, to_status, actor, created_at, comment")
-        .in("order_id", orderIds)
-    : { data: [] };
+  const { workspaceId } = (await getProfile())!;
+  const [{ data: events }, { data: orderTags }, tagOptions] = await Promise.all([
+    orderIds.length
+      ? supabase
+          .from("order_status_history")
+          .select("id, order_id, stage, to_status, actor, created_at, comment")
+          .in("order_id", orderIds)
+      : Promise.resolve({ data: [] }),
+    orderIds.length
+      ? supabase.from("order_tags").select("order_id, option_id").in("order_id", orderIds)
+      : Promise.resolve({ data: [] }),
+    getOptionSet(workspaceId, "order_tag"),
+  ]);
+  const tagById = new Map(tagOptions.map((o) => [o.id, o]));
+  const tagsByOrder = new Map<string, { id: string; label: string; token: (typeof tagOptions)[number]["color_token"] }[]>();
+  for (const row of orderTags ?? []) {
+    const opt = tagById.get(row.option_id);
+    if (!opt) continue;
+    const list = tagsByOrder.get(row.order_id) ?? [];
+    list.push({ id: opt.id, label: opt.label, token: opt.color_token });
+    tagsByOrder.set(row.order_id, list);
+  }
   const eventsByOrder = new Map<string, AllRow["events"]>();
   for (const e of events ?? []) {
     const list = eventsByOrder.get(e.order_id) ?? [];
@@ -109,6 +126,7 @@ export default async function AllOrdersPage({
     duplicate_of: o.duplicate_of,
     commune: o.commune,
     address: o.address,
+    tags: tagsByOrder.get(o.id) ?? [],
     events: eventsByOrder.get(o.id) ?? [],
   }));
 
