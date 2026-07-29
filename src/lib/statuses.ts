@@ -45,6 +45,30 @@ export type StatusToken =
 
 export type StatusKind = "confirmation" | "delivery" | "product" | "task";
 
+/** Every chip color token — the fixed palette user-created options may pick from. */
+export const CHIP_TOKENS: StatusToken[] = [
+  "neutral",
+  "success",
+  "warning",
+  "danger",
+  "info",
+  "indigo",
+  "cyan",
+  "violet",
+  "orange",
+  "rose",
+];
+
+/** Cycling palette for auto-colored user-created options (excludes neutral/danger — reserved meanings). */
+export const OPTION_PALETTE: StatusToken[] = ["info", "success", "warning", "violet", "cyan", "orange", "indigo", "rose"];
+
+/** Deterministic auto color for a user-created option (same input ⇒ same color, no DB round trip needed to preview it). */
+export function autoToken(seed: string): StatusToken {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return OPTION_PALETTE[h % OPTION_PALETTE.length];
+}
+
 export type StatusDef = {
   key: string;
   /** i18n message key */

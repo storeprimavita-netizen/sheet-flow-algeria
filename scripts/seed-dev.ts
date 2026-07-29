@@ -84,6 +84,14 @@ async function mustRow<T>(res: { data: T | null; error: { message: string } | nu
   return res.data;
 }
 
+// label -> option id, for an option_set seeded by seed_workspace() (00014_option_sets.sql).
+async function optionMap(admin: Admin, ws: string, setKey: string): Promise<Record<string, string>> {
+  const { data: set } = await admin.from("option_sets").select("id").eq("workspace_id", ws).eq("key", setKey).maybeSingle();
+  if (!set) return {};
+  const { data: options } = await admin.from("options").select("id,label").eq("set_id", set.id);
+  return Object.fromEntries((options ?? []).map((o) => [o.label, o.id]));
+}
+
 // ---------------------------------------------------------------------------
 // users + workspace
 // ---------------------------------------------------------------------------
@@ -210,6 +218,9 @@ async function seedProducts(
 ) {
   const productIds: string[] = [];
   const fixedFeesTotal = await seedFixedFees(admin, ws);
+  const categoryIds = await optionMap(admin, ws, "product_category");
+  const fabricIds = await optionMap(admin, ws, "product_fabric");
+  const subcategoryIds = await optionMap(admin, ws, "expense_subcategory");
 
   for (let pi = 0; pi < PRODUCTS.length; pi++) {
     const p = PRODUCTS[pi];
@@ -223,6 +234,14 @@ async function seedProducts(
     let productId: string;
     if (existing) {
       productId = existing.id;
+      // backfill category/fabric on a rerun against a DB seeded before 00014_option_sets.sql
+      await must(
+        await admin
+          .from("products")
+          .update({ category_option_id: categoryIds[p.category] ?? null, fabric_option_id: fabricIds[p.fabric] ?? null })
+          .eq("id", productId),
+        "products update category/fabric",
+      );
     } else {
       const row = await mustRow<{ id: string }>(
         await admin
@@ -230,8 +249,8 @@ async function seedProducts(
           .insert({
             workspace_id: ws,
             name: p.name,
-            category: p.category,
-            fabric: p.fabric,
+            category_option_id: categoryIds[p.category] ?? null,
+            fabric_option_id: fabricIds[p.fabric] ?? null,
             status: "confirmed",
             sale_price: p.sale_price,
             variants: [{ label: "S" }, { label: "M" }, { label: "L" }],
@@ -308,6 +327,7 @@ async function seedProducts(
           fx_rate: 1,
           spent_on: dateOnly(daysAgoIso(20 + pi)),
           contact_id: supplierIds["Studio Flash"],
+          subcategory_option_id: subcategoryIds["Location studio"] ?? null,
         },
         {
           category: "packaging" as const,
@@ -316,6 +336,7 @@ async function seedProducts(
           fx_rate: 1,
           spent_on: dateOnly(daysAgoIso(10 + pi)),
           contact_id: supplierIds["Emballage Plus"],
+          subcategory_option_id: subcategoryIds["Fournitures"] ?? null,
         },
       ];
       for (const r of rows) {
@@ -434,6 +455,9 @@ async function seedOrders(
 
   const plans = buildPlans();
   const createdOrderIds: { id: string; plan: Plan; sale: number; qty: number }[] = [];
+  const cancelReasonIds = await optionMap(admin, ws, "cancellation_reason");
+  const cancelReasonList = Object.values(cancelReasonIds);
+  const tagIds = await optionMap(admin, ws, "order_tag");
 
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
@@ -502,6 +526,8 @@ async function seedOrders(
             confirmation_status: plan.confirmation,
             confirmation_comment: comment,
             assigned_confirmation_agent: confAgentId,
+            cancellation_reason_option_id:
+              plan.confirmation === "cancelled" ? cancelReasonList[i % cancelReasonList.length] : null,
           })
           .eq("id", row.id),
         "orders update confirmation",
@@ -511,9 +537,25 @@ async function seedOrders(
       await must(
         await admin
           .from("orders")
-          .update({ delivery_status: plan.delivery, assigned_delivery_agent: delivAgentId })
+          .update({
+            delivery_status: plan.delivery,
+            assigned_delivery_agent: delivAgentId,
+            cancellation_reason_option_id:
+              plan.delivery === "cancelled" || plan.delivery === "returned"
+                ? cancelReasonList[i % cancelReasonList.length]
+                : null,
+          })
           .eq("id", row.id),
         "orders update delivery",
+      );
+    }
+
+    // a few demo tags — every 9th order "Test", every 13th "VIP"
+    const tagLabel = i % 9 === 0 ? "Test" : i % 13 === 0 ? "VIP" : null;
+    if (tagLabel && tagIds[tagLabel]) {
+      await must(
+        await admin.from("order_tags").insert({ order_id: row.id, option_id: tagIds[tagLabel], workspace_id: ws }),
+        "order_tags insert",
       );
     }
 

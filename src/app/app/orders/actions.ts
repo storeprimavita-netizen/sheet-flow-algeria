@@ -359,6 +359,41 @@ export async function updateDeliveryStatus(orderId: string, formData: FormData) 
 }
 
 // ---------------------------------------------------------------------------
+// Tags + cancellation reason (option_sets — Phase 12 §9). Any authenticated
+// role may set these on an order they can already see — RLS on `orders`/
+// `order_tags` is the real gate, not a role check here.
+// ---------------------------------------------------------------------------
+export async function setOrderTags(orderId: string, optionIds: string[]): Promise<UpdateResult> {
+  const parsed = z.array(z.string().uuid()).safeParse(optionIds);
+  if (!parsed.success) return { ok: false, error: "Invalid tags" };
+  const supabase = await createClient();
+  const { data: order } = await supabase.from("orders").select("workspace_id").eq("id", orderId).maybeSingle();
+  if (!order) return { ok: false, error: "Not found" };
+
+  const { error: delError } = await supabase.from("order_tags").delete().eq("order_id", orderId);
+  if (delError) return { ok: false, error: delError.message };
+  if (parsed.data.length) {
+    const { error: insError } = await supabase
+      .from("order_tags")
+      .insert(parsed.data.map((option_id) => ({ order_id: orderId, option_id, workspace_id: order.workspace_id })));
+    if (insError) return { ok: false, error: insError.message };
+  }
+  revalidatePath(`/app/orders/${orderId}`);
+  revalidatePath("/app/orders/all");
+  return { ok: true };
+}
+
+export async function setOrderCancellationReason(orderId: string, optionId: string | null): Promise<UpdateResult> {
+  const parsed = z.string().uuid().nullable().safeParse(optionId);
+  if (!parsed.success) return { ok: false, error: "Invalid reason" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").update({ cancellation_reason_option_id: parsed.data }).eq("id", orderId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/app/orders/${orderId}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Manual order creation (admin) — customer snapshot upserts `customers`.
 // ---------------------------------------------------------------------------
 const createOrderSchema = z.object({

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
+import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { DeleteButton } from "@/components/delete-button";
 import { ExpenseTable } from "@/components/finance/expense-table";
@@ -19,12 +20,13 @@ export default async function SupplierDetailPage({
   const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: contact }, { data: expenses }, { data: products }, usdRate, eurRate] = await Promise.all([
+  const [{ data: contact }, { data: expenses }, { data: products }, usdRate, eurRate, subcategories] = await Promise.all([
     supabase.from("contacts").select("*").eq("id", id).maybeSingle(),
     supabase.from("expenses").select("*").eq("contact_id", id).order("spent_on", { ascending: false }),
     supabase.from("products").select("id, name, images, status").order("name"),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
+    getOptionSet(profile.workspaceId, "expense_subcategory"),
   ]);
 
   if (!contact) notFound();
@@ -48,7 +50,7 @@ export default async function SupplierDetailPage({
           </span>
         </div>
 
-        <ExpenseTable expenses={expenses ?? []} contactId={id} products={productOpts} suppliers={[]} rates={rates} />
+        <ExpenseTable expenses={expenses ?? []} contactId={id} products={productOpts} suppliers={[]} subcategories={subcategories} rates={rates} />
       </section>
     </div>
   );

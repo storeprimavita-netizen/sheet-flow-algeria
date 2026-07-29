@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 
 import type { Tables } from "@/lib/supabase/database.types";
+import type { OptionRow } from "@/lib/option-sets";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export function ExpenseTable({
   products,
   suppliers,
   contactId,
+  subcategories,
   rates,
 }: {
   expenses: ExpenseRow[];
@@ -51,6 +53,7 @@ export function ExpenseTable({
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   suppliers: { id: string; name: string }[];
   contactId?: string;
+  subcategories: OptionRow[];
   rates: { USD: number; EUR: number };
 }) {
   const t = useTranslations();
@@ -60,6 +63,7 @@ export function ExpenseTable({
 
   const supplierName = React.useMemo(() => new Map(suppliers.map((s) => [s.id, s.name])), [suppliers]);
   const productName = React.useMemo(() => new Map((products ?? []).map((p) => [p.id, p.name])), [products]);
+  const subcategoryById = React.useMemo(() => new Map(subcategories.map((s) => [s.id, s])), [subcategories]);
 
   const totalsByCategory = React.useMemo(() => {
     const m = new Map<string, number>();
@@ -79,6 +83,15 @@ export function ExpenseTable({
   const columns: Column<ExpenseRow>[] = [
     { id: "spent_on", header: t("fields.incurred_on"), sticky: true, cell: (e) => formatDate(e.spent_on) },
     { id: "category", header: t("fields.category"), cell: (e) => <CategoryChip category={e.category} /> },
+    {
+      id: "subcategory",
+      header: t("fields.subcategory"),
+      defaultHidden: true,
+      cell: (e) => {
+        const s = e.subcategory_option_id ? subcategoryById.get(e.subcategory_option_id) : undefined;
+        return s ? <Chip token={s.color_token} size="sm">{s.label}</Chip> : "—";
+      },
+    },
     ...(productId
       ? []
       : [{ id: "product", header: t("fields.product"), cell: (e: ExpenseRow) => (e.product_id ? productName.get(e.product_id) ?? "—" : "—") }]),
@@ -158,6 +171,7 @@ export function ExpenseTable({
                   products={products}
                   suppliers={suppliers}
                   contactId={contactId}
+                  subcategories={subcategories}
                   rates={rates}
                   onDone={() => setEditing(null)}
                 />

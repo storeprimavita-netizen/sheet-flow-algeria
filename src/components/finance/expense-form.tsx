@@ -6,10 +6,12 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { Tables } from "@/lib/supabase/database.types";
+import type { OptionRow } from "@/lib/option-sets";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CategorySelect } from "@/components/fields/category-select";
+import { OptionSelect } from "@/components/fields/option-select";
 import { DateField } from "@/components/fields/date-field";
 import { EnumSelect } from "@/components/fields/enum-select";
 import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
@@ -31,6 +33,7 @@ export function ExpenseForm({
   products,
   suppliers,
   contactId,
+  subcategories,
   rates,
   onDone,
 }: {
@@ -39,6 +42,7 @@ export function ExpenseForm({
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   suppliers: { id: string; name: string }[];
   contactId?: string;
+  subcategories: OptionRow[];
   rates: { USD: number; EUR: number };
   onDone?: () => void;
 }) {
@@ -78,9 +82,20 @@ export function ExpenseForm({
         </Field>
       ) : null}
 
-      <Field label={t("fields.category")}>
-        <CategorySelect name="category" defaultValue={expense?.category ?? EXPENSE_CATEGORIES[0]} />
-      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t("fields.category")}>
+          <CategorySelect name="category" defaultValue={expense?.category ?? EXPENSE_CATEGORIES[0]} />
+        </Field>
+        <Field label={t("fields.subcategory")} hint={t("common.optional")}>
+          <OptionSelect
+            setKey="expense_subcategory"
+            name="subcategory_option_id"
+            value={expense?.subcategory_option_id ?? undefined}
+            options={subcategories.map((s) => ({ value: s.id, label: s.label, token: s.color_token, archived: !!s.archived_at }))}
+            placeholder={t("fields.subcategory")}
+          />
+        </Field>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <MoneyCurrencyField

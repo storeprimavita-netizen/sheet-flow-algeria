@@ -28,7 +28,7 @@ the bottom. Format:
 | 9 — Team & Rules | docs/phases/phase-09.md | done |
 | 10 — Polish, seed, RLS tests, deploy | docs/phases/phase-10.md | partial (deploy handed off) |
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
-| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | in progress (§1 data-table, §2 Orders, §3 Products, §4 Finance, §5 Dashboard, §6 Contacts done) |
+| 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | done |
 | 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
 
 ## Planning (2026-07-26, Fable) — DONE
@@ -2272,3 +2272,215 @@ getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
   tissu/expense subcategory/tags/cancellation reason to the new
   `OptionSelect` component (shell already exists at
   `components/fields/option-select.tsx`).
+
+## Phase 12 §9 — Option sets (2026-07-29) — DONE
+
+- Scope: section 9 of 9 — the **last section of Phase 12**. Built the real
+  `option_sets`/`options` backend the `OptionSelect`/`OptionMultiSelect`
+  shell (design-preview only until now) was designed for, a management
+  screen, and wired five taxonomy fields end to end.
+- **Migration `00014_option_sets.sql`**: `option_sets` (key, label,
+  allows_multi) + `options` (label, color_token, icon, sort_order,
+  archived_at) tables, both `workspace_id`-scoped. RLS: select open to every
+  authenticated role (selects render in forms all roles use); **insert on
+  `options` open to every authenticated role too** — the doc's "+ Create"
+  affordance has to work for a confirmation agent typing a new cancellation
+  reason, not just admins — while update/delete (rename/recolor/reorder/
+  archive/merge/hard-delete) stay admin-only. `set_updated_at` + `audit_row`
+  triggers, matching every other config table. Referencing columns added:
+  `products.category_option_id`/`fabric_option_id` (replacing the old free
+  `text` columns — **dropped**, not kept alongside), `expenses.
+  subcategory_option_id` (new, orthogonal to the existing fixed `category`
+  enum), `orders.cancellation_reason_option_id` (new), and a join table
+  `order_tags(order_id, option_id, workspace_id)` for the multi-select tag
+  set. `seed_workspace()` extended (idempotent `if not exists` guard) to
+  seed 5 default sets: `product_category` (Robes/Ensembles/Abayas/Jupes/
+  Vestes/Accessoires), `product_fabric` (Soie/Coton/Crêpe/Denim/Laine/Satin/
+  Mousseline — matching the exact labels `scripts/seed-dev.ts` already used
+  as free text, so the migration didn't invent new taxonomy vocabulary),
+  `expense_subcategory`, `order_tag` (allows_multi), `cancellation_reason`.
+- **Decision — SUPPLIER_TYPE and expense `category` stay fixed Postgres
+  enums, not migrated to option_sets** (the phase file explicitly asked for
+  this decision + a documented why). Reasoning: both are small (4 and 8
+  values), already fully integrated (RLS, `SUPPLIER_TYPE_TOKEN`/
+  `EXPENSE_CATEGORY_TOKEN` chip maps, `SupplierTypeSelect`/`CategorySelect`,
+  shipped and tested across §6/§7/12b), and converting them now means a
+  live-data backfill migration on tables with real rows for marginal benefit
+  — neither has shown a real need to grow past its fixed vocabulary the way
+  product category/fabric (previously ungoverned free text) or cancellation
+  reasons (didn't exist as a field at all) do. This matches phase-12b's own
+  precedent note that `ORDER_SOURCE_TOKEN`/`EXPENSE_CATEGORY_TOKEN` are
+  "Postgres enums like statuses... not `option_sets`". Genuinely new/
+  previously-ungoverned taxonomies (product category, fabric, expense
+  subcategory, tags, cancellation reason) got the real option-sets treatment
+  instead — exactly the doc's "team grows this over time" case.
+- **`OptionSelect`/`OptionMultiSelect` rewritten** (`components/fields/
+  option-select.tsx`) to back onto the real tables: both now take a `setKey`
+  prop and call the new `createOption` server action directly on "+Create"
+  — no caller has to wire its own `onCreate` handler anymore (the
+  design-preview gallery's static-options demo still works via the
+  `onCreate` prop, kept as a fallback when `setKey` is absent). Rebuilt
+  `OptionSelect` as its own Popover+Command (was wrapping the generic
+  `Combobox`) because `Combobox`'s trigger renders `icon + label` as two
+  separate nodes — passing a `<Chip>` as the icon while also setting `label`
+  would have doubled the text. Archived options are filtered out of the
+  pickable list **unless currently selected**, then rendered dimmed with an
+  "Archived option" tooltip — matches the doc's "still render on historical
+  records, greyed" rule. `autoToken`/`OPTION_PALETTE` moved from
+  `option-select.tsx` into `lib/statuses.ts` (next to the new `CHIP_TOKENS`
+  array) since a "use server" actions file can't import a value from a
+  "use client" component file — `createOption` needed `autoToken` too.
+- **Mutations** (`src/lib/option-sets-actions.ts`, "use server"):
+  `createOption` (any role), `renameOption`/`recolorOption`/`moveOption`
+  (swap `sort_order` with the adjacent sibling)/`setOptionArchived`/
+  `mergeOption`/`deleteOption` (admin-only via `requireAdminProfile`).
+  `mergeOption` repoints every known referencing column
+  (`repointReferences` helper — a plain `switch`-free explicit list of 4
+  `.update()` calls; a generic `for (table,column) of [...]` loop hit a
+  TypeScript error since Supabase's typed client can't accept a computed
+  column key across a union of table types) plus `order_tags` (join-table
+  move via `.upsert(..., {onConflict, ignoreDuplicates:true})` to skip rows
+  that'd collide with an existing tag on the same order), then deletes the
+  source option. `deleteOption` re-checks usage server-side (not just
+  UI-disabled) before deleting. Reads live in `src/lib/option-sets.ts`
+  (`getOptionSet`, `getAllOptionSets`, `getOptionUsageCounts` — the last is
+  a `switch` over the 5 known consumer tables/columns, not a generic
+  polymorphic counter; YAGNI at 5 fixed sets).
+- **Management screen**: added as a new **inline card in the existing
+  one-page Settings** (`settings/options-section.tsx` + a new `#options` nav
+  anchor in `settings/page.tsx`'s `NAV_SECTIONS`), not a separate route —
+  consistent with §8's "grouped cards with section nav" pattern every other
+  subsection already uses, and the checklist's "Options manager" line sits
+  alongside the other Settings bullets, not called out as its own page. Two
+  cards per row (5 sets), each option row: up/down arrows (swap-adjacent
+  reorder), a `ColorDot` button opening a 10-swatch `CHIP_TOKENS` popover
+  (recolor), inline click-to-rename (Enter/Escape, check/x buttons), usage
+  count (ICU plural), and a kebab (Rename/Merge into…/Archive-Unarchive/
+  Delete — Delete disabled whenever usage > 0). "Merge into…" swaps the row
+  for an inline `Combobox` of sibling options; picking one runs a
+  `window.confirm` (same native-dialog pattern `DeleteButton` already uses)
+  before calling `mergeOption`. A "New option…" input + Add button per card
+  covers admin-side creation without opening a form elsewhere.
+- **Wired taxonomy fields**: **Product category/fabric**
+  (`product-form.tsx` — was two raw `<Input>`s, the actual banned pattern
+  the invariant targets; `products/actions.ts`'s `productSchema` now takes
+  `category_option_id`/`fabric_option_id` reusing the file's existing
+  `nullableUuid` preprocessor instead of adding a second copy —
+  deduplicated the two near-identical `nullableUuid` definitions that had
+  accumulated in that file into one, moved above first use). Products
+  list/table (`products/page.tsx`+`products-view.tsx`): category rendered
+  as a `<Chip>` with the option's own color, replacing plain text.
+  **Expense subcategory** (`ExpenseForm`/`ExpenseTable` gained a
+  `subcategories` prop threaded through all three call sites — product
+  Expenses tab, Finance → Expenses, Supplier detail — a `defaultHidden`
+  chip column added to the shared table). **Order tags** (multi) + **
+  cancellation reason**: new `OrderTaxonomyCard`
+  (`orders/[id]/order-taxonomy-card.tsx`) on the order detail page, both
+  fields auto-save on change via two new actions in `orders/actions.ts`
+  (`setOrderTags` — full delete+reinsert into `order_tags`;
+  `setOrderCancellationReason`) — no submit button, matches the "tag as you
+  go" spirit of a taxonomy field. Cancellation reason is column-unrestricted
+  by `guard_order_fields()` (a blocklist, not an allowlist), so both
+  confirmation and delivery agents can set it on orders they can already
+  see, not just admins. Also added a `defaultHidden` Tags column to
+  `/app/orders/all` (chips, one extra `order_tags` query joined in JS) for
+  the cross-cutting "chips render identically in trigger/options/tables"
+  rule — did **not** add a tags filter dimension to `orders-filter-bar.tsx`
+  or wire tags/reason into the confirmation/delivery queue rows (scope cut,
+  see below).
+- **`scripts/seed-dev.ts` updated** to stay runnable against the new schema:
+  products now insert/backfill `category_option_id`/`fabric_option_id`
+  (looked up by label from the seeded option sets — added an `optionMap()`
+  helper and a backfill branch on the `existing`-product path so a rerun
+  against an already-seeded DB still populates the new columns, not just
+  fresh inserts); two of the per-product expense rows get a
+  `subcategory_option_id`; orders get `cancellation_reason_option_id` when
+  cancelled (confirmation) or cancelled/returned (delivery), cycling through
+  the seeded reasons by index; every 9th/13th order gets a demo "Test"/"VIP"
+  tag via `order_tags`. Local DB's existing `orders`/`expenses` rows were
+  deleted and reseeded (products kept, backfilled in place) so the new
+  columns have real demo data — verified via SQL: all 5 products have a
+  category+fabric, 14/60 orders have a cancellation reason, 11 `order_tags`
+  rows, all 5 option sets populated.
+- **Verified live** (local Supabase docker + `.env.development.local`,
+  already-authenticated `admin@seed.mnw` session reused): typed a new
+  category "Chaussures" into the product form's Category field → "+ Create"
+  row appeared → clicked it → option created server-side, auto-selected,
+  chip rendered with an auto-assigned color, all without leaving the form;
+  cleaned it up afterward via the Options screen's Delete (usage was 0).
+  Renamed "Coton" → "Coton bio" from the Options screen and back — persisted
+  across `router.refresh()`. Opened the color-picker popover (10 swatches).
+  Confirmed a cancelled order (SEED-0017) shows its seeded cancellation
+  reason chip pre-filled and an uncancelled order shows the field empty;
+  confirmed a tagged order (SEED-0001) shows its "Test" chip. Deleted the
+  test "Chaussures" option via the management screen's kebab → Delete →
+  native `confirm()` dialog (handled via Playwright's dialog API) →
+  disappeared. **Console clean (0 errors) across the whole pass.**
+- **Screenshot self-critique (dark + light + Arabic/RTL)**:
+  `docs/design/audit/phase-12-9/` — `settings-options-dark.png` (Options
+  card, all 5 sets), `settings-options-full-dark.png` (whole Settings page
+  with the new card in place), `settings-options-colorpicker-dark.png`,
+  `settings-options-renamed-dark.png`, `settings-options-full-light.png`,
+  `settings-options-ar-rtl-dark.png` (section headers translated, kebabs
+  mirrored to the start side, reorder arrows and usage counts read
+  correctly right-to-left, "multi-select" badge translated); `product-
+  form-dark.png` + `product-form-created-dark.png` (inline-create flow),
+  `products-table-dark.png`/`products-list-dark.png` (category chips in
+  both views), `finance-expenses-new-dark.png` (subcategory field next to
+  category), `order-detail-tags-dark.png` + `order-detail-cancelled-dark.png`
+  + `order-detail-ar-rtl-dark.png`. No fixes needed from the shots — the
+  only real find this session (the `Combobox` icon/label double-render risk)
+  was caught during implementation by reasoning through the component, not
+  by a screenshot. Locale/theme reverted to English/Dark before finishing.
+- **`ponytail:ponytail-review` pass** (run before merging, per protocol):
+  two minor duplication findings, both left as-is — `OptionSelect`/
+  `OptionMultiSelect`'s `handleCreate` repeat the same 6-line "call
+  `createOption` → push into local `opts` → toast on error" shape, and
+  `OrderTaxonomyCard`'s two `onChange` handlers repeat the same 3-line
+  "toast on error else `router.refresh()`" shape. Net ~10 lines, not worth
+  a shared helper for two short, already-legible call sites in
+  freshly-written single-purpose files.
+- **Known / scope cuts, not oversights**: no tags filter dimension added to
+  `/app/orders/all`'s filter bar (only a `defaultHidden` display column) —
+  the phase brief asked to *wire* the taxonomy fields, not necessarily add
+  a new filter axis everywhere; revisit if tag-based filtering becomes a
+  real workflow ask. Tags/cancellation-reason are only editable from the
+  order **detail page**, not inline on the confirmation/delivery queue rows
+  — the queue rows already have a lot of controls (status buttons, risk
+  badge, duplicate banner) and adding two more taxonomy pickers there felt
+  like scope creep past "wire the field", not "redesign the queue row"; the
+  detail page is one click away via the sheet's "open full page" link.
+  `getOptionUsageCounts`/`repointReferences` are explicit per-table
+  `switch`/list, not generic — correct tradeoff at 5 fixed sets, revisit
+  only if option_sets ever needs to back a 6th+ consumer table (would be a
+  good time to reconsider a generic approach).
+- Files: new `supabase/migrations/00014_option_sets.sql`, `src/lib/
+  {option-sets,option-sets-actions}.ts`, `src/app/app/settings/options-
+  section.tsx`, `src/app/app/orders/[id]/order-taxonomy-card.tsx`; rewrote
+  `src/components/fields/option-select.tsx`; extended `src/lib/statuses.ts`
+  (`CHIP_TOKENS`, `OPTION_PALETTE`, `autoToken` — moved from
+  `option-select.tsx`), `src/app/app/{products,orders}/actions.ts`,
+  `src/app/app/settings/page.tsx`, `src/app/app/products/{page,product-
+  form,products-view}.tsx`, `src/components/finance/{expense-form,
+  expense-table}.tsx`, `src/app/app/{finance/expenses,products/[id]/
+  expenses,contacts/suppliers/[id],orders/[id],orders/all}/page.tsx`,
+  `src/app/app/orders/all/orders-all-table.tsx`, `scripts/seed-dev.ts`,
+  `docs/DB.md` (new `option_sets`/`options`/`order_tags` rows + updated
+  `products`/`expenses`/`orders` notes); ~30 new message keys in both
+  locales (`settings.options.*`, `fields.subcategory`/`tags`/
+  `cancellationReason`, `actions.add`/`rename`/`select`); regenerated
+  `database.types.ts` (local `--db-url` regen, no `graphql_public`/
+  `__InternalSupabase` hand-merge needed — recent phases already stopped
+  doing that, per §8's precedent).
+- **Next chat must know:** `npm run build` + `npm test` green (31 pass / 38
+  RLS-suite skipped, unchanged — no new test file; this section is UI/forms
+  + straightforward CRUD actions over a fresh but simple schema, nothing
+  with branchy logic worth a unit test beyond what live-verification above
+  already covered). Forbidden-color grep = 0, no native `<select>`/raw
+  `<input>` across every file this section touched. `graphify update .` run
+  (1478 nodes, 3775 edges, 122 communities).
+
+**Phase 12 is now fully done — all 9 sections complete.** Phase-plan table
+status updated below from "in progress" to "done". Next: whatever Phase 13
+covers (`docs/phases/phase-13.md` — appeared in the repo during §7/§8 but
+wasn't this session's scope; read it fresh before starting).

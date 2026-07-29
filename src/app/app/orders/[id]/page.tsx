@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserRole, isCurrentUserAdmin } from "@/lib/rbac";
+import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { getOptionSet } from "@/lib/option-sets";
 import { StatusPill } from "@/components/status-pill";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
@@ -11,6 +12,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
 import { ZRShipmentCard } from "./zr-shipment-card";
+import { OrderTaxonomyCard } from "./order-taxonomy-card";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -64,6 +66,12 @@ export default async function OrderDetailPage({
   );
 
   const isAdmin = await isCurrentUserAdmin();
+  const { workspaceId } = (await getProfile())!;
+  const [tags, reasons, { data: orderTags }] = await Promise.all([
+    getOptionSet(workspaceId, "order_tag"),
+    getOptionSet(workspaceId, "cancellation_reason"),
+    supabase.from("order_tags").select("option_id").eq("order_id", id),
+  ]);
 
   // admin: agent rosters for the assignment card
   const confirmationAgents: { id: string; email: string }[] = [];
@@ -137,6 +145,14 @@ export default async function OrderDetailPage({
           </Link>
         </div>
       ) : null}
+
+      <OrderTaxonomyCard
+        orderId={order.id}
+        tags={tags}
+        selectedTagIds={(orderTags ?? []).map((t) => t.option_id)}
+        reasons={reasons}
+        cancellationReasonId={order.cancellation_reason_option_id}
+      />
 
       <OrderWorkflow order={order} role={role} events={events ?? []} actorNames={actorNames} />
 
