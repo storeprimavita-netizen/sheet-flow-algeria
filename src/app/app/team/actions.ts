@@ -100,9 +100,16 @@ export async function saveRuleDoc(id: string | null, formData: FormData) {
   const { workspaceId } = await adminProfile();
   const input = ruleSchema.parse({ title: formData.get("title"), content: formData.get("content") });
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (id) {
-    const { error } = await supabase.from("rules_docs").update(input).eq("id", id).eq("workspace_id", workspaceId);
+    const { error } = await supabase
+      .from("rules_docs")
+      .update({ ...input, updated_by: user?.id ?? null })
+      .eq("id", id)
+      .eq("workspace_id", workspaceId);
     if (error) throw new Error(error.message);
   } else {
     const { data: last } = await supabase
@@ -112,9 +119,12 @@ export async function saveRuleDoc(id: string | null, formData: FormData) {
       .order("position", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const { error } = await supabase
-      .from("rules_docs")
-      .insert({ workspace_id: workspaceId, ...input, position: (last?.position ?? -1) + 1 });
+    const { error } = await supabase.from("rules_docs").insert({
+      workspace_id: workspaceId,
+      ...input,
+      position: (last?.position ?? -1) + 1,
+      updated_by: user?.id ?? null,
+    });
     if (error) throw new Error(error.message);
   }
   revalidatePath("/app/team/rules");
@@ -188,10 +198,55 @@ export async function createNextMeetingInstances() {
     .filter((c) => !existingSet.has(c))
     .map((scheduled_at) => ({ workspace_id: workspaceId, scheduled_at }));
   if (toInsert.length) {
-    const { error } = await supabase.from("meetings").insert(toInsert);
+    const { data: inserted, error } = await supabase.from("meetings").insert(toInsert).select("id, scheduled_at");
     if (error) throw new Error(error.message);
+    await carryOverDeferredObjectives(supabase, workspaceId, inserted ?? []);
   }
   revalidatePath("/app/team/meetings");
+}
+
+/** Copy every not-yet-carried deferred objective from past meetings into the
+ * soonest newly-created one, tagged via `carried_from` — "deferred ones
+ * appear in the next meeting tagged carried over" (section-checklists.md
+ * §Team & Rules). Marks the originals `carried_forward` so a later
+ * "create next instances" run doesn't copy them again. */
+async function carryOverDeferredObjectives(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  workspaceId: string,
+  newMeetings: { id: string; scheduled_at: string }[],
+) {
+  if (!newMeetings.length) return;
+  const target = [...newMeetings].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
+
+  const { data: pastMeetings } = await supabase.from("meetings").select("id").eq("workspace_id", workspaceId);
+  const pastIds = (pastMeetings ?? []).map((m) => m.id).filter((id) => id !== target.id);
+  if (!pastIds.length) return;
+
+  const { data: deferred } = await supabase
+    .from("meeting_objectives")
+    .select("id, content")
+    .in("meeting_id", pastIds)
+    .eq("is_deferred", true)
+    .eq("carried_forward", false);
+  if (!deferred?.length) return;
+
+  const copies = deferred.map((o, i) => ({
+    meeting_id: target.id,
+    content: o.content,
+    position: i,
+    carried_from: o.id,
+  }));
+  const { error: copyError } = await supabase.from("meeting_objectives").insert(copies);
+  if (copyError) throw new Error(copyError.message);
+
+  const { error: markError } = await supabase
+    .from("meeting_objectives")
+    .update({ carried_forward: true })
+    .in(
+      "id",
+      deferred.map((o) => o.id),
+    );
+  if (markError) throw new Error(markError.message);
 }
 
 export async function addObjective(meetingId: string, formData: FormData) {
@@ -215,7 +270,23 @@ export async function addObjective(meetingId: string, formData: FormData) {
 export async function toggleObjective(meetingId: string, objectiveId: string, isDone: boolean) {
   await adminProfile();
   const supabase = await createClient();
-  const { error } = await supabase.from("meeting_objectives").update({ is_done: isDone }).eq("id", objectiveId);
+  const { error } = await supabase
+    .from("meeting_objectives")
+    .update({ is_done: isDone, is_deferred: isDone ? false : undefined })
+    .eq("id", objectiveId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/app/team/meetings/${meetingId}`);
+}
+
+/** Defer = "won't do this time", satisfies the held-guard alongside "done"
+ * and gets copied into the next meeting by `createNextMeetingInstances`. */
+export async function deferObjective(meetingId: string, objectiveId: string, isDeferred: boolean) {
+  await adminProfile();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("meeting_objectives")
+    .update({ is_deferred: isDeferred, is_done: isDeferred ? false : undefined })
+    .eq("id", objectiveId);
   if (error) throw new Error(error.message);
   revalidatePath(`/app/team/meetings/${meetingId}`);
 }

@@ -59,6 +59,10 @@ export const CURRENCY_CODES = ["DZD", "USD", "EUR"] as const;
 
 export const AD_KINDS = ["test", "scaling"] as const;
 
+export const TASK_STATUSES = ["todo", "doing", "blocked", "done"] as const;
+
+export const TASK_PRIORITIES = ["low", "medium", "high"] as const;
+
 // Manual stock-movement entry only allows these two — delivered/returned are
 // written by the order-status trigger, never by hand (Phase 5).
 export const MANUAL_STOCK_REASONS = ["purchase", "correction"] as const;

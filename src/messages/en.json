@@ -146,13 +146,19 @@
     "meeting_status": {
       "planned": "Planned",
       "held": "Held",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "ready": "Ready"
     },
     "task_status": {
       "todo": "To do",
       "doing": "Doing",
       "blocked": "Blocked",
       "done": "Done"
+    },
+    "task_priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
     }
   },
   "fields": {
@@ -204,7 +210,11 @@
     "from": "From",
     "to": "To",
     "none": "—",
-    "lastOrder": "Last order"
+    "lastOrder": "Last order",
+    "title": "Title",
+    "due_date": "Due date",
+    "priority": "Priority",
+    "date": "Date"
   },
   "products": {
     "title": "Products",
@@ -380,7 +390,8 @@
       "rules": "Rules",
       "meetings": "Meetings",
       "performance": "Performance",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "tasks": "Tasks"
     },
     "invite": "Invite user",
     "duty": "Duty",
@@ -413,7 +424,15 @@
     "table": "Table",
     "action": "Action",
     "changes": "Changes",
-    "auditNone": "No audit entries yet."
+    "auditNone": "No audit entries yet.",
+    "meeting": "Meeting",
+    "attendeesNone": "No attendees yet.",
+    "carriedOver": "Carried over",
+    "defer": "Defer",
+    "undefer": "Un-defer",
+    "copyAgenda": "Copy agenda",
+    "agendaCopied": "Agenda copied to clipboard.",
+    "lastEditedBy": "Last edited by {name}"
   },
   "cash": {
     "title": "Cash reconciliation",
@@ -605,7 +624,8 @@
     },
     "myTasks": {
       "title": "My open tasks",
-      "none": "Task board isn't built yet — coming in a later phase."
+      "none": "No open tasks assigned to you.",
+      "viewAll": "View all"
     },
     "agentView": {
       "queue": "Your queue",
@@ -628,6 +648,17 @@
   "role": {
     "admin": "Admin",
     "confirmation_agent": "Confirmation agent",
-    "delivery_agent": "Delivery agent"
+    "delivery_agent": "Delivery agent",
+    "descriptions": {
+      "admin": "Sees everything: all orders, every money figure, settings, and can manage the team.",
+      "confirmation_agent": "Sees only the Confirmation queue — contacts customers and sets the confirmation status. No pricing, costs, or other data.",
+      "delivery_agent": "Sees only the Delivery queue — updates delivery status on confirmed orders. No pricing, costs, or other data."
+    }
+  },
+  "tasks": {
+    "new": "New task",
+    "none": "No tasks yet.",
+    "mine": "My tasks",
+    "overdueOnly": "Overdue only"
   }
 }

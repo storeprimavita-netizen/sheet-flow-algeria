@@ -2,7 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin } from "@/lib/rbac";
+import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
+import { formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { Field } from "@/components/field";
@@ -20,6 +21,12 @@ export default async function RulesPage() {
   const supabase = await createClient();
   const { data: docs } = await supabase.from("rules_docs").select("*").order("position");
   const list = docs ?? [];
+
+  const profile = await getProfile();
+  const { data: profiles } = profile
+    ? await supabase.from("profiles").select("user_id, display_name").eq("workspace_id", profile.workspaceId)
+    : { data: [] };
+  const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? p.user_id]));
 
   return (
     <div className="space-y-6">
@@ -45,12 +52,18 @@ export default async function RulesPage() {
         <Empty>{t("team.rulesNone")}</Empty>
       ) : (
         <div className="space-y-4">
-          {list.map((d, i) => (
+          {list.map((d, i) => {
+            const editedBy = d.updated_by ? (nameById.get(d.updated_by) ?? d.updated_by) : null;
+            const lastEdited = editedBy ? `${t("team.lastEditedBy", { name: editedBy })} · ${formatDateTime(d.updated_at)}` : null;
+            return (
             <section key={d.id} className="card-surface space-y-4 rounded-xl p-5">
               {admin ? (
                 <>
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-semibold">{d.title}</h2>
+                    <div>
+                      <h2 className="text-sm font-semibold">{d.title}</h2>
+                      {lastEdited ? <p className="text-xs text-muted-foreground">{lastEdited}</p> : null}
+                    </div>
                     <div className="flex items-center gap-1">
                       <form action={moveRuleDoc.bind(null, d.id, "up")}>
                         <Button type="submit" variant="ghost" size="sm" disabled={i === 0}>
@@ -83,12 +96,16 @@ export default async function RulesPage() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-sm font-semibold">{d.title}</h2>
+                  <div>
+                    <h2 className="text-sm font-semibold">{d.title}</h2>
+                    {lastEdited ? <p className="text-xs text-muted-foreground">{lastEdited}</p> : null}
+                  </div>
                   <p className="whitespace-pre-wrap text-sm text-muted-foreground">{d.content}</p>
                 </>
               )}
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

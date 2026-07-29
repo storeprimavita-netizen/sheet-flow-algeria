@@ -185,6 +185,23 @@ export const SUPPLIER_TYPE_TOKEN: Record<string, StatusToken> = {
   other: "neutral",
 };
 
+export const TASK_PRIORITY_TOKEN: Record<string, StatusToken> = {
+  low: "neutral",
+  medium: "warning",
+  high: "danger",
+};
+
+/** Meeting status isn't a StatusKind (no StatusSelect — meetings transition
+ * via dedicated actions, not a generic dropdown). "ready" is a UI-computed
+ * pseudo-state (every objective checked/deferred, not yet marked held), not
+ * a DB value. */
+export const MEETING_STATUS_TOKEN: Record<string, StatusToken> = {
+  planned: "neutral",
+  ready: "info",
+  held: "success",
+  cancelled: "danger",
+};
+
 /** Current status + its legal next states (both as full defs), for a status select. */
 export function transitionsFor(kind: StatusKind, current: string): StatusDef[] {
   const def = getStatus(kind, current);

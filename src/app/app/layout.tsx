@@ -19,7 +19,7 @@ export default async function AppLayout({
   const role = await getCurrentUserRole();
 
   // Live nav counters — RLS-scoped, so agents see their own queue counts.
-  const [confirmation, delivery] = await Promise.all([
+  const [confirmation, delivery, tasks] = await Promise.all([
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
@@ -28,12 +28,17 @@ export default async function AppLayout({
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("delivery_status", "wait_for_deposit"),
+    supabase
+      .from("tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("owner", user.id)
+      .neq("status", "done"),
   ]);
 
   const counts = {
     confirmation: confirmation.count ?? 0,
     delivery: delivery.count ?? 0,
-    tasks: 0,
+    tasks: tasks.count ?? 0,
   };
 
   return (

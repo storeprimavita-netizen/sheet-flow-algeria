@@ -508,30 +508,46 @@ export type Database = {
       }
       meeting_objectives: {
         Row: {
+          carried_forward: boolean
+          carried_from: string | null
           content: string
           created_at: string
           id: string
+          is_deferred: boolean
           is_done: boolean
           meeting_id: string
           position: number
         }
         Insert: {
+          carried_forward?: boolean
+          carried_from?: string | null
           content: string
           created_at?: string
           id?: string
+          is_deferred?: boolean
           is_done?: boolean
           meeting_id: string
           position?: number
         }
         Update: {
+          carried_forward?: boolean
+          carried_from?: string | null
           content?: string
           created_at?: string
           id?: string
+          is_deferred?: boolean
           is_done?: boolean
           meeting_id?: string
           position?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_objectives_carried_from_fkey"
+            columns: ["carried_from"]
+            isOneToOne: false
+            referencedRelation: "meeting_objectives"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_objectives_meeting_id_fkey"
             columns: ["meeting_id"]
@@ -1133,6 +1149,80 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          meeting_id: string | null
+          owner: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          product_id: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          meeting_id?: string | null
+          owner?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          meeting_id?: string | null
+          owner?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_events: {
         Row: {
           created_at: string
@@ -1547,6 +1637,8 @@ export type Database = {
         | "atelier_couture"
         | "emballage"
         | "other"
+      task_priority: "low" | "medium" | "high"
+      task_status: "todo" | "doing" | "blocked" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1723,6 +1815,8 @@ export const Constants = {
         "emballage",
         "other",
       ],
+      task_priority: ["low", "medium", "high"],
+      task_status: ["todo", "doing", "blocked", "done"],
     },
   },
 } as const

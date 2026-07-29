@@ -9,6 +9,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
+import { ColorDot } from "@/components/ui/chip";
+import { TASK_PRIORITY_TOKEN } from "@/lib/statuses";
 import { ButtonLink } from "@/components/button-link";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { Funnel } from "@/components/stats/funnel";
@@ -102,7 +104,11 @@ export default async function DashboardPage({
   const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  const [{ data: products }, { data: wilayas }, { data: team }, { data: nextMeeting }] = await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: products }, { data: wilayas }, { data: team }, { data: nextMeeting }, { data: myTasks }] = await Promise.all([
     supabase.from("products").select("id, name").order("name"),
     supabase.from("wilayas").select("code, name").order("code"),
     supabase.from("profiles").select("user_id, display_name, role").eq("is_active", true),
@@ -114,6 +120,13 @@ export default async function DashboardPage({
       .order("scheduled_at")
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date, priority")
+      .eq("owner", user!.id)
+      .neq("status", "done")
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .limit(5),
   ]);
   const agents = (team ?? []).filter((a) => a.role !== "admin");
 
@@ -438,14 +451,39 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* my open tasks — no tasks table yet (Phase 12 §7 builds it); an honest
-          empty state beats a fake board. */}
+      {/* my open tasks */}
       <div className="card-surface space-y-2 rounded-xl p-5">
         <h2 className="flex items-center gap-2 text-sm font-semibold">
           <ListTodo className="h-4 w-4 text-muted-foreground" />
           {t("dashboard.myTasks.title")}
         </h2>
-        <p className="text-sm text-muted-foreground">{t("dashboard.myTasks.none")}</p>
+        {!myTasks?.length ? (
+          <p className="text-sm text-muted-foreground">{t("dashboard.myTasks.none")}</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {myTasks.map((task) => (
+              <li key={task.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <ColorDot token={TASK_PRIORITY_TOKEN[task.priority]} />
+                  <span className="truncate">{task.title}</span>
+                </span>
+                {task.due_date ? (
+                  <span
+                    className={
+                      task.due_date < new Date().toISOString().slice(0, 10) ? "num shrink-0 text-xs text-danger" : "num shrink-0 text-xs text-muted-foreground"
+                    }
+                  >
+                    {formatDate(task.due_date)}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href="/app/team/tasks" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          {t("dashboard.myTasks.viewAll")}
+          <ArrowRight className="h-3 w-3 rtl:rotate-180" />
+        </Link>
       </div>
 
       {/* quick actions */}
