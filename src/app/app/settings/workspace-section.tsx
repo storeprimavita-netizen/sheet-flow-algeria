@@ -9,7 +9,7 @@ export async function WorkspaceSection({ name }: { name: string }) {
   const t = await getTranslations();
 
   return (
-    <section className="card-surface space-y-4 rounded-xl p-5">
+    <section id="workspace" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.workspace")}</h2>
       <form action={renameWorkspace} className="flex flex-wrap items-end gap-3">
         <Field label={t("fields.name")} htmlFor="ws-name" className="min-w-64">

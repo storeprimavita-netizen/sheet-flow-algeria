@@ -4,25 +4,21 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** Textarea that grows with its content. */
-export function AutoTextarea({
-  name,
-  defaultValue,
-  placeholder,
-  disabled,
-  className,
-  id,
-  minRows = 2,
-}: {
-  name?: string;
-  defaultValue?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  className?: string;
-  id?: string;
-  minRows?: number;
-}) {
-  const ref = React.useRef<HTMLTextAreaElement>(null);
+/** Textarea that grows with its content. Forwards its ref (e.g. to read `.value` imperatively for a bulk-paste apply button). */
+export const AutoTextarea = React.forwardRef<
+  HTMLTextAreaElement,
+  {
+    name?: string;
+    defaultValue?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    className?: string;
+    id?: string;
+    minRows?: number;
+  }
+>(function AutoTextarea({ name, defaultValue, placeholder, disabled, className, id, minRows = 2 }, forwardedRef) {
+  const innerRef = React.useRef<HTMLTextAreaElement>(null);
+  React.useImperativeHandle(forwardedRef, () => innerRef.current as HTMLTextAreaElement);
 
   function resize(el: HTMLTextAreaElement) {
     el.style.height = "auto";
@@ -30,12 +26,12 @@ export function AutoTextarea({
   }
 
   React.useEffect(() => {
-    if (ref.current) resize(ref.current);
+    if (innerRef.current) resize(innerRef.current);
   }, []);
 
   return (
     <textarea
-      ref={ref}
+      ref={innerRef}
       id={id}
       name={name}
       rows={minRows}
@@ -49,4 +45,4 @@ export function AutoTextarea({
       )}
     />
   );
-}
+});

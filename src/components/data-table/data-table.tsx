@@ -83,7 +83,13 @@ export function DataTable<T>({
 
   React.useEffect(() => {
     const savedDensity = localStorage.getItem(`mnw:density:${tableId}`);
-    setDensity(savedDensity === "compact" ? "compact" : savedDensity === "comfortable" ? "comfortable" : defaultDensity);
+    if (savedDensity === "compact" || savedDensity === "comfortable") {
+      setDensity(savedDensity);
+    } else {
+      // no per-table preference yet — fall back to the workspace-wide default from Settings → Appearance
+      const globalDefault = localStorage.getItem("mnw:density:default");
+      setDensity(globalDefault === "compact" ? "compact" : globalDefault === "comfortable" ? "comfortable" : defaultDensity);
+    }
     const saved = localStorage.getItem(`mnw:cols:${tableId}`);
     // saved visibility wins; otherwise seed from columns marked defaultHidden
     if (saved) {

@@ -40,6 +40,32 @@ export function DateField({
   );
 }
 
+/** Native time input (`HH:MM`), styled to tokens — same treatment as `DateField`. */
+export function TimeField({
+  name,
+  defaultValue,
+  disabled,
+  className,
+  id,
+}: {
+  name?: string;
+  defaultValue?: string;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+}) {
+  return (
+    <input
+      id={id}
+      type="time"
+      name={name}
+      defaultValue={defaultValue}
+      disabled={disabled}
+      className={cn(dateCls, className)}
+    />
+  );
+}
+
 function iso(d: Date): string {
   return d.toLocaleDateString("en-CA");
 }
