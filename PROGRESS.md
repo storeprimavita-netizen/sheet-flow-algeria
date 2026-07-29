@@ -2146,3 +2146,129 @@ getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
   If merge conflicts appear touching `lib/statuses.ts`, this session
   appended `TASK_PRIORITY_TOKEN` and `MEETING_STATUS_TOKEN`; `lib/enums.ts`
   gained `TASK_STATUSES`/`TASK_PRIORITIES`.
+
+## Phase 12 §8 — Settings (2026-07-29) — DONE
+
+- Scope: section 8 of 9. Regrouped the one-long-scroll into cards with a
+  section nav, per the checklist — a field-component + Appearance pass, not
+  a rebuild (every subsection already existed from Phase 2/6/webhooks work).
+- **Section nav**: `settings/page.tsx` now renders a `grid-cols-[12rem_1fr]`
+  layout — a plain, zero-JS `<nav>` of `<a href="#id">` anchors (native
+  anchor scrolling, no scroll-spy JS) sticky at `lg:top-20`, each card given
+  a matching `id` + `scroll-mt-20`. Order: Workspace · Integrations ·
+  Delivery fees · Fixed fees · Exchange rates · Engine rules · Meeting
+  schedule · Appearance. ZR Express + Recent webhook events stayed nested
+  under the Integrations anchor (own cards, not their own nav entries) —
+  the checklist doesn't list them separately and they're conceptually part
+  of "Integrations" troubleshooting. Verified RTL: CSS Grid's physical
+  `grid-template-columns` auto-reverses under `direction: rtl` with no
+  logical-property changes needed — confirmed both columns mirror correctly
+  in the Arabic screenshot below.
+- **Split Thresholds into two cards** the checklist asks for separately:
+  deleted `thresholds-section.tsx`, new `engine-rules-section.tsx` (return
+  fee, duplicate window, min orders/delivery rate, risk weights) and
+  `meeting-schedule-section.tsx` (the 5 slots). `actions.ts`'s
+  `saveThresholds` split into `saveEngineRules`/`saveMeetingSchedule` to
+  match (two independent Save buttons instead of one covering both cards).
+- **Field components everywhere raw `<input>`/native `<select>` remained**:
+  `fixed-fees-section.tsx` and `exchange-rates-section.tsx` now use
+  `MoneyCurrencyField`/`MoneyField`/`EnumSelect`/`DateField` (all already
+  existed — this was pure reuse, no new field components needed there).
+  `engine-rules-section.tsx` uses `MoneyField`/`PercentField`/
+  `QuantityStepper` for return fee/rate/counts; risk weights (arbitrary
+  decimal multipliers, not money/percent/quantity) stayed a styled `<Input
+  type="number">` — the styled UI primitive is allowed by the invariant,
+  only literal raw `<input>`/native `<select>` are banned.
+  `meeting-schedule-section.tsx` needed a **new `TimeField`** (native
+  `<input type="time">`, styled identically to the existing `DateField` in
+  the same file) since no time-of-day field component existed yet.
+- **Delivery fees (`fees-section.tsx`) converted to a client component**
+  for two checklist items: `MoneyField` per home/stop-desk cell (was raw
+  number `<Input>`) and `<Switch>` for stop-shipping (was a raw
+  `<input type="checkbox">`) — Switch posts `"on"` the same as a native
+  checkbox (confirmed by §7's prior note), so `saveWilayaFees`'s
+  `formData.get(...) === "on"` check needed no change. **Bulk paste**: a
+  toggleable textarea (paste `wilaya_code⇥home⇥stopdesk` rows, tab or comma
+  separated) parses on "Apply" and re-keys the changed rows' `MoneyField`s
+  to force them to pick up the new values (MoneyField is internally
+  uncontrolled, so a prop change alone wouldn't re-render it). Required
+  **`AutoTextarea` to forward its ref** (was internal-only) so the Apply
+  button can read `.value` imperatively without adding a parallel controlled
+  `value`/`onChange` API to that shared component — a plain existing-file
+  extension, no new dependency.
+- **Integrations**: new `<SecretField>` (`components/fields/secret-field.tsx`)
+  — a password input with an eye-icon reveal toggle for the value **being
+  typed this session only**; the previously-saved secret is still never
+  sent to the client (Phase 2's "never echo" decision, unchanged) — reveal
+  applies to what the admin just typed, the same UX as any password-field
+  eye toggle, not a backend change. Health line now shows
+  **`formatRelativeTime`** (new helper in `lib/format.ts`, native
+  `Intl.RelativeTimeFormat` — correct grammar in `ar` for free, no new i18n
+  keys needed for the wording itself) next to the existing healthy/
+  never-received badge. **Added a real "Send test event" button**
+  (`sendTestWebhookEvent` in `actions.ts`): builds an obviously-tagged
+  synthetic payload (`external_id` `test-<ts>`, "Settings Test Event"
+  customer), signs it with the stored secret via `node:crypto`
+  `createHmac`, and does an actual `fetch()` POST to the real
+  `/api/webhooks/<provider>` endpoint — reuses `processWebhook`/
+  `applyMappedOrder` and the exported `lightfunnelProvider`/
+  `shopifyProvider` configs unchanged, so a success genuinely proves the
+  URL+secret work end to end (not a mocked check), at the cost of creating
+  one recognizable test order an admin can delete. Disabled until a secret
+  is set. Same pattern applied to ZR Express's API key field.
+- **Appearance** (new `appearance-section.tsx`, client): wires the
+  already-built-but-never-mounted `<ThemeToggle>` (dark/light, cookie-
+  backed — existed since Phase 11/12b with no call site anywhere in the
+  app until now) plus a new Density control writing
+  `localStorage["mnw:density:default"]`. `data-table.tsx`'s density-restore
+  effect now falls back to that key when a given table has no per-table
+  override yet — verified live: toggling Density on the Settings page and
+  then opening Contacts → Customers (a table with no saved
+  `mnw:density:contacts*` key) rendered compact rows. **No "system" theme
+  option** — `lib/theme.ts` only ever defined `dark`/`light` (Phase 11
+  scope), and the checklist's "system" mention would need a new
+  `matchMedia` listener + a third cookie state; out of this pass's "regroup
+  + reuse" scope, left as a gap for whoever revisits `lib/theme.ts`.
+- **ponytail-review pass**: the `headers()`/`x-forwarded-proto`/`APP_URL`
+  base-URL block was about to appear a third time in `actions.ts` (already
+  duplicated once between `registerZRWebhook` and `page.tsx`) — extracted a
+  local `resolveBaseUrl()` helper, used by both `registerZRWebhook` and the
+  new `sendTestWebhookEvent` (page.tsx's separate copy left alone — predates
+  this session, different module).
+- **Screenshot self-critique (dark + light + Arabic/RTL, local seed
+  stack)**: `docs/design/audit/phase-12-8/` — `settings-full-{dark,light}.png`
+  (whole page, both themes), `settings-secret-reveal-dark.png` (reveal
+  toggle mid-type), `settings-bulkpaste-applied-dark.png` (two rows changed
+  by a pasted block, rest untouched), `settings-appearance-light.png`,
+  `settings-ar-rtl-dark.png` + `settings-appearance-ar-rtl.png` (RTL: both
+  grid columns mirror, all new strings translated, eye icon still on the
+  logical "end" side). Console clean (0 errors/warnings) throughout. One
+  fix from interaction testing (not the screenshots): none needed — the
+  only surprise was a Playwright `fullPage` screenshot quirk misplacing the
+  sticky sidebar mid-capture, confirmed harmless by a normal (non-fullPage)
+  viewport screenshot at the same scroll position. Locale/theme/density
+  reverted to English/Dark/Comfortable (the app defaults) before finishing.
+- Files: new `settings/{appearance-section,engine-rules-section,
+  meeting-schedule-section}.tsx`, `components/fields/secret-field.tsx`;
+  deleted `settings/thresholds-section.tsx`; rewrote `settings/page.tsx`,
+  `settings/{fees,fixed-fees,exchange-rates,integrations,zrexpress,
+  workspace}-section.tsx`, `settings/actions.ts`; extended
+  `components/fields/{auto-textarea,date-field}.tsx` (ref-forwarding,
+  `TimeField`), `components/data-table/data-table.tsx` (density fallback),
+  `lib/format.ts` (`formatRelativeTime`); ~20 new `settings.*` message keys
+  in both locales (`engineRules` replaces the now-unreferenced
+  `thresholds` key).
+- **Next chat must know:** `npm run build` + `npm test` green (31 pass / 38
+  RLS-suite skipped, unchanged — no new test file, this section is UI/forms
+  over already-tested settings/webhook logic). Forbidden-color grep = 0, no
+  native `<select>`/raw `<input>` in `src/app/app/settings` (one hidden
+  `<input type="hidden" name="provider">` is not a visible control, matches
+  existing precedent). `graphify update .` run (1440 nodes, 3589 edges, 121
+  communities). **Phase 12 §9 (Option sets)** is next and is the last
+  section — read `docs/phases/phase-12.md` §9 and
+  `.claude/skills/cod-ui-polish/references/option-sets.md` first; it needs
+  a **new migration** (`option_sets`/`options` tables) applied to the local
+  DB before wiring any UI, and should wire supplier type/product category/
+  tissu/expense subcategory/tags/cancellation reason to the new
+  `OptionSelect` component (shell already exists at
+  `components/fields/option-select.tsx`).

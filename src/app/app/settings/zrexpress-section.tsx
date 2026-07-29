@@ -5,6 +5,7 @@ import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SecretField } from "@/components/fields/secret-field";
 import { saveZRExpressConfig, syncZRTerritories, registerZRWebhook } from "./actions";
 
 /**
@@ -25,7 +26,7 @@ export async function ZRExpressSection({
   const webhookRegistered = !!config?.secret;
 
   return (
-    <section className="card-surface space-y-4 rounded-xl p-5">
+    <section id="zrexpress" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-semibold">{t("settings.zrexpress.title")}</h2>
         <Badge variant={config?.last_event_at ? "default" : "outline"}>
@@ -43,7 +44,13 @@ export async function ZRExpressSection({
           htmlFor="zr-api-key"
           hint={cfg.api_key ? t("settings.set") : t("settings.notSet")}
         >
-          <Input id="zr-api-key" name="api_key" type="password" placeholder={t("settings.secretsHint")} />
+          <SecretField
+            id="zr-api-key"
+            name="api_key"
+            placeholder={t("settings.secretsHint")}
+            showLabel={t("settings.showSecret")}
+            hideLabel={t("settings.hideSecret")}
+          />
         </Field>
         <div className="sm:col-span-2">
           <Button type="submit" size="sm">

@@ -27,6 +27,20 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   })}`;
 }
 
+/** "4 minutes ago" / "in 3 days" — native Intl, correct grammar in ar too. */
+export function formatRelativeTime(value: string | Date | null | undefined, locale = "en"): string {
+  if (!value) return "—";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "—";
+  const diffSec = Math.round((d.getTime() - Date.now()) / 1000);
+  const abs = Math.abs(diffSec);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (abs < 60) return rtf.format(diffSec, "second");
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), "hour");
+  return rtf.format(Math.round(diffSec / 86400), "day");
+}
+
 /** Postgres `interval` text (e.g. "3 days 01:02:03", "01:02:03") → "3d 1h", "45m". */
 export function formatDuration(value: string | null | undefined): string {
   if (!value) return "—";

@@ -1,5 +1,6 @@
 "use server";
 
+import { createHmac } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -10,11 +11,18 @@ import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, MEETING_SLOT_COUNT } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
-import { replayEvent } from "@/lib/webhook";
+import { replayEvent, lightfunnelProvider, shopifyProvider } from "@/lib/webhook";
 import { searchZRTerritories, createZRWebhookEndpoint, getZRCredentials, zrErrorMessage } from "@/lib/integrations/zrexpress";
 import type { Database } from "@/lib/supabase/database.types";
 
 const num = (fd: FormData, name: string) => Number(fd.get(name) ?? 0);
+
+async function resolveBaseUrl(): Promise<string> {
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return (process.env.APP_URL ?? `${proto}://${host}`).replace(/\/$/, "");
+}
 
 // ---------------------------------------------------------------------------
 // Workspace
@@ -65,6 +73,55 @@ export async function replayWebhookEvent(eventId: string) {
   await adminProfile(); // admin-only gate; replayEvent itself uses the service-role client
   const { error } = await replayEvent(eventId);
   if (error) throw new Error(error);
+  revalidatePath("/app/settings");
+}
+
+// Synthetic payloads for the "Send test event" button — obviously-tagged data
+// (external_id `test-<ts>`, "Settings Test Event" customer) run through the
+// *real* signature + mapping pipeline via an actual HTTP round trip, so a
+// green result proves the URL and secret genuinely work end to end, the same
+// as a real provider firing. Shows up as one recognizable order to delete.
+const TEST_PAYLOAD_BUILDERS: Record<"shopify" | "lightfunnels", (id: string) => unknown> = {
+  lightfunnels: (id) => ({
+    id,
+    total: 2500,
+    customer: { full_name: "Settings Test Event", phone: "0555000000" },
+    shipping_address: { city: "Alger", province: "Alger" },
+    line_items: [{ quantity: 1 }],
+  }),
+  shopify: (id) => ({
+    id,
+    total_price: "2500",
+    customer: { first_name: "Settings", last_name: "Test Event", phone: "0555000000" },
+    shipping_address: { city: "Alger", province: "Alger" },
+    line_items: [{ quantity: 1 }],
+  }),
+};
+
+export async function sendTestWebhookEvent(formData: FormData) {
+  const { workspaceId } = await adminProfile();
+  const provider = z.enum(["shopify", "lightfunnels"]).parse(formData.get("provider"));
+
+  const supabase = await createClient();
+  const { data: cfg } = await supabase
+    .from("integration_configs")
+    .select("secret")
+    .eq("workspace_id", workspaceId)
+    .eq("provider", provider)
+    .maybeSingle();
+  if (!cfg?.secret) throw new Error("Set a secret before sending a test event.");
+
+  const config = provider === "shopify" ? shopifyProvider : lightfunnelProvider;
+  const body = JSON.stringify(TEST_PAYLOAD_BUILDERS[provider](`test-${Date.now()}`));
+  const signature = createHmac("sha256", cfg.secret).update(body, "utf8").digest(config.encoding);
+  const baseUrl = await resolveBaseUrl();
+
+  const res = await fetch(`${baseUrl}/api/webhooks/${provider}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", [config.signatureHeader]: signature },
+    body,
+  });
+  if (!res.ok) throw new Error(`Test event failed (${res.status}).`);
   revalidatePath("/app/settings");
 }
 
@@ -141,11 +198,7 @@ export async function registerZRWebhook() {
   const { workspaceId } = await adminProfile();
   const supabase = await createClient();
   const creds = await getZRCredentials(supabase, workspaceId);
-
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const baseUrl = (process.env.APP_URL ?? `${proto}://${host}`).replace(/\/$/, "");
+  const baseUrl = await resolveBaseUrl();
 
   let secret: string;
   try {
@@ -259,17 +312,10 @@ export async function addExchangeRate(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
-// Thresholds (settings keys)
+// Engine rules (settings keys)
 // ---------------------------------------------------------------------------
-export async function saveThresholds(formData: FormData) {
+export async function saveEngineRules(formData: FormData) {
   const { workspaceId } = await adminProfile();
-
-  const slots: { dow: number; time: string }[] = [];
-  for (let i = 0; i < MEETING_SLOT_COUNT; i++) {
-    const time = String(formData.get(`slot_time_${i}`) ?? "").trim();
-    if (!time) continue;
-    slots.push({ dow: num(formData, `slot_dow_${i}`), time });
-  }
 
   const results = await Promise.all([
     setSetting(workspaceId, "return_fee", { amount: num(formData, "return_fee_amount") }),
@@ -283,9 +329,26 @@ export async function saveThresholds(formData: FormData) {
       min_orders: num(formData, "min_orders"),
       min_delivery_rate: num(formData, "min_delivery_rate"),
     }),
-    setSetting(workspaceId, "meeting_schedule", { slots }),
   ]);
   const failed = results.find((r) => !r.ok);
   if (failed && !failed.ok) throw new Error(failed.error);
+  revalidatePath("/app/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Meeting schedule (settings key)
+// ---------------------------------------------------------------------------
+export async function saveMeetingSchedule(formData: FormData) {
+  const { workspaceId } = await adminProfile();
+
+  const slots: { dow: number; time: string }[] = [];
+  for (let i = 0; i < MEETING_SLOT_COUNT; i++) {
+    const time = String(formData.get(`slot_time_${i}`) ?? "").trim();
+    if (!time) continue;
+    slots.push({ dow: num(formData, `slot_dow_${i}`), time });
+  }
+
+  const result = await setSetting(workspaceId, "meeting_schedule", { slots });
+  if (!result.ok) throw new Error(result.error);
   revalidatePath("/app/settings");
 }

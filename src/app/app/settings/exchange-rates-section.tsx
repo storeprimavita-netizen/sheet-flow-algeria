@@ -3,10 +3,11 @@ import { getTranslations } from "next-intl/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatDate } from "@/lib/format";
 import { Field, tableClass } from "@/components/field";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { EnumSelect } from "@/components/fields/enum-select";
+import { MoneyField } from "@/components/fields/money-field";
+import { DateField } from "@/components/fields/date-field";
 import { addExchangeRate } from "./actions";
 
 export async function ExchangeRatesSection({
@@ -20,7 +21,7 @@ export async function ExchangeRatesSection({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <section className="card-surface space-y-4 rounded-xl p-5">
+    <section id="exchange-rates" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.exchangeRates")}</h2>
 
       <div className="grid grid-cols-2 gap-3 sm:max-w-md">
@@ -28,7 +29,7 @@ export async function ExchangeRatesSection({
           <Card key={c}>
             <CardHeader className="gap-1 p-4">
               <CardDescription>{c} → DZD</CardDescription>
-              <CardTitle className="text-lg">{current[c] ? current[c] : "—"}</CardTitle>
+              <CardTitle className="num text-lg">{current[c] ? current[c] : "—"}</CardTitle>
             </CardHeader>
           </Card>
         ))}
@@ -36,16 +37,20 @@ export async function ExchangeRatesSection({
 
       <form action={addExchangeRate} className="grid grid-cols-2 items-end gap-2 sm:grid-cols-4">
         <Field label={t("fields.currency")}>
-          <Select name="currency" defaultValue="USD">
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </Select>
+          <EnumSelect
+            name="currency"
+            defaultValue="USD"
+            options={[
+              { value: "USD", label: "USD" },
+              { value: "EUR", label: "EUR" },
+            ]}
+          />
         </Field>
         <Field label={t("settings.rate")}>
-          <Input name="rate_dzd" type="number" step="0.0001" min="0" required />
+          <MoneyField name="rate_dzd" />
         </Field>
         <Field label={t("settings.validFrom")}>
-          <Input name="valid_from" type="date" defaultValue={today} />
+          <DateField name="valid_from" defaultValue={today} />
         </Field>
         <Button type="submit">{t("actions.create")}</Button>
       </form>
@@ -64,7 +69,7 @@ export async function ExchangeRatesSection({
               {rates.map((r) => (
                 <tr key={r.id}>
                   <td>{r.currency}</td>
-                  <td>{r.rate_dzd}</td>
+                  <td className="num">{r.rate_dzd}</td>
                   <td className="text-muted-foreground">{formatDate(r.valid_from)}</td>
                 </tr>
               ))}

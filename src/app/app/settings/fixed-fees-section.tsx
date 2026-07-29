@@ -1,24 +1,24 @@
 import { getTranslations } from "next-intl/server";
 
 import type { Tables } from "@/lib/supabase/database.types";
-import { CURRENCY_CODES } from "@/lib/enums";
 import { formatCurrency } from "@/lib/format";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
+import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
 import { saveFixedFee, deleteFixedFee } from "./actions";
 
-export async function FixedFeesSection({ fees }: { fees: Tables<"fixed_fees">[] }) {
+export async function FixedFeesSection({
+  fees,
+  rates,
+}: {
+  fees: Tables<"fixed_fees">[];
+  rates: { USD: number; EUR: number };
+}) {
   const t = await getTranslations();
-  const currencyOptions = CURRENCY_CODES.map((c) => (
-    <option key={c} value={c}>
-      {c}
-    </option>
-  ));
 
   return (
-    <section className="card-surface space-y-4 rounded-xl p-5">
+    <section id="fixed-fees" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.fixedFees")}</h2>
 
       {!fees.length ? (
@@ -34,14 +34,7 @@ export async function FixedFeesSection({ fees }: { fees: Tables<"fixed_fees">[] 
               <Field label={t("fields.label")} className="sm:col-span-2">
                 <Input name="label" required defaultValue={f.label} />
               </Field>
-              <Field label={t("fields.amount")}>
-                <Input name="amount" type="number" step="0.01" min="0" required defaultValue={f.amount} />
-              </Field>
-              <Field label={t("fields.currency")}>
-                <Select name="currency" defaultValue={f.currency}>
-                  {currencyOptions}
-                </Select>
-              </Field>
+              <MoneyCurrencyField defaultAmount={f.amount} defaultCurrency={f.currency} rates={rates} />
               <div className="text-sm text-muted-foreground">{formatCurrency(f.amount_dzd)}</div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
@@ -60,14 +53,7 @@ export async function FixedFeesSection({ fees }: { fees: Tables<"fixed_fees">[] 
         <Field label={t("fields.label")} className="sm:col-span-2">
           <Input name="label" required />
         </Field>
-        <Field label={t("fields.amount")}>
-          <Input name="amount" type="number" step="0.01" min="0" required />
-        </Field>
-        <Field label={t("fields.currency")}>
-          <Select name="currency" defaultValue="DZD">
-            {currencyOptions}
-          </Select>
-        </Field>
+        <MoneyCurrencyField rates={rates} />
         <div />
         <Button type="submit" size="sm">
           {t("actions.create")}
