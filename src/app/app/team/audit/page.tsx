@@ -2,14 +2,10 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
-import { formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
-import { Empty } from "@/components/empty";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
-import { Button } from "@/components/ui/button";
-import { tableClass } from "@/components/field";
 import { TeamTabs } from "../team-tabs";
+import { AuditFilterBar } from "./audit-filter-bar";
+import { AuditTable, type AuditRow } from "./audit-table";
 
 // Tables with an `audit_row()` trigger attached (00002_settings.sql, 00003_products.sql).
 const AUDITED_TABLES = [
@@ -65,77 +61,29 @@ export default async function AuditPage({
     supabase.from("profiles").select("user_id, display_name").eq("workspace_id", workspaceId),
   ]);
   const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? p.user_id]));
-  const list = rows ?? [];
+
+  const auditRows: AuditRow[] = (rows ?? []).map((r) => {
+    const changes = diffRows(r.old_row as Record<string, unknown> | null, r.new_row as Record<string, unknown> | null);
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      table_name: r.table_name,
+      action: r.action,
+      actor_name: r.actor ? (nameById.get(r.actor) ?? r.actor) : t("orders.systemActor"),
+      changes:
+        changes.length === 0
+          ? "—"
+          : changes.map((c) => `${c.key}: ${JSON.stringify(c.from) ?? "∅"} → ${JSON.stringify(c.to) ?? "∅"}`).join("; "),
+    };
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
       <TeamTabs active="audit" />
 
-      <form method="get" className="flex flex-wrap items-end gap-2">
-        <Select name="table" defaultValue={table} className="w-48">
-          <option value="">{t("common.all")}</option>
-          {AUDITED_TABLES.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </Select>
-        <Select name="actor" defaultValue={actor} className="w-48">
-          <option value="">{t("common.all")}</option>
-          {(profiles ?? []).map((p) => (
-            <option key={p.user_id} value={p.user_id}>
-              {p.display_name ?? p.user_id}
-            </option>
-          ))}
-        </Select>
-        <Input name="from" type="date" defaultValue={from} className="w-40" />
-        <Input name="to" type="date" defaultValue={to} className="w-40" />
-        <Button type="submit">{t("actions.search")}</Button>
-      </form>
-
-      {!list.length ? (
-        <Empty>{t("team.auditNone")}</Empty>
-      ) : (
-        <div className="card-surface overflow-hidden rounded-xl">
-          <div className="overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr>
-                  <th>{t("fields.from")}</th>
-                  <th>{t("team.table")}</th>
-                  <th>{t("team.action")}</th>
-                  <th>{t("fields.agent")}</th>
-                  <th>{t("team.changes")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((r) => {
-                  const changes = diffRows(
-                    r.old_row as Record<string, unknown> | null,
-                    r.new_row as Record<string, unknown> | null,
-                  );
-                  return (
-                    <tr key={r.id}>
-                      <td className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</td>
-                      <td>{r.table_name}</td>
-                      <td className="text-muted-foreground">{r.action}</td>
-                      <td>{r.actor ? (nameById.get(r.actor) ?? r.actor) : t("orders.systemActor")}</td>
-                      <td className="max-w-md text-xs text-muted-foreground">
-                        {changes.length === 0
-                          ? "—"
-                          : changes
-                              .map((c) => `${c.key}: ${JSON.stringify(c.from) ?? "∅"} → ${JSON.stringify(c.to) ?? "∅"}`)
-                              .join("; ")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <AuditFilterBar tables={AUDITED_TABLES} actors={profiles ?? []} />
+      <AuditTable rows={auditRows} />
     </div>
   );
 }

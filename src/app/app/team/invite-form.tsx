@@ -8,11 +8,9 @@ import { UserPlus } from "lucide-react";
 import type { Role } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/native-select";
 import { Field } from "@/components/field";
+import { RoleSelect } from "@/components/fields/role-select";
 import { inviteUser } from "./actions";
-
-const ROLES: Role[] = ["confirmation_agent", "delivery_agent", "admin"];
 
 export function InviteForm() {
   const t = useTranslations();
@@ -54,13 +52,7 @@ export function InviteForm() {
           <Input name="duty" />
         </Field>
         <Field label={t("fields.type")}>
-          <Select name="role" defaultValue="confirmation_agent">
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {t(`role.${r}`)}
-              </option>
-            ))}
-          </Select>
+          <RoleSelect name="role" defaultValue="confirmation_agent" />
         </Field>
       </div>
       {error ? <p className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</p> : null}

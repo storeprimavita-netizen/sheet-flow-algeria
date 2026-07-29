@@ -7,7 +7,7 @@ import { TabsNav } from "@/components/tabs-nav";
 export async function TeamTabs({
   active,
 }: {
-  active: "users" | "rules" | "meetings" | "performance" | "audit";
+  active: "users" | "rules" | "meetings" | "tasks" | "performance" | "audit";
 }) {
   const t = await getTranslations("team.tabs");
 
@@ -18,6 +18,7 @@ export async function TeamTabs({
         { key: "users", href: "/app/team", label: t("users") },
         { key: "rules", href: "/app/team/rules", label: t("rules") },
         { key: "meetings", href: "/app/team/meetings", label: t("meetings") },
+        { key: "tasks", href: "/app/team/tasks", label: t("tasks") },
         { key: "performance", href: "/app/team/performance", label: t("performance") },
         { key: "audit", href: "/app/team/audit", label: t("audit") },
       ]}

@@ -2012,3 +2012,137 @@ getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
   If merge conflicts appear touching `lib/statuses.ts` or `lib/utils.ts`,
   this session only appended `SUPPLIER_TYPE_TOKEN` and `sortRows()`
   respectively — nothing else in those files changed.
+
+## Phase 12 §7 — Team & Rules (2026-07-29) — DONE
+
+- Scope: section 7 of 9. Rules/Meetings/Performance/Users/Audit-log were
+  already built in Phase 9 — mostly a restyle pass onto the §1 `<DataTable>`
+  and status/field system, plus one net-new build: **Tasks** (the
+  `/app/team/tasks` route was a `rebuildPending` placeholder with no table
+  behind it at all).
+- **Tasks, from scratch**: new migration `00013_team_tasks.sql` —
+  `task_status` enum (todo/doing/blocked/done), `task_priority` enum
+  (low/medium/high), a `tasks` table (title, owner → `auth.users`,
+  due_date, priority, status, optional `meeting_id`/`product_id` links)
+  with `tasks_sel`/`tasks_all` RLS mirroring `meetings`'s existing
+  all-read/admin-write pattern. Default view is a kanban
+  (`task-kanban.tsx`, modeled directly on `DeliveryKanban`): native drag
+  *and* an on-card `<StatusSelect kind="task">` as the keyboard-accessible
+  equivalent, legal-transition-gated, optimistic move with rollback on
+  failure. `tasks-view.tsx` toggles to a `<DataTable>` list view
+  (`task-table.tsx`) via a URL param, sharing one `editing` state + 
+  `<Sheet>` + `<TaskForm>` across both views (mirrors `ExpenseTable`'s
+  self-contained-editing-state pattern rather than duplicating a dialog
+  per child). Filters: owner (My tasks default / All / teammate),
+  priority, product, "Overdue only" toggle. New fixed-token color pattern
+  `TASK_PRIORITY_TOKEN` in `lib/statuses.ts` (low=neutral/medium=warning/
+  high=danger) + new `<PrioritySelect>` field, matching the
+  `SUPPLIER_TYPE_TOKEN` convention from §6. Dashboard's "My open tasks"
+  empty-state card now shows real top-5-open-tasks-by-due-date data
+  instead of the placeholder, and the sidebar's Tasks badge count is now a
+  real query instead of a hardcoded `0`.
+  - **Fixed in passing**: the Tasks list query originally tried
+    `profiles!tasks_owner_fkey(display_name)` as a PostgREST embed — invalid,
+    since `tasks.owner` and `profiles.user_id` are sibling FKs to
+    `auth.users`, not directly related (confirmed via `\d public.tasks` on
+    the local DB). Fixed by fetching profiles separately and building a
+    `nameByOwner` Map, same as `meetings/[id]/page.tsx` already does for
+    attendee names.
+  - **Combobox pinning bug avoided proactively**: `TaskForm`'s product
+    field uses a local `useState` + `onChange`, not a static `value` prop,
+    to sidestep the same `Combobox` `value ?? internal` pinning bug §6
+    hit and fixed for `CustomerForm`. Noted but out of scope: `ExpenseForm`
+    has the same latent bug in its own product-combobox path — not fixed
+    here, flag before next touching that form.
+- **Rules**: no native `<select>`/`<input>` found (already clean from
+  Phase 9). Added the one missing checklist item — a "last edited by
+  {name} · {timestamp}" byline under each rule, using `getProfile` (not
+  `requireAdminProfile`, so agents see it too under the existing `pr_sel`
+  read policy) to resolve names, and `updated_by` now actually gets set on
+  save (`saveRuleDoc` previously never wrote it).
+- **Meetings**: rebuilt the list as a card grid (was a plain table) with
+  the new `<MeetingStateChip>` (reuses the existing
+  `status.meeting_status.*` i18n keys rather than inventing a duplicate
+  tree — caught and fixed after drafting the duplicate once) computing a
+  UI-only "Ready" pseudo-state (`MEETING_STATUS_TOKEN` in
+  `lib/statuses.ts`, with a comment explaining "ready" isn't a DB value).
+  Added **carry-over tagging**: `meeting_objectives` gained `is_deferred`/
+  `carried_forward`/`carried_from` columns, a new `deferObjective` action
+  (mutually exclusive with `is_done`), and `guard_meeting_held()` now
+  requires every objective be done *or* deferred (previously just
+  required ≥1 objective to exist at all). `createNextMeetingInstances`
+  now carries deferred-and-not-yet-carried objectives forward onto the
+  soonest newly-created instance (idempotent — safe to re-run without
+  double-copying, via the two boolean/uuid columns). Added the checklist's
+  **"Copy agenda" button** (`copy-agenda-button.tsx`) — builds a plain-text
+  checklist (`- [x]/[~]/[ ]` + "(Carried over)" tag) to the clipboard, and
+  a per-objective Defer/Undefer control + "Carried over" `Chip` on the
+  meeting detail page.
+- **ponytail-review pass**: `isLegal`/`isOverdue` had been copy-pasted
+  identically into both `task-kanban.tsx` and `task-table.tsx` — extracted
+  to a new shared `tasks/task-utils.ts`, imported by both. The "ready"
+  one-liner (every objective done-or-deferred) was likewise duplicated at
+  both `MeetingStateChip` call sites (list card + detail page) — moved
+  into a new exported `isMeetingReady()` in `meeting-state-chip.tsx`, call
+  sites just pass the objectives array now. Left one duplication
+  unfixed-but-flagged: `tasks/actions.ts`'s `nullableUuid` zod preprocessor
+  is byte-identical to the one already in `products/actions.ts` — not
+  extracted to a shared module this session since doing so means editing
+  a pre-Phase-12§7 file outside this section's stated scope; worth sharing
+  next time either file is touched.
+- **Performance**: restyled onto `<DataTable>` (`performance-table.tsx`).
+  Added the missing date-range filter (`performance-filter-bar.tsx`, preset
+  buttons + two `DateField`s, URL-persisted) — with no filter set it still
+  uses the existing `agent_performance` view; with a range set it
+  re-derives the same aggregation from raw `order_status_history` (joined
+  to `orders` for `created_at`) in JS. That aggregation groups by a
+  `` `${actor} ${stage}` `` space-delimited key initially drafted as
+  `` `${actor}-${stage}` `` with a `.split("-")` to recover fields —
+  caught before running the build, since UUIDs contain hyphens and would
+  have silently mis-split; fixed by storing `userId`/`stage` directly in
+  the group's value object instead of parsing the key.
+- **Users**: role-description copy already existed from Phase 9 in the
+  invite/user-row selects; both replaced with the new shared
+  `<RoleSelect>` (EnumSelect + live `role.descriptions.*` paragraph),
+  eliminating what had been two separate ad-hoc copies of the same
+  description text. `UserRow`'s raw `<input type="checkbox">` for
+  "active" → `<Switch>` (confirmed the server action already reads
+  `formData.get("is_active") === "on"`, matching Radix Switch's native
+  form-participant submission value, so no action change needed).
+- **Audit log**: restyled onto `<DataTable>` (`audit-table.tsx` +
+  `audit-filter-bar.tsx`), replacing the plain `<table>` + native
+  `<select>` filters. Added the missing `fields.date` i18n key (the date
+  column had been mislabeled with the unrelated `fields.from` key).
+- **Known, not fixed (pre-existing, out of scope)**: the meeting-objective
+  checklist item on `meetings/[id]/page.tsx` renders a raw, `readOnly`
+  `<input type="checkbox">` glyph inside a submit `<button>` — predates
+  this session (only the Defer button and "Carried over" `Chip` were added
+  next to it) and isn't the native-`<select>` white-on-white failure mode
+  the project rule targets, so left as-is; swap for `<Checkbox>` if this
+  file is touched again.
+- **Screenshot self-critique (dark + light + Arabic/RTL for the two
+  layout-sensitive views)**: local Supabase docker + `npm run dev`
+  reused/restarted as needed. `docs/design/audit/phase-12-7/` —
+  `rules-{light,dark}.png`, `meetings-{dark,light}.png`,
+  `meetings-detail-dark.png`, `meetings-held-detail-dark.png`,
+  `tasks-empty-light.png`, `tasks-kanban-{light,dark,owner-light,
+  moved-light}.png`, `tasks-edit-sheet-light.png`, `tasks-table-{light,
+  dark}.png`, `performance-{dark,light}.png`, `users-{light,dark}.png`,
+  `users-role-desc-light.png`, `audit-{dark,light}.png`,
+  `tasks-kanban-ar-rtl.png`, `meetings-ar-rtl.png`. Both RTL shots (kanban
+  columns + card-grid attendee chips, the two layout-sensitive views) came
+  back correctly mirrored with no clipping and fully translated labels; no
+  fixes needed from the screenshots this pass — the two real bugs caught
+  this session (PostgREST embed, UUID key-splitting) were caught by
+  reading/testing before the screenshot pass, not by the screenshots
+  themselves. Locale/theme reverted to English/Dark (the app defaults)
+  before finishing.
+- **Next chat must know:** `npm run build` + `npm test` green (31 pass /
+  38 RLS-suite skipped, unchanged). Forbidden-color grep = 0 across every
+  file this section touched. No native `<select>`; the one surviving raw
+  `<input>` is the pre-existing readOnly checkbox glyph noted above (not
+  introduced this session). **Phase 12 §8** is next — read
+  `docs/phases/phase-12.md` §8 and the section checklist before starting.
+  If merge conflicts appear touching `lib/statuses.ts`, this session
+  appended `TASK_PRIORITY_TOKEN` and `MEETING_STATUS_TOKEN`; `lib/enums.ts`
+  gained `TASK_STATUSES`/`TASK_PRIORITIES`.
