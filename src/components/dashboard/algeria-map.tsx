@@ -77,12 +77,14 @@ export function AlgeriaMap({
   hovered,
   onHover,
   onSelect,
+  label,
 }: {
   data: WilayaMapDatum[];
   minOrders: number;
   hovered?: number | null;
   onHover?: (code: number | null) => void;
   onSelect?: (code: number) => void;
+  label: string;
 }) {
   const clipId = React.useId();
   const { outlineD, cells, viewBox } = useMapGeometry();
@@ -93,7 +95,7 @@ export function AlgeriaMap({
       viewBox={viewBox}
       className="mx-auto h-auto w-full max-w-[360px]"
       role="img"
-      aria-label="Delivery rate by wilaya"
+      aria-label={label}
     >
       <clipPath id={clipId}>
         <path d={outlineD} />

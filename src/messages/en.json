@@ -22,7 +22,8 @@
     "performance": "Performance",
     "users": "Users",
     "audit": "Audit log",
-    "settings": "Settings"
+    "settings": "Settings",
+    "toggleSidebar": "Toggle sidebar"
   },
   "theme": {
     "dark": "Dark",
@@ -53,7 +54,9 @@
     "page": "Page",
     "loading": "Loading…",
     "error": "Couldn't load the data.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "selectAll": "Select all",
+    "selectRow": "Select row"
   },
   "common": {
     "signOut": "Sign out",
@@ -82,11 +85,15 @@
     "save": "Save",
     "saving": "Saving…",
     "cancel": "Cancel",
+    "close": "Close",
     "delete": "Delete",
     "back": "Back",
     "search": "Search",
     "view": "View",
     "confirm": "Confirm",
+    "decrease": "Decrease",
+    "increase": "Increase",
+    "moreOptions": "More options",
     "add": "Add",
     "rename": "Rename",
     "select": "Select…"
@@ -583,6 +590,7 @@
       "archive": "Archive",
       "unarchive": "Unarchive",
       "archivedHint": "Archived option",
+      "color": "Color",
       "usageCount": "{count, plural, =0 {unused} one {# use} other {# uses}}",
       "sets": {
         "product_category": "Product category",
@@ -632,7 +640,8 @@
       "stopShipping": "Stop shipping",
       "stopShippingAuto": "Auto flag",
       "stopShippingManual": "Manual flag",
-      "noData": "No data"
+      "noData": "No data",
+      "mapLabel": "Delivery rate by wilaya"
     },
     "statusBreakdown": {
       "confirmationTitle": "Confirmation status breakdown",

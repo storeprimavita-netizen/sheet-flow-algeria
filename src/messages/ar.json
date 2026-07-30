@@ -22,7 +22,8 @@
     "performance": "الأداء",
     "users": "المستخدمون",
     "audit": "سجل التدقيق",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "toggleSidebar": "تبديل الشريط الجانبي"
   },
   "theme": {
     "dark": "داكن",
@@ -53,7 +54,9 @@
     "page": "صفحة",
     "loading": "جارٍ التحميل…",
     "error": "تعذّر تحميل البيانات.",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "selectAll": "تحديد الكل",
+    "selectRow": "تحديد الصف"
   },
   "common": {
     "signOut": "تسجيل الخروج",
@@ -82,11 +85,15 @@
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
     "cancel": "إلغاء",
+    "close": "إغلاق",
     "delete": "حذف",
     "back": "رجوع",
     "search": "بحث",
     "view": "عرض",
     "confirm": "تأكيد",
+    "decrease": "إنقاص",
+    "increase": "زيادة",
+    "moreOptions": "خيارات إضافية",
     "add": "إضافة",
     "rename": "إعادة تسمية",
     "select": "اختر…"
@@ -583,6 +590,7 @@
       "archive": "أرشفة",
       "unarchive": "إلغاء الأرشفة",
       "archivedHint": "خيار مؤرشف",
+      "color": "اللون",
       "usageCount": "{count, plural, =0 {غير مستخدم} one {استخدام واحد} other {# استخدامات}}",
       "sets": {
         "product_category": "فئة المنتج",
@@ -632,7 +640,8 @@
       "stopShipping": "إيقاف الشحن",
       "stopShippingAuto": "علامة تلقائية",
       "stopShippingManual": "علامة يدوية",
-      "noData": "لا توجد بيانات"
+      "noData": "لا توجد بيانات",
+      "mapLabel": "معدل التوصيل حسب الولاية"
     },
     "statusBreakdown": {
       "confirmationTitle": "توزيع حالة التأكيد",

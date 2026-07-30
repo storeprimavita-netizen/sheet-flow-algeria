@@ -80,6 +80,7 @@ export function DataTable<T>({
   const [hidden, setHidden] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [focus, setFocus] = React.useState(-1);
+  const [tableFocused, setTableFocused] = React.useState(false);
 
   React.useEffect(() => {
     const savedDensity = localStorage.getItem(`mnw:density:${tableId}`);
@@ -247,6 +248,8 @@ export function DataTable<T>({
             className="w-full border-collapse text-sm"
             tabIndex={0}
             onKeyDown={onKeyDown}
+            onFocus={() => setTableFocused(true)}
+            onBlur={() => setTableFocused(false)}
             role="grid"
           >
             <thead className="sticky top-0 z-10 bg-surface">
@@ -256,7 +259,7 @@ export function DataTable<T>({
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
                       onCheckedChange={toggleAll}
-                      aria-label="Select all"
+                      aria-label={t("table.selectAll")}
                     />
                   </th>
                 ) : null}
@@ -322,6 +325,7 @@ export function DataTable<T>({
                           renderSheet && "cursor-pointer",
                           isSel ? "bg-primary/5" : "hover:bg-surface-raised",
                           focus === i && "bg-surface-raised",
+                          focus === i && tableFocused && "ring-2 ring-inset ring-ring",
                         )}
                       >
                         {selectable ? (
@@ -329,7 +333,7 @@ export function DataTable<T>({
                             <Checkbox
                               checked={isSel}
                               onCheckedChange={() => toggleOne(k)}
-                              aria-label="Select row"
+                              aria-label={t("table.selectRow")}
                             />
                           </td>
                         ) : null}

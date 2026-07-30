@@ -30,6 +30,7 @@ the bottom. Format:
 | 11 — Design system foundation | docs/phases/phase-11.md | done |
 | 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | done |
 | 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
+| 13 — Final sweep | docs/phases/phase-13.md | done |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -2484,3 +2485,240 @@ getparcelbyidsupplierendpoint.md`, `docs/webhook-integration-guide.md`,
 status updated below from "in progress" to "done". Next: whatever Phase 13
 covers (`docs/phases/phase-13.md` — appeared in the repo during §7/§8 but
 wasn't this session's scope; read it fresh before starting).
+
+## Addendum — Phase 10 deploy checklist refreshed (2026-07-30)
+
+User asked to continue Phases 10 and 13. Phase 10's only open item is deploy
+(everything else — seed script, RLS suite, E2E pass, polish — was already
+DONE per the 2026-07-26 block above). **Deploy stays handed off, still not
+executed by an agent this session** — the user explicitly chose "I'll run the
+remote/Vercel steps myself" when asked, since it means pushing schema changes
+to the real linked Supabase project and deploying with the user's own Vercel
+credentials, neither of which an agent should do unattended. What changed
+since the original handoff: **six more migrations landed** (00009 was the
+newest at the time; 00010–00014 shipped across Phase 12 §5/§7/§9 and the
+ZR Express addendum) and **none of them have touched the linked remote** —
+the checklist below supersedes the one in the 2026-07-26 block, same
+mechanics, current file list.
+
+1. `npx supabase db push` (linked project) — applies **00009 through 00014**
+   in one shot (order transitions RPC, dashboard filter/daily/status-
+   breakdown RPC extensions, ZR Express tables, tasks table, option_sets/
+   options + the taxonomy FK columns on products/expenses/orders). Confirm
+   00001–00008 are already applied (Phase 0's original rebaseline push).
+2. `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
+   — the committed file was regenerated locally (`--db-url` against the local
+   docker stack) every session since Phase 7; this reconciles it against
+   what the remote project actually has once step 1 lands.
+3. `vercel link` (or Vercel dashboard → New Project → import this repo) if
+   not already linked — no `.vercel/` directory exists in this repo yet.
+4. Env vars (Project Settings → Environment Variables, all three
+   environments): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` (server-only, no `NEXT_PUBLIC_` prefix),
+   `APP_URL` (the deployed URL once known — feeds invite-email redirects and
+   the webhook-URL display in Settings → Integrations).
+5. Deploy (`vercel --prod` or push to the connected branch).
+6. Run one real webhook against the deployed URL — Settings → Integrations
+   now has a **"Send test event" button** (built in Phase 12 §8) that signs
+   and posts a synthetic payload to the real `/api/webhooks/<provider>`
+   endpoint, which is easier than the original handoff's manual curl
+   fixtures (still documented in the Phase 6 block above if a real-payload
+   test is needed instead). Update the provider's webhook URL + secret to
+   the production values once confirmed working.
+7. Free-tier constraints unchanged from the original note: Supabase free
+   tier pauses after ~1 week idle (first request after a pause is slow) and
+   caps the DB at 500 MB; Vercel hobby tier has no background jobs (fine,
+   no cron in this app) and a function-duration cap (webhooks are simple
+   upserts, well under it).
+8. **New since the original handoff, worth doing once live**: the ZR Express
+   integration (addendum, 2026-07-28) needs a publicly reachable `APP_URL`
+   to register its status webhook — that step was explicitly deferred
+   pending a real deployed URL, this is that URL.
+
+Phase-plan status stays **"partial (deploy handed off)"** — genuinely
+unchanged until the user runs the steps above.
+
+## Phase 13 — Final sweep (2026-07-30) — DONE
+
+- Scope: the last planned phase. No new features — verifies the Phase 11/12
+  overhaul is complete and even: interconnection, contrast, keyboard/a11y,
+  mobile, four states, hardcoded-color grep, RTL/i18n, final screenshots.
+  Branch `mnw-13` off `mnw` (bundled with the Phase 10 checklist refresh
+  above, same session).
+- **Mechanical sweeps (whole repo, not just this session's files):**
+  - Hardcoded-color grep (`text-white|bg-white|text-black|bg-black|#hex|
+    rgb\(|rgba\(|glass-card|text-gradient`) — **zero hits outside
+    `globals.css`'s own token definitions.** Already clean; no fixes needed.
+  - Native `<select>` / raw `<input>` grep — found and fixed the one
+    remaining violation: `src/components/currency-rate-fields.tsx` imported
+    the banned `components/ui/native-select`. Turned out to be **dead code**
+    (zero importers — superseded by `MoneyCurrencyField` sometime after
+    Phase 3, per that file's own doc comment naming it as the direct
+    successor). Deleted the file instead of fixing it — the banned import
+    and the component both went away in one line-count-negative move.
+  - Hardcoded EN strings outside `messages/{en,ar}.json`: swept every
+    `aria-label="..."` literal and one `sr-only` span repo-wide. Found and
+    fixed 7 — `Sheet`/`Dialog`'s "Close" (shared primitives, both add
+    `useTranslations` + a new `actions.close` key, one fix covers every
+    sheet/dialog in the app), the sidebar's "Toggle sidebar"/"Menu" (now one
+    shared `nav.toggleSidebar` key), `QuantityStepper`'s "Decrease"/
+    "Increase" (`actions.decrease`/`increase`), the Algeria map's "Delivery
+    rate by wilaya" (threaded as a `label` prop from `wilaya-section.tsx`
+    rather than adding `next-intl` to the pure-d3 map file — smaller diff,
+    same fix), `DataTable`'s "Select all"/"Select row" checkboxes
+    (`table.selectAll`/`selectRow`), and four **missing** aria-labels on
+    icon-only buttons in last session's own `options-section.tsx` (rename
+    confirm/cancel, merge cancel, kebab, color picker — caught by re-reading
+    my own Phase 12 §9 diff with fresh eyes). ~10 new message keys total,
+    both locales.
+  - `npm run build` + `npm test` green after every fix, re-run at the end.
+- **Contrast (task 2)**: `/design-preview`'s contrast readout (built Phase
+  11) re-checked in full — every token pair passes ≥4.5:1 in both dark and
+  light (`text-faint`/placeholder sits at 3.6–3.7:1, marked `n/a` by design,
+  not a body-text pair). Live spot-check on the mobile confirmation sheet
+  (the single most contrast-critical screen — agents read it outdoors) in
+  both themes: clean. No token changes needed — the systemic check plus one
+  live spot-check was enough; every phase since 11 already screenshot-
+  verified its own real pages in both themes.
+- **Sidebar icon-rail tooltips — found and fixed a real gap (task 4)**: the
+  collapsed sidebar's nav icons only had a native `title` attribute; a fully
+  themed `Tooltip`/`TooltipTrigger`/`TooltipContent` primitive existed
+  (`components/ui/tooltip.tsx`, Radix-backed) but was **never actually used
+  anywhere in the app** — only demoed in `/design-preview`, with
+  `TooltipProvider` wrapping the whole shell for no live consumer. Wired the
+  real tooltip onto collapsed nav `Leaf`s (kept the avatar/account button on
+  native `title` — deliberately out of scope, it's not "icon rail" content
+  and already reveals its identity via the dropdown). `side` has to be a
+  physical `"left"`/`"right"` (Radix doesn't auto-flip a logical `"end"`
+  without a `DirectionProvider` this app doesn't use) — resolved via
+  `useLocale() === "ar"`, verified both directions live (tooltip lands
+  start-of-icon in both LTR and RTL). **Removing the native `title` also
+  silently removed the link's accessible name** (Tooltip content is a
+  description via `aria-describedby`, not a name) — caught immediately by
+  re-testing with Playwright's accessibility tree (the "Products" role
+  query stopped resolving), fixed by adding `aria-label={collapsed ? label
+  : undefined}` back onto the link. A real a11y regression caught and fixed
+  in the same breath it was introduced, not shipped and found later.
+- **Keyboard + a11y floor (task 3)**: full order flow driven **keyboard-
+  only** end to end — focused the `orders/confirmation` table (`tabIndex=0`
+  root, `ArrowUp`/`ArrowDown` roving focus, `Enter` opens the deep-linked
+  sheet), tabbed to a status button, `Enter` selected "Confirmed", tabbed to
+  the comment textarea then Save, `Enter` submitted — order left the queue,
+  confirmed via a fresh page load with zero console errors. Reverted the
+  seed order's status + deleted the spurious `order_status_history` row the
+  manual SQL revert itself created (the `log_order_status` trigger fires for
+  any client, including a direct `psql` update) to leave seed data pristine.
+  **Found a real visibility gap while doing this**: the table's roving
+  keyboard-focus row had a class (`bg-surface-raised`) but it was
+  indistinguishable from the *hover* state (same class, `onMouseEnter` sets
+  the same `focus` index) — a sighted keyboard user had no reliable way to
+  see which row `Enter` would open. Fixed in `data-table.tsx`: added a
+  `tableFocused` state (`onFocus`/`onBlur` on the table root) and only ring
+  the focused row (`ring-2 ring-inset ring-ring`) when the table itself has
+  real DOM focus — so mouse hover still gets its subtle background tint,
+  keyboard focus gets a real visible ring, and the two never collide. This
+  is a shared component — the fix applies to every `<DataTable>` in the app
+  at once, not just Orders. `⌘K` (command palette → "Go to" list) and `?`
+  (keyboard-shortcuts overlay, itself listing `⌘K` and `?`) both verified
+  live. `prefers-reduced-motion` was already handled globally since Phase 11
+  (`globals.css`, universal selector, unchanged).
+- **Mobile (task 4)**: confirmation queue at 390px is a horizontally-
+  scrollable dense table (standard, acceptable mobile pattern for this much
+  data — not a card-stack rebuild, which the checklist doesn't require)
+  with the hamburger/search/tabs all present; **tapping a row opens the
+  exact sheet layout the Phase 12 §2 spec calls for** (name → big `tel:`
+  link → risk badge → previous orders → product/qty/price → status buttons
+  → comment box → Save/Save & open next), fully usable one-thumb, verified
+  in both themes. Dashboard at 390px stacks the filter grid and KPI cards
+  2-per-row correctly (already screenshot-checked in Phase 12b, re-verified
+  here, unchanged). Tasks kanban at 390px scrolls columns horizontally
+  (same acceptable pattern as the orders table). Collapsed desktop sidebar
+  icon rail verified with the new tooltips above. One false alarm chased
+  down and ruled out: a floating black "N" circle bottom-left in every
+  screenshot turned out to be Next.js's own dev-mode devtools portal
+  (`<nextjs-portal>` element), not app UI — won't exist in a production
+  build.
+- **Interconnection (task 1) — found and fixed two real dead ends**:
+  - The **Funnel chart's stage segments had no `href` at all**, despite the
+    `<Funnel>` component itself already supporting one (`stages[].href?`,
+    built in some earlier phase and simply never wired from
+    `dashboard/page.tsx`). Wired "Received"/"Confirmed"/"Delivered" to
+    `ordersQs(filters, {...})` (same helper the KPI cards already use, so
+    filters/date-range travel through identically). **"Shipped" stays
+    unlinked, deliberately**: its count is a compound SQL condition
+    (`confirmation_status='confirmed' AND delivery_status NOT IN
+    ('wait_for_deposit','cancelled')`, from `00011_dashboard_status_
+    breakdown.sql`) that `/app/orders/all`'s filter bar has no single-value
+    equivalent for — linking it to just `confirmation_status=confirmed`
+    would show *more* rows than the number claims (includes delivered/
+    returned too), which is a worse dead end than no link. Revisit if the
+    orders filter bar ever grows compound/multi-status filtering.
+  - **`StatusBreakdownBars` (confirmation/delivery status distribution,
+    added Phase 12b) had zero click-through** — every bar was a plain
+    `<li>`, not even a `cursor-pointer` div. Added a required `hrefFor`
+    prop (same shape as the sibling `CategoryBars` component, which already
+    had one) and wired both dashboard call sites to
+    `ordersQs(filters, { confirmation_status: status })` /
+    `{ delivery_status: status }`. Verified live: every status bar (wait for
+    confirmation/no answer/cancelled/closed phone/confirmed, etc.) is now a
+    real link to the matching filtered list.
+  - Everything else sampled came back correctly wired, verified by reading
+    source rather than clicking every instance (given the scope — dozens of
+    screens): `CategoryBars`' `hrefFor` is a required prop (can't compile
+    without one, so every call site necessarily has it); the per-product
+    dashboard table already links product names to their Statistics tab;
+    the product page's Orders tab (`ProductOrdersTable`) correctly links
+    each order number to the one shared `/app/orders/[id]` detail page
+    rather than reimplementing a second edit surface (matches
+    `interconnection.md` Rule 1 — a record has one edit component, other
+    surfaces just link to it); the per-agent rate table already links
+    through `ordersQs(filters, { agent: ... })`.
+- **Four states (task 5)**: skeleton and error-with-retry are both `status`-
+  gated branches already built into `<DataTable>` (confirmed by reading the
+  component, present since Phase 12 §1). Live-verified empty state on
+  `/app/orders/all` with an impossible filter (`wilaya_code=99`): correct
+  title/description, active filter chip, and a primary "New order" action —
+  matches the acceptance line exactly.
+- **RTL/i18n (task 7)**: spot-checked screens not previously verified in
+  Arabic this phase pass — `/app/orders/all` (full desktop table, every
+  status/source pill translated, columns correctly mirrored) and the order
+  detail sheet's new Tags/Cancellation-reason card (Phase 12 §9). Both
+  clean, no layout breakage, no leftover English strings. Combined with the
+  aria-label sweep above (which is itself an i18n completeness check), this
+  closes out the "every new string is in messages" requirement for
+  everything touched since Phase 12 §9.
+- **Screenshot self-critique**: `docs/design/audit/final-13/` (19 shots) —
+  dashboard desktop (dark+light), products grid (light), finance overview
+  (dark), mobile confirmation queue + sheet (dark+light), mobile dashboard,
+  mobile tasks kanban, collapsed sidebar + tooltip (dark, and the Arabic/RTL
+  mirrored version), row-focus-ring close-up, keyboard-flow status-selected
+  sheet, `⌘K` palette, `?` shortcuts overlay, empty-state, the Funnel drill-
+  through target page, and the Arabic/RTL orders list. Every fix above was
+  re-verified live after being made, not just by re-running the build.
+- **Known / residual backlog** (unchanged from Phase 10's backlog note,
+  still not attempted, still correctly out of scope): FR locale, a real
+  carrier API integration beyond ZR Express, the SaaS multi-workspace
+  signup flow, product/variant image uploads. Nothing new added to this
+  list by Phase 13 — the sweep found polish gaps, not missing features.
+- Files: deleted `src/components/currency-rate-fields.tsx`; modified
+  `src/components/{ui/sheet,ui/dialog,app-shell,fields/quantity-stepper,
+  data-table/data-table,dashboard/algeria-map,dashboard/status-breakdown-
+  bars}.tsx`, `src/app/app/{dashboard/page,dashboard/wilaya-section,
+  settings/options-section,team/meetings/[id]/page}.tsx`; ~10 new message
+  keys in both locales (`actions.close/decrease/increase/moreOptions`,
+  `nav.toggleSidebar`, `table.selectAll/selectRow`,
+  `dashboard.wilaya.mapLabel`, `settings.options.color`).
+- **Next chat must know**: `npm run build` + `npm test` green (31 pass / 38
+  RLS-suite skipped, unchanged — every fix this phase was UI/markup/wiring,
+  nothing with new branchy logic worth a unit test beyond the live
+  verification documented above). Forbidden-color grep = 0, no native
+  `<select>`/raw `<input>` anywhere in `src`. `graphify update .` run (1477
+  nodes, 3768 edges, 124 communities). **This was the last planned phase.**
+  The app is feature-complete per the v2 plan and has now had both its
+  section-by-section build (Phase 12) and a cross-cutting final sweep
+  (Phase 13). The only thing standing between this repo and production is
+  the Phase 10 deploy checklist above — genuinely a "run these commands"
+  task for whoever owns the Vercel/Supabase accounts, not more engineering.
+  Backlog for whenever there's a reason to pick it up: FR locale, real
+  carrier API, SaaS signup flow, image uploads (all listed in every phase's
+  backlog note since Phase 10, still true).
