@@ -303,10 +303,21 @@ export default async function DashboardPage({
         <div className="card-surface space-y-3 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.funnel.title")}</h2>
           <Funnel
-            stages={stats.funnel.map((f) => ({
-              label: t(`dashboard.funnel.${f.stage as "received" | "confirmed" | "shipped" | "delivered"}`),
-              count: f.count,
-            }))}
+            stages={stats.funnel.map((f) => {
+              const stage = f.stage as "received" | "confirmed" | "shipped" | "delivered";
+              // "shipped" is a compound condition (confirmed + not wait_for_deposit/cancelled) —
+              // orders/all's filter bar only supports single-value confirmation/delivery status,
+              // so it has no faithful single-filter drill-through; the other three do.
+              const href =
+                stage === "received"
+                  ? ordersQs(filters)
+                  : stage === "confirmed"
+                    ? ordersQs(filters, { confirmation_status: "confirmed" })
+                    : stage === "delivered"
+                      ? ordersQs(filters, { delivery_status: "delivered" })
+                      : undefined;
+              return { label: t(`dashboard.funnel.${stage}`), count: f.count, href };
+            })}
           />
         </div>
 
@@ -321,13 +332,23 @@ export default async function DashboardPage({
         {/* confirmation status breakdown */}
         <div className="card-surface space-y-3 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.statusBreakdown.confirmationTitle")}</h2>
-          <StatusBreakdownBars kind="confirmation" rows={stats.confirmation_breakdown} emptyLabel={t("dashboard.noData")} />
+          <StatusBreakdownBars
+            kind="confirmation"
+            rows={stats.confirmation_breakdown}
+            emptyLabel={t("dashboard.noData")}
+            hrefFor={(status) => ordersQs(filters, { confirmation_status: status })}
+          />
         </div>
 
         {/* delivery status breakdown */}
         <div className="card-surface space-y-3 rounded-xl p-5">
           <h2 className="text-sm font-semibold">{t("dashboard.statusBreakdown.deliveryTitle")}</h2>
-          <StatusBreakdownBars kind="delivery" rows={stats.delivery_breakdown} emptyLabel={t("dashboard.noData")} />
+          <StatusBreakdownBars
+            kind="delivery"
+            rows={stats.delivery_breakdown}
+            emptyLabel={t("dashboard.noData")}
+            hrefFor={(status) => ordersQs(filters, { delivery_status: status })}
+          />
         </div>
       </div>
 

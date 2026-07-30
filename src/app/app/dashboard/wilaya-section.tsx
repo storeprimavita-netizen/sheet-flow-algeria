@@ -88,7 +88,14 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
       </div>
 
       <div className="flex flex-col items-center gap-2 lg:w-[280px]">
-        <AlgeriaMap data={rows} minOrders={minOrders} hovered={hovered} onHover={setHovered} onSelect={(code) => router.push(wilayaHref(code))} />
+        <AlgeriaMap
+          data={rows}
+          minOrders={minOrders}
+          hovered={hovered}
+          onHover={setHovered}
+          onSelect={(code) => router.push(wilayaHref(code))}
+          label={t("dashboard.wilaya.mapLabel")}
+        />
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" />&lt;40%</span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-orange" />40–55%</span>

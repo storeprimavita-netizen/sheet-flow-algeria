@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Menu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { SignOutButton } from "@/app/app/dashboard/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -40,6 +40,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const t = useTranslations();
+  const tooltipSide = useLocale() === "ar" ? "left" : "right";
   const [open, setOpen] = useState(false); // mobile drawer
   const [collapsed, setCollapsed] = useState(false);
 
@@ -82,11 +83,11 @@ export function AppShell({
     const Icon = item.icon;
     const active = activeHref === item.href;
     const label = t(`nav.${item.key}`);
-    return (
+    const link = (
       <Link
         href={item.href}
         onClick={() => setOpen(false)}
-        title={collapsed ? label : undefined}
+        aria-label={collapsed ? label : undefined}
         className={cn(
           "group relative flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
           collapsed ? "justify-center px-2" : child ? "ps-9 pe-3" : "px-3",
@@ -102,6 +103,13 @@ export function AppShell({
         {!collapsed && <span className="truncate">{label}</span>}
         {!collapsed && <Counter counter={item.counter} />}
       </Link>
+    );
+    if (!collapsed) return link;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side={tooltipSide}>{label}</TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -144,7 +152,7 @@ export function AppShell({
               size="icon"
               className="ms-auto hidden h-8 w-8 md:inline-flex"
               onClick={toggleCollapsed}
-              aria-label="Toggle sidebar"
+              aria-label={t("nav.toggleSidebar")}
             >
               {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
@@ -204,7 +212,7 @@ export function AppShell({
 
         <div className={cn("flex flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label="Menu">
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label={t("nav.toggleSidebar")}>
               <Menu className="h-5 w-5" />
             </Button>
             <CommandPalette role={role}>

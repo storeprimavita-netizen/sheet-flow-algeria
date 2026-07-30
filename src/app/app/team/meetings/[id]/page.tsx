@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Trash2, Undo2 } from "lucide-react";
+import { Trash2, Undo2, SquareCheck, Square } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -85,7 +85,11 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
               <li key={o.id} className="flex items-center gap-2 text-sm">
                 <form action={toggleObjective.bind(null, meeting.id, o.id, !o.is_done)} className="min-w-0">
                   <button type="submit" className="flex min-w-0 items-center gap-2 hover:underline">
-                    <input type="checkbox" checked={o.is_done} readOnly className="h-4 w-4 shrink-0" />
+                    {o.is_done ? (
+                      <SquareCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    ) : (
+                      <Square className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    )}
                     <span className={`truncate ${o.is_done ? "text-muted-foreground line-through" : o.is_deferred ? "text-muted-foreground" : ""}`}>
                       {o.content}
                     </span>

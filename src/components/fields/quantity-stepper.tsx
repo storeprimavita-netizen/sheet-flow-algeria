@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Minus, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,7 @@ export function QuantityStepper({
   max?: number;
   disabled?: boolean;
 }) {
+  const t = useTranslations();
   const [value, setValue] = React.useState(defaultValue);
   const set = (n: number) => setValue(Math.min(max, Math.max(min, n)));
 
@@ -32,7 +34,7 @@ export function QuantityStepper({
         className="h-9 w-9 rounded-e-none"
         disabled={disabled || value <= min}
         onClick={() => set(value - 1)}
-        aria-label="Decrease"
+        aria-label={t("actions.decrease")}
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -52,7 +54,7 @@ export function QuantityStepper({
         className="h-9 w-9 rounded-s-none"
         disabled={disabled || value >= max}
         onClick={() => set(value + 1)}
-        aria-label="Increase"
+        aria-label={t("actions.increase")}
       >
         <Plus className="h-4 w-4" />
       </Button>

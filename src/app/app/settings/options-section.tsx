@@ -191,6 +191,7 @@ function OptionRowItem({
           variant="ghost"
           className="h-8 w-8 shrink-0"
           disabled={busy}
+          aria-label={t("actions.confirm")}
           onClick={() => {
             run(() => renameOption(option.id, label));
             setMode(null);
@@ -203,6 +204,7 @@ function OptionRowItem({
           size="icon"
           variant="ghost"
           className="h-8 w-8 shrink-0"
+          aria-label={t("actions.cancel")}
           onClick={() => {
             setLabel(option.label);
             setMode(null);
@@ -229,7 +231,7 @@ function OptionRowItem({
             setMode(null);
           }}
         />
-        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setMode(null)}>
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0" aria-label={t("actions.cancel")} onClick={() => setMode(null)}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -270,7 +272,7 @@ function OptionRowItem({
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+          <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={t("actions.moreOptions")}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -310,10 +312,11 @@ function OptionRowItem({
 }
 
 function ColorPicker({ token, onPick }: { token: StatusToken; onPick: (token: StatusToken) => void }) {
+  const t = useTranslations();
   const [open, setOpen] = React.useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="shrink-0 rounded-full p-0.5 hover:bg-surface-raised" aria-label="Color">
+      <PopoverTrigger className="shrink-0 rounded-full p-0.5 hover:bg-surface-raised" aria-label={t("settings.options.color")}>
         <ColorDot token={token} className="h-3.5 w-3.5" />
       </PopoverTrigger>
       <PopoverContent className="w-auto p-2" align="start">
