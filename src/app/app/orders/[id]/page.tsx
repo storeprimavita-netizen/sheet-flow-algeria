@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
-import { StatusPill } from "@/components/status-pill";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { DeleteButton } from "@/components/delete-button";
@@ -129,12 +128,6 @@ export default async function OrderDetailPage({
         <Meta label={t("fields.address")}>{order.address ?? "—"}</Meta>
         <Meta label={t("fields.source")}>{order.source}</Meta>
         <Meta label={t("fields.placed_at")}>{formatDateTime(order.placed_at)}</Meta>
-        <Meta label={t("fields.confirmation_status")}>
-          <StatusPill kind="confirmation" status={order.confirmation_status} size="sm" />
-        </Meta>
-        <Meta label={t("fields.delivery_status")}>
-          <StatusPill kind="delivery" status={order.delivery_status} size="sm" />
-        </Meta>
       </div>
 
       {order.is_duplicate_suspect && order.duplicate_of ? (

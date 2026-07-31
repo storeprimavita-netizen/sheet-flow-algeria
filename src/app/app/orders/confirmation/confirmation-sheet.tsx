@@ -13,7 +13,7 @@ import { AutoTextarea } from "@/components/fields/auto-textarea";
 import { StatusPill } from "@/components/status-pill";
 import { RiskBadge } from "@/components/risk-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { transitionsFor, getStatus } from "@/lib/statuses";
+import { allStatuses, getStatus } from "@/lib/statuses";
 import { updateOrderStatus, logConfirmationAttempt } from "../actions";
 import type { ConfRow } from "./confirmation-table";
 
@@ -35,7 +35,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
   const idx = orderedKeys.indexOf(order.id);
   const nextKey = idx >= 0 && idx < orderedKeys.length - 1 ? orderedKeys[idx + 1] : null;
   const prevKey = idx > 0 ? orderedKeys[idx - 1] : null;
-  const options = transitionsFor("confirmation", order.confirmation_status);
+  const options = allStatuses("confirmation");
   const commentId = `conf-comment-${order.id}`;
 
   function openRow(key: string | null) {

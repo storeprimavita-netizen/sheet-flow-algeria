@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusPill } from "@/components/status-pill";
+import { currentStatus } from "@/lib/statuses";
 import { CustomerForm } from "../customer-form";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
@@ -124,13 +125,14 @@ export default async function CustomerDetailPage({
                     <th>{t("orders.title")}</th>
                     <th>{t("fields.product")}</th>
                     <th>{t("fields.total_amount")}</th>
-                    <th>{t("fields.confirmation_status")}</th>
-                    <th>{t("fields.delivery_status")}</th>
+                    <th>{t("fields.status")}</th>
                     <th>{t("fields.placed_at")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => (
+                  {orders.map((o) => {
+                    const s = currentStatus(o);
+                    return (
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td>
                         <Link href={`/app/orders/${o.id}`} className="num font-medium hover:underline">
@@ -140,14 +142,12 @@ export default async function CustomerDetailPage({
                       <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>
                       <td className="num">{formatCurrency((o.sale_price ?? 0) * o.quantity)}</td>
                       <td>
-                        <StatusPill kind="confirmation" status={o.confirmation_status} size="sm" />
-                      </td>
-                      <td>
-                        <StatusPill kind="delivery" status={o.delivery_status} size="sm" />
+                        <StatusPill kind={s.kind} status={s.key} size="sm" />
                       </td>
                       <td className="text-muted-foreground">{formatDate(o.placed_at)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

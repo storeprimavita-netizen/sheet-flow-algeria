@@ -169,6 +169,27 @@
       "low": "منخفضة",
       "medium": "متوسطة",
       "high": "عالية"
+    },
+    "short": {
+      "confirmation_status": {
+        "wait_for_confirmation": "بالانتظار",
+        "no_answer": "لا رد",
+        "closed_phone": "مغلق",
+        "cancelled": "ملغى",
+        "confirmed": "مؤكد"
+      },
+      "delivery_status": {
+        "wait_for_deposit": "بالانتظار",
+        "bureau_deposited": "بالمكتب",
+        "in_transit": "قيد الشحن",
+        "out_for_delivery": "بالتوصيل",
+        "stop_desk_waiting": "مكتب التوصيل",
+        "delivered": "تم التوصيل",
+        "cancelled": "ملغى",
+        "delayed": "متأخر",
+        "returning": "قيد الإرجاع",
+        "returned": "تم الإرجاع"
+      }
     }
   },
   "fields": {

@@ -233,3 +233,28 @@ export function transitionsFor(kind: StatusKind, current: string): StatusDef[] {
   const keys = [current, ...def.next];
   return keys.map((k) => getStatus(kind, k)).filter((d): d is StatusDef => Boolean(d));
 }
+
+/** Every status of a kind, in definition order — orders (confirmation/delivery)
+ * dropped the rigid transition graph (Phase 14a): within their role, users may
+ * set any status in their domain, not just a `next[]` neighbor. */
+export function allStatuses(kind: StatusKind): StatusDef[] {
+  return Object.values(STATUS_KINDS[kind]);
+}
+
+/** Kinds where every status is freely reachable (Phase 14a decision). */
+const FREE_TRANSITION_KINDS: StatusKind[] = ["confirmation", "delivery"];
+
+export function statusOptionsFor(kind: StatusKind, current: string): StatusDef[] {
+  return FREE_TRANSITION_KINDS.includes(kind) ? allStatuses(kind) : transitionsFor(kind, current);
+}
+
+/** Single merged status for the one-column Orders UI: delivery once confirmed,
+ * else confirmation. */
+export function currentStatus(order: { confirmation_status: string; delivery_status: string }): {
+  kind: "confirmation" | "delivery";
+  key: string;
+} {
+  return order.confirmation_status === "confirmed"
+    ? { kind: "delivery", key: order.delivery_status }
+    : { kind: "confirmation", key: order.confirmation_status };
+}

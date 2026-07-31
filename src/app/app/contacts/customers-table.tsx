@@ -9,6 +9,7 @@ import { RiskBadge } from "@/components/risk-badge";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { currentStatus } from "@/lib/statuses";
 
 export type CustomerOrder = {
   id: string;
@@ -127,7 +128,9 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
                 <p className="text-sm text-muted-foreground">{t("contacts.noOrders")}</p>
               ) : (
                 <ol className="space-y-3">
-                  {r.orders.map((o) => (
+                  {r.orders.map((o) => {
+                    const s = currentStatus(o);
+                    return (
                     <li key={o.id} className="border-s-2 border-border ps-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
@@ -137,8 +140,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
                         >
                           {o.order_number ?? o.id.slice(0, 8)}
                         </Link>
-                        <StatusPill kind="confirmation" status={o.confirmation_status} size="sm" />
-                        <StatusPill kind="delivery" status={o.delivery_status} size="sm" />
+                        <StatusPill kind={s.kind} status={s.key} size="sm" />
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {o.product_name ?? "—"} × <span className="num">{o.quantity}</span> ·{" "}
@@ -146,7 +148,8 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
                         {formatDateTime(o.placed_at)}
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
               )}
             </div>

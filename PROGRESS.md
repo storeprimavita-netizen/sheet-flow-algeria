@@ -31,6 +31,14 @@ the bottom. Format:
 | 12 — Section pass (9 sections, one per session) | docs/phases/phase-12.md | done |
 | 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
 | 13 — Final sweep | docs/phases/phase-13.md | done |
+| 14a — Orders status model rework (one column, free changes, RLS, history popover) | docs/phases/phase-14-plan.md §14a | done |
+| 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | planned |
+| 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | planned |
+| 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | planned |
+| 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
+| 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | planned |
+| 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | planned |
+| 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -61,6 +69,35 @@ Read CLAUDE.md, PROGRESS.md, then docs/phases/phase-XX.md.
 Execute that phase only, on branch mnw-XX; read nothing else unless the phase file says so.
 Use `graphify query` to orient instead of broad greps; invoke the ponytail:ponytail skill before writing code and ponytail:ponytail-review before merging.
 When `npm run build` (and `npm test` once it exists) is green: run `graphify update .`, append your handoff block here, merge --no-ff into mnw.
+```
+
+## Phase 14 runner prompt (self-advancing — paste the SAME text each new chat)
+
+The phase table above is the task tracker: `planned` = not done, `done` = done.
+Paste this unchanged every session; it picks the next undone 14-phase itself.
+
+```
+Read CLAUDE.md and PROGRESS.md. In the phase table, find the FIRST 14-series row
+whose Status is "planned" (top-down = dependency order) — that is your phase.
+If the only planned rows left are 14h (Google) or any row marked "needs user
+setup"/blocked, STOP and tell the user what setup is required; do not start it.
+
+Read that phase's section: docs/phases/phase-14-plan.md §<id> + the "Locked
+decisions" block at the top of that file (for 14h instead read the whole
+docs/phases/phase-14h-google-oauth.md). Execute THAT phase only, on branch
+mnw-<id> (row "14c …" → §14c → branch mnw-14c). Read nothing else unless the
+section points you there.
+
+Invoke ponytail:ponytail before writing code. Use `graphify query` to orient,
+not broad greps. No raw <input>/native <select> (use components/fields/* +
+Radix); no hardcoded colors; every user-visible string in
+src/messages/{en,ar}.json (EN + AR).
+
+When `npm run build` (and `npm test`) is green: run ponytail:ponytail-review on
+the diff, `graphify update .`, screenshot every screen you touched in BOTH
+themes with the Playwright MCP and fix what they show. Then (a) append a
+PROGRESS.md handoff block and (b) flip this phase's row Status from "planned" to
+"done" in the phase table. Merge --no-ff into mnw. Stop after this one phase.
 ```
 
 ## Phase 0 — DB rebaseline + auth foundation (2026-07-26) — DONE (remote steps completed later same day, see update at end of block)
@@ -2722,3 +2759,123 @@ unchanged until the user runs the steps above.
   Backlog for whenever there's a reason to pick it up: FR locale, real
   carrier API, SaaS signup flow, image uploads (all listed in every phase's
   backlog note since Phase 10, still true).
+
+## Phase 14a — Orders status model rework (2026-07-31) — DONE
+
+- Done: dropped the rigid transition graph for Orders. `src/lib/statuses.ts`
+  gained `allStatuses(kind)` (every status of a kind), `statusOptionsFor(kind,
+  current)` (all statuses for confirmation/delivery, still `transitionsFor`'s
+  `next[]` for product/task — those keep their own workflow graphs, untouched),
+  and `currentStatus(order)` (the single merged `{kind,key}`: delivery once
+  `confirmation_status==='confirmed'`, else confirmation — the one-column
+  helper). `<StatusSelect>` now uses `statusOptionsFor` and centralizes the
+  `requiresConfirm` `window.confirm` gate (previously only confirmation-sheet
+  had it) so every call site — order-workflow's two selects, delivery-table/
+  kanban, and the new all-orders Status column — gets it uniformly.
+  `confirmation-sheet.tsx`'s button grid switched from `transitionsFor` to
+  `allStatuses("confirmation")`: previously a **terminal status (confirmed/
+  cancelled) showed only one button** since `next: []`, a real gap this fixes.
+  `delivery-kanban.tsx` dropped its own `isLegal()` gate and the
+  `draggable={!def?.terminal}` restriction (any column now accepts a drop,
+  every card is draggable) — required once the on-card `StatusSelect` started
+  offering all statuses, otherwise the kanban's own gate would reject almost
+  every choice the select allowed.
+- **RLS (migration `00015_free_status_transitions.sql`)**: `o_sel` broadened
+  to `workspace_id = current_workspace_id()` for every role — both agent
+  roles now see all workspace orders (this also deletes 00009's "blind spot":
+  a confirmation_agent can reopen an order they just confirmed). `o_upd`
+  likewise drops the `confirmation_status`-based role coupling (admin OR
+  confirmation_agent OR delivery_agent, workspace-scoped) since `guard_order_
+  fields` already gates columns per role. `transition_order_status` RPC role
+  check rewritten to gate on **which param is being set**, not the row's
+  current status: confirmation_agent may set `confirmation_status` to any
+  value as long as `delivery_status` isn't also being touched in the same
+  call, delivery_agent symmetric, admin either/both. Money stays UI-gated
+  (`showMoney`) and financial tables stay admin-only — unchanged, no new
+  money exposed. Verified live against the local Supabase docker stack
+  (already-seeded `confirmation_agent`/`delivery_agent` profiles, 60 orders):
+  confirmation_agent now sees all 60 rows (was blind to the 38 confirmed
+  ones), can re-set `confirmation_status` on an already-confirmed order
+  (previously impossible), is rejected when passing `p_delivery_status`;
+  delivery_agent symmetric (sees all 60, can set `delivery_status` on a
+  not-yet-confirmed order, rejected on `p_confirmation_status`). All checks
+  ran inside a rolled-back transaction, no data mutated.
+- **Single Status column**: new `src/app/app/orders/status-cell.tsx`
+  (`<StatusCell>`) — `currentStatus()` pill/select + a history icon button
+  that opens the existing `<OrderTimeline>` in a `<Popover>` (Radix, no new
+  data fetch, reuses the row's already-loaded `order_status_history` events).
+  Wired into `orders-all-table.tsx` (replaces the `confirmation_status` +
+  `delivery_status` columns and the sheet's two stacked pills — one `status`
+  column, `t("fields.status")`) and `order-workflow.tsx`'s header (single
+  `<StatusPill>` via `currentStatus()`, no popover/select there since the
+  existing two-field edit form below and the full history section already
+  cover editing/history — adding `<StatusCell>` there would've been a
+  duplicate control for the same thing, cut in ponytail-review). Four other
+  spots that rendered both pills side-by-side for the same order also
+  collapsed to one pill via `currentStatus()`: `product-orders-table.tsx`
+  (Products → Orders tab), `contacts/customers-table.tsx` and
+  `contacts/[id]/page.tsx` (customer order-history lists — view-only, no
+  popover), and `orders/[id]/page.tsx`'s Meta grid (the two Meta fields were
+  redundant with `OrderWorkflow`'s header pill directly below — deleted
+  rather than collapsed). `dashboard/page.tsx`'s confirmation/delivery
+  breakdown charts were **not** touched — those are two separate workspace-
+  level funnels, not a per-order pair, out of scope.
+- **Compact pills + short labels**: `<StatusPill>` gained a `compact` prop
+  (swaps the full `status.*` label for a new parallel `status.short.*` tree —
+  kept as a sibling tree rather than nesting a `.short` key under the
+  existing string leaves, since next-intl `t()` can't resolve a path that's
+  sometimes a string and sometimes an object). Added `status.short.
+  confirmation_status.*` / `status.short.delivery_status.*` (one word each,
+  e.g. "Waiting"/"At bureau"/"Out") to both `en.json`/`ar.json`.
+  `<StatusSelect>` threads a `compact` prop to its trigger + every option's
+  `<StatusPill>`. `<StatusCell>` always renders compact (table use).
+- **Narrow columns**: `Column.width` (already existed, was only ever wired
+  to `<th>`) now also applies to `<td>` in `data-table.tsx` — it was
+  previously a dead prop for body cells since the table has no
+  `table-layout: fixed`. `orders-all-table.tsx`: `order_number` (`max-w-
+  [9rem]`, truncating link, duplicate chip `shrink-0` so it never gets
+  squeezed out), `placed_at` (`w-28`, `whitespace-nowrap`), `product`
+  (`max-w-[12rem]`, `min-w-0` wrapper so the existing `truncate` span
+  actually has something to truncate against — it had no effect before,
+  since the flex row was unbounded).
+- Fixed in passing (ponytail-review pass): `<StatusCell>` had an `editable`
+  prop with a default and an unused `false` branch (both call sites always
+  left it `true` — the route is admin-only) — deleted, always renders the
+  select. Two spots (`customers-table.tsx`, `contacts/[id]/page.tsx`) called
+  `currentStatus(o)` twice in the same JSX line — switched the `.map()` to a
+  block body computing it once.
+- Files: new `src/app/app/orders/status-cell.tsx`, `supabase/migrations/
+  00015_free_status_transitions.sql`; modified `src/lib/statuses.ts`,
+  `src/components/{status-select,status-pill,data-table/data-table}.tsx`,
+  `src/app/app/orders/{order-workflow,[id]/page,all/orders-all-table,
+  confirmation/confirmation-sheet,delivery/delivery-kanban}.tsx`,
+  `src/app/app/{contacts/[id]/page,contacts/customers-table,products/[id]/
+  orders/product-orders-table}.tsx`, `src/messages/{en,ar}.json`.
+- Screenshot self-critique: local Supabase docker stack + `npm run dev`
+  (both already running from a prior session) + the Playwright MCP, logged in
+  as the seeded admin (`admin@seed.mnw`). Captured and visually verified in
+  **both themes**: `/app/orders/all` (compact Status column + dropdown
+  showing all 10 delivery statuses + the history popover with full timeline),
+  `/app/orders/[id]` (single header pill, two-field edit form unchanged
+  below), `/app/orders/confirmation` (confirmation-sheet button grid now
+  shows all 5 statuses instead of 1 for a terminal/cancelled order),
+  `/app/orders/delivery?view=kanban` (dark only — free drag confirmed, no
+  `illegalTransition` toast), `/app/contacts` customer sheet (light —
+  collapsed order-history pill). No hardcoded colors, no layout breakage in
+  either theme; the free-transition dropdown/button-grid render with correct
+  per-status tokens in both themes.
+- Known issues: none new. `illegalTransition` message key is still used by
+  `task-kanban.tsx`/`task-table.tsx` (task status keeps its restricted
+  transition graph — out of this phase's scope) so it wasn't removed, only
+  its `delivery-kanban.tsx` call site.
+- Next chat must know: `npm run build` and `npm test` green (31 pass, 38
+  RLS-suite skipped, unchanged), `graphify update .` run (1519 nodes, 3830
+  edges, 130 communities). **Phase 14b** (Exchange/Swap/return-fee) reads
+  `statuses.ts`/`enums.ts`/`orders/actions.ts` and explicitly builds on this
+  phase's free-transitions helper (`statusOptionsFor`) — the new `exchange`/
+  `swap` delivery statuses it adds will automatically appear in every
+  `<StatusSelect>`/`<StatusCell>` once added to `DELIVERY_STATUS` in
+  `statuses.ts`, no further wiring needed there. `currentStatus()` and
+  `<StatusCell>` are the new canonical single-status primitives — any future
+  Orders UI that needs to show or edit "the" status of an order should use
+  them rather than re-deriving the confirmed/not-confirmed branch inline.

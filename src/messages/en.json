@@ -169,6 +169,27 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High"
+    },
+    "short": {
+      "confirmation_status": {
+        "wait_for_confirmation": "Waiting",
+        "no_answer": "No answer",
+        "closed_phone": "Phone off",
+        "cancelled": "Cancelled",
+        "confirmed": "Confirmed"
+      },
+      "delivery_status": {
+        "wait_for_deposit": "Waiting",
+        "bureau_deposited": "At bureau",
+        "in_transit": "In transit",
+        "out_for_delivery": "Out",
+        "stop_desk_waiting": "Stop desk",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled",
+        "delayed": "Delayed",
+        "returning": "Returning",
+        "returned": "Returned"
+      }
     }
   },
   "fields": {
