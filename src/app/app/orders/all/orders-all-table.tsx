@@ -27,6 +27,7 @@ import type { StatusToken } from "@/lib/statuses";
 import { CONFIRMATION_STATUSES } from "@/lib/enums";
 import { bulkTransition, bulkAssignAgents } from "../actions";
 import { OrderTimeline, type TimelineEvent } from "../order-timeline";
+import { StatusCell } from "../status-cell";
 
 export type AllRow = {
   id: string;
@@ -114,11 +115,12 @@ export function OrdersAllTable({
       header: t("orders.title"),
       sortable: true,
       sticky: true,
+      width: "max-w-[9rem]",
       cell: (r) => (
-        <span className="flex items-center gap-1.5 whitespace-nowrap">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Link
             href={`/app/orders/${r.id}`}
-            className="num font-medium hover:underline"
+            className="num truncate font-medium hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             {r.order_number ?? r.id.slice(0, 8)}
@@ -128,6 +130,7 @@ export function OrdersAllTable({
               href={r.duplicate_of ? `/app/orders/${r.duplicate_of}` : "#"}
               onClick={(e) => e.stopPropagation()}
               title={t("orders.duplicateWarning")}
+              className="shrink-0"
             >
               <Chip token="danger" size="sm" icon={<Copy className="h-3 w-3" />}>
                 {t("orders.duplicate")}
@@ -137,7 +140,13 @@ export function OrdersAllTable({
         </span>
       ),
     },
-    { id: "placed_at", header: t("fields.placed_at"), sortable: true, cell: (r) => formatDate(r.placed_at) },
+    {
+      id: "placed_at",
+      header: t("fields.placed_at"),
+      sortable: true,
+      width: "w-28",
+      cell: (r) => <span className="whitespace-nowrap">{formatDate(r.placed_at)}</span>,
+    },
     {
       id: "customer",
       header: t("fields.customer"),
@@ -151,8 +160,9 @@ export function OrdersAllTable({
     {
       id: "product",
       header: t("fields.product"),
+      width: "max-w-[12rem]",
       cell: (r) => (
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {r.product_image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={r.product_image} alt="" className="h-7 w-7 shrink-0 rounded object-cover" />
@@ -178,16 +188,17 @@ export function OrdersAllTable({
       ),
     },
     {
-      id: "confirmation_status",
-      header: t("fields.confirmation_status"),
+      id: "status",
+      header: t("fields.status"),
       align: "center",
-      cell: (r) => <StatusPill kind="confirmation" status={r.confirmation_status} size="sm" />,
-    },
-    {
-      id: "delivery_status",
-      header: t("fields.delivery_status"),
-      align: "center",
-      cell: (r) => <StatusPill kind="delivery" status={r.delivery_status} size="sm" />,
+      cell: (r) => (
+        <StatusCell
+          orderId={r.id}
+          order={{ confirmation_status: r.confirmation_status, delivery_status: r.delivery_status }}
+          events={r.events}
+          actorNames={actorNames}
+        />
+      ),
     },
     { id: "agent", header: t("fields.agent"), defaultHidden: true, cell: (r) => r.agent_name ?? "—" },
     {
@@ -307,10 +318,12 @@ export function OrdersAllTable({
         ),
         body: (
           <div className="space-y-5 text-sm">
-            <div className="flex flex-wrap gap-2">
-              <StatusPill kind="confirmation" status={r.confirmation_status} />
-              <StatusPill kind="delivery" status={r.delivery_status} />
-            </div>
+            <StatusCell
+              orderId={r.id}
+              order={{ confirmation_status: r.confirmation_status, delivery_status: r.delivery_status }}
+              events={r.events}
+              actorNames={actorNames}
+            />
 
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">{t("fields.customer")}</div>

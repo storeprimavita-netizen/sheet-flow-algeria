@@ -2,23 +2,20 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 
 import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/status-pill";
 import { StatusSelect } from "@/components/status-select";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { DELIVERY_STATUSES } from "@/lib/enums";
-import { transitionsFor, getStatus } from "@/lib/statuses";
 import { useAdvanceDelivery } from "./delivery-table";
 import type { DelivRow } from "./delivery-view";
-
-const isLegal = (from: string, to: string) => transitionsFor("delivery", from).some((d) => d.key === to);
 
 /**
  * Delivery kanban (optional toggle). Columns are the delivery statuses; cards
  * move by drag OR by the on-card StatusSelect (keyboard-accessible equivalent).
- * Only legal transitions are accepted. Optimistic move, rollback on failure.
+ * Free status changes (Phase 14a) — any column accepts a drop, cards are
+ * always draggable. Optimistic move, rollback on failure.
  */
 export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
   const t = useTranslations();
@@ -31,10 +28,6 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
   async function move(id: string, to: string) {
     const card = items.find((r) => r.id === id);
     if (!card || card.delivery_status === to) return;
-    if (!isLegal(card.delivery_status, to)) {
-      toast.error(t("orders.illegalTransition"));
-      return;
-    }
     const prev = card.delivery_status;
     setItems((list) => list.map((r) => (r.id === id ? { ...r, delivery_status: to } : r)));
     const ok = await advance(id, to);
@@ -45,7 +38,6 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
     <div className="flex gap-3 overflow-x-auto pb-2">
       {DELIVERY_STATUSES.map((status) => {
         const col = items.filter((r) => r.delivery_status === status);
-        const def = getStatus("delivery", status);
         return (
           <div
             key={status}
@@ -66,7 +58,7 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
               col.map((r) => (
                 <div
                   key={r.id}
-                  draggable={!def?.terminal}
+                  draggable
                   onDragStart={() => setDragId(r.id)}
                   onDragEnd={() => setDragId(null)}
                   className="card-surface space-y-2 rounded-lg p-3 text-sm"

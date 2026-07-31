@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/field";
 import { StatusPill } from "@/components/status-pill";
 import { StatusSelect } from "@/components/status-select";
+import { currentStatus } from "@/lib/statuses";
 import { updateOrderStatus } from "./actions";
 import { OrderTimeline } from "./order-timeline";
 
@@ -35,6 +36,7 @@ export function OrderWorkflow({
 
   const canConfirm = role === "admin" || role === "confirmation_agent";
   const canDeliver = role === "admin" || role === "delivery_agent";
+  const status = currentStatus(order);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,8 +72,7 @@ export function OrderWorkflow({
     <div className="space-y-6">
       <form onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusPill kind="confirmation" status={order.confirmation_status} />
-          <StatusPill kind="delivery" status={order.delivery_status} />
+          <StatusPill kind={status.kind} status={status.key} />
         </div>
 
         {order.confirmation_comment ? (

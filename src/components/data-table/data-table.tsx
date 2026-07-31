@@ -343,6 +343,7 @@ export function DataTable<T>({
                             className={cn(
                               "px-3",
                               colStart(c),
+                              c.width,
                               c.numeric && "num",
                               c.sticky && "sticky start-0 z-10 bg-surface",
                             )}

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { formatCurrency, formatDate } from "@/lib/format";
 import { StatusPill } from "@/components/status-pill";
+import { currentStatus } from "@/lib/statuses";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 
@@ -38,16 +39,13 @@ export function ProductOrdersTable({ rows }: { rows: ProductOrderRow[] }) {
     { id: "quantity", header: t("fields.quantity"), numeric: true, cell: (r) => <span className="num">{r.quantity}</span> },
     { id: "total", header: t("fields.total_amount"), numeric: true, cell: (r) => formatCurrency((r.sale_price ?? 0) * r.quantity) },
     {
-      id: "confirmation_status",
-      header: t("fields.confirmation_status"),
+      id: "status",
+      header: t("fields.status"),
       align: "center",
-      cell: (r) => <StatusPill kind="confirmation" status={r.confirmation_status} size="sm" />,
-    },
-    {
-      id: "delivery_status",
-      header: t("fields.delivery_status"),
-      align: "center",
-      cell: (r) => <StatusPill kind="delivery" status={r.delivery_status} size="sm" />,
+      cell: (r) => {
+        const s = currentStatus(r);
+        return <StatusPill kind={s.kind} status={s.key} size="sm" />;
+      },
     },
   ];
 
