@@ -122,7 +122,9 @@
       "cancelled": "Cancelled",
       "delayed": "Delayed",
       "returning": "Returning",
-      "returned": "Returned"
+      "returned": "Returned",
+      "exchange": "Exchange",
+      "swap": "Swap"
     },
     "supplier_type": {
       "shooting_studio": "Shooting studio",
@@ -188,7 +190,9 @@
         "cancelled": "Cancelled",
         "delayed": "Delayed",
         "returning": "Returning",
-        "returned": "Returned"
+        "returned": "Returned",
+        "exchange": "Exchange",
+        "swap": "Swap"
       }
     }
   },
@@ -359,7 +363,19 @@
     "viewTable": "Table",
     "viewKanban": "Kanban",
     "illegalTransition": "That status change isn't allowed from here.",
-    "kanbanEmpty": "Nothing here"
+    "kanbanEmpty": "Nothing here",
+    "swap": {
+      "title": "Swap to new customer",
+      "customerName": "Customer name",
+      "customerPhone": "Phone",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "address": "Address",
+      "submit": "Create swap order",
+      "swappedTo": "Swapped to order #{number}",
+      "swappedFrom": "Swapped from order #{number}",
+      "confirm": "Swap this order? A new order will be created for the new customer with the same product."
+    }
   },
   "expenses": {
     "title": "Expenses",

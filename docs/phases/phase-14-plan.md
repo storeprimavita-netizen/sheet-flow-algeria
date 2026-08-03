@@ -115,6 +115,122 @@ Read: `statuses.ts`, `enums.ts`, `orders/actions.ts`, `00001_core.sql`
   - Stock: the swapped item is already out of stock (A never returned it to
     warehouse), so **do not** re-decrement for B. Note this for 14d.
 
+### GLM 5.2 execution brief
+
+Traced against current code (post-14a: `00015_free_status_transitions.sql`;
+`statuses.ts` already has `allStatuses`/`statusOptionsFor`/`currentStatus` +
+free confirmation/delivery transitions). 14b is enum+labels+icon+one action+
+one card+default bump — no RPC rewrite, no new history/stock code.
+
+**Files to touch (exact):**
+- `supabase/migrations/00016_exchange_swap.sql` (NEW) — see skeleton.
+- `src/lib/enums.ts` — add `"exchange"`, `"swap"` to `DELIVERY_STATUSES`
+  (z.enum gate for `updateDeliveryStatus`/`bulkTransition`; without it the
+  status-select rejects the new values).
+- `src/lib/statuses.ts` — add to `DELIVERY_STATUS`: `exchange` (token `info`,
+  icon `Repeat`), `swap` (token `indigo`, icon `ArrowLeftRight`); both
+  `next: []` (free transitions make `next` cosmetic for orders). Import both
+  from `lucide-react`. `currentStatus()`/`statusOptionsFor()` need NO change.
+- `src/messages/en.json` + `src/messages/ar.json` — add to
+  `status.delivery_status` (full label: "Exchange"/"Swap" + AR) and to
+  `status.short.delivery_status` ("Exchange"/"Swap" + AR short). Add a small
+  `orders.swap.*` block (title, fields, submit, link labels) — same shape as
+  existing `orders.*`.
+- `src/lib/settings.ts:30` — `return_fee: { amount: 150 }` (runtime fallback).
+- `supabase/migrations/00007_seed.sql:31`, `00014_option_sets.sql:124` (the
+  `seed_workspace()` insert), `00002_settings.sql:32` comment — all
+  `100` → `150` (fresh-`db reset` consistency).
+- `src/app/app/orders/actions.ts` — add `swapOrder(orderId, formData)`
+  (admin-only, see stale-decision note). Mirror `createOrder`:
+  `adminProfile()` → zod-parse new customer (name/phone/wilaya/commune/
+  address) → `upsertCustomerFromOrder` → INSERT B (source `'manual'`,
+  copy A's `product_id`/`variant`/`quantity`/`sale_price`/`delivery_fee`/
+  `delivery_type`; new customer snapshot + wilaya/commune/address;
+  `confirmation_status='confirmed'`, `delivery_status='wait_for_deposit'`,
+  `placed_at=now`) → set A `delivery_status='swap'` + `swapped_to_order_id=B`
+  (transition RPC for A's status; plain admin `.update` for the link col) →
+  `revalidatePath` + `redirect(/app/orders/${B.id})`.
+- `src/app/app/orders/[id]/swap-card.tsx` (NEW, client) — admin-only; a
+  `<details>`/form revealed by a "Swap to new customer" button, shown when
+  A's `delivery_status ∈ {returning, returned, exchange, delivered}`. Fields
+  use `components/fields/*` (no raw input) + Radix Select for wilaya (reuse
+  the order-form wilaya list pattern). Also renders the A↔B link: if
+  `order.swapped_to_order_id` → link to B; else show A (found by the page's
+  reverse query).
+- `src/app/app/orders/[id]/page.tsx` — fetch the reverse link
+  (`select id,order_number,customer_name from orders where workspace_id=$ws
+  and swapped_to_order_id = $order.id limit 1`) and pass `swappedFrom` +
+  the order's own `swapped_to_order_id` into `<SwapCard>`. Mount `<SwapCard>`
+  alongside `AssignmentCard`/`ZRShipmentCard`.
+- `src/lib/supabase/database.types.ts` — regen (`npx supabase gen types
+  typescript --linked` after pushing 00016, or `--db-url` local + hand-merge
+  per Phase 7 precedent) so `delivery_status` enum + `swapped_to_order_id`
+  column typecheck.
+
+**Migration skeleton (`00016_exchange_swap.sql`):**
+```sql
+alter type public.delivery_status add value if not exists 'exchange';
+alter type public.delivery_status add value if not exists 'swap';
+
+alter table public.orders
+  add column if not exists swapped_to_order_id uuid references public.orders(id) on delete set null;
+create index if not exists orders_swapped_idx on public.orders (workspace_id, swapped_to_order_id);
+
+-- Locked decision: return_fee default 150 DZD. Bump only untouched workspaces
+-- (still at the old 100 default) so a workspace that customized it is preserved.
+update public.settings
+  set value = '{"amount": 150}'
+  where key = 'return_fee' and (value->>'amount')::numeric = 100;
+```
+(`ALTER TYPE … ADD VALUE` is fine inside Supabase's per-file transaction —
+PG ≥12 allows it; we don't *use* the new values in this same migration.)
+
+**Order of steps:** migration 00016 → push + regen types → enums.ts +
+statuses.ts + settings.ts + seed/comment edits → messages EN/AR →
+`swapOrder` action → `swap-card.tsx` + page wiring → build → test →
+screenshots (status pill in both themes + swap form + A↔B link).
+
+**Locked decisions — confirmed vs stale:**
+- ✓ Exchange after `delivered`; `exchange`→`delivered`/`returning` reachable
+  (free transitions, no graph work).
+- ✓ Swap = A's return → new linked order for B; one `swapped_to_order_id`
+  column, A→B forward, B's page reverse-queries A (no second column).
+- ✓ Return-fee default 150 — confirmed in all 3 seed/default spots.
+- ✓ Stock not re-decremented for B — safe by existing trigger shape (below).
+- ⚠ **STALE: "`swapOrder` (admin/delivery)".** RLS makes it **admin-only**:
+  `o_ins` (orders insert, 00004 L293) is `and is_admin()`, and `cu_all`
+  (customers insert) is admin-only — a delivery_agent cannot insert B's order
+  or B's customer. `swapOrder` uses `adminProfile()` like `createOrder`/
+  `pushOrderToZRExpress`. Elevating delivery agents to swap needs a
+  security-definer RPC + new insert policies — out of scope, defer (note in
+  PROGRESS handoff).
+
+**Edge cases / gotchas traced:**
+- **RPC unchanged.** `transition_order_status` (00015) params are typed
+  `delivery_status` and the role-check gates *which* param is set, not the
+  value — adding enum values makes `exchange`/`swap` settable by
+  delivery_agent automatically. A's `delivery_status='swap'` goes through it.
+- **History is automatic.** `log_order_status` (AFTER INSERT OR UPDATE,
+  00004 L176) logs A's swap transition on update AND B's initial confirmed
+  status on insert — no history code.
+- **Stock is safe for B — and flag for 14d.** `order_stock_effects`
+  (00004 L228) is `AFTER UPDATE` only, so B's INSERT never fires it even
+  though B is created `confirmed`. 14d's planned auto-decrement trigger MUST
+  stay UPDATE-scoped (`OLD IS DISTINCT FROM NEW`), never `after insert or
+  update` — or B (created already-confirmed) would wrongly decrement stock.
+  Write this into 14d's brief when it lands.
+- **`flag_duplicate_order`** (BEFORE INSERT) may flag B as a duplicate of A
+  if the admin reuses the same phone+product within the window — arguably
+  correct (same item, same phone); not a bug, just expected.
+- **swapOrder atomicity:** upsert customer → insert B → update A in sequence
+  (server actions aren't cross-call transactional). If A's update fails after
+  B inserts, B is just a normal confirmed order — acceptable at this volume;
+  a `swap_order()` definer RPC is the upgrade path if orphaned Bs ever bite.
+- **B's commercial fields** inherit A's (sale_price/fee/type/variant/qty);
+  B's wilaya may differ so its real delivery_fee should be edited by hand
+  after — ponytail (copy A's, admin adjusts), don't rebuild the wilaya-fee
+  resolver here.
+
 ---
 
 ## 14c — Finance → Accounts (running ledger)

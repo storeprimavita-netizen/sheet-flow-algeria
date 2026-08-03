@@ -28,7 +28,7 @@ begin
   on conflict do nothing;
 
   insert into public.settings (workspace_id, key, value) values
-    (p_ws, 'return_fee',         '{"amount": 100}'),
+    (p_ws, 'return_fee',         '{"amount": 150}'),
     (p_ws, 'duplicate_window',   '{"hours": 48}'),
     (p_ws, 'risk_weights',       '{"returned": 2, "cancelled": 1, "no_answer": 0.5}'),
     (p_ws, 'stop_shipping_rule', '{"min_orders": 10, "min_delivery_rate": 40}'),

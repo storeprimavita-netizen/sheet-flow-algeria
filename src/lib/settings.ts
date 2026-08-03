@@ -27,7 +27,7 @@ export type SettingValue<K extends SettingKey> = z.infer<(typeof SETTINGS_SCHEMA
 
 /** Seeded defaults — mirrors `seed_workspace()` in supabase/migrations/00002. */
 const DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
-  return_fee: { amount: 100 },
+  return_fee: { amount: 150 },
   duplicate_window: { hours: 48 },
   risk_weights: { returned: 2, cancelled: 1, no_answer: 0.5 },
   stop_shipping_rule: { min_orders: 10, min_delivery_rate: 40 },

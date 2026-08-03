@@ -18,8 +18,10 @@ import {
   CheckCheck,
   ClockAlert,
   CornerUpLeft,
+  ArrowLeftRight,
   Undo2,
   FlaskConical,
+  Repeat,
   Beaker,
   BadgeCheck,
   Ban,
@@ -151,6 +153,8 @@ export const DELIVERY_STATUS: Record<string, StatusDef> = {
   cancelled: def("delivery", "cancelled", "danger", XCircle, [], { terminal: true, requiresConfirm: true }),
   returning: def("delivery", "returning", "orange", CornerUpLeft, ["returned"]),
   returned: def("delivery", "returned", "rose", Undo2, [], { terminal: true, requiresConfirm: true }),
+  exchange: def("delivery", "exchange", "info", Repeat, []),
+  swap: def("delivery", "swap", "indigo", ArrowLeftRight, []),
 };
 
 export const PRODUCT_STATUS: Record<string, StatusDef> = {
