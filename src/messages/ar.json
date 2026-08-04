@@ -122,7 +122,9 @@
       "cancelled": "ملغى",
       "delayed": "متأخر",
       "returning": "قيد الإرجاع",
-      "returned": "تم الإرجاع"
+      "returned": "تم الإرجاع",
+      "exchange": "استبدال",
+      "swap": "تبديل"
     },
     "supplier_type": {
       "shooting_studio": "ستوديو تصوير",
@@ -188,7 +190,9 @@
         "cancelled": "ملغى",
         "delayed": "متأخر",
         "returning": "قيد الإرجاع",
-        "returned": "تم الإرجاع"
+        "returned": "تم الإرجاع",
+        "exchange": "استبدال",
+        "swap": "تبديل"
       }
     }
   },
@@ -359,7 +363,19 @@
     "viewTable": "جدول",
     "viewKanban": "لوحة",
     "illegalTransition": "لا يُسمح بتغيير الحالة هذا من هنا.",
-    "kanbanEmpty": "لا شيء هنا"
+    "kanbanEmpty": "لا شيء هنا",
+    "swap": {
+      "title": "تبديل إلى عميل جديد",
+      "customerName": "اسم العميل",
+      "customerPhone": "الهاتف",
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "address": "العنوان",
+      "submit": "إنشاء طلب تبديل",
+      "swappedTo": "تم التبديل إلى الطلب #{number}",
+      "swappedFrom": "تم التبديل من الطلب #{number}",
+      "confirm": "تبديل هذا الطلب؟ سيتم إنشاء طلب جديد للعميل الجديد بنفس المنتج."
+    }
   },
   "expenses": {
     "title": "المصاريف",

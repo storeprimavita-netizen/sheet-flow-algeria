@@ -32,7 +32,7 @@ the bottom. Format:
 | 12b — Navigation, color & map fixes (inserted before §6) | docs/phases/phase-12b-ux-fixes.md | done |
 | 13 — Final sweep | docs/phases/phase-13.md | done |
 | 14a — Orders status model rework (one column, free changes, RLS, history popover) | docs/phases/phase-14-plan.md §14a | done |
-| 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | planned |
+| 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | done |
 | 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | planned |
 | 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | planned |
 | 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
@@ -71,22 +71,123 @@ Use `graphify query` to orient instead of broad greps; invoke the ponytail:ponyt
 When `npm run build` (and `npm test` once it exists) is green: run `graphify update .`, append your handoff block here, merge --no-ff into mnw.
 ```
 
-## Phase 14 runner prompt (self-advancing — paste the SAME text each new chat)
+## Phase 14 runner prompts (self-advancing, two-pass GLM — paste the SAME text each new chat)
 
 The phase table above is the task tracker: `planned` = not done, `done` = done.
-Paste this unchanged every session; it picks the next undone 14-phase itself.
+One local command switches Claude Code's backend to Z.ai (`claude-switch`, no
+Claude subscription involved): **`glm`** launches on **GLM-5.2** (deep
+reasoning) by default. `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1` is set in
+that mode, so typing **`/model`** inside the session opens a picker listing
+every model Z.ai's endpoint exposes (glm-5.2, **glm-5-turbo**, glm-4.5-air, …)
+under "From gateway" — switch to `glm-5-turbo` for the fast execution pass, no
+new command, no restart. `cc` still runs the real Claude subscription if ever
+needed.
+
+`/model` swaps the model **without restarting the process, so the execution
+pass keeps the analysis pass's full conversation context** — this is one
+continuous session, not two. The analysis pass still appends a `### GLM 5.2
+execution brief` subsection into the phase file as a durable checkpoint (useful
+if the session gets compacted or you come back to it another day), but the
+execution pass has the live discussion too, not just that file.
+
+Each phase is run in its own **fresh chat** (to keep context small / cheap).
+That means the BOOTSTRAP prompt below re-runs every time — it's deliberately
+scoped to graphify + a few short docs, never a broad source read, to keep that
+repeated cost small.
+
+**Workflow per phase (one `glm` session, new chat each phase):**
+1. Run `glm` (starts on GLM-5.2).
+2. Paste the BOOTSTRAP prompt → it orients on the project + full backlog via
+   graphify + short docs (no source-wide reads), reports a compact summary,
+   picks no phase yet, writes nothing.
+3. Paste the ANALYZE prompt → it picks the next phase and writes the brief,
+   then stops (no code, no branch, no commit).
+4. Type `/model` and pick `glm-5-turbo` (or `/model glm-5-turbo` directly).
+5. Paste the EXECUTE prompt → it builds, tests, reviews, merges, and flips the
+   row to `done`.
+6. Next phase: start a **new chat**, `glm` again, back to step 2.
+
+### BOOTSTRAP prompt (paste FIRST, every new phase chat, before ANALYZE)
+
+```
+Orient on this project WITHOUT broad source reads — graphify + short docs only,
+to keep this a cheap pass (this runs fresh every phase chat):
+
+1. Read CLAUDE.md in full (project conventions — short).
+2. Read PROGRESS.md lines 1–160 ONLY (the phase table + the "Phase 14 runner
+   prompts" section you're following right now). Do NOT read past line ~160 —
+   everything below is historical per-phase handoff logs already superseded by
+   CLAUDE.md + docs/phases/phase-14-plan.md; reading them wastes tokens for no
+   new information.
+3. Read docs/phases/phase-14-plan.md in full — this IS "the steps of
+   modification": every 14a–14h sub-phase summary plus the "Locked decisions"
+   block (cross-cutting rules every phase must respect). Small file, worth
+   reading whole.
+4. Run `graphify query "orders status model, RLS pattern, finance, stock,
+   team/rules, settings, analytics views"` (or similarly-scoped queries) — NOT
+   raw greps — to refresh which files/tables back each area. If
+   graphify-out/GRAPH_REPORT.md's "Built from commit" is behind
+   `git rev-parse HEAD`, run `graphify update .` once so this chat's queries
+   (and the ANALYZE pass right after) are accurate.
+5. Skim graphify-out/GRAPH_REPORT.md's Community Hubs / Summary section for the
+   big-picture module map — don't read it end to end unless query/explain
+   don't surface enough.
+
+Then STOP and report back, briefly (under 200 words, no essay):
+- Which 14-phases are done vs planned (from the table).
+- One line confirming you've internalized the Locked decisions.
+- Up to 3 architecture facts you found most load-bearing for upcoming phases.
+
+Do NOT pick a phase, write an execution brief, touch any code, run a build, or
+create a branch yet — that's the ANALYZE prompt's job, next message.
+```
+
+### ANALYZE prompt (paste second, after BOOTSTRAP, while still on glm-5.2)
 
 ```
 Read CLAUDE.md and PROGRESS.md. In the phase table, find the FIRST 14-series row
-whose Status is "planned" (top-down = dependency order) — that is your phase.
-If the only planned rows left are 14h (Google) or any row marked "needs user
-setup"/blocked, STOP and tell the user what setup is required; do not start it.
+whose Status is "planned" AND whose phase file section does NOT yet contain a
+"### GLM 5.2 execution brief" subsection (top-down = dependency order) — that
+is your phase. If the only planned rows left are 14h (Google) or any row marked
+"needs user setup"/blocked, STOP and tell the user what setup is required.
 
-Read that phase's section: docs/phases/phase-14-plan.md §<id> + the "Locked
-decisions" block at the top of that file (for 14h instead read the whole
-docs/phases/phase-14h-google-oauth.md). Execute THAT phase only, on branch
-mnw-<id> (row "14c …" → §14c → branch mnw-14c). Read nothing else unless the
-section points you there.
+Read that phase's section in docs/phases/phase-14-plan.md §<id> (for 14h read
+the whole docs/phases/phase-14h-google-oauth.md) + the "Locked decisions" block.
+Use `graphify query` to orient, then trace every file/table/RLS policy/view the
+section actually touches — read the real current code, don't trust the plan
+blindly (it may have drifted since it was written). Do NOT write feature code,
+create a branch, or touch the phase table's Status.
+
+Produce a concrete execution brief and append it as a new subsection directly
+under that phase's `## 14x` heading in the SAME phase file:
+
+### GLM 5.2 execution brief
+- Exact files to touch (paths, not descriptions) and what changes in each.
+- Exact migration SQL skeleton if the phase needs one.
+- Order of steps (what must land before what).
+- Every place the "Locked decisions" assumptions were confirmed or turned out
+  stale, with the corrected fact.
+- Edge cases / gotchas found while tracing (RLS interactions, trigger
+  ordering, existing views that already compute part of this — reuse, don't
+  rebuild).
+
+Stop after appending. Do not run npm/build, do not commit.
+```
+
+### EXECUTE prompt (paste after switching `/model` to glm-5-turbo)
+
+```
+Read CLAUDE.md and PROGRESS.md. In the phase table, find the FIRST 14-series row
+whose Status is "planned" AND whose phase file section already contains a
+"### GLM 5.2 execution brief" subsection. If the first planned row has NO
+brief yet, STOP and tell the user to switch back with `/model glm-5.2` and run
+the ANALYZE prompt for that phase first — do not analyze it yourself and do not
+skip ahead to a later row that happens to have a brief.
+
+Read that phase's section + its execution brief + the "Locked decisions" block
+in docs/phases/phase-14-plan.md §<id> (for 14h: docs/phases/phase-14h-google-oauth.md).
+Execute THAT phase only, following the brief, on branch mnw-<id> (row "14c …" →
+§14c → branch mnw-14c). Read nothing else unless pointed there.
 
 Invoke ponytail:ponytail before writing code. Use `graphify query` to orient,
 not broad greps. No raw <input>/native <select> (use components/fields/* +
@@ -2879,3 +2980,81 @@ unchanged until the user runs the steps above.
   `<StatusCell>` are the new canonical single-status primitives — any future
   Orders UI that needs to show or edit "the" status of an order should use
   them rather than re-deriving the confirmed/not-confirmed branch inline.
+
+## Phase 14b — Exchange, Swap & return-fee default (2026-08-04) — DONE
+
+- Done: two new delivery statuses (`exchange`, `swap`), swap order action
+  (admin-only), return-fee default bumped to 150 DZD, swap-card UI with
+  A↔B link display, self-advancing slash commands (`/bootstrap`,
+  `/analyse`, `/execute`) for the phase-14 loop.
+- **Migration `00016_exchange_swap.sql`:** `alter type delivery_status add
+  value 'exchange'/'swap'`; `swapped_to_order_id` nullable FK on orders
+  with index; guarded UPDATE on `settings` to bump `return_fee` from 100→150
+  only for untouched workspaces (preserves custom values). `swapOrder`
+  is admin-only because `o_ins` (orders insert) and `cu_all` (customers
+  insert) are both RLS-gated `is_admin()` — the plan said
+  "admin/delivery" but elevating delivery agents needs a security-definer RPC
+  + new insert policies, deferred.
+- **`statuses.ts`/`enums.ts`:** added `exchange` (token `info`, icon `Repeat`)
+  and `swap` (token `indigo`, icon `ArrowLeftRight`) to `DELIVERY_STATUS`.
+  `currentStatus()`/`statusOptionsFor()` needed no change — 14a's free
+  transitions + the single merged column already handle any new value
+  automatically. `z.enum(DELIVERY_STATUSES)` in `updateDeliveryStatus`/
+  `bulkTransition` now accepts the two new values.
+- **`swapOrder` action** (`orders/actions.ts`): mirrors `createOrder` —
+  `adminProfile()` → zod-parse new customer → `upsertCustomerFromOrder` →
+  INSERT B (source `'manual'`, copies A's `product_id`/`variant`/`quantity`/
+  `sale_price`/`delivery_fee`/`delivery_type`; new customer snapshot + wilaya;
+  `confirmation_status='confirmed'`, `delivery_status='wait_for_deposit'`) →
+  RPC sets A's `delivery_status='swap'` → plain `.update` sets
+  `swapped_to_order_id=B.id`. Sequential, not transactional (ponytail
+  comment: upgrade to definer RPC if orphaned Bs bite).
+- **`swap-card.tsx`** (new, client): admin-only card with `<details>` form
+  (Field+Input+native `<datalist>` for wilaya, no JS state, no Radix
+  Select) revealed by "Swap to new customer" button, shown when
+  `delivery_status ∈ {returning, returned, exchange, delivered}` and order
+  not yet swapped. Also renders A↔B link in both directions.
+- **`page.tsx`** wiring: fetches swapped-to (A→B), swapped-from (B←A
+  reverse query), and wilaya list inside the admin block; passes to
+  `<SwapCard>` alongside ZRShipmentCard.
+- **Messages EN/AR:** full + short labels for exchange/swap; `orders.swap.*`
+  block for form fields and link labels.
+- **`.claude/commands/`:** three new slash commands (`bootstrap`,
+  `analyse`, `execute`) — verbatim copies of the PROGRESS.md runner
+  prompts, making the phase-14 loop self-advancing: `/analyse` on
+  glm-5.2 writes the next brief, `/execute` on glm-5-turbo builds+merges.
+- **`database.types.ts`:** hand-patched (remote DB lacks migration 00016;
+  regen after `db push` will reconcile). Both union-type and array-literal
+  `delivery_status` enums updated; `swapped_to_order_id` added to all three
+  orders Row/Insert/Update variants.
+- **Key finding — RPC unchanged:** `transition_order_status` (00015) takes
+  typed `delivery_status` params and role-gates by *which* param is set,
+  not the value — adding enum values auto-authorizes delivery_agent to set
+  them. No RPC code change needed.
+- **Key finding — stock safe for B + 14d flag:** `order_stock_effects`
+  (00004) is `AFTER UPDATE` only, so B's already-confirmed INSERT never
+  decrements. 14d's planned auto-decrement trigger MUST stay
+  UPDATE-scoped (`OLD IS DISTINCT FROM NEW`), never `after insert or
+  update` — written into the 14b brief for 14d to inherit.
+- Files: new `supabase/migrations/00016_exchange_swap.sql`,
+  `src/app/app/orders/[id]/swap-card.tsx`,
+  `.claude/commands/{bootstrap,analyse,execute}.md`; edited
+  `src/lib/enums.ts`, `src/lib/statuses.ts`, `src/lib/settings.ts`,
+  `src/app/app/orders/actions.ts`, `src/app/app/orders/[id]/page.tsx`,
+  `src/lib/supabase/database.types.ts`, `src/messages/{en,ar}.json`,
+  `supabase/migrations/{00002,00007,00014}_*.sql`.
+- Known issues: **browser screenshots not captured** — Playwright MCP
+  became unavailable mid-session (connection timeout). The swap form,
+  exchange/swap status pills, and A↔B link rendering were NOT visually
+  verified in either theme. A future session should screenshot an order
+  detail page (with a delivered/returned/exchange order) in light + dark
+  to confirm rendering. Migration 00016 not yet applied to the linked
+  remote project — run `npx supabase db push` + `npx supabase gen types
+  typescript --linked > src/lib/supabase/database.types.ts` to
+  reconcile (the hand-patches become unnecessary).
+- Next chat must know: `npm run build` and `npm test` green (31 passed,
+  hand-patched types). 14c (Finance → Accounts) is next — it creates
+  new tables (`accounts`/`account_topups`), follows the new-table
+  checklist (CLAUDE.md), and is admin-only (financial). The
+  `/bootstrap` → `/analyse` → `/execute` loop works — paste the next
+  command in a fresh chat.

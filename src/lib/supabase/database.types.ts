@@ -785,6 +785,7 @@ export type Database = {
           delivery_status: Database["public"]["Enums"]["delivery_status"]
           delivery_type: Database["public"]["Enums"]["delivery_type"]
           duplicate_of: string | null
+          swapped_to_order_id: string | null
           external_id: string | null
           id: string
           is_duplicate_suspect: boolean
@@ -819,6 +820,7 @@ export type Database = {
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
           delivery_type?: Database["public"]["Enums"]["delivery_type"]
           duplicate_of?: string | null
+          swapped_to_order_id?: string | null
           external_id?: string | null
           id?: string
           is_duplicate_suspect?: boolean
@@ -853,6 +855,7 @@ export type Database = {
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
           delivery_type?: Database["public"]["Enums"]["delivery_type"]
           duplicate_of?: string | null
+          swapped_to_order_id?: string | null
           external_id?: string | null
           id?: string
           is_duplicate_suspect?: boolean
@@ -1761,6 +1764,8 @@ export type Database = {
         | "delayed"
         | "returning"
         | "returned"
+        | "exchange"
+        | "swap"
       delivery_type: "home" | "stopdesk"
       expense_category:
         | "shooting"
@@ -1933,6 +1938,8 @@ export const Constants = {
         "delayed",
         "returning",
         "returned",
+        "exchange",
+        "swap",
       ],
       delivery_type: ["home", "stopdesk"],
       expense_category: [

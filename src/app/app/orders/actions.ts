@@ -470,3 +470,86 @@ export async function createOrder(formData: FormData) {
   revalidatePath("/app/orders/all");
   redirect(`/app/orders/${data.id}`);
 }
+
+// ---------------------------------------------------------------------------
+// Swap: admin creates a new order for customer B from a returned/exchanged
+// order A (same product/qty, item never re-enters warehouse).
+// ponytail: sequential calls — if A update fails after B insert, B is just a
+// normal confirmed order (acceptable at this volume). Upgrade: definer RPC.
+// ---------------------------------------------------------------------------
+const swapOrderSchema = z.object({
+  customer_name: z.string().trim().min(1),
+  customer_phone: z.string().trim().min(1),
+  wilaya_code: z.coerce.number().int(),
+  commune: optionalText,
+  address: optionalText,
+});
+
+export async function swapOrder(orderId: string, formData: FormData) {
+  const { workspaceId } = await adminProfile();
+  const input = swapOrderSchema.parse({
+    customer_name: formData.get("customer_name"),
+    customer_phone: formData.get("customer_phone"),
+    wilaya_code: formData.get("wilaya_code"),
+    commune: formData.get("commune"),
+    address: formData.get("address"),
+  });
+
+  const supabase = await createClient();
+  const { data: orderA } = await supabase
+    .from("orders")
+    .select("product_id, variant, quantity, sale_price, delivery_fee, delivery_type")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!orderA) throw new Error("Order not found.");
+
+  const customerId = await upsertCustomerFromOrder(supabase, {
+    workspaceId,
+    name: input.customer_name,
+    phone: input.customer_phone,
+    wilayaCode: input.wilaya_code,
+    commune: input.commune,
+    address: input.address,
+  });
+
+  const { data: orderB, error: insertErr } = await supabase
+    .from("orders")
+    .insert({
+      workspace_id: workspaceId,
+      source: "manual",
+      product_id: orderA.product_id,
+      variant: orderA.variant,
+      quantity: orderA.quantity,
+      sale_price: orderA.sale_price,
+      delivery_fee: orderA.delivery_fee,
+      delivery_type: orderA.delivery_type,
+      customer_id: customerId,
+      customer_name: input.customer_name,
+      customer_phone: input.customer_phone,
+      wilaya_code: input.wilaya_code,
+      commune: input.commune,
+      address: input.address,
+      confirmation_status: "confirmed",
+      delivery_status: "wait_for_deposit",
+      placed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (insertErr) throw new Error(insertErr.message);
+
+  // A → swap status + link to B (admin, so o_upd + guard_order_fields pass)
+  const { error: rpcErr } = await supabase.rpc("transition_order_status", {
+    p_order_id: orderId,
+    p_delivery_status: "swap",
+  });
+  if (rpcErr) throw new Error(rpcErr.message);
+
+  const { error: linkErr } = await supabase
+    .from("orders")
+    .update({ swapped_to_order_id: orderB.id })
+    .eq("id", orderId);
+  if (linkErr) throw new Error(linkErr.message);
+
+  revalidatePath("/app/orders");
+  redirect(`/app/orders/${orderB.id}`);
+}

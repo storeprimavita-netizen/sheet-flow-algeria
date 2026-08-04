@@ -29,7 +29,7 @@ create table public.wilaya_fees (
 -- ---------------------------------------------------------------------------
 -- 3) settings  (per-workspace key/value jsonb)
 --    Known keys (documented in docs/DB.md §settings):
---      'return_fee'            → {"amount": 100}                          (DZD)
+--      'return_fee'            → {"amount": 150}                          (DZD)
 --      'duplicate_window'      → {"hours": 48}
 --      'risk_weights'          → {"returned": 2, "cancelled": 1, "no_answer": 0.5}
 --      'stop_shipping_rule'    → {"min_orders": 10, "min_delivery_rate": 40}

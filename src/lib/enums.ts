@@ -29,6 +29,8 @@ export const DELIVERY_STATUSES = [
   "delayed",
   "returning",
   "returned",
+  "exchange",
+  "swap",
 ] as const;
 
 export const SUPPLIER_TYPES = [

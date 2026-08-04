@@ -12,6 +12,7 @@ import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
 import { ZRShipmentCard } from "./zr-shipment-card";
 import { OrderTaxonomyCard } from "./order-taxonomy-card";
+import { SwapCard } from "./swap-card";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -76,6 +77,11 @@ export default async function OrderDetailPage({
   const confirmationAgents: { id: string; email: string }[] = [];
   const deliveryAgents: { id: string; email: string }[] = [];
   let zrShipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null = null;
+  let swapData: {
+    swappedTo: { id: string; orderNumber: string | null } | null;
+    swappedFrom: { id: string; orderNumber: string | null } | null;
+    wilayas: { code: number; name: string }[];
+  } = { swappedTo: null, swappedFrom: null, wilayas: [] };
   if (isAdmin) {
     const { data: team } = await supabase
       .from("profiles")
@@ -99,6 +105,29 @@ export default async function OrderDetailPage({
         stateUpdatedAt: shipment.state_updated_at,
       };
     }
+
+    // swap data: forward link (A→B) + reverse link (B←A) + wilaya list
+    if (order.swapped_to_order_id) {
+      const { data: b } = await supabase
+        .from("orders")
+        .select("id, order_number")
+        .eq("id", order.swapped_to_order_id)
+        .maybeSingle();
+      if (b) swapData.swappedTo = { id: b.id, orderNumber: b.order_number };
+    }
+    const { data: swappedFrom } = await supabase
+      .from("orders")
+      .select("id, order_number")
+      .eq("workspace_id", workspaceId)
+      .eq("swapped_to_order_id", order.id)
+      .limit(1)
+      .maybeSingle();
+    if (swappedFrom) swapData.swappedFrom = { id: swappedFrom.id, orderNumber: swappedFrom.order_number };
+    const { data: wilayas } = await supabase
+      .from("wilayas")
+      .select("code, name")
+      .order("code");
+    swapData.wilayas = wilayas ?? [];
   }
 
   return (
@@ -160,6 +189,16 @@ export default async function OrderDetailPage({
       ) : null}
 
       {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} /> : null}
+
+      {isAdmin ? (
+        <SwapCard
+          orderId={order.id}
+          deliveryStatus={order.delivery_status}
+          swappedTo={swapData.swappedTo}
+          swappedFrom={swapData.swappedFrom}
+          wilayas={swapData.wilayas}
+        />
+      ) : null}
     </div>
   );
 }
