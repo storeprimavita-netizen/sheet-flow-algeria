@@ -51,8 +51,10 @@ Finally regenerate types:
 | `products` | 00003, 00014 | NON-financial only: name, `category_option_id`/`fabric_option_id` (FK → `options`, was free text before 00014), status, sale_price, variants jsonb, images, stock, notes | all read, admin write |
 | `product_costs` | 00003 | 1:1 sourcing cost + currency + fx (the split enforces agent financial blindness) | admin only |
 | `product_scenarios` | 00003 | BENZ inputs jsonb per slug best/medium/worst; `product_id null` = general planner (partial unique indexes) | admin only |
-| `expenses` | 00003, 00014 | multi-currency + generated `amount_dzd`; optional product/supplier link; optional `subcategory_option_id` (FK → `options`) | admin only |
-| `ad_spend_daily` | 00003 | unique (product, day, kind test/scaling) | admin only |
+| `expenses` | 00003, 00014, 00017 | multi-currency + generated `amount_dzd`; optional product/supplier link; optional `subcategory_option_id` (FK → `options`); optional `account_id` (FK → `accounts`) | admin only |
+| `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
+| `accounts` | 00017 | spending budget accounts (name, currency, opening_balance, low_balance_threshold); `account_topups` for deposits; balance derived via `account_balances` view | admin only |
+| `account_topups` | 00017 | append-only deposits (account_id, amount, occurred_on, note) | admin only |
 | `stock_movements` | 00003 | trigger maintains `products.stock`; reasons purchase/correction/delivered/returned | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
@@ -88,6 +90,7 @@ Finally regenerate types:
 | `wilaya_stats` | Dashboard per-wilaya table; `stop_shipping_auto` computed from `settings.stop_shipping_rule` (min_orders + min_delivery_rate), `stop_shipping_manual` from `wilaya_fees` |
 | `agent_performance` | Team & Rules; per actor+stage: handled, confirmed/delivered, avg decision time |
 | `product_stats` | Product Statistics tab + "Real" pricing scenario; money columns null for agents (admin-only source tables) |
+| `account_balances` | Finance → Accounts page + low-balance banner on overview; derived balance per account |
 
 Dashboard aggregate RPC(s) get added in the BI phase as migration
 `00008_dashboard.sql` (security invoker, filter params).

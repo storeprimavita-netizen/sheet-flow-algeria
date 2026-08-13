@@ -30,11 +30,12 @@ export default async function FinanceAdSpendPage({
   if (product) query = query.eq("product_id", product);
   if (kind) query = query.eq("kind", kind as never);
 
-  const [{ data: rows }, { data: products }, usdRate, eurRate] = await Promise.all([
+  const [{ data: rows }, { data: products }, usdRate, eurRate, { data: accounts }] = await Promise.all([
     query,
     supabase.from("products").select("id, name, images, status").order("name"),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
+    supabase.from("accounts").select("id, name, is_active").eq("workspace_id", profile.workspaceId).eq("is_active", true).order("name"),
   ]);
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
   const productOpts = (products ?? []).map((p) => ({ id: p.id, name: p.name, image: p.images?.[0] ?? null, status: p.status }));
@@ -45,7 +46,7 @@ export default async function FinanceAdSpendPage({
       <PageHeader title={t("nav.adSpend")} subtitle={t("finance.subtitleAdSpend")} />
       <FinanceTabs active="ad-spend" />
       <FinanceFilterBar products={productOpts.map((p) => ({ value: p.id, label: p.name }))} showKind />
-      <AdSpendForm products={productOpts} rates={rates} />
+      <AdSpendForm products={productOpts} rates={rates} accounts={accounts ?? []} />
       <AdSpendTable rows={rows ?? []} products={productOpts} rates={rates} productName={productName} />
     </div>
   );

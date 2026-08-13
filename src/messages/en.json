@@ -11,6 +11,7 @@
     "financeOverview": "Overview",
     "expenses": "Expenses",
     "adSpend": "Ad spend",
+    "accounts": "Accounts",
     "income": "Income",
     "contacts": "Contacts",
     "customers": "Customers",
@@ -730,6 +731,27 @@
     "noExpensesInRange": "No expenses in this range.",
     "noAdSpendInRange": "No ad spend in this range.",
     "noIncomeInRange": "No delivered orders in this range."
+  },
+  "accounts": {
+    "title": "Accounts",
+    "subtitle": "Track spending budgets across your accounts",
+    "noAccounts": "No accounts yet. Create one to start tracking spending.",
+    "fields": {
+      "name": "Account name",
+      "currency": "Currency",
+      "openingBalance": "Opening balance",
+      "lowBalanceThreshold": "Low balance threshold",
+      "isActive": "Active"
+    },
+    "topup": {
+      "title": "Record top-up",
+      "amount": "Amount",
+      "occurredOn": "Date",
+      "note": "Note"
+    },
+    "balance": "Balance",
+    "lowBalance": "Low balance",
+    "lowBalanceBanner": "Low balance on: {accounts}"
   },
   "role": {
     "admin": "Admin",

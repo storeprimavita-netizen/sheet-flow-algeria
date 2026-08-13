@@ -46,6 +46,7 @@ export function ExpenseTable({
   suppliers,
   contactId,
   subcategories,
+  accounts,
   rates,
 }: {
   expenses: ExpenseRow[];
@@ -54,6 +55,7 @@ export function ExpenseTable({
   suppliers: { id: string; name: string }[];
   contactId?: string;
   subcategories: OptionRow[];
+  accounts?: { id: string; name: string }[];
   rates: { USD: number; EUR: number };
 }) {
   const t = useTranslations();
@@ -172,6 +174,7 @@ export function ExpenseTable({
                   suppliers={suppliers}
                   contactId={contactId}
                   subcategories={subcategories}
+                  accounts={accounts}
                   rates={rates}
                   onDone={() => setEditing(null)}
                 />

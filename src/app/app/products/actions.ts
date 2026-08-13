@@ -142,6 +142,7 @@ const expenseSchema = z.object({
   spent_on: z.string().min(1),
   note: optionalText,
   contact_id: nullableUuid,
+  account_id: nullableUuid,
 });
 
 /**
@@ -162,6 +163,7 @@ export async function saveExpense(formData: FormData): Promise<UpdateResult> {
     spent_on: formData.get("spent_on"),
     note: formData.get("note"),
     contact_id: formData.get("contact_id"),
+    account_id: formData.get("account_id"),
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { id, ...input } = parsed.data;
@@ -215,6 +217,7 @@ const adSpendSchema = z.object({
   amount: z.coerce.number().min(0),
   currency: z.enum(CURRENCY_CODES),
   fx_rate: z.coerce.number().positive(),
+  account_id: nullableUuid,
 });
 
 export async function upsertAdSpend(formData: FormData): Promise<UpdateResult> {
@@ -226,6 +229,7 @@ export async function upsertAdSpend(formData: FormData): Promise<UpdateResult> {
     amount: formData.get("amount"),
     currency: formData.get("currency"),
     fx_rate: formData.get("fx_rate"),
+    account_id: formData.get("account_id"),
   });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const input = parsed.data;

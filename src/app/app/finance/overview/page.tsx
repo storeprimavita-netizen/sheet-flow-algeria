@@ -33,7 +33,7 @@ export default async function FinanceOverviewPage({
   const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  const [{ data: products }, { data: rpcData }, { data: fees }] = await Promise.all([
+  const [{ data: products }, { data: rpcData }, { data: fees }, { data: accountBalances }] = await Promise.all([
     supabase.from("products").select("id, name").order("name"),
     supabase.rpc("dashboard_stats", {
       p_from: from,
@@ -41,6 +41,7 @@ export default async function FinanceOverviewPage({
       p_product: product ? [product] : undefined,
     }),
     supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
+    supabase.from("account_balances").select("name, balance, low_balance_threshold, is_active").eq("workspace_id", profile.workspaceId),
   ]);
   const stats = rpcData as unknown as DashboardKpis;
   const fixedFeesTotal = (fees ?? []).reduce((s, f) => s + (f.amount_dzd ?? 0), 0);
@@ -79,6 +80,17 @@ export default async function FinanceOverviewPage({
       <PageHeader title={t("nav.financeOverview")} subtitle={t("finance.subtitleOverview")} />
       <FinanceTabs active="overview" />
       <FinanceFilterBar products={(products ?? []).map((p) => ({ value: p.id, label: p.name }))} showCategory={false} showKind={false} />
+
+      {(accountBalances ?? []).filter((a) => a.is_active && a.balance <= a.low_balance_threshold).length > 0 ? (
+        <Link href="/app/finance/accounts" className="block rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+          {t("accounts.lowBalanceBanner", {
+            accounts: (accountBalances ?? [])
+              .filter((a) => a.is_active && a.balance <= a.low_balance_threshold)
+              .map((a) => `${a.name} (${formatCurrency(a.balance)})`)
+              .join(", "),
+          })}
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Link href={`/app/orders/all${qs({ delivery_status: "delivered", product_id: product })}`} className="card-surface block rounded-xl p-4 transition-colors hover:border-border-strong">

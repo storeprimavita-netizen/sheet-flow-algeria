@@ -10,6 +10,7 @@ import {
   Receipt,
   Megaphone,
   Banknote,
+  Landmark,
   Users,
   Contact,
   Building2,
@@ -60,6 +61,7 @@ export const NAV: NavSection[] = [
       { key: "expenses", href: "/app/finance/expenses", icon: Receipt },
       { key: "adSpend", href: "/app/finance/ad-spend", icon: Megaphone },
       { key: "income", href: "/app/finance/income", icon: Banknote },
+      { key: "accounts", href: "/app/finance/accounts", icon: Landmark },
     ],
   },
   {

@@ -34,6 +34,7 @@ export function ExpenseForm({
   suppliers,
   contactId,
   subcategories,
+  accounts,
   rates,
   onDone,
 }: {
@@ -43,6 +44,7 @@ export function ExpenseForm({
   suppliers: { id: string; name: string }[];
   contactId?: string;
   subcategories: OptionRow[];
+  accounts?: { id: string; name: string }[];
   rates: { USD: number; EUR: number };
   onDone?: () => void;
 }) {
@@ -119,6 +121,16 @@ export function ExpenseForm({
           </Field>
         ) : null}
       </div>
+
+      {accounts && accounts.length > 0 ? (
+        <Field label={t("accounts.title")} hint={t("common.optional")}>
+          <EnumSelect
+            name="account_id"
+            defaultValue={expense?.account_id ?? "__none"}
+            options={[{ value: "__none", label: t("fields.none") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+          />
+        </Field>
+      ) : null}
 
       <Field label={t("fields.notes")} hint={t("common.optional")}>
         <Input name="note" defaultValue={expense?.note ?? ""} />
