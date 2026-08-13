@@ -526,11 +526,19 @@
     "noHistory": "No stock movements yet.",
     "delta": "Δ",
     "reason": "Reason",
+    "hub": {
+      "subtitle": "All products — stock levels, quick adjust & low-stock alerts",
+      "empty": "No products yet.",
+      "adjust": "Adjust"
+    },
     "reasons": {
       "purchase": "Purchase",
       "correction": "Correction",
       "delivered": "Delivered",
-      "returned": "Returned"
+      "returned": "Returned",
+      "order_confirmed": "Order confirmed",
+      "order_reverted": "Order reverted",
+      "order_returned": "Order returned"
     }
   },
   "reset": {

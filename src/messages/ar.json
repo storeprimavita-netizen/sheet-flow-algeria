@@ -526,11 +526,19 @@
     "noHistory": "لا توجد حركات مخزون بعد.",
     "delta": "Δ",
     "reason": "السبب",
+    "hub": {
+      "subtitle": "كل المنتجات — مستويات المخزون والتسوية السريعة وتنبيهات النفاد",
+      "empty": "لا توجد منتجات بعد.",
+      "adjust": "تسوية"
+    },
     "reasons": {
       "purchase": "شراء",
       "correction": "تصحيح",
       "delivered": "تم التوصيل",
-      "returned": "مرتجع"
+      "returned": "مرتجع",
+      "order_confirmed": "تأكيد الطلب",
+      "order_reverted": "إلغاء التأكيد",
+      "order_returned": "إرجاع الطلب"
     }
   },
   "reset": {

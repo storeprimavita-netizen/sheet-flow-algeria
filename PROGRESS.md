@@ -34,7 +34,7 @@ the bottom. Format:
 | 14a — Orders status model rework (one column, free changes, RLS, history popover) | docs/phases/phase-14-plan.md §14a | done |
 | 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | done |
 | 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | done |
-| 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | planned |
+| 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | done |
 | 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
 | 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | planned |
 | 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | planned |
@@ -3105,3 +3105,30 @@ unchanged until the user runs the steps above.
   next — it rewrites the existing `order_stock_effects` trigger (moves decrement
   from `delivered` to `confirmed`), does NOT add a new table. The 14d brief
   is written in `phase-14-plan.md §14d`.
+
+## Phase 14d — Stock hub + auto-decrement (2026-08-13) — DONE
+
+- Done: rewrote `order_stock_effects` trigger — moved stock decrement from
+  `delivery_status=delivered` to `confirmation_status=confirmed` (prevents
+  double-decrement). Added 3 new `stock_reason` enum values:
+  `order_confirmed`, `order_reverted`, `order_returned`. Created stock hub
+  page at `/app/stock` (admin-only, all products with stock levels, low/out
+  `<Chip>` badges, per-row inline manual adjust). Added nav peer leaf (Stock,
+  Boxes icon). Widened `addStockMovement` revalidatePath. Added i18n keys
+  for new stock reasons and hub copy (EN + AR). Updated DB.md.
+- Files: `supabase/migrations/00018_stock_confirm.sql`,
+  `src/app/app/stock/page.tsx`, `src/app/app/stock/layout.tsx`,
+  `src/app/app/products/actions.ts`, `src/components/nav-model.tsx`,
+  `src/messages/{en,ar}.json`, `docs/DB.md`.
+- Decisions: trigger is `AFTER UPDATE` only (swap's INSERT-confirmed orders are
+  exempt — correct per 14b locked decision). `delivered`/`returned` stock_reason
+  values become legacy (kept in enum, no longer inserted). Nav low-stock counter
+  deferred (not trivial — hub itself is the surface).
+- Known issues: migration not yet pushed (`npx supabase db push` failed with
+  connection timeout — local Supabase docker was healthy but `db push` timed
+  out on login role init). Types not regenerated (old types still valid — the
+  trigger writes string literals, no new TS types consumed). User should run
+  `npx supabase db push` manually.
+- Next chat must know: `npm run build` green. 14e (Rules redesign) is next.
+  The 14e brief is written in `phase-14-plan.md §14e`. No DB pushed this
+  session — run `npx supabase db push` before testing stock functionality.
