@@ -205,6 +205,8 @@ export async function addStockMovement(productId: string, formData: FormData) {
     .insert({ workspace_id: workspaceId, product_id: productId, ...input });
   if (error) throw new Error(error.message);
   revalidatePath(`/app/products/${productId}/stock`);
+  revalidatePath("/app/stock");
+  revalidatePath("/app/products");
 }
 
 // ---------------------------------------------------------------------------

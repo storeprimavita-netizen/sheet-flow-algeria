@@ -681,6 +681,171 @@ moveRuleDoc), `rules_docs` table.
     launch the ads; compare the metrics.
 - Keep move up/down + delete. ponytail: plain textarea + category, no rich text.
 
+### GLM 5.2 execution brief
+
+Traced against current code. `rules_docs` table (00005_team.sql L8-17) has:
+id, workspace_id, title, content, position, updated_by, created_at, updated_at.
+**No `category` column.** RLS: `rd_sel` for all authenticated (agents read),
+`rd_all` for admin only (write). `set_updated_at` trigger exists; no
+`audit_row()` (not a financial table — correct).
+
+**Plan says "option_set `rule_category`" — ponytail override: use a plain text
+column + hardcoded `RULE_CATEGORY_TOKEN` color map instead.** The 4 categories
+(`must`, `product_choice`, `new_product_task`, `delivery`) are fixed
+organizational buckets, not user-extensible taxonomy. The option_set machinery
+(join query, seed function wiring, admin-only write policy) adds ~40 lines for
+zero user benefit over a simple text column. Upgrade path: if the user asks for
+custom categories, migrate to option_sets then.
+
+**Files to touch (exact):**
+
+**Migration:**
+- `supabase/migrations/00019_rule_categories.sql` (NEW) — see skeleton.
+
+**Actions:**
+- `src/app/app/team/actions.ts` — extend `ruleSchema` (L94-97) with
+  `category: z.string().trim().nullable().optional()` (nullable = backward-compat
+  with existing rows; optional = not required on every edit). `saveRuleDoc`
+  (L99-131) already spreads `...input` on update and insert, so the category
+  passes through with zero other changes. No change to `deleteRuleDoc` or
+  `moveRuleDoc`.
+
+**UI — rules page redesign:**
+- `src/app/app/team/rules/page.tsx` — stays a server component. Changes:
+  1. Fetch rule categories list (hardcoded `RULE_CATEGORIES` constant, no
+     DB query needed — see below).
+  2. **New rule:** wrap the existing form (L36-49) in `<details>` with a
+     `<summary>` styled as `<Button>` "Add rule". Closed by default.
+  3. **Each rule card (admin):** show read view by default — title, category
+     `<Chip>`, content (`whitespace-pre-wrap`, same as agent view L103). Add
+     `<details>` with summary "Edit" containing the current form (L85-95) +
+     move/delete buttons (L67-83). Add a `<select>` (or `<EnumSelect>`) for
+     category in the form.
+  4. **Each rule card (agent):** unchanged (read-only L98-104), just add the
+     category `<Chip>` next to the title.
+  5. The page already loads profiles for `updated_by` display (L26-29) — no
+     change needed there.
+
+**Category color constant — new small export:**
+- `src/lib/enums.ts` — add `RULE_CATEGORIES` array:
+  ```ts
+  export const RULE_CATEGORIES = [
+    { value: "must",              label: "Must",              token: "danger"  },
+    { value: "product_choice",    label: "Product choice",    token: "info"    },
+    { value: "new_product_task",  label: "New product task",  token: "violet"  },
+    { value: "delivery",          label: "Delivery",          token: "success" },
+  ] as const;
+  ```
+  And a lookup: `export const RULE_CATEGORY_TOKEN = Object.fromEntries(
+    RULE_CATEGORIES.map(c => [c.value, c.token])) as Record<string, StatusToken>;`
+  Import `StatusToken` from `statuses.ts`.
+
+**i18n:**
+- `src/messages/en.json` — add to `team` block:
+  `addRule: "Add rule"`, `editRule: "Edit"`, `cancelEdit: "Cancel"`,
+  `category: "Category"`, `noCategory: "No category"`.
+  Category labels live in `RULE_CATEGORIES` (code-side) — not i18n, because
+  they're workspace-authored content metadata, not app chrome. If the user
+  later wants AR category labels, add a `labelAr` field to the constant or
+  migrate to option_sets.
+- `src/messages/ar.json` — same keys in AR: `"addRule": "إضافة قاعدة"`,
+  `"editRule": "تعديل"`, `"cancelEdit": "إلغاء"`, `"category": "الفئة"`,
+  `"noCategory": "بدون فئة"`.
+
+**Seed rules** (in the migration, via `seed_workspace`):
+10 rules covering all 4 categories, EN content. AR content deferred — the
+content field is admin-authored (not i18n strings); the admin edits in their
+preferred language. Seed with EN as default locale.
+
+**Docs:**
+- `docs/DB.md` — note the new `category` column on `rules_docs`.
+
+**Migration skeleton (`00019_rule_categories.sql`):**
+```sql
+-- 14e: add category to rules_docs + seed example rules
+alter table public.rules_docs
+  add column if not exists category text;
+
+-- Seed example rules (EN content — admin edits in preferred language).
+-- Inserted inside seed_workspace(); only runs once per workspace.
+-- Positions are sequential; categories match RULE_CATEGORIES constant.
+```
+The actual seed rows go inside `seed_workspace()` in `00014_option_sets.sql`
+(or in this file's own `DO $$` block that checks existence). ~10 rows:
+```
+must              | "Respect meeting times"          | pos 1
+must              | "Deliver orders on time"          | pos 2
+product_choice    | "At least 2 creatives per product" | pos 3
+product_choice    | "No competitor OR at least 1 competitor" | pos 4
+product_choice    | "Seasonal products only"          | pos 5
+new_product_task  | "Check pricing"                  | pos 6
+new_product_task  | "Find the fabric + contact supplier" | pos 7
+new_product_task  | "Prepare creatives"              | pos 8
+new_product_task  | "Prepare product page"           | pos 9
+delivery          | "Compare metrics after launch"   | pos 10
+```
+(Exact AR content not seeded — content is user-authored, not i18n.)
+
+**Order of steps:**
+1. Branch `mnw-14e`.
+2. Migration 00019 → push + regen types.
+3. `src/lib/enums.ts` — add `RULE_CATEGORIES` + `RULE_CATEGORY_TOKEN`.
+4. `src/app/app/team/actions.ts` — extend `ruleSchema` with `category`.
+5. i18n EN/AR — add `team.addRule`, `team.editRule`, `team.category`, `team.noCategory`.
+6. `src/app/app/team/rules/page.tsx` — redesign (read-default + edit reveal + category chip + category select in form).
+7. `docs/DB.md` — note new column.
+8. Build → screenshots (rules page: read view with category chips, edit revealed, both themes).
+9. Ponytail review → merge `--no-ff` into `mnw`, flip PROGRESS row to `done`.
+
+**Locked decisions — confirmed vs stale:**
+- ✓ Category color per rule — confirmed. Plan says option_set; brief overrides
+  to plain text + hardcoded map (ponytail: 4 fixed values don't need the
+  option_set query/join machinery). Upgrade path documented.
+- ✓ Read view by default, edit button reveals form — confirmed. Using native
+  `<details>` (no client JS needed).
+- ✓ Seed example rules — confirmed, with caveat: seed EN content only (the
+  `content` column is admin-authored text, not an i18n string). AR content
+  is an admin edit, not a seed concern.
+- ✓ Keep move up/down + delete — confirmed, no change.
+- ✓ Plain textarea + category, no rich text — confirmed.
+
+**Edge cases / gotchas traced:**
+- **Existing rules without category are `NULL`.** The `<Chip>` renders only when
+  `d.category` is non-null. The form's category `<select>` includes an empty
+  option ("No category") so admin can clear it back to null. The `ruleSchema`
+  allows `nullable().optional()` — a missing `formData.get("category")` or empty
+  string becomes `null`.
+- **RLS unchanged.** `rd_sel` returns all columns including `category` to all
+  authenticated users. `rd_all` (admin) gates writes. No new policy needed.
+- **No `audit_row()` trigger on `rules_docs`.** Correct per CLAUDE.md — rules
+  are not a financial/config table. The existing `set_updated_at` trigger is
+  sufficient.
+- **`moveRuleDoc` unaffected.** It swaps `position` integers — category is
+  orthogonal to ordering.
+- **`<details>` for edit toggle.** Native HTML, no client JS. The form inputs
+  with `defaultValue` are always in the DOM (just hidden), which is fine —
+  no extra fetches. Accessible (keyboard-navigable, screen-reader announces
+  open/close). The summary element can be styled as a button via CSS.
+- **Category `<select>` in form.** Use a native `<select>` (not Radix Select)
+  since the list is exactly 4 items and native `<select>` is the ponytail
+  rung-4 win. If the UI guidelines say no native selects, use `<EnumSelect>`
+  (which wraps Radix) — same 4-item list, just more code. Check: CLAUDE.md
+  says "no raw `<input>`/native `<select>` in feature code — use
+  `components/fields/*` and the Radix Select/Combobox." So use `<EnumSelect>`.
+- **Seed rows in `seed_workspace()`.** The seed function (00014) runs inside a
+  PL/pgSQL block with `if not exists` guards. Add the 10 rule inserts there
+  (guarded by checking `not exists (select 1 from rules_docs where workspace_id
+  = p_ws)` or a simpler per-row guard). Alternatively, add a separate `DO $$`
+  block in 00019 — either way, idempotent.
+- **Migration numbering: 00019 assumes 14d (00018) merges first.** If 14d
+  hasn't merged, renumber to 00018 (or whatever comes after the last committed
+  migration). Check `ls supabase/migrations/` at EXECUTE time.
+- **`RULE_CATEGORY_TOKEN` uses `StatusToken` type from `statuses.ts`.** The
+  `Chip` component accepts `token: StatusToken`. Importing `StatusToken` into
+  `enums.ts` would create a circular dependency if `statuses.ts` imports from
+  `enums.ts`. Check: `statuses.ts` does NOT import from `enums.ts` (confirmed
+  by graphify). Safe to import `StatusToken` in `enums.ts`.
+
 ---
 
 ## 14f — Users + Audit → Settings

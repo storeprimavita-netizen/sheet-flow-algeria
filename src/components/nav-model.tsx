@@ -5,6 +5,7 @@ import {
   PhoneCall,
   Truck,
   Package,
+  Boxes,
   Wallet,
   BarChart3,
   Receipt,
@@ -51,6 +52,7 @@ export const NAV: NavSection[] = [
     ],
   },
   { key: "products", href: "/app/products", icon: Package, adminOnly: true },
+  { key: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
   {
     key: "finance",
     href: "/app/finance",
