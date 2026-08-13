@@ -33,7 +33,7 @@ the bottom. Format:
 | 13 — Final sweep | docs/phases/phase-13.md | done |
 | 14a — Orders status model rework (one column, free changes, RLS, history popover) | docs/phases/phase-14-plan.md §14a | done |
 | 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | done |
-| 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | planned |
+| 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | done |
 | 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | planned |
 | 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
 | 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | planned |
@@ -3058,3 +3058,50 @@ unchanged until the user runs the steps above.
   checklist (CLAUDE.md), and is admin-only (financial). The
   `/bootstrap` → `/analyse` → `/execute` loop works — paste the next
   command in a fresh chat.
+
+## Phase 14c — Finance → Accounts (running ledger) (2026-08-13) — DONE
+
+- Done: admin-only accounts feature — `accounts` table (name, currency,
+  opening_balance, low_balance_threshold, is_active) +
+  `account_topups` (append-only deposits) + `account_balances` security-invoker
+  view (derived: opening_balance + Σtopups − Σexpenses − Σad_spend). Nullable
+  `account_id` FK added to `expenses` and `ad_spend_daily` (backward-compatible).
+  RLS: admin-only on all three new tables + triggers (`set_updated_at` on
+  accounts, `audit_row()` on accounts + topups). Migration `00017_accounts.sql`.
+- Done: accounts page at `/app/finance/accounts` (server component, four states
+  via `<Empty>` + `<AccountTable>`) with inline add/edit form + inline top-up
+  form. Account selector (EnumSelect with `__none` sentinel, same pattern as
+  supplier select) wired into expense-form + ad-spend-form. Low-balance banner
+  on finance overview (danger-tinted `<Link>` to accounts, shown when any
+  active account has `balance ≤ threshold`). Nav entry (Landmark icon) +
+  FinanceTabs extended.
+- Files: new `supabase/migrations/00017_accounts.sql`,
+  `src/app/app/finance/accounts/{actions,page}.tsx`,
+  `src/components/finance/{account-form,account-table,topup-form}.tsx`; modified
+  `src/app/app/products/actions.ts` (account_id in expense/ad-spend schemas),
+  `src/components/finance/{expense-form,ad-spend-form,expense-table}.tsx`
+  (accounts prop threading), `src/app/app/finance/{finance-tabs,overview/page,
+  ad-spend/page,expenses/page}.tsx`, `src/components/nav-model.tsx`,
+  `src/lib/supabase/database.types.ts` (hand-added, not regen — auto-regen
+  produced a broken file that resolved all supabase query types to `never`;
+  manually added accounts/account_topups/account_balances types +
+  account_id on expenses/ad_spend_daily to the committed base), `docs/DB.md`,
+  `src/messages/{en,ar}.json`, `tsconfig.json` (exclude scripts).
+- Decisions: balance derived via view (not stored), matching plan. Expenses/
+  ad-spend ARE the debits, no separate ledger. Ponytail: EnumSelect for 1–3
+  accounts instead of a full combobox.
+- Known issues: **migration 00017 not yet pushed to remote.** The app
+  renders the empty state correctly (accounts query returns null when table
+  doesn't exist, handled by `?? []`), but create/top-up/banner functionality
+  requires `npx supabase db push`. The auto-regen of `database.types.ts`
+  (`npx supabase gen types typescript --linked`) produced a structurally valid
+  but semantically broken file — all supabase queries resolved to `never`
+  (57 files with errors vs 8 with committed types). Root cause unknown;
+  workaround was hand-adding the types to the committed base. Future regens
+  should verify with `npx tsc --noEmit` before replacing the committed file.
+- Next chat must know: `npm run build` and `npm test` green (31 passed).
+  `graphify update .` run (1564 nodes). Push `npx supabase db push` before
+  testing accounts functionality live. 14d (Stock hub + auto-decrement) is
+  next — it rewrites the existing `order_stock_effects` trigger (moves decrement
+  from `delivered` to `confirmed`), does NOT add a new table. The 14d brief
+  is written in `phase-14-plan.md §14d`.
