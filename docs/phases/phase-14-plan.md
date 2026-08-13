@@ -253,6 +253,195 @@ New admin-only feature. Read: `finance/*`, `finance-tabs.tsx`, `00002_settings.s
   low-balance banner on finance overview.
 - ponytail: no separate ledger table — expenses/ad_spend ARE the debits.
 
+### GLM 5.2 execution brief
+
+Traced against current code (post-14b: 00016_exchange_swap.sql is latest migration;
+finance layout uses `AdminGuardLayout`; no `finance/actions.ts` exists — expense/ad-spend
+actions live in `products/actions.ts`).
+
+**Files to touch (exact):**
+
+**Migration:**
+- `supabase/migrations/00017_accounts.sql` (NEW) — see skeleton below.
+
+**Schema/types:**
+- `src/lib/supabase/database.types.ts` — regen after push.
+- `docs/DB.md` — add `accounts`, `account_topups`, `account_balances` rows to tables
+  table + note the nullable `account_id` on expenses/ad_spend.
+
+**Backend actions:**
+- `src/app/app/finance/accounts/actions.ts` (NEW) — `saveAccount(formData)` (zod:
+  name, currency, opening_balance, low_balance_threshold, is_active) + `saveTopup(formData)`
+  (zod: account_id, amount, occurred_on, note). Both use `adminProfile()`. `revalidatePath`
+  for finance routes.
+- `src/app/app/products/actions.ts` — add `account_id: nullableUuid` to `expenseSchema`
+  (L134) and `adSpendSchema` (L211). Both upserts already spread `...input` so the FK
+  passes through with zero other changes.
+
+**UI — accounts page:**
+- `src/app/app/finance/accounts/page.tsx` (NEW) — server component. Fetches accounts
+  + `account_balances` view + topups. Four states. Renders `<AccountTable>`.
+- `src/components/finance/account-table.tsx` (NEW) — list of accounts: name, currency,
+  opening balance, current balance (from view), low-balance `<Chip token="danger">`
+  when `balance ≤ low_balance_threshold`. Add/edit button opens inline form. Top-up
+  button opens inline form.
+- `src/components/finance/account-form.tsx` (NEW, client) — name, currency
+  (`<EnumSelect>` from CURRENCY_CODES), opening_balance, low_balance_threshold,
+  is_active toggle. Posts `saveAccount`.
+- `src/components/finance/topup-form.tsx` (NEW, client) — amount, occurred_on, note.
+  Posts `saveTopup`. Minimal.
+
+**UI — wiring accounts into existing forms:**
+- `src/components/finance/expense-form.tsx` — add optional Account combobox field
+  (loads accounts from server, passes `account_id`). New `<AccountCombobox>` or reuse
+  existing `<EnumSelect>` with `__none` sentinel (same pattern as supplier select L113–119).
+  Ponytail: `<EnumSelect>` is simpler than a new combobox for a short list — accounts
+  will typically be 1–3 per workspace.
+- `src/components/finance/ad-spend-form.tsx` — same account selector addition.
+
+**UI — tab/nav wiring:**
+- `src/app/app/finance/finance-tabs.tsx` — add `{ key: "accounts", href:
+  "/app/finance/accounts", label: t("accounts") }` to tabs array. Type union grows by
+  `"accounts"`.
+- `src/components/nav-model.tsx` — add `{ key: "accounts", href:
+  "/app/finance/accounts", icon: Landmark }` (from lucide-react) to finance children.
+- `src/app/app/finance/overview/page.tsx` — fetch `account_balances` view, render
+  low-balance banner (`balance ≤ threshold` for any active account) above the KPI cards.
+  Banner: `<div className="rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm">`
+  listing which accounts are low.
+
+**i18n:**
+- `src/messages/en.json` — add `nav.accounts: "Accounts"` + `accounts.*` block
+  (title, subtitle, fields: name/currency/openingBalance/lowBalanceThreshold/isActive/
+  amount/occurredOn/note, actions: create/edit/topup, empty/balance/lowBalance banner).
+- `src/messages/ar.json` — same shape in AR.
+
+**Migration skeleton (`00017_accounts.sql`):**
+```sql
+-- accounts (admin-only financial — tracks spending budgets)
+create table public.accounts (
+  id                     uuid primary key default gen_random_uuid(),
+  workspace_id           uuid not null references public.workspaces(id) on delete cascade,
+  name                   text not null,
+  currency               currency_code not null default 'DZD',
+  opening_balance        numeric(12,2) not null default 0,
+  low_balance_threshold  numeric(12,2) not null default 0,
+  is_active              boolean not null default true,
+  created_by             uuid references auth.users(id),
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now()
+);
+create index accounts_ws_idx on public.accounts (workspace_id);
+
+-- account_topups (deposits/recharges)
+create table public.account_topups (
+  id           uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  account_id   uuid not null references public.accounts(id) on delete cascade,
+  amount       numeric(12,2) not null check (amount >= 0),
+  occurred_on  date not null default current_date,
+  note         text,
+  created_by   uuid references auth.users(id),
+  created_at   timestamptz not null default now()
+);
+create index account_topups_account_idx on public.account_topups (account_id, occurred_on desc);
+
+-- nullable FK on existing tables (backward-compatible, no trigger rewrite)
+alter table public.expenses
+  add column if not exists account_id uuid references public.accounts(id) on delete set null;
+alter table public.ad_spend_daily
+  add column if not exists account_id uuid references public.accounts(id) on delete set null;
+
+-- Derived balance view (security invoker — RLS applies)
+create view public.account_balances as
+select
+  a.id as account_id,
+  a.workspace_id,
+  a.name,
+  a.currency,
+  a.opening_balance,
+  a.low_balance_threshold,
+  a.is_active,
+  coalesce(a.opening_balance, 0)
+    + coalesce((select sum(t.amount) from public.account_topups t where t.account_id = a.id), 0)
+    - coalesce((select sum(e.amount) from public.expenses e where e.account_id = a.id), 0)
+    - coalesce((select sum(s.amount) from public.ad_spend_daily s where s.account_id = a.id), 0)
+  as balance
+from public.accounts a;
+
+-- Triggers
+do $$ begin
+  create trigger set_updated_at before update on public.accounts
+    for each row execute function public.set_updated_at();
+end $$;
+
+create trigger audit_accounts after insert or update or delete on public.accounts
+  for each row execute function public.audit_row();
+create trigger audit_topups after insert or update or delete on public.account_topups
+  for each row execute function public.audit_row();
+
+-- RLS: admin-only (financial)
+alter table public.accounts enable row level security;
+alter table public.account_topups enable row level security;
+
+create policy accts_adm on public.accounts for all to authenticated
+  using (workspace_id = public.current_workspace_id() and public.is_admin())
+  with check (workspace_id = public.current_workspace_id() and public.is_admin());
+create policy topups_adm on public.account_topups for all to authenticated
+  using (workspace_id = public.current_workspace_id() and public.is_admin())
+  with check (workspace_id = public.current_workspace_id() and public.is_admin());
+```
+
+**Order of steps:**
+1. Migration 00017 → push + regen types
+2. `docs/DB.md` table entries
+3. `finance/accounts/actions.ts` (saveAccount, saveTopup)
+4. `products/actions.ts` — add `account_id` to expense/ad-spend schemas
+5. i18n EN/AR (`accounts.*` block + `nav.accounts`)
+6. UI components: `account-form.tsx`, `topup-form.tsx`, `account-table.tsx`
+7. `finance/accounts/page.tsx` — mount table
+8. Wire existing forms: `expense-form.tsx` + `ad-spend-form.tsx` account selector
+9. Tab/nav wiring: `finance-tabs.tsx` + `nav-model.tsx`
+10. Low-balance banner on `finance/overview/page.tsx`
+11. Build → screenshots (accounts page, low-balance chip, account selector in expense
+    form, banner on overview — both themes)
+
+**Locked decisions — confirmed vs stale:**
+- ✓ Admin-only RLS — accounts are financial, same pattern as expenses/ad_spend.
+- ✓ Balance derived (not stored) — view sums opening_balance + topups − expenses −
+  ad_spend, matching plan. No `amount_dzd` needed on accounts since balance is in the
+  account's own currency.
+- ✓ Ponytail: expenses/ad_spend ARE the debits, no separate ledger.
+
+**Edge cases / gotchas traced:**
+- **View is security invoker.** The `account_balances` view joins accounts → topups →
+  expenses → ad_spend. Since all four tables are admin-only RLS and the view is
+  `security invoker` (default), the caller's RLS applies on the base tables. No
+  data leak. The view must NOT be `security definer`.
+- **No `amount_dzd` in balance view.** Balance sums `amount` (not `amount_dzd`) per
+  plan — accounts track one currency, so mixing `amount_dzd` (which is always DZD-
+  converted) would be wrong for USD/EUR accounts. Each account's expenses/ad_spend
+  must share that account's currency for the balance to be meaningful. This is a
+  user responsibility, not enforced at DB level — ponytail (users will naturally
+  match currency; adding a CHECK constraint is a future upgrade).
+- **Existing expenses/ad_spend with no account_id** are unaffected — `account_id` is
+  nullable, backward-compatible, the view's subqueries use `where e.account_id = a.id`
+  so unassigned rows don't count.
+- **No `set_updated_at` on `account_topups`.** Topups are append-only (no edits), so
+  no update trigger needed. If topup editing is ever needed, add it then.
+- **`account_topups` has `workspace_id`** for RLS even though `account_id` FK already
+  implies workspace — the existing pattern requires it on every table (RLS policy
+  checks `workspace_id = current_workspace_id()` directly).
+- **Expense/ad-spend forms pass account_id as hidden or EnumSelect.** The `<EnumSelect>`
+  pattern with `__none` sentinel (same as supplier select in `expense-form.tsx` L113–119)
+  works for 1–3 accounts. If the list grows long later, swap to a combobox.
+- **Finance overview banner fetch.** The overview page already does 3 Promise.all fetches.
+  Add `account_balances` to an existing or new query — it's a view, so `supabase
+  .from("account_balances").select(...)` works directly.
+- **No changes to `dashboard_stats` RPC.** The dashboard already aggregates expenses/
+  ad_spend by product. Account tracking is orthogonal — it doesn't change revenue,
+  invested, or net_profit computations.
+
 ---
 
 ## 14d — Stock hub + auto-decrement
@@ -272,6 +461,206 @@ Read: `00003_products.sql` (`products.stock`, `stock_movements`,
   `nav-model.tsx` IA): all products with current stock, low/out `<StatusPill>`
   badges (`≤ LOW_STOCK_THRESHOLD` low, `≤0` out), quick manual adjust, link to
   per-product movement log. Four states. Low-stock count on the nav counter if easy.
+
+### GLM 5.2 execution brief
+
+Traced against current code (post-14b: latest *committed* migration is
+`00016_exchange_swap.sql`; `00017_accounts.sql` exists only in the **uncommitted
+14c tree** on branch `mnw-14c`). **This brief assumes 14c merges first** — the
+14d migration is `00018_stock_confirm.sql` (renumber to 00017 only if 14c is
+discarded). 14d touches `products`/`stock_movements`/`orders` triggers only, so
+the uncommitted 14c (accounts) tree does not contaminate the analysis — but it
+MUST be resolved before 14d EXECUTE so the migration numbering is clean.
+
+**The load-bearing fact (the plan text was incomplete here):** the existing
+`order_stock_effects()` trigger (`00004_orders.sql` L213-230, `AFTER UPDATE on
+orders`, SECURITY DEFINER) ALREADY manages stock — but at the **delivery** point,
+not confirmation:
+```sql
+if new.delivery_status = 'delivered' and old.delivery_status <> 'delivered' then
+  insert ... delta = -new.quantity, reason = 'delivered' ...
+elsif new.delivery_status = 'returned' and old.delivery_status <> 'returned' then
+  insert ... delta = +new.quantity, reason = 'returned' ...
+```
+The 14d locked decision ("auto-decrement on `confirmed`, restore on
+cancel/return") **moves the decrement point from `delivered` to `confirmed`**.
+This is therefore a **rewrite of `order_stock_effects()`, not an addition** —
+appending confirm-logic without removing the delivered-branch would
+double-decrement every order on its happy path (−1 at confirm, −1 at deliver)
+and double-restore on return. `stock_movements.order_id` (nullable FK, 00003
+L114 + FK 00004 L98-100) already exists. `apply_stock_movement()` (00003
+L121-131, SECURITY DEFINER, `AFTER INSERT on stock_movements`) is reason-agnostic
+— any `stock_movements` insert applies its delta to `products.stock`, so the
+rewritten trigger just inserts rows and the existing apply-trigger does the rest.
+The three new reasons (`order_confirmed`/`order_reverted`/`order_returned`) do
+NOT exist in the `stock_reason` enum (`00001_core.sql` L22: only
+`purchase`/`correction`/`delivered`/`returned`) — must be added or the inserts
+throw.
+
+**Files to touch (exact):**
+
+**Migration:**
+- `supabase/migrations/00018_stock_confirm.sql` (NEW) — see skeleton.
+
+**Schema/types/docs:**
+- `src/lib/supabase/database.types.ts` — regen after push (the `stock_reason`
+  union gains three values; the trigger writes them as SQL string literals but
+  regen keeps the TS union accurate).
+- `docs/DB.md` — update the `stock_movements` row (L58: reasons →
+  `purchase`/`correction`/`order_confirmed`/`order_reverted`/`order_returned`,
+  legacy `delivered`/`returned`) and the `orders_stock_effects` trigger note
+  (L82-83: `confirmed ⇒ −qty`; leave-confirmed pre-delivery `⇒ +qty`; `returned ⇒
+  +qty`).
+
+**Backend — none new.** The existing `addStockMovement(productId, formData)`
+(`src/app/app/products/actions.ts` L194-208) is reused as-is by the hub. Its
+`revalidatePath` (L207) widens from `/app/products/${productId}/stock` to ALSO
+cover `/app/stock` and `/app/products` so the hub + list totals refresh after a
+manual adjust. (`MANUAL_STOCK_REASONS` stays `purchase`/`correction`; the new
+`order_*` reasons are trigger-only, exactly as `delivered`/`returned` were.)
+
+**UI — stock hub page:**
+- `src/app/app/stock/page.tsx` (NEW, server component) — behind `AdminGuardLayout`
+  via a one-line `layout.tsx` re-export (same pattern as `orders/cash`,
+  `contacts/suppliers`). Fetch `products` (id, name, sku, stock) ordered stock asc.
+  Four states. Render a table: product (link → `/app/products/[id]`), sku, current
+  stock, low/out badge, and a per-row inline manual-adjust
+  `<form action={addStockMovement.bind(null, product.id)}>` (delta number + reason
+  `<EnumSelect options={MANUAL_STOCK_REASONS}>` + note + submit) — identical
+  fields to `products/[id]/stock/page.tsx` L48-68. "Log" link →
+  `/app/products/[id]/stock`.
+- `src/app/app/stock/layout.tsx` (NEW) — `export { default } from
+  "@/components/admin-guard-layout"`.
+
+**Stock badge — reuse, don't rebuild:** the products list ALREADY renders stock +
+low-stock badges via `StockChip` (`src/app/app/products/products-view.tsx`
+L229-238: `out = stock <= 0`, `low = !out && stock <= LOW_STOCK_THRESHOLD`, `<Chip
+token="danger|warning|neutral">`). The hub reuses this exact logic (the plan's
+"`<StatusPill>`" is stale — this codebase uses `<Chip>` for stock levels). The hub
+is mostly new *aggregation* (cross-product view + per-row adjust), not new badge
+rendering.
+
+**UI — nav wiring:**
+- `src/components/nav-model.tsx` L53 — Products is a flat leaf today (`{ key:
+  "products", href: "/app/products", icon: Package, adminOnly: true }`). Add a
+  **peer leaf** immediately after it: `{ key: "stock", href: "/app/stock", icon:
+  Boxes, adminOnly: true }` (import `Boxes` from `lucide-react`). Do NOT promote
+  Products to a group — that forces a nav-expand UI for one child, bigger diff
+  for no gain.
+- `src/messages/en.json` + `ar.json` — add `nav.stock` ("Stock"/"المخزون") and
+  `stock.reasons.{order_confirmed,order_reverted,order_returned}` (EN + AR) so the
+  per-product movement log renders the new trigger-written reasons (the log shows
+  `reason` via `<Chip>`). A small `stock.hub.*` block (title/subtitle/empty/adjust)
+  if the hub needs copy beyond reused keys.
+
+**Migration skeleton (`00018_stock_confirm.sql`):**
+```sql
+-- 14d: move the stock decrement point from delivery_status to confirmation_status.
+-- Confirmed ⇒ reserve stock; leave-confirmed (pre-delivery) ⇒ restore; returned ⇒ restore.
+alter type public.stock_reason add value if not exists 'order_confirmed';
+alter type public.stock_reason add value if not exists 'order_reverted';
+alter type public.stock_reason add value if not exists 'order_returned';
+
+create or replace function public.order_stock_effects()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.product_id is null then return new; end if;
+
+  -- (1) order confirmed for shipping ⇒ stock leaves inventory
+  if new.confirmation_status = 'confirmed' and old.confirmation_status <> 'confirmed' then
+    insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
+    values (new.workspace_id, new.product_id, -new.quantity, 'order_confirmed', new.id, auth.uid());
+
+  -- (2) delivered order returned to warehouse ⇒ stock restored
+  elsif new.delivery_status = 'returned' and old.delivery_status <> 'returned' then
+    insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
+    values (new.workspace_id, new.product_id, new.quantity, 'order_returned', new.id, auth.uid());
+
+  -- (3) confirmed order falls back (cancelled/no_answer/reopened) before delivery ⇒ restore.
+  --     Guard: only if it never reached a delivered-family state (item not in customer's hands).
+  elsif old.confirmation_status = 'confirmed' and new.confirmation_status <> 'confirmed'
+        and old.delivery_status not in ('delivered','returned','exchange','swap') then
+    insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
+    values (new.workspace_id, new.product_id, new.quantity, 'order_reverted', new.id, auth.uid());
+  end if;
+  return new;
+end; $$;
+```
+The trigger itself `orders_stock_effects after update on orders` (00004 L228-230)
+is unchanged — only the function body is replaced. `ALTER TYPE … ADD VALUE` is
+fine in the same migration (PG ≥12, and we don't use the new values in a
+constraint within this file).
+
+**Order of steps:**
+1. Resolve the 14c tree first (merge `mnw-14c` → `mnw`, or discard) — 14d branches
+   from `mnw` and needs 00017 committed to number 00018 correctly.
+2. Branch `mnw-14d`. Migration 00018 → push + regen types.
+3. `docs/DB.md` updates.
+4. Widen `addStockMovement`'s `revalidatePath`.
+5. `stock/page.tsx` + `stock/layout.tsx`.
+6. `nav-model.tsx` peer leaf + i18n EN/AR.
+7. Build → test → screenshots (hub table + low/out chips + inline adjust; and the
+   per-product movement log showing an `order_confirmed` row after confirming an
+   order — both themes).
+
+**Locked decisions — confirmed vs stale:**
+- ✓ Decrement on `confirmed` (not delivered) — locked in the backlog. **Stale
+  detail:** the plan reads as "add a confirm decrement"; the real task is
+  **rewrite** (the existing trigger decrements at `delivered`; that branch is
+  removed). Calling this out because a naive append would double-decrement.
+- ✓ Restore on leave-confirmed (`order_reverted`) and on `returned`
+  (`order_returned`) — implemented, with a delivery-family guard on the revert
+  branch so a confirmed-then-delivered order whose confirmation is later reopened
+  doesn't wrongly restore (the item already shipped).
+- ✓ Do NOT re-decrement for swap's new order B — automatic: the trigger is
+  `AFTER UPDATE` only, and B is created via INSERT already-confirmed (14b
+  `swapOrder`), so B never fires it. Flip side: **any order born `confirmed` at
+  INSERT is exempt from stock reservation** — today only swap does that (manual
+  `createOrder` and webhooks start `wait_for_confirmation`, confirmed via UPDATE).
+  A future feature that inserts confirmed orders must UPDATE-into-confirmed to
+  reserve stock, or the trigger must gain an AFTER INSERT branch (which 14b
+  explicitly forbade for swap — don't add one casually).
+- ✓ Reuse `apply_stock_movement` / never touch `products.stock` directly — the
+  rewritten trigger only inserts `stock_movements`; the existing
+  `stock_movements_apply` trigger maintains `products.stock`.
+- ✓ `stock_movements.order_id` already wired — no new column.
+
+**Edge cases / gotchas traced:**
+- **No extra idempotency needed beyond crossing guards.** Each branch fires only
+  on a status *crossing* (`new = X and old <> X`), so re-saving the same status is
+  a no-op and confirm→reopen→reconfirm cycles net to zero (each in-crossing −qty
+  matched by an out-crossing +qty when eligible). There is no `(order_id, reason)`
+  unique constraint and none should be added — it would break legitimate reconfirm
+  cycles; the incremental model is already self-correcting.
+- **`delivered` + `returned` enum values become legacy.** The rewritten
+  return-branch uses `order_returned`; old `delivered`/`returned` stay in the type
+  (PG can't drop enum values cheaply) but are no longer inserted. Pre-14d
+  `stock_movements` rows with `delivered`/`returned` reasons remain valid history
+  — not migrated. `products.stock` (a running total) stays consistent across the
+  cutover; historical movements will simply mix `delivered` and `order_confirmed`
+  reasons.
+- **`exchange` / `swap` delivery statuses are stock-neutral.** Exchange (size
+  change) and swap (item re-routed to another customer) intentionally produce no
+  movement — exchange is a wash within the same item; swap's item already left at
+  A's confirm and B is INSERT-exempt. Both are in the revert-branch exclusion list
+  so reopening their confirmation doesn't restore either.
+- **Single UPDATE that sets confirmation=confirmed AND delivery=delivered at
+  once** (admin via RPC, both params): only branch (1) fires (−qty); branch (3)
+  can't (old.confirmation wasn't confirmed). No double. Stock is correct.
+- **Hub is admin-only, no new money exposure.** `products` is all-read/admin-write,
+  `stock_movements` admin-only (00003 L162-179) — unchanged. Stock isn't a
+  financial table; the hub sits behind `AdminGuardLayout` matching the Products
+  family. No RLS change, no `dashboard_stats`/`product_stats` impact (analytics
+  key off order statuses, not stock).
+- **Nav low-stock counter — deferred.** `nav-model` supports `counter` (orders
+  uses it), but a low-stock count means extending the app-shell's counter fetch.
+  The plan says "if easy"; it isn't trivial — skip, leave a `ponytail:` note. The
+  hub itself is the low-stock surface.
+- **`addStockMovement` returns `void` (throws on error), not `{ok,error}`.** The
+  per-row inline `<form action>` re-renders the page on success and surfaces
+  errors via the nearest error boundary — no toast needed. Refactor the return
+  shape only if the hub later wants inline validation feedback.
 
 ---
 

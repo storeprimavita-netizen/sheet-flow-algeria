@@ -31,6 +31,7 @@ export function AdSpendForm({
   productId,
   products,
   rates,
+  accounts,
   className,
   defaultValues,
   onDone,
@@ -38,6 +39,7 @@ export function AdSpendForm({
   productId?: string;
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   rates: { USD: number; EUR: number };
+  accounts?: { id: string; name: string }[];
   className?: string;
   defaultValues?: AdSpendRow;
   onDone?: () => void;
@@ -104,6 +106,15 @@ export function AdSpendForm({
           rates={rates}
         />
       </div>
+      {accounts && accounts.length > 0 ? (
+        <Field label={t("accounts.title")} hint={t("common.optional")}>
+          <EnumSelect
+            name="account_id"
+            defaultValue={defaultValues?.account_id ?? "__none"}
+            options={[{ value: "__none", label: t("fields.none") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+          />
+        </Field>
+      ) : null}
       <div className="flex justify-end gap-2">
         {onDone ? (
           <Button type="button" variant="ghost" size="sm" onClick={onDone}>

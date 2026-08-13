@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       ad_spend_daily: {
         Row: {
+          account_id: string | null
           amount: number
           amount_dzd: number | null
           created_at: string
@@ -25,6 +26,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           amount_dzd?: number | null
           created_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           amount_dzd?: number | null
           created_at?: string
@@ -53,6 +56,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ad_spend_daily_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ad_spend_daily_product_id_fkey"
             columns: ["product_id"]
@@ -318,6 +328,7 @@ export type Database = {
       }
       expenses: {
         Row: {
+          account_id: string | null
           amount: number
           amount_dzd: number | null
           category: Database["public"]["Enums"]["expense_category"]
@@ -335,6 +346,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          account_id?: string | null
           amount: number
           amount_dzd?: number | null
           category: Database["public"]["Enums"]["expense_category"]
@@ -352,6 +364,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          account_id?: string | null
           amount?: number
           amount_dzd?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
@@ -369,6 +382,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_contact_fk"
             columns: ["contact_id"]
@@ -1584,6 +1604,101 @@ export type Database = {
           },
         ]
       }
+      accounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          id: string
+          is_active: boolean
+          low_balance_threshold: number
+          name: string
+          opening_balance: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          is_active?: boolean
+          low_balance_threshold?: number
+          name: string
+          opening_balance?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          is_active?: boolean
+          low_balance_threshold?: number
+          name?: string
+          opening_balance?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_topups: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          occurred_on: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_topups_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_topups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       agent_performance: {
@@ -1697,6 +1812,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      account_balances: {
+        Row: {
+          account_id: string
+          balance: number
+          currency: Database["public"]["Enums"]["currency_code"]
+          is_active: boolean
+          low_balance_threshold: number
+          name: string
+          opening_balance: number
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string
+          balance?: number
+          currency?: Database["public"]["Enums"]["currency_code"]
+          is_active?: boolean
+          low_balance_threshold?: number
+          name?: string
+          opening_balance?: number
+          workspace_id?: string
+        }
+        Update: {
+          account_id?: string
+          balance?: number
+          currency?: Database["public"]["Enums"]["currency_code"]
+          is_active?: boolean
+          low_balance_threshold?: number
+          name?: string
+          opening_balance?: number
+          workspace_id?: string
+        }
+        Relationships: []
       }
     }
     Functions: {

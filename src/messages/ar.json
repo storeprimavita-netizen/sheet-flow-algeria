@@ -11,6 +11,7 @@
     "financeOverview": "نظرة عامة",
     "expenses": "المصاريف",
     "adSpend": "مصاريف الإعلانات",
+    "accounts": "الحسابات",
     "income": "الإيرادات",
     "contacts": "جهات الاتصال",
     "customers": "العملاء",
@@ -730,6 +731,27 @@
     "noExpensesInRange": "لا توجد مصاريف في هذه الفترة.",
     "noAdSpendInRange": "لا يوجد إنفاق إعلاني في هذه الفترة.",
     "noIncomeInRange": "لا توجد طلبات مُسلَّمة في هذه الفترة."
+  },
+  "accounts": {
+    "title": "الحسابات",
+    "subtitle": "تتبع ميزانيات الإنفاق عبر حساباتك",
+    "noAccounts": "لا توجد حسابات بعد. أنشئ واحدًا لبدء تتبع الإنفاق.",
+    "fields": {
+      "name": "اسم الحساب",
+      "currency": "العملة",
+      "openingBalance": "الرصيد الافتتاحي",
+      "lowBalanceThreshold": "حد الرصيد المنخفض",
+      "isActive": "نشط"
+    },
+    "topup": {
+      "title": "تسجيل إيداع",
+      "amount": "المبلغ",
+      "occurredOn": "التاريخ",
+      "note": "ملاحظة"
+    },
+    "balance": "الرصيد",
+    "lowBalance": "رصيد منخفض",
+    "lowBalanceBanner": "رصيد منخفض على: {accounts}"
   },
   "role": {
     "admin": "مدير",
