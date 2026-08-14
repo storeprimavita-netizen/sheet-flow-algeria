@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
-import { TeamTabs } from "../team-tabs";
+import { SettingsTabs } from "../settings-tabs";
 import { AuditFilterBar } from "./audit-filter-bar";
 import { AuditTable, type AuditRow } from "./audit-table";
 
@@ -79,8 +79,8 @@ export default async function AuditPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
-      <TeamTabs active="audit" />
+      <PageHeader title={t("settings.tabs.audit")} subtitle={t("settings.auditSubtitle")} />
+      <SettingsTabs active="audit" />
 
       <AuditFilterBar tables={AUDITED_TABLES} actors={profiles ?? []} />
       <AuditTable rows={auditRows} />

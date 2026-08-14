@@ -16,6 +16,7 @@
     "contacts": "Contacts",
     "customers": "Customers",
     "suppliers": "Suppliers",
+    "stock": "Stock",
     "team": "Team & Rules",
     "rules": "Rules",
     "meetings": "Meetings",
@@ -23,6 +24,7 @@
     "performance": "Performance",
     "users": "Users",
     "audit": "Audit log",
+    "settingsOverview": "Overview",
     "settings": "Settings",
     "toggleSidebar": "Toggle sidebar"
   },
@@ -435,13 +437,11 @@
   },
   "team": {
     "title": "Team & Rules",
-    "subtitle": "Users, rules, meetings, performance & audit log",
+    "subtitle": "Rules, meetings, tasks & performance",
     "tabs": {
-      "users": "Users",
       "rules": "Rules",
       "meetings": "Meetings",
       "performance": "Performance",
-      "audit": "Audit log",
       "tasks": "Tasks"
     },
     "invite": "Invite user",
@@ -551,6 +551,13 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Workspace, integrations, fees & thresholds",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "audit": "Audit log"
+    },
+    "usersSubtitle": "Invite teammates & manage roles",
+    "auditSubtitle": "Who changed what, when",
     "workspace": "Workspace",
     "integrations": "Integrations",
     "storeDomain": "Store domain",

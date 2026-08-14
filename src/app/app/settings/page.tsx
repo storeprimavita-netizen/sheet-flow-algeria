@@ -18,6 +18,7 @@ import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
 import { OptionsSection } from "./options-section";
 import { AppearanceSection } from "./appearance-section";
+import { SettingsTabs } from "./settings-tabs";
 
 const NAV_SECTIONS = [
   ["workspace", "settings.workspace"],
@@ -104,6 +105,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
+      <SettingsTabs active="overview" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[12rem_1fr]">
         <nav className="hidden lg:sticky lg:top-20 lg:block lg:h-fit lg:space-y-0.5 lg:text-sm">
           {NAV_SECTIONS.map(([id, key]) => (

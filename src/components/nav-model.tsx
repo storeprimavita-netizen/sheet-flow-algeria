@@ -86,11 +86,19 @@ export const NAV: NavSection[] = [
       { key: "meetings", href: "/app/team/meetings", icon: CalendarClock },
       { key: "tasks", href: "/app/team/tasks", icon: KanbanSquare, counter: "tasks" },
       { key: "performance", href: "/app/team/performance", icon: Gauge },
-      { key: "users", href: "/app/team", icon: Users },
-      { key: "audit", href: "/app/team/audit", icon: ScrollText },
     ],
   },
-  { key: "settings", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
+  {
+    key: "settings",
+    href: "/app/settings",
+    icon: SettingsIcon,
+    adminOnly: true,
+    children: [
+      { key: "settingsOverview", href: "/app/settings", icon: SettingsIcon },
+      { key: "users", href: "/app/settings/users", icon: Users },
+      { key: "audit", href: "/app/settings/audit", icon: ScrollText },
+    ],
+  },
 ];
 
 /**

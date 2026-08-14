@@ -859,6 +859,121 @@ Read: `nav-model.tsx`, `team/team-tabs.tsx`, `settings/page.tsx`, `team/page.tsx
   performance. Keep RLS/guards (both already admin-only). Grep for dead links
   (`/app/team$`, `/app/team/audit`), fix i18n labels.
 
+### GLM 5.2 execution brief
+
+Traced against current code (post-14d, HEAD `5f07c57`). **Sub-routes chosen
+over section-anchors:** the users page runs a service-role
+`admin.auth.admin.listUsers()` on every load — folding it into the settings
+anchor page would fire that on every settings visit, and `settings/page.tsx`
+already runs a 15-way `Promise.all`. Sub-routes mirror the finance/contacts
+section pattern. **No migration, no type regen, no RLS change** — pure
+route/IA move. Both destinations sit behind `settings/layout.tsx`
+(AdminGuardLayout → `requireAdmin("/app/orders")`), so the users page's inline
+`requireAdmin()` is redundant once moved.
+
+**Files to touch (exact):**
+
+- `src/app/app/settings/users/page.tsx` (NEW) — content of `team/page.tsx`
+  moved: drop `requireAdmin()` (layout covers it) and `<TeamTabs>`; keep
+  `requireAdminProfile()`, profiles query, listUsers email map, InviteForm,
+  UserRow table. `<PageHeader>` title/subtitle → new i18n keys (below).
+- `src/app/app/settings/users/actions.ts` (NEW) — move `inviteUser`,
+  `updateUser` + `inviteSchema`/`updateUserSchema` out of `team/actions.ts`
+  (they are self-contained: `adminProfile`, `createClient`,
+  `createAdminClient`, zod). Both `revalidatePath("/app/team")` →
+  `revalidatePath("/app/settings/users")`.
+- `src/app/app/settings/users/invite-form.tsx`, `user-row.tsx` — `git mv`
+  from `team/` (their `./actions` import resolves to the new actions file).
+- `src/app/app/settings/audit/{page,audit-filter-bar,audit-table}.tsx` —
+  `git mv -r` from `team/audit/`. In `page.tsx`: drop `TeamTabs` import/mount
+  (L6, L83), swap the `team.title`/`team.subtitle` header keys for the new
+  settings keys. `AUDITED_TABLES`, `diffRows`, filters, profiles join: all
+  unchanged (form GET-submits to the same route, relative behavior preserved).
+- `src/app/app/settings/settings-tabs.tsx` (NEW) — `<TabsNav>` clone of
+  `team-tabs.tsx` with tabs overview → `/app/settings`, users →
+  `/app/settings/users`, audit → `/app/settings/audit`; type
+  `active: "overview" | "users" | "audit"`; i18n `settings.tabs.*`.
+- `src/app/app/settings/page.tsx` — mount `<SettingsTabs active="overview" />`
+  right after `<PageHeader>` (one line + import).
+- `src/app/app/team/page.tsx` — REPLACE the users page with the finance
+  landing pattern: `export default function TeamPage() { redirect("/app/team/rules"); }`
+  (the team group parent href must resolve; one-line file).
+- `src/app/app/team/team-tabs.tsx` — type shrinks to
+  `"rules" | "meetings" | "tasks" | "performance"`; delete the `users` and
+  `audit` tab entries; update the stale doc comment. All four remaining
+  mount sites (rules, meetings, tasks, performance) untouched.
+- `src/app/app/team/actions.ts` — after the user actions move out, only
+  rules/meetings/tasks actions remain (L58/L87 `revalidatePath("/app/team")`
+  calls leave with the functions).
+- `src/components/nav-model.tsx` — team children: delete the `users` and
+  `audit` leaves (L89-90). Settings leaf → group with children:
+  `{ key: "settingsOverview", href: "/app/settings", icon: SettingsIcon }`,
+  `{ key: "users", href: "/app/settings/users", icon: Users }`,
+  `{ key: "audit", href: "/app/settings/audit", icon: ScrollText }`.
+  All three icons already imported. (Not the 14d peer-leaf trick — that was
+  for ONE extra child avoiding an expand UI; this is 3 children, the exact
+  finance/contacts shape.) Command palette derives from `NAV` → picks the
+  new children up automatically via `nav.*` keys.
+- `src/messages/en.json` + `ar.json`:
+  - nav: add `settingsOverview` ("Overview"/"نظرة عامة") next to
+    `financeOverview` (L11). `nav.users`/`nav.audit` already exist — reused.
+  - `team.subtitle` (en L438): "Users, rules, meetings, performance & audit
+    log" → "Rules, meetings, tasks & performance"; AR: "القواعد والاجتماعات
+    والمهام والأداء".
+  - `team.tabs`: delete `users` + `audit` keys (both locales).
+  - `settings` block: add `tabs: { overview, users, audit }` +
+    `usersSubtitle` ("Invite teammates & manage roles"/AR) + `auditSubtitle`
+    ("Who changed what, when"/AR). Users page header uses
+    `settings.tabs.users` + `settings.usersSubtitle`; audit page likewise.
+- `docs/DB.md` — no change (no schema change). Optional: none.
+
+**Order of steps:**
+1. Branch `mnw-14f`.
+2. `git mv` team/audit → settings/audit; strip TeamTabs; header keys.
+3. Create settings/users/{page,actions}.tsx + mv invite-form/user-row; trim
+   `team/actions.ts` + `team/page.tsx` redirect; trim `team-tabs.tsx`.
+4. nav-model settings group + settings-tabs.tsx + mount on settings/page.tsx.
+5. i18n EN/AR.
+6. `npm run build` (no migration to push); grep for stale `/app/team/audit` +
+   `"/app/team"` literals (expect only the team landing + nav href).
+7. Screenshots both themes: settings nav group expanded, users page, audit
+   page, team tab row post-trim. Ponytail review → merge `--no-ff` into
+   `mnw`, flip PROGRESS row to `done`, `graphify update .`.
+
+**Locked decisions — confirmed vs stale:**
+- ✓ Move Users + Audit into Settings; Team keeps rules/meetings/tasks/
+  performance; RLS/guards unchanged — confirmed. AdminGuardLayout now guards
+  both pages structurally (audit already had admin-only RLS on `audit_log`;
+  users page keeps its `requireAdminProfile` for workspaceId).
+- ⚠ "match settings' section-anchor pattern, or sub-routes" — anchors
+  rejected (listUsers-on-every-load + settings page bloat). Sub-routes +
+  settings nav group, per above.
+- ⚠ Implicit assumption that `/app/team` (users URL) just disappears — it
+  can't: it's the team group's parent href. Replaced by a one-line redirect
+  to `/app/team/rules` (existing `finance/page.tsx` pattern).
+
+**Edge cases / gotchas traced:**
+- **Dead links:** exhaustive grep found `/app/team` exact + `/app/team/audit`
+  only in `team-tabs.tsx` and `nav-model.tsx` (both edited) — plus
+  `revalidatePath` strings in actions (moving). Dashboard links to
+  `/app/team/meetings` + `/app/team/tasks` (L468/L504) — unaffected, those
+  pages stay.
+- **Agents:** `visibleNav()` for agents returns only Orders — settings group
+  invisible, same as today's flat settings leaf. Rules stays agent-reachable
+  directly (rd_sel RLS); its TeamTabs mount keeps working with 4 tabs.
+  Note: the team-tabs doc comment ("agents never see this") is already stale
+  today — fix the comment while trimming, don't chase the behavior.
+- **`invite-form.tsx`/`user-row.tsx` are the ONLY callers of inviteUser/
+  updateUser** — moving all three together leaves no dangling imports.
+- **Command palette** flattens `NAV` children (L57-61) — new settings
+  children appear with no palette code change; `nav.users`/`nav.audit` keys
+  already exist, only `settingsOverview` is new.
+- **Audit filter bar** GET-submits to its own route with `?table=&actor=`
+  etc. — moving the directory preserves `searchParams` handling verbatim;
+  no absolute URLs inside.
+- **No DB/RLS/type surface touched** — `rls.test.ts` unaffected; skip type
+  regen.
+
 ---
 
 ## 14g — Analytics: delivery rate + timing stats
