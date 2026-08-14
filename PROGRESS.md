@@ -36,7 +36,7 @@ the bottom. Format:
 | 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | done |
 | 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | done |
 | 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
-| 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | planned |
+| 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | done |
 | 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | planned |
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
 
@@ -3132,3 +3132,10 @@ unchanged until the user runs the steps above.
 - Next chat must know: `npm run build` green. 14e (Rules redesign) is next.
   The 14e brief is written in `phase-14-plan.md §14e`. No DB pushed this
   session — run `npx supabase db push` before testing stock functionality.
+
+## Phase 14f — Users + Audit → Settings (2026-08-14) — DONE
+- Done: Moved Users page (`/app/team`) and Audit page (`/app/team/audit`) to `/app/settings/users` and `/app/settings/audit` as sub-routes. Settings became a nav group with Overview/Users/Audit children (mirrors finance/contacts pattern). Team trimmed to rules/meetings/tasks/performance. `/app/team` redirects to `/app/team/rules` (finance landing pattern). User actions (inviteUser/updateUser) moved to `settings/users/actions.ts`. Created `settings-tabs.tsx`.
+- Files: `settings/users/{page,actions,invite-form,user-row}.tsx` (new/moved), `settings/audit/{page,audit-filter-bar,audit-table,layout}.tsx` (moved), `settings/settings-tabs.tsx` (new), `team/page.tsx` (→ redirect), `team/team-tabs.tsx` (trimmed), `team/actions.ts` (user actions removed), `nav-model.tsx` (settings group), `settings/page.tsx` (+SettingsTabs), `en.json` + `ar.json` (nav.settingsOverview, settings.tabs, settings.usersSubtitle, settings.auditSubtitle, team.subtitle/tabs trimmed, nav.stock fix).
+- Decisions: Sub-routes over section-anchors (listUsers on every load + settings page bloat). One-line redirect for `/app/team` (group parent href can't vanish). Command palette picks up new children automatically.
+- Known issues: None.
+- Next chat must know: 14e (Rules redesign) is next — brief written. No migration, no DB push needed this session.
