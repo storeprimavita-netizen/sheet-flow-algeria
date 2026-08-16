@@ -15,6 +15,7 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 const ruleSchema = z.object({
   title: z.string().trim().min(1),
   content: z.string(),
+  category: z.string().trim().nullable().optional(),
 });
 
 export async function saveRuleDoc(id: string | null, formData: FormData) {

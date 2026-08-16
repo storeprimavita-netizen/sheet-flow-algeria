@@ -35,7 +35,7 @@ the bottom. Format:
 | 14b — Exchange, Swap & return-fee default | docs/phases/phase-14-plan.md §14b | done |
 | 14c — Finance → Accounts (ledger) | docs/phases/phase-14-plan.md §14c | done |
 | 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | done |
-| 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | planned |
+| 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | done |
 | 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | done |
 | 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | planned |
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
@@ -3139,3 +3139,10 @@ unchanged until the user runs the steps above.
 - Decisions: Sub-routes over section-anchors (listUsers on every load + settings page bloat). One-line redirect for `/app/team` (group parent href can't vanish). Command palette picks up new children automatically.
 - Known issues: None.
 - Next chat must know: 14e (Rules redesign) is next — brief written. No migration, no DB push needed this session.
+
+## Phase 14e — Rules redesign (2026-08-16) — DONE
+- Done: Added `category` text column to `rules_docs` (migration 00019), 4 hardcoded categories with color tokens (must=danger, product_choice=info, new_product_task=violet, delivery=success), seeded 10 example rules. Redesigned rules page: read-view by default with category `<Chip>`, "Add rule" and "Edit" collapsed in native `<details>`, `<EnumSelect>` for category in forms. Extended `ruleSchema` with `category: nullable().optional()`. Added i18n keys (EN+AR). Fixed pre-existing type error in finance/overview (null guards on `account_balances` view columns). Fixed nested `<form>` hydration error by pulling move/delete forms outside the save form.
+- Files: `supabase/migrations/00019_rule_categories.sql` (new), `src/lib/enums.ts` (+RULE_CATEGORIES), `src/app/app/team/actions.ts` (ruleSchema +category), `src/app/app/team/rules/page.tsx` (redesigned), `src/messages/en.json` + `ar.json` (+addRule/editRule/category/noCategory), `docs/DB.md` (+category note on rules_docs), `src/app/app/finance/overview/page.tsx` (null guard fix), `src/lib/supabase/database.types.ts` (regen).
+- Decisions: Plain text column + hardcoded RULE_CATEGORIES over option_set machinery (4 fixed buckets, upgrade to option_sets if user asks). Native `<details>` for edit toggle (no client JS). Radix EnumSelect for category field per CLAUDE.md no-native-select rule.
+- Known issues: None.
+- Next chat must know: 14g (Analytics: delivery rate + timing stats) is next — brief written. Migration `00020_analytics_timing.sql` (numbered after 14e's 00019). No 14e branch merge conflicts expected. Screenshot self-critique captured: rules-dark-final.png, rules-light-final.png — both themes verified, zero console errors.

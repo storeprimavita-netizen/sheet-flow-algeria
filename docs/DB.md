@@ -62,7 +62,7 @@ Finally regenerate types:
 | `order_status_history` | 00004 | stage/from/to/comment/actor/ts; written by trigger | read with parent order |
 | `cash_collections` | 00004 | COD cash → deposit reconciliation | admin only |
 | `order_tags` | 00014 | join table (order_id, option_id) — multi-select tags, own `workspace_id` for RLS | all read/insert/delete (tagging isn't financial) |
-| `rules_docs` | 00005 | markdown blocks | all read, admin write |
+| `rules_docs` | 00005 | markdown blocks + `category` text col (14e) | all read, admin write |
 | `meetings` / `meeting_objectives` | 00005 | trigger: no 'held' without objectives | all read, admin write |
 | `zr_territories` | 00012 | cached ZR Express wilaya/commune territory tree (id/code/name/level/parent_id), refreshed by an admin "Sync territories" action — used to resolve `orders.wilaya_code`/`commune` into ZR's own territory UUIDs when pushing a parcel | admin only |
 | `zr_shipments` | 00012 | one row per order pushed to ZR Express: `parcel_id`, `tracking_number`, `state` (their workflow state name, free text — not mapped onto our `delivery_status`) | all read, admin write |

@@ -71,3 +71,12 @@ export const MANUAL_STOCK_REASONS = ["purchase", "correction"] as const;
 
 // ponytail: fixed low-stock threshold; becomes a settings key when a phase needs it tunable
 export const LOW_STOCK_THRESHOLD = 5;
+
+// Rule categories — 4 fixed buckets, not user-extensible (no option_set).
+// Upgrade to option_sets if user asks for custom categories.
+export const RULE_CATEGORIES = [
+  { value: "must",             label: "Must",             token: "danger"  },
+  { value: "product_choice",   label: "Product choice",   token: "info"    },
+  { value: "new_product_task", label: "New product task",  token: "violet"  },
+  { value: "delivery",         label: "Delivery",         token: "success" },
+] as const;

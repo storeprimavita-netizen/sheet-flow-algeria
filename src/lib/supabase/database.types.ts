@@ -7,8 +7,115 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
+      account_topups: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          occurred_on: string
+          workspace_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_topups_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_topups_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_topups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          id: string
+          is_active: boolean
+          low_balance_threshold: number
+          name: string
+          opening_balance: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          is_active?: boolean
+          low_balance_threshold?: number
+          name: string
+          opening_balance?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          is_active?: boolean
+          low_balance_threshold?: number
+          name?: string
+          opening_balance?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ad_spend_daily: {
         Row: {
           account_id: string | null
@@ -56,6 +163,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ad_spend_daily_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
           {
             foreignKeyName: "ad_spend_daily_account_id_fkey"
             columns: ["account_id"]
@@ -382,6 +496,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
           {
             foreignKeyName: "expenses_account_id_fkey"
             columns: ["account_id"]
@@ -805,7 +926,6 @@ export type Database = {
           delivery_status: Database["public"]["Enums"]["delivery_status"]
           delivery_type: Database["public"]["Enums"]["delivery_type"]
           duplicate_of: string | null
-          swapped_to_order_id: string | null
           external_id: string | null
           id: string
           is_duplicate_suspect: boolean
@@ -815,6 +935,7 @@ export type Database = {
           quantity: number
           sale_price: number | null
           source: Database["public"]["Enums"]["order_source"]
+          swapped_to_order_id: string | null
           updated_at: string
           variant: string | null
           webhook_event_id: string | null
@@ -840,7 +961,6 @@ export type Database = {
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
           delivery_type?: Database["public"]["Enums"]["delivery_type"]
           duplicate_of?: string | null
-          swapped_to_order_id?: string | null
           external_id?: string | null
           id?: string
           is_duplicate_suspect?: boolean
@@ -850,6 +970,7 @@ export type Database = {
           quantity?: number
           sale_price?: number | null
           source?: Database["public"]["Enums"]["order_source"]
+          swapped_to_order_id?: string | null
           updated_at?: string
           variant?: string | null
           webhook_event_id?: string | null
@@ -875,7 +996,6 @@ export type Database = {
           delivery_status?: Database["public"]["Enums"]["delivery_status"]
           delivery_type?: Database["public"]["Enums"]["delivery_type"]
           duplicate_of?: string | null
-          swapped_to_order_id?: string | null
           external_id?: string | null
           id?: string
           is_duplicate_suspect?: boolean
@@ -885,6 +1005,7 @@ export type Database = {
           quantity?: number
           sale_price?: number | null
           source?: Database["public"]["Enums"]["order_source"]
+          swapped_to_order_id?: string | null
           updated_at?: string
           variant?: string | null
           webhook_event_id?: string | null
@@ -932,6 +1053,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_swapped_to_order_id_fkey"
+            columns: ["swapped_to_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -1183,6 +1311,7 @@ export type Database = {
       }
       rules_docs: {
         Row: {
+          category: string | null
           content: string
           created_at: string
           id: string
@@ -1193,6 +1322,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          category?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -1203,6 +1333,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          category?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -1604,42 +1735,38 @@ export type Database = {
           },
         ]
       }
-      accounts: {
+    }
+    Views: {
+      account_balances: {
         Row: {
-          created_at: string
-          created_by: string | null
-          currency: Database["public"]["Enums"]["currency_code"]
-          id: string
-          is_active: boolean
-          low_balance_threshold: number
-          name: string
-          opening_balance: number
-          updated_at: string
-          workspace_id: string
+          account_id: string | null
+          balance: number | null
+          currency: Database["public"]["Enums"]["currency_code"] | null
+          is_active: boolean | null
+          low_balance_threshold: number | null
+          name: string | null
+          opening_balance: number | null
+          workspace_id: string | null
         }
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          id?: string
-          is_active?: boolean
-          low_balance_threshold?: number
-          name: string
-          opening_balance?: number
-          updated_at?: string
-          workspace_id: string
+          account_id?: string | null
+          balance?: never
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          is_active?: boolean | null
+          low_balance_threshold?: number | null
+          name?: string | null
+          opening_balance?: number | null
+          workspace_id?: string | null
         }
         Update: {
-          created_at?: string
-          created_by?: string | null
-          currency?: Database["public"]["Enums"]["currency_code"]
-          id?: string
-          is_active?: boolean
-          low_balance_threshold?: number
-          name?: string
-          opening_balance?: number
-          updated_at?: string
-          workspace_id?: string
+          account_id?: string | null
+          balance?: never
+          currency?: Database["public"]["Enums"]["currency_code"] | null
+          is_active?: boolean | null
+          low_balance_threshold?: number | null
+          name?: string | null
+          opening_balance?: number | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -1651,56 +1778,6 @@ export type Database = {
           },
         ]
       }
-      account_topups: {
-        Row: {
-          account_id: string
-          amount: number
-          created_at: string
-          created_by: string | null
-          id: string
-          note: string | null
-          occurred_on: string
-          workspace_id: string
-        }
-        Insert: {
-          account_id: string
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          note?: string | null
-          occurred_on?: string
-          workspace_id: string
-        }
-        Update: {
-          account_id?: string
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          note?: string | null
-          occurred_on?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "account_topups_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "account_topups_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
       agent_performance: {
         Row: {
           avg_decision_time: string | null
@@ -1813,39 +1890,6 @@ export type Database = {
           },
         ]
       }
-      account_balances: {
-        Row: {
-          account_id: string
-          balance: number
-          currency: Database["public"]["Enums"]["currency_code"]
-          is_active: boolean
-          low_balance_threshold: number
-          name: string
-          opening_balance: number
-          workspace_id: string
-        }
-        Insert: {
-          account_id?: string
-          balance?: number
-          currency?: Database["public"]["Enums"]["currency_code"]
-          is_active?: boolean
-          low_balance_threshold?: number
-          name?: string
-          opening_balance?: number
-          workspace_id?: string
-        }
-        Update: {
-          account_id?: string
-          balance?: number
-          currency?: Database["public"]["Enums"]["currency_code"]
-          is_active?: boolean
-          low_balance_threshold?: number
-          name?: string
-          opening_balance?: number
-          workspace_id?: string
-        }
-        Relationships: []
-      }
     }
     Functions: {
       bootstrap_workspace: {
@@ -1928,7 +1972,14 @@ export type Database = {
       meeting_status: "planned" | "held" | "cancelled"
       order_source: "shopify" | "lightfunnels" | "manual"
       product_status: "to_be_tested" | "tested" | "confirmed" | "cancelled"
-      stock_reason: "purchase" | "correction" | "delivered" | "returned"
+      stock_reason:
+        | "purchase"
+        | "correction"
+        | "delivered"
+        | "returned"
+        | "order_confirmed"
+        | "order_reverted"
+        | "order_returned"
       supplier_type:
         | "shooting_studio"
         | "atelier_couture"
@@ -2104,7 +2155,15 @@ export const Constants = {
       meeting_status: ["planned", "held", "cancelled"],
       order_source: ["shopify", "lightfunnels", "manual"],
       product_status: ["to_be_tested", "tested", "confirmed", "cancelled"],
-      stock_reason: ["purchase", "correction", "delivered", "returned"],
+      stock_reason: [
+        "purchase",
+        "correction",
+        "delivered",
+        "returned",
+        "order_confirmed",
+        "order_reverted",
+        "order_returned",
+      ],
       supplier_type: [
         "shooting_studio",
         "atelier_couture",
@@ -2116,4 +2175,3 @@ export const Constants = {
     },
   },
 } as const
-
