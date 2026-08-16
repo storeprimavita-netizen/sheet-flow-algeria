@@ -995,6 +995,228 @@ explainer `docs/PRICING_AND_RISK.md` is already written.
 - ponytail: pull the confirmed/delivered timestamps from `order_status_history`
   in the same view; no new table.
 
+### GLM 5.2 execution brief
+
+Traced against current code (post-14f, HEAD `877de85`, latest migration
+`00018_stock_confirm.sql`). **Migration numbering: 14e (`00019_rule_categories`)
+is planned and ahead of 14g in the table — if it lands first this file is
+`00020_analytics_timing.sql`; take `00019` only if 14e is skipped. Verify with
+`ls supabase/migrations/` at EXECUTE time.** No table, no RLS change, no new
+policy: two views only, both `security_invoker` like every 00006 sibling
+(`osh_sel` already scopes history rows to the parent order's workspace).
+
+**Load-bearing facts found while tracing:**
+- `customer_stats` already exposes `delivered_orders` + `total_orders` and
+  every surface that shows a `RiskBadge` ALREADY fetches the full stat row
+  (`select *` in contacts/page.tsx L29-35, contacts/[id]/page.tsx L39,
+  confirmation/page.tsx L26) — the delivery-rate column is pure presentation,
+  zero new queries anywhere.
+- The performance page has TWO paths: unwindowed → `agent_performance` view;
+  windowed → re-derives the aggregation from raw `order_status_history`
+  (page.tsx L44-105) because a view can't take date params. Both paths must
+  gain the two new timings, or the table changes shape when a filter is set.
+- The confirmed→delivered anchor must come from `order_status_history`
+  (`stage='confirmation', to_status='confirmed'`), NOT `orders` — there is no
+  `confirmed_at` column. With free transitions (14a) an order can be
+  confirmed→reopened→re-confirmed; the correct anchor per delivered crossing
+  is the **latest confirmed crossing at or before it** (lateral `max(
+  created_at) … <= h.created_at`), which also handles born-confirmed INSERT
+  rows (swap B, 00016: `log_order_status` writes `null→'confirmed'` on INSERT)
+  and same-timestamp crossings (RPC setting confirmed+delivered together →
+  0 elapsed, correct).
+- `formatDuration()` (format.ts L45) already parses PG interval text;
+  `msToIntervalText()` already exists in performance/page.tsx for the
+  windowed path. `RateCell` (rate-bar.tsx) is the shared rate-cell shape.
+
+**Files to touch (exact):**
+
+**Migration:**
+- `supabase/migrations/00020_analytics_timing.sql` (NEW) — skeleton below.
+
+**Schema/types/docs:**
+- `src/lib/supabase/database.types.ts` — regen after push (agent_performance
+  gains 2 columns; new workspace_performance relation).
+- `docs/DB.md` L84-90 Views table — update the `agent_performance` row
+  ("…avg decision/delivery/total time") and add a `workspace_performance`
+  row ("Team performance page header strip; same three timings, workspace-wide").
+
+**Timing stats — performance page:**
+- `src/app/app/team/performance/performance-table.tsx` — `PerfRow` gains
+  `avg_delivery_time: string | null` + `avg_total_time: string | null`; two
+  new columns after `avg_decision_time` rendering `formatDuration(...)` in
+  `text-muted-foreground` (copy the existing column). Headers:
+  `t("team.avgDeliveryTime")` / `t("team.avgTotalTime")`.
+- `src/app/app/team/performance/page.tsx`:
+  - **Windowed path:** the confirmed crossing often predates the window, so
+    the in-window history can't anchor delivery time. After the existing
+    history fetch, collect `orderIds` and run ONE extra query:
+    `.from("order_status_history").select("order_id, created_at").in("order_id",
+    orderIds).eq("stage","confirmation").eq("to_status","confirmed")` (no date
+    filter), build `Map<orderId, created_at[]>`. In the grouping loop, for
+    `to_status='delivered'` rows push `delivered_ts − latest confirmed ≤ ts`
+    into `deliveryMs` and `delivered_ts − order.created_at` into `totalMs`
+    (skip delivery pair when no anchor). Emit both via `msToIntervalText`.
+  - **Unwindowed path:** pass through `r.avg_delivery_time` /
+    `r.avg_total_time` from the view (same `?? null` pattern as
+    `avg_decision_time`).
+  - **Workspace-average strip** (both paths) above `<PerformanceTable>`: a
+    `card-surface` row of three label+value stats — avg decision / avg
+    delivery / avg total. Windowed: compute from the same accumulated arrays
+    (workspace-wide, ignore actor/stage grouping). Unwindowed: one
+    `.from("workspace_performance").select("*").eq("workspace_id", …)
+    .maybeSingle()` — do NOT fetch raw history for this.
+- `src/app/app/team/performance/performance-filter-bar.tsx` — no change.
+
+**Delivery-rate column (customer/contact views):**
+- `src/app/app/contacts/customers-table.tsx` — new column between
+  `returned` and `risk`: header `t("fields.deliveryRate")`, cell =
+  `RateCell pct={pct} label={`${pct}% (${r.delivered_orders}/${r.total_orders})`}
+  labelWidth="w-16"` when `total_orders > 0`, else `"—"`. Not sortable (the
+  delivered/total columns beside it already are). `CustomerRow` already
+  carries both counts — no type change.
+- `src/app/app/contacts/[id]/page.tsx` — in the `<PageHeader>` slot next to
+  `<RiskBadge>`: a `Chip token="neutral" size="sm"` with
+  `{t("fields.deliveryRate")}: {pct}% ({delivered}/{total})` (values from the
+  already-fetched `stat`; `"—"` when `total === 0`).
+- `src/app/app/orders/confirmation/page.tsx` — `ConfRow` gains
+  `delivery_rate: string`; compute from `stat` (`"40% (2/5)"`, `"—"` when
+  `total_orders === 0`), same as `risk_score` plumbing.
+- `src/app/app/orders/confirmation/confirmation-table.tsx` L77 — render the
+  rate inside the existing risk cell, under/beside the `RiskBadge` (small
+  `text-xs text-muted-foreground` line — not a second pill, keep the cell
+  quiet).
+- `src/app/app/orders/confirmation/confirmation-sheet.tsx` L110-113 —
+  `<Chip token="neutral" size="sm">` with the rate beside the `RiskBadge`
+  (this is the surface where the agent decides how hard to push —
+  PRICING_AND_RISK.md's stated purpose for the metric).
+
+**i18n (`src/messages/en.json` + `ar.json`, both have a `team.avgDecisionTime`
+key at ~L473 to anchor next to; add the same keys in both occurrences if
+duplicated):**
+- `fields.deliveryRate`: "Delivery rate" / "نسبة التوصيل"
+- `team.avgDeliveryTime`: "Avg. delivery time" / "متوسط مدة التوصيل"
+- `team.avgTotalTime`: "Avg. total time" / "متوسط المدة الكلية"
+- `team.workspaceAverage`: "Workspace average" / "المتوسط العام لمساحة العمل"
+
+**Migration skeleton (`00020_analytics_timing.sql`):**
+```sql
+-- 14g: timing stats. Extend agent_performance with avg delivery/total time
+-- and add a workspace-level timing view. security_invoker like all 00006 views.
+
+create or replace view public.agent_performance
+with (security_invoker = true) as
+select o.workspace_id, h.actor as user_id, h.stage,
+       count(distinct h.order_id)                                      as orders_handled,
+       count(*) filter (where h.to_status = 'confirmed')               as confirmed,
+       count(*) filter (where h.to_status = 'delivered')               as delivered,
+       count(*) filter (where h.to_status in ('cancelled','returned')) as lost,
+       avg(h.created_at - o.created_at)
+         filter (where h.to_status in ('confirmed','cancelled'))       as avg_decision_time,
+       avg(h.created_at - conf.confirmed_at)
+         filter (where h.to_status = 'delivered' and conf.confirmed_at is not null)
+                                                                       as avg_delivery_time,
+       avg(h.created_at - o.created_at)
+         filter (where h.to_status = 'delivered')                       as avg_total_time
+from public.order_status_history h
+join public.orders o on o.id = h.order_id
+left join lateral (
+  select max(c.created_at) as confirmed_at
+  from public.order_status_history c
+  where c.order_id = h.order_id
+    and c.stage = 'confirmation'
+    and c.to_status = 'confirmed'
+    and c.created_at <= h.created_at
+) conf on true
+where h.actor is not null
+group by o.workspace_id, h.actor, h.stage;
+
+-- Same three timings, workspace-wide (no actor filter: service-role/webhook
+-- transitions are real elapsed time; timing is about orders, not credit).
+create view public.workspace_performance
+with (security_invoker = true) as
+select o.workspace_id,
+       avg(h.created_at - o.created_at)
+         filter (where h.to_status in ('confirmed','cancelled'))       as avg_decision_time,
+       avg(h.created_at - conf.confirmed_at)
+         filter (where h.to_status = 'delivered' and conf.confirmed_at is not null)
+                                                                       as avg_delivery_time,
+       avg(h.created_at - o.created_at)
+         filter (where h.to_status = 'delivered')                       as avg_total_time
+from public.order_status_history h
+join public.orders o on o.id = h.order_id
+left join lateral (
+  select max(c.created_at) as confirmed_at
+  from public.order_status_history c
+  where c.order_id = h.order_id
+    and c.stage = 'confirmation'
+    and c.to_status = 'confirmed'
+    and c.created_at <= h.created_at
+) conf on true
+group by o.workspace_id;
+```
+(`create or replace` may only APPEND columns — original column order is kept,
+the two new ones go last. `delivered` crossings only exist on
+`stage='delivery'` rows, so both new aggregates land on the delivery agent's
+row — intended.)
+
+**Order of steps:**
+1. Branch `mnw-14g`. Migration 00020 (renumber per 14e check) → push + regen
+   types.
+2. `docs/DB.md` view rows.
+3. i18n EN/AR keys.
+4. performance-table.tsx (type + columns) → page.tsx (both paths + strip).
+5. Delivery-rate surfaces: customers-table → contacts/[id] → confirmation
+   page/table/sheet.
+6. `npm run build` + `npm test` (rls.test.ts must stay green — no policy
+   touched) → screenshots both themes: performance page (unwindowed + a date
+   window), customers table rate column, contact detail header, confirmation
+   sheet chip.
+7. Ponytail review → merge `--no-ff` into `mnw`, flip the 14g PROGRESS row to
+   `done`, `graphify update .`.
+
+**Locked decisions — confirmed vs stale:**
+- ✓ "Risk: keep weighted score, ADD delivery-rate column" — confirmed;
+  docs/PRICING_AND_RISK.md §"Delivery rate (new, added alongside…)" already
+  documents the rationale ("risk = how hard to push, rate = the plain odds").
+  No edit needed there.
+- ✓ "customer_stats already has delivered_orders + total_orders … No new
+  query" — confirmed verbatim: all four RiskBadge surfaces already select the
+  full stat row.
+- ⚠ "workspace averages (e.g. on the dashboard or finance overview)" — the
+  "e.g." is taken literally: they go on the **performance page** as a header
+  strip. Extending `dashboard_stats` (7-arg RPC, admin-only page, separate
+  filter model) for three numbers the performance page already has in hand is
+  a large diff for zero audience gain. Deviation, not a locked-decision
+  breach.
+- ✓ ponytail "same view, no new table" — `agent_performance` is extended in
+  place; the one extra `workspace_performance` view is the unwindowed-path
+  counterpart the strip needs (agent rows can't be re-weighted into a
+  workspace average — different denominators).
+
+**Edge cases / gotchas traced:**
+- **`avg_total_time` counts every delivered crossing** — a
+  delivered→exchange→delivered cycle contributes twice (two real
+  deliveries). Consistent with how `delivered`/`lost` already count
+  crossings; don't dedupe.
+- **No-anchor rows are excluded from `avg_delivery_time`** (delivery without
+  a recorded confirmed crossing — shouldn't exist since delivery requires
+  confirmation, but webhook/service-role flows make it possible) yet still
+  count in `avg_total_time`. The null-guard in both view and windowed path
+  keeps this exact.
+- **Windowed ≠ unwindowed by design for workspace totals**: the windowed
+  strip averages crossings INSIDE the window (anchors may predate it); the
+  unwindowed strip is all-time. Same semantics the per-agent rows already
+  have; document nothing further.
+- **`workspace_performance` readable by agents** (osh_sel is workspace-wide)
+  — harmless: timings aren't money, and the performance page itself is
+  admin-only (`requireAdminProfile`). No policy added.
+- **`agent_performance`'s only app consumer is the performance page** — the
+  dashboard's per-agent table comes from `dashboard_stats` (00010), untouched.
+- **Chip/pill grammar**: the rate renders as a neutral `Chip` / muted text,
+  never a colored pill — RateBar coloring is reserved for the rate columns in
+  tables (RateCell) per the status-system reference.
+- **AR pluralization of "(2/5)"** is locale-neutral — no ICU plural needed.
+
 ---
 
 ## 14h — Google Drive + Calendar (OAuth) — LAST

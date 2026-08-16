@@ -483,7 +483,11 @@
     "undefer": "إلغاء التأجيل",
     "copyAgenda": "نسخ جدول الأعمال",
     "agendaCopied": "تم نسخ جدول الأعمال.",
-    "lastEditedBy": "آخر تعديل بواسطة {name}"
+    "lastEditedBy": "آخر تعديل بواسطة {name}",
+    "addRule": "إضافة قاعدة",
+    "editRule": "تعديل",
+    "category": "الفئة",
+    "noCategory": "بدون فئة"
   },
   "cash": {
     "title": "تسوية النقد",

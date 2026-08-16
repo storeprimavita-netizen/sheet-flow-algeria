@@ -483,7 +483,11 @@
     "undefer": "Un-defer",
     "copyAgenda": "Copy agenda",
     "agendaCopied": "Agenda copied to clipboard.",
-    "lastEditedBy": "Last edited by {name}"
+    "lastEditedBy": "Last edited by {name}",
+    "addRule": "Add rule",
+    "editRule": "Edit",
+    "category": "Category",
+    "noCategory": "No category"
   },
   "cash": {
     "title": "Cash reconciliation",

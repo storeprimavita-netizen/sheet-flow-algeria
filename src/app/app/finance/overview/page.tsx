@@ -81,11 +81,11 @@ export default async function FinanceOverviewPage({
       <FinanceTabs active="overview" />
       <FinanceFilterBar products={(products ?? []).map((p) => ({ value: p.id, label: p.name }))} showCategory={false} showKind={false} />
 
-      {(accountBalances ?? []).filter((a) => a.is_active && a.balance <= a.low_balance_threshold).length > 0 ? (
+      {(accountBalances ?? []).filter((a) => a.is_active && a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold).length > 0 ? (
         <Link href="/app/finance/accounts" className="block rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
           {t("accounts.lowBalanceBanner", {
             accounts: (accountBalances ?? [])
-              .filter((a) => a.is_active && a.balance <= a.low_balance_threshold)
+              .filter((a) => a.is_active && a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold)
               .map((a) => `${a.name} (${formatCurrency(a.balance)})`)
               .join(", "),
           })}
