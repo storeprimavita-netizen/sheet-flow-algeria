@@ -166,6 +166,16 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     expect(error).not.toBeNull();
   });
 
+  // 00021: the view ran as its owner and leaked every workspace's balances.
+  test("anon cannot read account_balances; agents see 0 rows; admin sees own", async () => {
+    const { data: anonRows } = await sign(LOCAL_URL!, ANON_KEY).from("account_balances").select("account_id");
+    expect(anonRows ?? []).toHaveLength(0);
+    const { data: agentRows } = await confAgent.from("account_balances").select("account_id");
+    expect(agentRows ?? []).toHaveLength(0);
+    const { error } = await adminUser.from("account_balances").select("account_id").eq("workspace_id", workspaceId);
+    expect(error).toBeNull();
+  });
+
   describe("orders: role-scoped visibility + cross-stage guard", () => {
     test("confirmation agent sees all workspace orders (14a: visibility is role-blind, writes are role-scoped)", async () => {
       const { count, error } = await confAgent

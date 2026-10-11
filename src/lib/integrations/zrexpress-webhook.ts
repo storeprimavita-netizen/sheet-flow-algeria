@@ -14,6 +14,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonResponse } from "@/lib/utils";
+import { MAX_WEBHOOK_BYTES } from "@/lib/webhook";
 import type { Json } from "@/lib/supabase/database.types";
 
 const TOLERANCE_SECONDS = 300; // reject events signed more than 5 minutes off
@@ -49,6 +50,7 @@ type ParcelStateUpdatedPayload = {
 
 export async function processZRWebhook(req: Request): Promise<Response> {
   const body = await req.text();
+  if (body.length > MAX_WEBHOOK_BYTES) return jsonResponse({ error: "payload too large" }, 413);
   const headers: SvixHeaders = {
     id: req.headers.get("svix-id") ?? "",
     timestamp: req.headers.get("svix-timestamp") ?? "",
@@ -78,7 +80,7 @@ export async function processZRWebhook(req: Request): Promise<Response> {
     workspace_id: integration?.workspace_id ?? null,
     provider: "zrexpress",
     signature_ok: signatureOk,
-    payload: (parseError ? { _unparsable: body.slice(0, 5000) } : payload) as Json,
+    payload: (!signatureOk ? { _rejected: true, bytes: body.length } : parseError ? { _unparsable: body.slice(0, 5000) } : payload) as Json,
     error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
     processed_at: new Date().toISOString(),
   });
@@ -96,6 +98,11 @@ export async function processZRWebhook(req: Request): Promise<Response> {
       .eq("workspace_id", integration.workspace_id)
       .eq("parcel_id", parcelId);
   }
+  await supabase
+    .from("integration_configs")
+    .update({ last_event_at: new Date().toISOString() })
+    .eq("workspace_id", integration.workspace_id)
+    .eq("provider", "zrexpress");
 
   return jsonResponse({ ok: true }, 200);
 }

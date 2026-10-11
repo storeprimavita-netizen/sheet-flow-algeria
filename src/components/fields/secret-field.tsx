@@ -27,7 +27,7 @@ export function SecretField({
 
   return (
     <div className="relative">
-      <Input id={id} name={name} type={show ? "text" : "password"} placeholder={placeholder} className="pe-9" />
+      <Input id={id} name={name} type={show ? "text" : "password"} autoComplete="new-password" placeholder={placeholder} className="pe-9" />
       <button
         type="button"
         onClick={() => setShow((s) => !s)}

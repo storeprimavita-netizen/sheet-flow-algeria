@@ -58,7 +58,7 @@ export async function IntegrationsSection({
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label={t("settings.storeDomain")} htmlFor={`domain-${provider}`}>
-                <Input id={`domain-${provider}`} name="store_domain" defaultValue={domain} />
+                <Input id={`domain-${provider}`} name="store_domain" autoComplete="off" defaultValue={domain} />
               </Field>
               <Field
                 label={t("settings.secret")}

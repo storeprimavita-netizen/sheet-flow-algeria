@@ -37,7 +37,7 @@ export async function ZRExpressSection({
 
       <form action={saveZRExpressConfig} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t("settings.zrexpress.tenantId")} htmlFor="zr-tenant-id">
-          <Input id="zr-tenant-id" name="tenant_id" defaultValue={cfg.tenant_id ?? ""} />
+          <Input id="zr-tenant-id" name="tenant_id" autoComplete="off" defaultValue={cfg.tenant_id ?? ""} />
         </Field>
         <Field
           label={t("settings.zrexpress.apiKey")}
