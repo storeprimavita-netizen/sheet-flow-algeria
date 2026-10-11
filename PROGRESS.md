@@ -41,7 +41,7 @@ the bottom. Format:
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
 | 15a 🛡️ Security hardening (OWASP) | docs/phases/phase-15-plan.md §15a | done |
 | 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | done |
-| 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | planned |
+| 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | done |
 | 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | planned |
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | planned |
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | planned |
@@ -3213,3 +3213,22 @@ unchanged until the user runs the steps above.
   differs from the old `--linked` output, content equivalent; 2 casts fixed
   to `NonNullable<Json>` (payload is NOT NULL).
 - Next: 15c shell/nav, then 15d dashboard reads `stats.pnl` + pnlMetrics().
+
+## Phase 15c — Shell, nav, formatters, date picker, states (2026-10-11) — DONE
+- Done: sidebar — brand (lucide Store, no emoji) top-left, every top item one
+  style (icon + title case), groups expand via chevron (open when active,
+  toggleable), collapsed groups show summed counters (>0 only), Orders → Cash
+  added. `DateField` rebuilt (popover month grid, Sat week start, Intl names,
+  dd/mm/yyyy display, ISO value, hidden input for forms) — all 10 callers
+  upgraded with no API change. New `DateRangePicker` (presets + click-range
+  calendar) replaces presets + From/To in 5 filter bars (dashboard, finance,
+  orders, audit, performance). `formatCurrency` → whole DA, nbsp-grouped,
+  no -0, NaN → —; `formatDate` → dd/mm/yyyy with no UTC day shift.
+  `app/app/loading.tsx` (skeleton) + `error.tsx` (Next 16 `unstable_retry`).
+  Algeria map: coordinates rounded → hydration mismatch gone.
+- Screenshots: dashboard 390px + 1440 dark (picker open), performance light
+  with a picked range; console clean. Fixed from shots: missing nav.cash key,
+  range trigger overflowing grid cells, "0" counters on collapsed groups.
+- Known: dashboard "All" selects render blank at 390px (pre-existing) — 15d
+  replaces that filter bar with the chip row.
+- Tests: 38 unit (format + pricing) green; build green.

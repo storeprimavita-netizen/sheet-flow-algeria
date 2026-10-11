@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDuration } from "./format";
+import { formatCurrency, formatDate, formatDuration } from "./format";
 
 describe("formatDuration", () => {
   it("returns — for null/undefined", () => {
@@ -18,5 +18,26 @@ describe("formatDuration", () => {
   });
   it("falls back to 0m when the interval is all zeros", () => {
     expect(formatDuration("00:00:00")).toBe("0m");
+  });
+});
+
+describe("formatCurrency", () => {
+  it("whole DA, space-grouped with non-breaking spaces", () => {
+    expect(formatCurrency(135900)).toBe("135\u00a0900\u00a0DA");
+    expect(formatCurrency("7772.56")).toBe("7\u00a0773\u00a0DA");
+  });
+  it("never renders -0", () => {
+    expect(formatCurrency(-0.3)).toBe("0\u00a0DA");
+  });
+  it("— for empty", () => {
+    expect(formatCurrency(null)).toBe("—");
+    expect(formatCurrency("")).toBe("—");
+    expect(formatCurrency("abc")).toBe("—");
+  });
+});
+
+describe("formatDate", () => {
+  it("dd/mm/yyyy with no UTC day shift for ISO dates", () => {
+    expect(formatDate("2026-10-01")).toBe("01/10/2026");
   });
 });

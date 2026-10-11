@@ -43,6 +43,10 @@ const PAD = 10;
  * table beside it is the source of truth for numbers. See
  * `algeria-map.test.ts` for the completeness/uniqueness check.
  */
+// Server and client float math can differ in the last digits → hydration
+// mismatch on path/viewBox. One decimal is sub-pixel at this size.
+const round = (s: string) => s.replace(/-?\d+\.\d+/g, (n) => String(Math.round(Number(n) * 10) / 10));
+
 function useMapGeometry() {
   return React.useMemo(() => {
     const outline: GeoJSON.Feature<GeoJSON.Polygon> = {
@@ -54,7 +58,7 @@ function useMapGeometry() {
     const pathGen = geoPath(projection);
     const bounds = pathGen.bounds(outline);
     const [[x0, y0], [x1, y1]] = bounds;
-    const outlineD = pathGen(outline) ?? "";
+    const outlineD = round(pathGen(outline) ?? "");
 
     const codes = Object.keys(WILAYA_CENTROIDS).map(Number).sort((a, b) => a - b);
     const points: [number, number][] = codes.map((code) => {
@@ -64,9 +68,9 @@ function useMapGeometry() {
     });
     const delaunay = new Delaunay(points.flat());
     const voronoi = delaunay.voronoi([x0 - PAD, y0 - PAD, x1 + PAD, y1 + PAD]);
-    const cells = codes.map((code, i) => ({ code, d: voronoi.renderCell(i) ?? "" }));
+    const cells = codes.map((code, i) => ({ code, d: round(voronoi.renderCell(i) ?? "") }));
 
-    const viewBox = `${x0 - PAD} ${y0 - PAD} ${x1 - x0 + PAD * 2} ${y1 - y0 + PAD * 2}`;
+    const viewBox = round(`${x0 - PAD} ${y0 - PAD} ${x1 - x0 + PAD * 2} ${y1 - y0 + PAD * 2}`);
     return { outlineD, cells, viewBox };
   }, []);
 }

@@ -31,9 +31,9 @@ dashboard, 19/40 orders**). Tech stack stays.
   `return_fee` (default 150 DZD) per **returned** order. If a workspace offers
   free shipping later, add a setting — don't fork the formula.
 - **Fixed fees** are monthly, **prorated by period days / 30** in every P&L.
-- **Money display.** Whole DZD in lists/KPIs (`135 900 DZD` style via `format.ts`,
-  never wrapping: `whitespace-nowrap`), 2 decimals only in unit economics.
-  One formatter; `money-field`'s "DA" and the scenario engine's "-0" go away.
+- **Money display.** Whole dinars, space-grouped, `DA` suffix (cod-ui-polish
+  invariant 6): `135 900 DA`, non-breaking spaces so it never wraps, `-0` → `0`.
+  One formatter (`formatCurrency`); data/DB stay "DZD" (currency code).
 - **Dates** show dd/mm/yyyy (EN and AR). Native `type="date"` is replaced by one
   Radix popover range picker with presets.
 - **Navigation:** one sidebar style (icon + title case for every top item),

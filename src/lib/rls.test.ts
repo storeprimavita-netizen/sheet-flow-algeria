@@ -185,7 +185,7 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     ]);
     const net = (pnl as { net_profit: number }).net_profit;
     expect((dash as { kpis: { net_profit_dzd: number } }).kpis.net_profit_dzd).toBeCloseTo(net, 2);
-    const sum = (perProduct ?? []).reduce((s, r) => s + ((r.pnl as { net_profit: number } | null)?.net_profit ?? 0), 0);
+    const sum = ((perProduct ?? []) as { pnl: unknown }[]).reduce((s: number, r) => s + ((r.pnl as { net_profit: number } | null)?.net_profit ?? 0), 0);
     expect(sum).toBeCloseTo(net, 0);
     const { data: agentPnl } = await confAgent.rpc("pnl_summary", {});
     expect(agentPnl).toBeNull();

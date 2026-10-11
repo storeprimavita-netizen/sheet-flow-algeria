@@ -26,7 +26,8 @@
     "audit": "Audit log",
     "settingsOverview": "Overview",
     "settings": "Settings",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "cash": "Cash"
   },
   "theme": {
     "dark": "Dark",
@@ -791,5 +792,25 @@
     "none": "No tasks yet.",
     "mine": "My tasks",
     "overdueOnly": "Overdue only"
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7": "Last 7 days",
+    "last30": "Last 30 days",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "allTime": "All time",
+    "clear": "Clear",
+    "pick": "Pick a date",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "period": "Period"
+  },
+  "errorPage": {
+    "title": "This page couldn't load",
+    "body": "Something failed while loading this data. Your changes are safe — try again, and if it keeps failing, check your connection.",
+    "retry": "Try again",
+    "ref": "Reference"
   }
 }

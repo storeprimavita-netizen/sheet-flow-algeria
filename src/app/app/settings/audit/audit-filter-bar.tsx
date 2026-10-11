@@ -6,7 +6,8 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { DateField } from "@/components/fields/date-field";
+import { DateRangePicker } from "@/components/fields/date-field";
+import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
 
 const ALL = "__all";
@@ -24,6 +25,15 @@ export function AuditFilterBar({
   const sp = useSearchParams();
   const get = (k: string) => sp.get(k) ?? "";
 
+  function setDates(from: string, to: string) {
+    const next = new URLSearchParams(sp.toString());
+    for (const [k, v] of [["from", from], ["to", to]] as const) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
   function setParam(k: string, v: string | null) {
     const next = new URLSearchParams(sp.toString());
     if (!v || v === ALL) next.delete(k);
@@ -37,8 +47,8 @@ export function AuditFilterBar({
     const name = actors.find((a) => a.user_id === get("actor"))?.display_name ?? get("actor");
     chips.push({ key: "actor", label: `${t("fields.agent")}: ${name}` });
   }
-  if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${get("from")}` });
-  if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${get("to")}` });
+  if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
+  if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-4">
@@ -76,12 +86,8 @@ export function AuditFilterBar({
           </Select>
         </label>
         <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">{t("fields.from")}</span>
-          <DateField value={get("from")} onChange={(v) => setParam("from", v)} />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">{t("fields.to")}</span>
-          <DateField value={get("to")} onChange={(v) => setParam("to", v)} />
+          <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
+          <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />
         </label>
       </div>
 

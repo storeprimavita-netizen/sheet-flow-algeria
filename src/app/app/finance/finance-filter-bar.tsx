@@ -7,7 +7,8 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { DateField } from "@/components/fields/date-field";
+import { DateRangePicker } from "@/components/fields/date-field";
+import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { EXPENSE_CATEGORIES, AD_KINDS } from "@/lib/enums";
@@ -39,6 +40,15 @@ export function FinanceFilterBar({
 
   const get = (k: string) => sp.get(k) ?? "";
 
+  function setDates(from: string, to: string) {
+    const next = new URLSearchParams(sp.toString());
+    for (const [k, v] of [["from", from], ["to", to]] as const) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
   function setParam(k: string, v: string | null) {
     const next = new URLSearchParams(sp.toString());
     if (!v || v === ALL) next.delete(k);
@@ -64,37 +74,12 @@ export function FinanceFilterBar({
     const v = get(s.key);
     if (v) chips.push({ key: s.key, label: `${s.label}: ${s.opts.find((o) => o.value === v)?.label ?? v}` });
   }
-  if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${get("from")}` });
-  if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${get("to")}` });
+  if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
+  if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
-  const presets: { label: string; range: [string, string] }[] = [
-    { label: t("dashboard.filters.today"), range: [today, today] },
-    { label: t("dashboard.filters.last7"), range: [daysAgo(6), today] },
-    { label: t("dashboard.filters.last30"), range: [daysAgo(29), today] },
-  ];
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-4">
-      <div className="flex flex-wrap gap-1.5">
-        {presets.map((p) => (
-          <Button
-            key={p.label}
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const next = new URLSearchParams(sp.toString());
-              next.set("from", p.range[0]);
-              next.set("to", p.range[1]);
-              router.push(`${pathname}?${next.toString()}`, { scroll: false });
-            }}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {selects.map((s) => (
           <label key={s.key} className="space-y-1">
@@ -115,12 +100,8 @@ export function FinanceFilterBar({
           </label>
         ))}
         <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">{t("fields.from")}</span>
-          <DateField value={get("from")} onChange={(v) => setParam("from", v)} />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">{t("fields.to")}</span>
-          <DateField value={get("to")} onChange={(v) => setParam("to", v)} />
+          <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
+          <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />
         </label>
       </div>
 
