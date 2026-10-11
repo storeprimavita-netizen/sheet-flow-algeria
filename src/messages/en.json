@@ -139,7 +139,8 @@
     "order_source": {
       "shopify": "Shopify",
       "lightfunnels": "Lightfunnels",
-      "manual": "Manual"
+      "manual": "Manual",
+      "zrexpress": "ZR Express"
     },
     "delivery_type": {
       "home": "Home delivery",
@@ -635,7 +636,7 @@
     "densityHint": "Default row height for tables you haven't set a preference on yet; each table remembers its own choice afterward.",
     "zrexpress": {
       "title": "ZR Express",
-      "description": "Push confirmed, home-delivery orders to ZR Express and track their parcel status.",
+      "description": "Push confirmed orders to ZR Express (home delivery or stop desk), track parcels, and let ZR statuses update your orders.",
       "tenantId": "Tenant ID",
       "apiKey": "API key",
       "syncTerritories": "Sync territories",
@@ -643,7 +644,22 @@
       "territoriesNotSynced": "Not synced yet — sync before sending orders.",
       "registerWebhook": "Register status webhook",
       "webhookRegistered": "webhook registered",
-      "webhookNotRegistered": "webhook not registered"
+      "webhookNotRegistered": "webhook not registered",
+      "stateMapTitle": "ZR status → order status",
+      "stateMapHint": "ZR's statuses are set per account. Map each one to an order delivery status; unmapped statuses are only shown on the shipment.",
+      "notMapped": "Not mapped",
+      "addState": "Add a ZR status name",
+      "add": "Add",
+      "saveMap": "Save mapping",
+      "autoPush": "Send to ZR automatically on confirm",
+      "autoPushHint": "When an order is confirmed, create its ZR parcel right away (stop desk: only when the wilaya has a single hub).",
+      "syncFees": "Sync delivery fees from ZR",
+      "feesSynced": "{n} wilaya fees updated from ZR",
+      "noStates": "No ZR statuses seen yet — they appear here as parcels move.",
+      "sendToZR": "Send to ZR",
+      "bulkSent": "{sent} sent to ZR, {failed} failed",
+      "pickHub": "Stop desk (hub)",
+      "loadHubs": "Load stop desks"
     },
     "options": {
       "title": "Options",

@@ -8,19 +8,35 @@ import { Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/copy-button";
-import { pushOrderToZRExpress, refreshZRShipmentStatus } from "../actions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { listZRHubs, pushOrderToZRExpress, refreshZRShipmentStatus } from "../actions";
 
 export function ZRShipmentCard({
   orderId,
   shipment,
+  stopDesk,
 }: {
   orderId: string;
   shipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null;
+  /** stop-desk order → parcel goes to a ZR hub (pickup point) */
+  stopDesk: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hubs, setHubs] = useState<{ id: string; name: string | null }[] | null>(null);
+  const [hubId, setHubId] = useState<string>("");
+
+  async function loadHubs() {
+    setBusy(true);
+    setError(null);
+    const res = await listZRHubs(orderId);
+    setBusy(false);
+    if (!res.ok) return setError(res.error);
+    setHubs(res.hubs);
+    if (res.hubs.length === 1) setHubId(res.hubs[0].id);
+  }
 
   async function run(action: (id: string) => Promise<{ ok: boolean; error?: string }>) {
     setBusy(true);
@@ -66,10 +82,35 @@ export function ZRShipmentCard({
             {busy ? t("actions.saving") : t("orders.zrexpress.refresh")}
           </Button>
         </div>
-      ) : (
-        <Button type="button" size="sm" disabled={busy} onClick={() => run(pushOrderToZRExpress)}>
-          {busy ? t("actions.saving") : t("orders.zrexpress.send")}
+      ) : stopDesk && !hubs ? (
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={loadHubs}>
+          {t("settings.zrexpress.loadHubs")}
         </Button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {stopDesk && hubs ? (
+            <Select value={hubId} onValueChange={setHubId}>
+              <SelectTrigger className="w-64" aria-label={t("settings.zrexpress.pickHub")}>
+                <SelectValue placeholder={t("settings.zrexpress.pickHub")} />
+              </SelectTrigger>
+              <SelectContent>
+                {hubs.map((h) => (
+                  <SelectItem key={h.id} value={h.id}>
+                    {h.name ?? h.id.slice(0, 8)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || (stopDesk && !hubId)}
+            onClick={() => run((id) => pushOrderToZRExpress(id, stopDesk ? hubId : null))}
+          >
+            {busy ? t("actions.saving") : t("orders.zrexpress.send")}
+          </Button>
+        </div>
       )}
 
       {error ? <p className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{error}</p> : null}

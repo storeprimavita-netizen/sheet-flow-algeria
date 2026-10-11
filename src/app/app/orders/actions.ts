@@ -6,16 +6,12 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
-import { isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
+import { getProfile, isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { upsertCustomerFromOrder } from "@/lib/customers";
-import { normalizeText } from "@/lib/utils";
-import {
-  getZRCredentials,
-  createZRParcel,
-  getZRParcel,
-  toInternationalDzPhone,
-  zrErrorMessage,
-} from "@/lib/integrations/zrexpress";
+import { getZRCredentials, getZRParcel, zrErrorMessage } from "@/lib/integrations/zrexpress";
+import { hubsForOrder, pushToZR } from "@/lib/integrations/zrexpress-push";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SETTINGS_SCHEMAS } from "@/lib/settings";
 import {
   CONFIRMATION_STATUSES,
   DELIVERY_STATUSES,
@@ -23,7 +19,7 @@ import {
   DELIVERY_FEE_SOURCES,
 } from "@/lib/enums";
 
-export type UpdateResult = { ok: true } | { ok: false; error: string };
+export type UpdateResult = { ok: true; warning?: string } | { ok: false; error: string };
 
 const optionalText = z.string().trim().optional().transform((v) => v || null);
 
@@ -55,6 +51,28 @@ export async function updateOrderStatus(params: {
     p_confirmation_comment: stage === "confirmation" ? comment || undefined : undefined,
   });
   if (error) return { ok: false, error: error.message };
+
+  // ⚡ Auto-push to ZR on confirm (Settings → ZR Express, default off). Runs
+  // with the service role: the confirming agent can't read the ZR API key
+  // (admin-only RLS) — the confirmation itself already passed the RPC's
+  // authorization above. A push failure never undoes the confirmation; it
+  // comes back as a warning and the admin can push from the order page.
+  if (stage === "confirmation" && status === "confirmed") {
+    // settings is admin-only (RLS): an agent's session would always read the
+    // default (off), so the flag is read with the same service-role client.
+    const profile = await getProfile();
+    const admin = await createAdminClient();
+    const { data: flag } = profile?.workspaceId
+      ? await admin.from("settings").select("value").eq("workspace_id", profile.workspaceId).eq("key", "zr_auto_push").maybeSingle()
+      : { data: null };
+    if (profile?.workspaceId && SETTINGS_SCHEMAS.zr_auto_push.safeParse(flag?.value).data?.enabled) {
+      const pushed = await pushToZR(admin, profile.workspaceId, orderId);
+      if (!pushed.ok && !pushed.error.includes("already sent")) {
+        revalidatePath(`/app/orders/${orderId}`);
+        return { ok: true, warning: `ZR Express: ${pushed.error}` };
+      }
+    }
+  }
 
   revalidatePath(`/app/orders/${orderId}`);
   revalidatePath("/app/orders");
@@ -91,120 +109,32 @@ export async function assignAgents(params: {
 // ZR Express — push a confirmed order as a parcel, refresh its status.
 // Admin-only: needs the ZR API key, which only admins can read (RLS).
 // ---------------------------------------------------------------------------
-export async function pushOrderToZRExpress(orderId: string): Promise<UpdateResult> {
+export async function pushOrderToZRExpress(orderId: string, hubId?: string | null): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const res = await pushToZR(await createClient(), workspaceId, orderId, hubId);
+  if (res.ok) revalidatePath(`/app/orders/${orderId}`);
+  return res;
+}
+
+/** Bulk "Send to ZR" from the delivery queue. Sequential (ZR rate limits) —
+ * ponytail: switch to ZR's bulk endpoint (100/request) if volumes grow. */
+export async function pushOrdersToZRExpress(
+  orderIds: string[],
+): Promise<{ ok: true; sent: number; failed: { id: string; error: string }[] }> {
   const { workspaceId } = await adminProfile();
   const supabase = await createClient();
-
-  const { data: order } = await supabase
-    .from("orders")
-    .select("*, product:products(name)")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!order) return { ok: false, error: "Order not found." };
-  if (order.confirmation_status !== "confirmed") {
-    return { ok: false, error: "Only confirmed orders can be sent to ZR Express." };
+  const failed: { id: string; error: string }[] = [];
+  for (const id of z.array(z.string().uuid()).max(200).parse(orderIds)) {
+    const res = await pushToZR(supabase, workspaceId, id);
+    if (!res.ok) failed.push({ id, error: res.error });
   }
-  if (order.delivery_type !== "home") {
-    return { ok: false, error: "Only home-delivery orders can be sent to ZR Express yet — stop-desk needs a hub picker that isn't built." };
-  }
-  if (!order.wilaya_code || !order.commune) {
-    return { ok: false, error: "Order needs a wilaya and commune before it can be sent." };
-  }
-  if (!order.customer_phone) {
-    return { ok: false, error: "Order has no customer phone." };
-  }
+  revalidatePath("/app/orders/delivery");
+  return { ok: true, sent: orderIds.length - failed.length, failed };
+}
 
-  const { data: existing } = await supabase
-    .from("zr_shipments")
-    .select("order_id")
-    .eq("order_id", orderId)
-    .maybeSingle();
-  if (existing) return { ok: false, error: "This order was already sent to ZR Express." };
-
-  let creds;
-  try {
-    creds = await getZRCredentials(supabase, workspaceId);
-  } catch (e) {
-    return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
-  }
-
-  const { data: wilayaTerritory } = await supabase
-    .from("zr_territories")
-    .select("id")
-    .eq("workspace_id", workspaceId)
-    .eq("level", "wilaya")
-    .eq("code", order.wilaya_code)
-    .maybeSingle();
-  if (!wilayaTerritory) {
-    return { ok: false, error: "Wilaya not found in ZR Express's territory list — sync territories in Settings." };
-  }
-
-  const { data: communeTerritories } = await supabase
-    .from("zr_territories")
-    .select("id, name")
-    .eq("workspace_id", workspaceId)
-    .eq("level", "commune")
-    .eq("parent_id", wilayaTerritory.id);
-  const target = normalizeText(order.commune);
-  const rows = communeTerritories ?? [];
-  const communeTerritory =
-    rows.find((c) => normalizeText(c.name) === target) ??
-    rows.find((c) => target.includes(normalizeText(c.name)) || normalizeText(c.name).includes(target));
-  if (!communeTerritory) {
-    return {
-      ok: false,
-      error: `Commune "${order.commune}" not found in ZR Express's list for this wilaya — check spelling or sync territories in Settings.`,
-    };
-  }
-
-  const productName = order.product?.name ?? "Item";
-  const amount = (order.sale_price ?? 0) * order.quantity + (order.delivery_fee ?? 0);
-
-  let parcel: { id: string };
-  try {
-    parcel = await createZRParcel(creds, {
-      customerName: order.customer_name ?? "—",
-      phone: toInternationalDzPhone(order.customer_phone),
-      cityTerritoryId: wilayaTerritory.id,
-      districtTerritoryId: communeTerritory.id,
-      street: order.address,
-      productName,
-      quantity: order.quantity,
-      unitPrice: order.sale_price ?? 0,
-      description: `${order.quantity}x ${productName}`.slice(0, 250),
-      amount,
-      externalId: order.id,
-    });
-  } catch (e) {
-    return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
-  }
-
-  // Best-effort follow-up read for the tracking number — the create response
-  // only returns the parcel id. If this fails the parcel still exists on
-  // ZR's side; "Refresh status" on the order picks it up later.
-  let trackingNumber: string | null = null;
-  let state: string | null = null;
-  try {
-    const detail = await getZRParcel(creds, parcel.id);
-    trackingNumber = detail.trackingNumber;
-    state = detail.state?.name ?? null;
-  } catch {
-    // swallow — see comment above
-  }
-
-  const { error } = await supabase.from("zr_shipments").insert({
-    order_id: orderId,
-    workspace_id: workspaceId,
-    parcel_id: parcel.id,
-    tracking_number: trackingNumber,
-    state,
-    state_updated_at: state ? new Date().toISOString() : null,
-    last_synced_at: new Date().toISOString(),
-  });
-  if (error) return { ok: false, error: error.message };
-
-  revalidatePath(`/app/orders/${orderId}`);
-  return { ok: true };
+export async function listZRHubs(orderId: string) {
+  const { workspaceId } = await adminProfile();
+  return hubsForOrder(await createClient(), workspaceId, orderId);
 }
 
 export async function refreshZRShipmentStatus(orderId: string): Promise<UpdateResult> {

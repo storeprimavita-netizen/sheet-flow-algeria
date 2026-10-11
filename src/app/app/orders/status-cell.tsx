@@ -40,7 +40,8 @@ export function StatusCell({
       toast.error(res.error);
       return;
     }
-    toast.success(t("common.updated"));
+    if (res.warning) toast.warning(res.warning);
+    else toast.success(t("common.updated"));
     router.refresh();
   }
 

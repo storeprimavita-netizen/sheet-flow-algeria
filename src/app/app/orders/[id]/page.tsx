@@ -202,7 +202,7 @@ export default async function OrderDetailPage({
         />
       ) : null}
 
-      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} /> : null}
+      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} /> : null}
 
       {isAdmin ? (
         <SwapCard

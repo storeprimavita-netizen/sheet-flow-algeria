@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+import { DELIVERY_STATUSES } from "@/lib/enums";
 
 /** Schemas for `settings.value` per key (docs/DB.md §settings keys). */
 export const SETTINGS_SCHEMAS = {
@@ -20,6 +21,11 @@ export const SETTINGS_SCHEMAS = {
       z.object({ dow: z.number().int().min(0).max(6), time: z.string().min(1) }),
     ),
   }),
+  /** ZR state name (lower-cased, trimmed) → our delivery_status. ZR states are
+   * per-tenant, so this is user-edited (Settings → ZR Express). */
+  zr_state_map: z.object({ map: z.record(z.string(), z.enum(DELIVERY_STATUSES)) }),
+  /** push a parcel to ZR automatically when an order is confirmed */
+  zr_auto_push: z.object({ enabled: z.boolean() }),
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_SCHEMAS;
@@ -32,7 +38,12 @@ const DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   risk_weights: { returned: 2, cancelled: 1, no_answer: 0.5 },
   stop_shipping_rule: { min_orders: 10, min_delivery_rate: 40 },
   meeting_schedule: { slots: [] },
+  zr_state_map: { map: {} },
+  zr_auto_push: { enabled: false },
 };
+
+/** Lookup key for zr_state_map — ZR state names vary in case/spacing. */
+export const zrStateKey = (name: string) => name.trim().toLowerCase();
 
 /** Fixed number of meeting-slot rows the Thresholds form renders (blank time = unused). */
 export const MEETING_SLOT_COUNT = 5;

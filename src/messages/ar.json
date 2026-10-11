@@ -139,7 +139,8 @@
     "order_source": {
       "shopify": "شوبيفاي",
       "lightfunnels": "لايتفانلز",
-      "manual": "يدوي"
+      "manual": "يدوي",
+      "zrexpress": "ZR Express"
     },
     "delivery_type": {
       "home": "توصيل للمنزل",
@@ -635,7 +636,7 @@
     "densityHint": "ارتفاع الصف الافتراضي للجداول التي لم تحدّد لها تفضيلاً بعد؛ يتذكر كل جدول اختياره الخاص بعد ذلك.",
     "zrexpress": {
       "title": "ZR Express",
-      "description": "أرسل الطلبات المؤكدة ذات التوصيل المنزلي إلى ZR Express وتتبّع حالة الطرد.",
+      "description": "أرسل الطلبات المؤكدة إلى ZR Express (توصيل للمنزل أو مكتب توقف)، تتبّع الطرود، ودع حالات ZR تحدّث طلباتك.",
       "tenantId": "معرّف المستأجر",
       "apiKey": "مفتاح API",
       "syncTerritories": "مزامنة المناطق",
@@ -643,7 +644,22 @@
       "territoriesNotSynced": "لم تتم المزامنة بعد — زامن قبل إرسال الطلبات.",
       "registerWebhook": "تسجيل ويب هوك الحالة",
       "webhookRegistered": "الويب هوك مسجَّل",
-      "webhookNotRegistered": "الويب هوك غير مسجَّل"
+      "webhookNotRegistered": "الويب هوك غير مسجَّل",
+      "stateMapTitle": "حالة ZR ← حالة الطلب",
+      "stateMapHint": "حالات ZR تُضبط لكل حساب. اربط كل حالة بحالة توصيل للطلب؛ الحالات غير المربوطة تظهر على الشحنة فقط.",
+      "notMapped": "غير مربوطة",
+      "addState": "أضف اسم حالة ZR",
+      "add": "إضافة",
+      "saveMap": "حفظ الربط",
+      "autoPush": "الإرسال إلى ZR تلقائيًا عند التأكيد",
+      "autoPushHint": "عند تأكيد الطلب، يُنشأ طرده في ZR فورًا (مكتب التوقف: فقط إذا كان في الولاية مكتب واحد).",
+      "syncFees": "مزامنة رسوم التوصيل من ZR",
+      "feesSynced": "تم تحديث رسوم {n} ولاية من ZR",
+      "noStates": "لم تظهر حالات ZR بعد — ستظهر هنا مع تحرك الطرود.",
+      "sendToZR": "إرسال إلى ZR",
+      "bulkSent": "أُرسل {sent} إلى ZR، فشل {failed}",
+      "pickHub": "مكتب التوقف",
+      "loadHubs": "تحميل مكاتب التوقف"
     },
     "options": {
       "title": "الخيارات",

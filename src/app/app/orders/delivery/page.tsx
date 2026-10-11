@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_DELIVERY } from "@/lib/statuses";
@@ -55,7 +56,7 @@ export default async function DeliveryQueuePage({
         </ButtonLink>
       </PageHeader>
       <OrderTabs active="delivery" />
-      <DeliveryView rows={rows} />
+      <DeliveryView rows={rows} isAdmin={await isCurrentUserAdmin()} />
     </div>
   );
 }

@@ -115,9 +115,12 @@ export type CreateParcelInput = {
   amount: number;
   /** our order id — lets us find the ZR parcel from our side without another lookup */
   externalId: string;
+  /** stop-desk hub (pickup point); omit for home delivery */
+  hubId?: string | null;
 };
 
-/** Only `deliveryType: "home"` is supported — stop-desk needs a ZR hub picker, not built yet. */
+/** `hubId` set → stop-desk parcel (`deliveryType: "pickup-point"`, ZR requires
+ * the hub); otherwise home delivery. Schema: docs.zrexpress.app createparcelendpoint. */
 export async function createZRParcel(creds: ZRCredentials, input: CreateParcelInput): Promise<{ id: string }> {
   return zrFetch<{ id: string }>(creds, "/parcels", {
     method: "POST",
@@ -140,7 +143,8 @@ export async function createZRParcel(creds: ZRCredentials, input: CreateParcelIn
           stockType: "none",
         },
       ],
-      deliveryType: "home",
+      deliveryType: input.hubId ? "pickup-point" : "home",
+      hubId: input.hubId ?? undefined,
       description: input.description,
       amount: input.amount,
       externalId: input.externalId,
@@ -175,4 +179,50 @@ export async function createZRWebhookEndpoint(
   });
   const { secret } = await zrFetch<{ secret: string }>(creds, `/webhooks/endpoints/${created.id}/secret`);
   return { id: created.id, secret };
+}
+
+// ---------------------------------------------------------------------------
+// Hubs (stop-desk pickup points) — POST /hubs/search
+// ---------------------------------------------------------------------------
+export type ZRHub = { id: string; name: string | null; cityTerritoryId: string | null };
+
+type HubSearchResponse = {
+  items: { id: string; name: string | null; address?: { cityTerritoryId?: string | null } | null }[];
+  hasNext?: boolean;
+};
+
+/** Hubs in one wilaya (ZR "city" territory), for the stop-desk picker. */
+export async function searchZRHubs(creds: ZRCredentials, cityTerritoryId: string): Promise<ZRHub[]> {
+  const res = await zrFetch<HubSearchResponse>(creds, "/hubs/search", {
+    method: "POST",
+    body: JSON.stringify({ pageNumber: 1, pageSize: 1000 }),
+  });
+  return res.items
+    .map((h) => ({ id: h.id, name: h.name, cityTerritoryId: h.address?.cityTerritoryId ?? null }))
+    .filter((h) => h.cityTerritoryId === cityTerritoryId);
+}
+
+// ---------------------------------------------------------------------------
+// Delivery rates — GET /delivery-pricing/rates (supplier price > price list)
+// ---------------------------------------------------------------------------
+export type ZRRate = { territoryCode: number | null; level: string | null; home: number | null; stopdesk: number | null };
+
+type RatesResponse = {
+  rates:
+    | {
+        toTerritoryCode: number | null;
+        toTerritoryLevel: string | null;
+        deliveryPrices: { deliveryType: string | null; price: number }[] | null;
+      }[]
+    | null;
+};
+
+/** deliveryType values aren't enumerated in ZR's spec — match "home" and
+ * "pickup-point" (or anything desk/pickup-like) case-insensitively. */
+export async function getZRRates(creds: ZRCredentials): Promise<ZRRate[]> {
+  const res = await zrFetch<RatesResponse>(creds, "/delivery-pricing/rates");
+  return (res.rates ?? []).map((r) => {
+    const price = (re: RegExp) => r.deliveryPrices?.find((p) => p.deliveryType && re.test(p.deliveryType))?.price ?? null;
+    return { territoryCode: r.toTerritoryCode, level: r.toTerritoryLevel, home: price(/home/i), stopdesk: price(/pickup|desk|stop/i) };
+  });
 }
