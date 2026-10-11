@@ -96,7 +96,7 @@ describe("pnlMetrics (actuals, 15b)", () => {
     period_from: "2026-10-01", period_to: "2026-10-30", days: 30,
     orders_received: 10, orders_confirmed: 8, orders_delivered: 5, orders_returned: 3, orders_cancelled: 2,
     revenue: 20000, cogs: 7500, return_fee_unit: 150, return_fees: 450,
-    ad_spend_test: 4000, ad_spend_scaling: 2000, ad_spend: 6000, expenses: 1000, fixed_fees: 2000,
+    ad_spend_test: 4000, ad_spend_scaling: 2000, ad_spend: 6000, expenses: 1000, fixed_fees_monthly: 2000, fixed_share: 1, fixed_fees: 2000,
     net_profit: 20000 - 7500 - 450 - 6000 - 1000 - 2000, // 3050
     cash_to_collect: 8000,
   };

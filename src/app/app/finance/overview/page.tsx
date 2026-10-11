@@ -1,23 +1,28 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Banknote, Landmark, Megaphone, Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
+import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
+import { PnlWaterfall } from "@/components/dashboard/pnl-waterfall";
 import { FinanceTabs } from "../finance-tabs";
 import { FinanceFilterBar } from "../finance-filter-bar";
 import { financeQs } from "@/lib/query-string";
 
-type DashboardKpis = {
-  kpis: {
-    revenue_dzd: number | null;
-    invested_dzd: number | null;
-    net_profit_dzd: number | null;
-  };
-  category_spending: { category: string; amount_dzd: number }[];
-};
+const AGE_BUCKETS = [
+  { key: "age0", max: 7 },
+  { key: "age8", max: 14 },
+  { key: "age15", max: 30 },
+  { key: "age30", max: Infinity },
+] as const;
+
+/** Money for a non-DZD account balance: same grouping, its own currency code. */
+const money = (v: number | null, currency: string) =>
+  currency === "DZD" ? formatCurrency(v) : v == null ? "—" : `${Math.round(v).toLocaleString("en-US").replace(/,/g, " ")} ${currency}`;
 
 export default async function FinanceOverviewPage({
   searchParams,
@@ -33,47 +38,54 @@ export default async function FinanceOverviewPage({
   const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  const [{ data: products }, { data: rpcData }, { data: fees }, { data: accountBalances }] = await Promise.all([
+  const [
+    { data: products },
+    { data: pnlRaw },
+    { data: productPnls },
+    { data: accountBalances },
+    { data: categories },
+    { data: unpaid },
+    { data: onHand },
+  ] = await Promise.all([
     supabase.from("products").select("id, name").order("name"),
-    supabase.rpc("dashboard_stats", {
-      p_from: from,
-      p_to: to,
-      p_product: product ? [product] : undefined,
-    }),
-    supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
-    supabase.from("account_balances").select("name, balance, low_balance_threshold, is_active").eq("workspace_id", profile.workspaceId),
+    supabase.rpc("pnl_summary", { p_from: from, p_to: to, p_product: product }),
+    supabase.rpc("pnl_by_product", { p_from: from, p_to: to }),
+    supabase.from("account_balances").select("account_id, name, currency, balance, low_balance_threshold, is_active").eq("workspace_id", profile.workspaceId),
+    supabase.rpc("dashboard_stats", { p_from: from, p_to: to, p_product: product ? [product] : undefined }),
+    // Receivables are a balance, not a period figure: every delivered order the courier hasn't paid for.
+    supabase.from("orders").select("id, sale_price, quantity, updated_at, cash:cash_collections(id)").eq("delivery_status", "delivered"),
+    supabase.from("cash_collections").select("amount_dzd").eq("status", "collected"),
   ]);
-  const stats = rpcData as unknown as DashboardKpis;
-  const fixedFeesTotal = (fees ?? []).reduce((s, f) => s + (f.amount_dzd ?? 0), 0);
 
-  let expenseQuery = supabase.from("expenses").select("product_id, amount_dzd").eq("workspace_id", profile.workspaceId);
-  let adSpendQuery = supabase.from("ad_spend_daily").select("product_id, amount_dzd").eq("workspace_id", profile.workspaceId);
-  if (from) {
-    expenseQuery = expenseQuery.gte("spent_on", from);
-    adSpendQuery = adSpendQuery.gte("spent_on", from);
-  }
-  if (to) {
-    expenseQuery = expenseQuery.lte("spent_on", to);
-    adSpendQuery = adSpendQuery.lte("spent_on", to);
-  }
-  if (product) {
-    expenseQuery = expenseQuery.eq("product_id", product);
-    adSpendQuery = adSpendQuery.eq("product_id", product);
-  }
-  const [{ data: expenseRows }, { data: adSpendRows }] = await Promise.all([expenseQuery, adSpendQuery]);
-
+  const pnl = asPnl(pnlRaw);
+  const m = pnl ? pnlMetrics(pnl) : null;
   const productName = new Map((products ?? []).map((p) => [p.id, p.name]));
-  const spendByProduct = new Map<string, number>();
-  for (const e of expenseRows ?? []) {
-    if (!e.product_id) continue;
-    spendByProduct.set(e.product_id, (spendByProduct.get(e.product_id) ?? 0) + (e.amount_dzd ?? 0));
-  }
-  for (const a of adSpendRows ?? []) {
-    spendByProduct.set(a.product_id, (spendByProduct.get(a.product_id) ?? 0) + (a.amount_dzd ?? 0));
-  }
-  const productRows = [...spendByProduct.entries()].sort((a, b) => b[1] - a[1]);
-
   const qs = (extra: Record<string, string | undefined>) => financeQs({ from, to }, extra);
+
+  // 💳 aging — ponytail: ages by orders.updated_at (≈ the delivered change);
+  // switch to the delivered row in order_status_history if edits skew it.
+  const now = Date.now();
+  const aging = AGE_BUCKETS.map((b) => ({ ...b, amount: 0, count: 0 }));
+  for (const o of unpaid ?? []) {
+    if (o.cash?.length) continue;
+    const days = (now - new Date(o.updated_at).getTime()) / 86400000;
+    const bucket = aging.find((b) => days <= b.max)!;
+    bucket.amount += (o.sale_price ?? 0) * o.quantity;
+    bucket.count += 1;
+  }
+  const owed = aging.reduce((s, b) => s + b.amount, 0);
+  const cashOnHand = (onHand ?? []).reduce((s, c) => s + (c.amount_dzd ?? 0), 0);
+
+  const balances = (accountBalances ?? []).filter((a) => a.is_active);
+  const lowBalances = balances.filter((a) => a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold);
+  const categorySpending = ((categories as unknown as { category_spending?: { category: string; amount_dzd: number }[] } | null)?.category_spending ?? [])
+    .slice()
+    .sort((a, b) => b.amount_dzd - a.amount_dzd);
+  const roasRows = (productPnls ?? [])
+    .map((r) => ({ id: r.product_id, pnl: asPnl(r.pnl) }))
+    .filter((r) => r.pnl && r.pnl.ad_spend > 0)
+    .map((r) => ({ id: r.id, pnl: r.pnl!, roas: pnlMetrics(r.pnl!).roas }))
+    .sort((a, b) => (b.roas ?? 0) - (a.roas ?? 0));
 
   return (
     <div className="space-y-6">
@@ -81,89 +93,182 @@ export default async function FinanceOverviewPage({
       <FinanceTabs active="overview" />
       <FinanceFilterBar products={(products ?? []).map((p) => ({ value: p.id, label: p.name }))} showCategory={false} showKind={false} />
 
-      {(accountBalances ?? []).filter((a) => a.is_active && a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold).length > 0 ? (
-        <Link href="/app/finance/accounts" className="block rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+      {lowBalances.length > 0 ? (
+        <Link href="/app/finance/accounts" className="block rounded-xl border border-danger/30 bg-danger-bg p-4 text-sm text-danger">
           {t("accounts.lowBalanceBanner", {
-            accounts: (accountBalances ?? [])
-              .filter((a) => a.is_active && a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold)
-              .map((a) => `${a.name} (${formatCurrency(a.balance)})`)
-              .join(", "),
+            accounts: lowBalances.map((a) => `${a.name} (${money(a.balance, a.currency ?? "DZD")})`).join(", "),
           })}
         </Link>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Link href={`/app/orders/all${qs({ delivery_status: "delivered", product_id: product })}`} className="card-surface block rounded-xl p-4 transition-colors hover:border-border-strong">
-          <div className="text-xs text-muted-foreground">{t("dashboard.kpi.revenue")}</div>
-          <div className="num mt-1 text-2xl font-semibold text-success">{formatCurrency(stats.kpis.revenue_dzd)}</div>
-        </Link>
-        <Link href={`/app/finance/expenses${qs({ product })}`} className="card-surface block rounded-xl p-4 transition-colors hover:border-border-strong">
-          <div className="text-xs text-muted-foreground">{t("dashboard.kpi.invested")}</div>
-          <div className="num mt-1 text-2xl font-semibold text-danger">{formatCurrency(stats.kpis.invested_dzd)}</div>
-        </Link>
-        <div className="card-surface rounded-xl p-4">
-          <div className="text-xs text-muted-foreground">{t("dashboard.kpi.netProfit")}</div>
-          <div
-            className={`num mt-1 text-2xl font-semibold ${(stats.kpis.net_profit_dzd ?? 0) >= 0 ? "text-success" : "text-danger"}`}
-          >
-            {formatCurrency(stats.kpis.net_profit_dzd)}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* 🧾 P&L for the period — the one money model */}
+        <section className="card-surface space-y-4 rounded-xl p-5 lg:col-span-7">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              {t("dashboard.pnl.title")}
+            </h2>
+            {m?.margin_pct != null ? <span className="text-xs text-muted-foreground">{t("dashboard.kpi2.margin", { pct: m.margin_pct })}</span> : null}
           </div>
-        </div>
+          {pnl ? (
+            <PnlWaterfall
+              pnl={pnl}
+              labels={{
+                revenue: t("dashboard.pnl.revenue"),
+                cogs: t("dashboard.pnl.cogs"),
+                returns: t("dashboard.pnl.returns"),
+                ads: t("dashboard.pnl.ads"),
+                expenses: t("dashboard.pnl.expenses"),
+                fixed: t("dashboard.pnl.fixed"),
+                net: t("dashboard.pnl.net"),
+              }}
+              hrefs={{
+                revenue: `/app/finance/income${qs({})}`,
+                returns: `/app/orders/all${qs({ delivery_status: "returned", product_id: product })}`,
+                ads: `/app/finance/ad-spend${qs({ product })}`,
+                expenses: `/app/finance/expenses${qs({ product })}`,
+                fixed: "/app/settings#fixed-fees",
+              }}
+            />
+          ) : (
+            <Empty>{t("finance.noExpensesInRange")}</Empty>
+          )}
+          {pnl ? (
+            <p className="text-xs text-muted-foreground">
+              {t("settings.fixedFees")}:{" "}
+              {t("finance.fixedProrated", { amount: formatCurrency(pnl.fixed_fees), monthly: formatCurrency(pnl.fixed_fees_monthly) })}
+            </p>
+          ) : null}
+        </section>
+
+        {/* 💳 receivables */}
+        <section className="card-surface space-y-4 rounded-xl p-5 lg:col-span-5">
+          <div>
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Banknote className="h-4 w-4 text-muted-foreground" />
+              {t("finance.receivables")}
+            </h2>
+            <p className="text-xs text-muted-foreground">{t("finance.receivablesHint")}</p>
+          </div>
+          <Link href="/app/orders/cash" className="num block text-3xl font-semibold tracking-tight hover:underline">
+            {formatCurrency(owed)}
+          </Link>
+          <ul className="space-y-2">
+            {aging.map((b) => (
+              <li key={b.key} className="space-y-1">
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {t(`finance.${b.key}`)} <span className="num text-faint">· {b.count}</span>
+                  </span>
+                  <span className={`num ${b.max > 14 && b.amount > 0 ? "text-danger" : ""}`}>{formatCurrency(b.amount)}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-border">
+                  <div
+                    className={`h-1.5 rounded-full ${b.max > 14 ? "bg-danger" : b.max > 7 ? "bg-warning" : "bg-primary"}`}
+                    style={{ width: `${owed ? (b.amount / owed) * 100 : 0}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-baseline justify-between border-t border-border pt-3 text-sm" title={t("finance.cashOnHandHint")}>
+            <span className="text-muted-foreground">{t("finance.cashOnHand")}</span>
+            <span className="num">{formatCurrency(cashOnHand)}</span>
+          </div>
+        </section>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card-surface space-y-3 rounded-xl p-5">
-          <h2 className="text-sm font-semibold">{t("dashboard.categorySpending.title")}</h2>
-          {!stats.category_spending.length ? (
-            <Empty>{t("finance.noExpensesInRange")}</Empty>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* 🏦 accounts */}
+        <section className="card-surface space-y-3 rounded-xl p-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+            {t("finance.accounts")}
+          </h2>
+          {!balances.length ? (
+            <Empty>{t("accounts.empty")}</Empty>
           ) : (
-            <ul className="space-y-1 text-sm">
-              {stats.category_spending
-                .slice()
-                .sort((a, b) => b.amount_dzd - a.amount_dzd)
-                .map((c) => (
-                  <li key={c.category}>
-                    <Link
-                      href={`/app/finance/expenses${qs({ category: c.category, product })}`}
-                      className="flex justify-between hover:underline"
-                    >
-                      <span className="text-muted-foreground">{t(`status.expense_category.${c.category}`)}</span>
-                      <span className="num">{formatCurrency(c.amount_dzd)}</span>
+            <ul className="divide-y divide-border">
+              {balances.map((a) => {
+                const low = a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold;
+                return (
+                  <li key={a.account_id} className="flex items-baseline justify-between py-2 text-sm">
+                    <Link href="/app/finance/accounts" className="hover:underline">
+                      {a.name}
                     </Link>
+                    <span className={`num ${low ? "text-danger" : ""}`}>{money(a.balance, a.currency ?? "DZD")}</span>
                   </li>
-                ))}
+                );
+              })}
             </ul>
           )}
-        </div>
+        </section>
 
-        <div className="card-surface space-y-3 rounded-xl p-5">
-          <h2 className="text-sm font-semibold">{t("finance.spendByProduct")}</h2>
-          {!productRows.length ? (
-            <Empty>{t("finance.noExpensesInRange")}</Empty>
+        {/* 📣 ad spend split + ROAS */}
+        <section className="card-surface space-y-4 rounded-xl p-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Megaphone className="h-4 w-4 text-muted-foreground" />
+            {t("finance.adSplit")}
+          </h2>
+          {pnl && pnl.ad_spend > 0 ? (
+            <>
+              <div className="flex h-2 overflow-hidden rounded-full bg-border">
+                <div className="bg-info" style={{ width: `${(pnl.ad_spend_test / pnl.ad_spend) * 100}%` }} />
+                <div className="bg-primary" style={{ width: `${(pnl.ad_spend_scaling / pnl.ad_spend) * 100}%` }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <Link href={`/app/finance/ad-spend${qs({ product, kind: "test" })}`} className="flex items-center gap-2 hover:underline">
+                  <span className="h-2 w-2 rounded-full bg-info" aria-hidden />
+                  <span className="text-muted-foreground">{t("finance.adTest")}</span>
+                  <span className="num ms-auto">{formatCurrency(pnl.ad_spend_test)}</span>
+                </Link>
+                <Link href={`/app/finance/ad-spend${qs({ product, kind: "scaling" })}`} className="flex items-center gap-2 hover:underline">
+                  <span className="h-2 w-2 rounded-full bg-primary" aria-hidden />
+                  <span className="text-muted-foreground">{t("finance.adScaling")}</span>
+                  <span className="num ms-auto">{formatCurrency(pnl.ad_spend_scaling)}</span>
+                </Link>
+              </div>
+              <div className="space-y-1 border-t border-border pt-3">
+                <h3 className="text-xs font-medium text-muted-foreground">{t("finance.roasByProduct")}</h3>
+                <ul className="space-y-1 text-sm">
+                  {roasRows.map((r) => (
+                    <li key={r.id} className="flex items-baseline justify-between gap-2">
+                      <Link href={`/app/products/${r.id}/statistics`} className="truncate hover:underline">
+                        {productName.get(r.id) ?? r.id.slice(0, 8)}
+                      </Link>
+                      <span className="num whitespace-nowrap text-xs text-muted-foreground">{formatCurrency(r.pnl.ad_spend)}</span>
+                      <span className={`num w-14 text-end ${(r.roas ?? 0) >= 1 ? "text-success" : "text-danger"}`}>
+                        {r.roas != null ? `${r.roas.toFixed(2)}×` : "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           ) : (
-            <ul className="space-y-1 text-sm">
-              {productRows.map(([productId, amount]) => (
-                <li key={productId} className="flex justify-between">
-                  <Link href={`/app/products/${productId}`} className="text-muted-foreground hover:underline">
-                    {productName.get(productId) ?? productId.slice(0, 8)}
-                  </Link>
-                  <Link href={`/app/finance/expenses${qs({ product: productId })}`} className="num hover:underline">
-                    {formatCurrency(amount)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Empty>{t("finance.noAdSpendInRange")}</Empty>
           )}
-        </div>
+        </section>
       </div>
 
-      <Link href="/app/settings" className="card-surface block rounded-xl p-4 transition-colors hover:border-border-strong">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium">{t("settings.fixedFees")}</span>
-          <span className="num text-sm">{formatCurrency(fixedFeesTotal)}</span>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">{t("finance.fixedFeesNote")}</p>
-      </Link>
+      <section className="card-surface space-y-3 rounded-xl p-5">
+        <h2 className="text-sm font-semibold">{t("dashboard.categorySpending.title")}</h2>
+        {!categorySpending.length ? (
+          <Empty>{t("finance.noExpensesInRange")}</Empty>
+        ) : (
+          <ul className="grid grid-cols-1 gap-x-8 gap-y-1 text-sm sm:grid-cols-2">
+            {categorySpending.map((c) => (
+              <li key={c.category}>
+                <Link href={`/app/finance/expenses${qs({ category: c.category, product })}`} className="flex justify-between hover:underline">
+                  <span className="text-muted-foreground">{t(`status.expense_category.${c.category}`)}</span>
+                  <span className="num">{formatCurrency(c.amount_dzd)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

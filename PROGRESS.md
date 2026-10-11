@@ -46,7 +46,7 @@ the bottom. Format:
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | done |
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | done |
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | done |
-| 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | planned |
+| 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | done |
 | 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | planned |
 | 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | planned |
 
@@ -3329,4 +3329,22 @@ unchanged until the user runs the steps above.
   blank until hydration → empty selects on slow loads).
 - Screenshots: stock dark (dialog tested: +10 persisted, then reverted),
   product overview + pricing light.
+- Tests 81/81, build green.
+
+## Phase 15h — Finance (2026-10-12) — DONE
+- Finance overview rebuilt (stops repeating dashboard KPIs): 🧾 P&L waterfall
+  for the period (shared PnlWaterfall + pnl_summary, margin, fixed fees shown
+  as prorated amount vs monthly); 💳 receivables = delivered orders with no
+  cash collection, aged 0–7 / 8–14 / 15–30 / 30+ days (ponytail: aged by
+  orders.updated_at) + "collected, not deposited"; 🏦 account balances in
+  their own currency (low ones red + banner); 📣 ad spend test vs scaling
+  split bar + ROAS by product (pnl_by_product). Spend-by-category kept, every
+  row drills through. Income page already on pnl (15b).
+- All filter-bar selects (dashboard/finance/orders/audit) now render their
+  label server-side — the "blank until hydrated" Select bug, fixed at each
+  bar (EnumSelect done in 15g).
+- PnlLines type gains fixed_fees_monthly / fixed_share.
+- Note: the user was browsing in the shared Playwright window during this
+  phase (pages changing under the agent) — final shots taken in a separate
+  tab. Screenshots: finance dark (DOM-verified) + light full page.
 - Tests 81/81, build green.

@@ -833,7 +833,7 @@
     }
   },
   "finance": {
-    "subtitleOverview": "Invested vs revenue vs net profit for the period",
+    "subtitleOverview": "Profit & loss, money owed by the courier, accounts and ad spend for the period",
     "subtitleAdSpend": "Daily ad spend across all products",
     "subtitleIncome": "Revenue derived from delivered orders — nothing entered by hand",
     "spendByProduct": "Spend by product",
@@ -842,7 +842,21 @@
     "returnFeeTotal": "Return fees",
     "noExpensesInRange": "No expenses in this range.",
     "noAdSpendInRange": "No ad spend in this range.",
-    "noIncomeInRange": "No delivered orders in this range."
+    "noIncomeInRange": "No delivered orders in this range.",
+    "receivables": "Owed by the courier",
+    "receivablesHint": "Delivered orders with no cash collection recorded yet, aged by their last status change.",
+    "age0": "0–7 days",
+    "age8": "8–14 days",
+    "age15": "15–30 days",
+    "age30": "30+ days",
+    "cashOnHand": "Collected, not deposited",
+    "cashOnHandHint": "Cash collections marked collected but not yet deposited.",
+    "adSplit": "Ad spend: test vs scaling",
+    "adTest": "Test",
+    "adScaling": "Scaling",
+    "roasByProduct": "ROAS by product",
+    "accounts": "Accounts",
+    "fixedProrated": "{amount} for this period — {monthly} per month"
   },
   "accounts": {
     "title": "Accounts",
@@ -863,7 +877,8 @@
     },
     "balance": "Balance",
     "lowBalance": "Low balance",
-    "lowBalanceBanner": "Low balance on: {accounts}"
+    "lowBalanceBanner": "Low balance on: {accounts}",
+    "empty": "No accounts yet — add one in Accounts."
   },
   "role": {
     "admin": "Admin",

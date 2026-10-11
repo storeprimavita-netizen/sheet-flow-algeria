@@ -86,7 +86,8 @@ export function FinanceFilterBar({
             <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
             <Select value={get(s.key) || ALL} onValueChange={(v) => setParam(s.key, v)}>
               <SelectTrigger>
-                <SelectValue />
+                {/* explicit label: Radix leaves SelectValue blank until hydration */}
+                <SelectValue>{s.opts.find((o) => o.value === get(s.key))?.label ?? t("common.all")}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>{t("common.all")}</SelectItem>

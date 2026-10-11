@@ -57,7 +57,7 @@ export function AuditFilterBar({
           <span className="text-xs font-medium text-muted-foreground">{t("team.table")}</span>
           <Select value={get("table") || ALL} onValueChange={(v) => setParam("table", v)}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>{get("table") || t("common.all")}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>{t("common.all")}</SelectItem>
@@ -73,7 +73,9 @@ export function AuditFilterBar({
           <span className="text-xs font-medium text-muted-foreground">{t("fields.agent")}</span>
           <Select value={get("actor") || ALL} onValueChange={(v) => setParam("actor", v)}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {get("actor") ? (actors.find((a) => a.user_id === get("actor"))?.display_name ?? get("actor")) : t("common.all")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>{t("common.all")}</SelectItem>

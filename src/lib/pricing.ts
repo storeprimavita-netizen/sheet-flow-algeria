@@ -223,6 +223,8 @@ export type PnlLines = {
   ad_spend_scaling: number;
   ad_spend: number;
   expenses: number;
+  fixed_fees_monthly: number;
+  fixed_share: number;
   fixed_fees: number;
   net_profit: number;
   cash_to_collect: number;
