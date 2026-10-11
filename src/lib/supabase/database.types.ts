@@ -611,14 +611,14 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "category_option_id": string | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"name": string,"notes": string | null,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
+                    "category_option_id": string | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"low_stock_threshold": number,"name": string,"notes": string | null,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"name": string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
+                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name": string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
                   }
                   Update: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"name"?: string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
+                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name"?: string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
                   }
                   Relationships: [
                     {

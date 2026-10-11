@@ -27,7 +27,8 @@ export default async function AppLayout({
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
-      .eq("delivery_status", "wait_for_deposit"),
+      .eq("confirmation_status", "confirmed")
+      .eq("delivery_status", "wait_for_deposit"), // confirmed + not yet handed to the courier
     supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })
