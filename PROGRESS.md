@@ -39,6 +39,16 @@ the bottom. Format:
 | 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | done |
 | 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | done |
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
+| 15a 🛡️ Security hardening (OWASP) | docs/phases/phase-15-plan.md §15a | done |
+| 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | planned |
+| 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | planned |
+| 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | planned |
+| 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | planned |
+| 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | planned |
+| 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | planned |
+| 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | planned |
+| 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | planned |
+| 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | planned |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -3161,3 +3171,24 @@ unchanged until the user runs the steps above.
 - Known issues: remote DB needs `npx supabase db push` for 00020 (user step).
   Removed a literal NUL byte from the perf group key (git saw file as binary).
 - Next chat must know: 14h still blocked on user GCloud setup.
+
+## Phase 15a — Security hardening (2026-10-11) — DONE
+- Done: OWASP review (owasp-security skill) of the whole app; fixed every
+  reachable finding. 00021: `account_balances` now security_invoker + anon
+  revoked (was readable WITHOUT login — every workspace's balances);
+  `guard_profiles` blocks self-moving to another workspace; seed/bootstrap
+  execute revoked from public/anon/authenticated. Auth callback same-origin
+  `next`; webhooks capped at 256KB and rejected events store metadata only;
+  replay scoped to caller workspace; ZR webhook updates `last_event_at`;
+  `import "server-only"` in admin.ts (vitest alias); baseline security
+  headers; integration fields `autoComplete` off (browser was saving the
+  admin email as store domain / ZR tenant).
+- Also: vendored skills impeccable / ui-ux-pro-max / frontend-design /
+  owasp-security / karpathy-guidelines (docs/TOOLING.md); Phase 15 plan
+  written (docs/phases/phase-15-plan.md) from inventory + OWASP + screenshot
+  critique audits (critique shots: .playwright-mcp/critique/, gitignored).
+- Tests: build green; unit 31/31; RLS 39/39 incl. new account_balances test.
+- Known issues (USER): `kimi.tx` API key was committed in e686c83 (local
+  only, never pushed) → rotate it; purge history before pushing `mnw`.
+  Remote DB needs `npx supabase db push` (00020, 00021).
+- Next chat must know: start at 15b — every later phase reads `pnl_summary`.
