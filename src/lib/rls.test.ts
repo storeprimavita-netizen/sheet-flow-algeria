@@ -176,6 +176,21 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     expect(error).toBeNull();
   });
 
+  // 00022: one money model — every surface reads the same P&L lines.
+  test("pnl: dashboard net === pnl_summary net === Σ per-product nets; agents get null", async () => {
+    const [{ data: dash }, { data: pnl }, { data: perProduct }] = await Promise.all([
+      adminUser.rpc("dashboard_stats", {}),
+      adminUser.rpc("pnl_summary", {}),
+      adminUser.rpc("pnl_by_product", {}),
+    ]);
+    const net = (pnl as { net_profit: number }).net_profit;
+    expect((dash as { kpis: { net_profit_dzd: number } }).kpis.net_profit_dzd).toBeCloseTo(net, 2);
+    const sum = (perProduct ?? []).reduce((s, r) => s + ((r.pnl as { net_profit: number } | null)?.net_profit ?? 0), 0);
+    expect(sum).toBeCloseTo(net, 0);
+    const { data: agentPnl } = await confAgent.rpc("pnl_summary", {});
+    expect(agentPnl).toBeNull();
+  });
+
   describe("orders: role-scoped visibility + cross-stage guard", () => {
     test("confirmation agent sees all workspace orders (14a: visibility is role-blind, writes are role-scoped)", async () => {
       const { count, error } = await confAgent

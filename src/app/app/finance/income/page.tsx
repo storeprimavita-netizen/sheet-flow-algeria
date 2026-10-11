@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
-import { getSetting } from "@/lib/settings";
+import { asPnl, type PnlLines } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
@@ -12,7 +12,7 @@ import { FinanceTabs } from "../finance-tabs";
 import { FinanceFilterBar } from "../finance-filter-bar";
 import { financeQs } from "@/lib/query-string";
 
-type Row = { productId: string; name: string; delivered: number; revenue: number; returned: number };
+type Row = { productId: string; name: string; pnl: PnlLines };
 
 export default async function FinanceIncomePage({
   searchParams,
@@ -26,36 +26,25 @@ export default async function FinanceIncomePage({
   const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  let query = supabase
-    .from("orders")
-    .select("product_id, sale_price, quantity, delivery_status, product:products(name)")
-    .eq("workspace_id", profile.workspaceId)
-    .in("delivery_status", ["delivered", "returned"]);
-  if (from) query = query.gte("placed_at", from);
-  if (to) query = query.lte("placed_at", `${to}T23:59:59`);
-
-  const [{ data: orders }, returnFee] = await Promise.all([
-    query,
-    getSetting(profile.workspaceId, "return_fee"),
+  // One money model (00022): per-product lines + workspace totals from the
+  // same SQL formula the dashboard uses — net includes COGS, ads, expenses
+  // and the fixed-fee share, not just return fees.
+  const range = { p_from: from || undefined, p_to: to || undefined };
+  const [{ data: pnls }, { data: totalRaw }, { data: products }] = await Promise.all([
+    supabase.rpc("pnl_by_product", range),
+    supabase.rpc("pnl_summary", range),
+    supabase.from("products").select("id, name").eq("workspace_id", profile.workspaceId),
   ]);
+  const nameById = new Map((products ?? []).map((p) => [p.id, p.name]));
+  const rows: Row[] = (pnls ?? [])
+    .map((r) => ({ productId: r.product_id, name: nameById.get(r.product_id) ?? "—", pnl: asPnl(r.pnl) }))
+    .filter((r): r is Row => !!r.pnl && r.pnl.orders_delivered + r.pnl.orders_returned > 0)
+    .sort((a, b) => b.pnl.revenue - a.pnl.revenue);
 
-  const byProduct = new Map<string, Row>();
-  for (const o of orders ?? []) {
-    if (!o.product_id) continue;
-    const row = byProduct.get(o.product_id) ?? { productId: o.product_id, name: o.product?.name ?? "—", delivered: 0, revenue: 0, returned: 0 };
-    if (o.delivery_status === "delivered") {
-      row.delivered += 1;
-      row.revenue += (o.sale_price ?? 0) * o.quantity;
-    } else if (o.delivery_status === "returned") {
-      row.returned += 1;
-    }
-    byProduct.set(o.product_id, row);
-  }
-  const rows = [...byProduct.values()].sort((a, b) => b.revenue - a.revenue);
-
-  const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
-  const totalReturnFees = rows.reduce((s, r) => s + r.returned * returnFee.amount, 0);
-  const totalNet = totalRevenue - totalReturnFees;
+  const total = asPnl(totalRaw);
+  const totalRevenue = total?.revenue ?? 0;
+  const totalReturnFees = total?.return_fees ?? 0;
+  const totalNet = total?.net_profit ?? 0;
 
   const qs = (extra: Record<string, string | undefined>) => financeQs({ from, to }, extra);
 
@@ -103,8 +92,7 @@ export default async function FinanceIncomePage({
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const returnFeeTotal = r.returned * returnFee.amount;
-                  const net = r.revenue - returnFeeTotal;
+                  const { orders_delivered: delivered, orders_returned: returned, revenue, return_fees: returnFeeTotal, net_profit: net } = r.pnl;
                   return (
                     <tr key={r.productId}>
                       <td>
@@ -114,13 +102,13 @@ export default async function FinanceIncomePage({
                       </td>
                       <td>
                         <Link href={`/app/orders/all${qs({ product_id: r.productId, delivery_status: "delivered" })}`} className="hover:underline">
-                          {r.delivered}
+                          {delivered}
                         </Link>
                       </td>
-                      <td className="num">{formatCurrency(r.revenue)}</td>
+                      <td className="num">{formatCurrency(revenue)}</td>
                       <td>
                         <Link href={`/app/orders/all${qs({ product_id: r.productId, delivery_status: "returned" })}`} className="hover:underline">
-                          {r.returned}
+                          {returned}
                         </Link>
                       </td>
                       <td className="num text-danger">{formatCurrency(returnFeeTotal)}</td>

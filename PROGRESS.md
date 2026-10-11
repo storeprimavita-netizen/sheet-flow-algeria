@@ -40,7 +40,7 @@ the bottom. Format:
 | 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | done |
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
 | 15a 🛡️ Security hardening (OWASP) | docs/phases/phase-15-plan.md §15a | done |
-| 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | planned |
+| 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | done |
 | 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | planned |
 | 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | planned |
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | planned |
@@ -3192,3 +3192,24 @@ unchanged until the user runs the steps above.
   only, never pushed) → rotate it; purge history before pushing `mnw`.
   Remote DB needs `npx supabase db push` (00020, 00021).
 - Next chat must know: start at 15b — every later phase reads `pnl_summary`.
+
+## Phase 15b — One money model (2026-10-11) — DONE
+- Done: 00022 `pnl_lines()` = the ONE P&L formula (revenue − COGS − returns×
+  return_fee − ads(test/scaling) − expenses − fixed fees prorated days/30 and
+  allocated by delivered share when filtered; + cash_to_collect). Entry
+  points: `pnl_summary(from,to,product)`, `pnl_by_product(from,to)`, and
+  `dashboard_stats` (KPIs + daily invested now delegate; full lines under
+  `.pnl`). Derived ratios in `src/lib/pricing.ts` `pnlMetrics()` (margin, AOV,
+  ROAS, CPA conf/deliv, cost per delivered, conf/deliv/return rates,
+  break-even delivery %) + `asPnl()`. Rewired: products grid, product
+  statistics + expenses tabs, finance income (was "revenue − return fees"
+  labelled net). Deleted `product-metrics.ts`. Real pricing column: return
+  fee from settings (was 0), lead cost + spend on the same 30-day window.
+- Seed check: dashboard net was −181 880; true net −531 846.67 (fixed fees
+  349k over 119 days + 900 returns were missing). All three paths agree.
+- Tests: unit 34 + RLS 40 = 74/74 (new: pnlMetrics fixture incl. break-even
+  zeroing net; DB parity dashboard = pnl_summary = Σ per-product; agent null).
+- Types: regenerated with `gen types --local` (remote unreachable) — format
+  differs from the old `--linked` output, content equivalent; 2 casts fixed
+  to `NonNullable<Json>` (payload is NOT NULL).
+- Next: 15c shell/nav, then 15d dashboard reads `stats.pnl` + pnlMetrics().

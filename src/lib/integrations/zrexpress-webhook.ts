@@ -80,7 +80,7 @@ export async function processZRWebhook(req: Request): Promise<Response> {
     workspace_id: integration?.workspace_id ?? null,
     provider: "zrexpress",
     signature_ok: signatureOk,
-    payload: (!signatureOk ? { _rejected: true, bytes: body.length } : parseError ? { _unparsable: body.slice(0, 5000) } : payload) as Json,
+    payload: (!signatureOk ? { _rejected: true, bytes: body.length } : parseError ? { _unparsable: body.slice(0, 5000) } : payload) as NonNullable<Json>,
     error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
     processed_at: new Date().toISOString(),
   });
