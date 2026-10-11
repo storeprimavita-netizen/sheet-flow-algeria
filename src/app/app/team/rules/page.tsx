@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
@@ -40,11 +40,10 @@ export default async function RulesPage() {
 
       {admin && (
         <details className="group/card-surface card-surface rounded-xl">
-          <summary className="cursor-pointer p-5 text-sm font-semibold select-none marker:hidden">
-            <span className="inline-flex items-center gap-2">
-              {t("team.addRule")}
-              <span className="inline-block transition-transform group-open/card-surface:rotate-45 text-muted-foreground">+</span>
-            </span>
+          {/* list-none + webkit marker: hide the native ▶ (marker:hidden alone doesn't in Chrome) */}
+          <summary className="flex cursor-pointer list-none items-center gap-2 p-5 text-sm font-semibold select-none [&::-webkit-details-marker]:hidden">
+            <Plus className="h-4 w-4 text-muted-foreground transition-transform group-open/card-surface:rotate-45" />
+            {t("team.addRule")}
           </summary>
           <form action={saveRuleDoc.bind(null, null)} className="space-y-4 px-5 pb-5">
             <Field label={t("team.ruleTitle")}>
@@ -82,7 +81,9 @@ export default async function RulesPage() {
 
               {admin && (
                 <details className="group">
-                  <summary className="cursor-pointer text-sm font-medium select-none marker:hidden text-muted-foreground hover:text-foreground">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-muted-foreground select-none hover:text-foreground [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90 rtl:rotate-180 rtl:group-open:rotate-90" />
+                    <Pencil className="h-3.5 w-3.5" />
                     {t("team.editRule")}
                   </summary>
                   <div className="mt-4 space-y-4">

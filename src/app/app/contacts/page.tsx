@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizeDzPhone } from "@/lib/customers";
 import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { SearchParamInput } from "@/components/fields/search-param-input";
 import { ContactTabs } from "./tabs";
 import { CustomersTable, type CustomerRow, type CustomerOrder } from "./customers-table";
 
@@ -25,9 +24,13 @@ export default async function CustomersPage({
   let customers;
   if (q) {
     const normalizedPhone = normalizeDzPhone(q);
+    // A name like "Riad" normalizes to "" → ilike '%%' matched every customer;
+    // only search phones when the query actually has digits.
     const [byName, byPhone] = await Promise.all([
       supabase.from("customer_stats").select("*").ilike("name", `%${q}%`),
-      supabase.from("customer_stats").select("*").ilike("phone", `%${normalizedPhone}%`),
+      normalizedPhone
+        ? supabase.from("customer_stats").select("*").ilike("phone", `%${normalizedPhone}%`)
+        : Promise.resolve({ data: [] as never[] }),
     ]);
     const byId = new Map([...(byName.data ?? []), ...(byPhone.data ?? [])].map((c) => [c.id, c]));
     customers = [...byId.values()].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
@@ -100,10 +103,7 @@ export default async function CustomersPage({
 
       <ContactTabs active="customers" />
 
-      <form method="get" className="flex gap-2">
-        <Input name="q" defaultValue={q} placeholder={t("contacts.search")} className="max-w-sm" />
-        <Button type="submit">{t("actions.search")}</Button>
-      </form>
+      <SearchParamInput placeholder={t("contacts.search")} />
 
       <CustomersTable rows={rows} />
     </div>
