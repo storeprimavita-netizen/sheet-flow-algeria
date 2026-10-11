@@ -16,12 +16,15 @@ export function OrderTaxonomyCard({
   selectedTagIds,
   reasons,
   cancellationReasonId,
+  showReason,
 }: {
   orderId: string;
   tags: OptionRow[];
   selectedTagIds: string[];
   reasons: OptionRow[];
   cancellationReasonId: string | null;
+  /** only meaningful on a cancelled order */
+  showReason: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -41,19 +44,21 @@ export function OrderTaxonomyCard({
           }}
         />
       </Field>
-      <Field label={t("fields.cancellationReason")} hint={t("common.optional")}>
-        <OptionSelect
-          setKey="cancellation_reason"
-          value={cancellationReasonId ?? undefined}
-          options={reasons.map((o) => ({ value: o.id, label: o.label, token: o.color_token, archived: !!o.archived_at }))}
-          placeholder={t("fields.cancellationReason")}
-          onChange={async (id) => {
-            const res = await setOrderCancellationReason(orderId, id || null);
-            if (!res.ok) toast.error(res.error);
-            else router.refresh();
-          }}
-        />
-      </Field>
+      {showReason ? (
+        <Field label={t("fields.cancellationReason")} hint={t("common.optional")}>
+          <OptionSelect
+            setKey="cancellation_reason"
+            value={cancellationReasonId ?? undefined}
+            options={reasons.map((o) => ({ value: o.id, label: o.label, token: o.color_token, archived: !!o.archived_at }))}
+            placeholder={t("fields.cancellationReason")}
+            onChange={async (id) => {
+              const res = await setOrderCancellationReason(orderId, id || null);
+              if (!res.ok) toast.error(res.error);
+              else router.refresh();
+            }}
+          />
+        </Field>
+      ) : null}
     </div>
   );
 }

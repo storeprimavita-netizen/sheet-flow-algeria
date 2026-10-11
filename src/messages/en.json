@@ -380,7 +380,13 @@
       "swappedTo": "Swapped to order #{number}",
       "swappedFrom": "Swapped from order #{number}",
       "confirm": "Swap this order? A new order will be created for the new customer with the same product."
-    }
+    },
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "showClosed": "Show closed",
+    "showActionable": "Actionable only",
+    "toCollect": "To collect (COD)",
+    "tracking": "Tracking"
   },
   "expenses": {
     "title": "Expenses",

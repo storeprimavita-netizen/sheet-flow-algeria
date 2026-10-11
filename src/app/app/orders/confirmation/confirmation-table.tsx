@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Chip } from "@/components/ui/chip";
 import { ButtonLink } from "@/components/button-link";
 import { StatusPill } from "@/components/status-pill";
+import { PhoneLinks } from "@/components/phone-links";
 import { RiskBadge } from "@/components/risk-badge";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
@@ -61,13 +62,7 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
         <div className="min-w-0">
           <div className="truncate">{r.customer_name ?? "—"}</div>
           {r.customer_phone ? (
-            <a
-              href={`tel:${r.customer_phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="num text-xs text-info hover:underline"
-            >
-              {r.customer_phone}
-            </a>
+            <PhoneLinks phone={r.customer_phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
           ) : null}
         </div>
       ),

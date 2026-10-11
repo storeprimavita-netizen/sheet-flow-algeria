@@ -113,9 +113,11 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
   });
 
   afterAll(async () => {
-    await adminUser.auth.signOut();
-    await confAgent.auth.signOut();
-    await delivAgent.auth.signOut();
+    // scope "local": the default (global) revokes every session of the seed
+    // users — including a developer's browser logged in as admin@seed.mnw.
+    await adminUser.auth.signOut({ scope: "local" });
+    await confAgent.auth.signOut({ scope: "local" });
+    await delivAgent.auth.signOut({ scope: "local" });
   });
 
   test.each(FINANCIAL_TABLES)("agent select on %s returns 0 rows", async (table) => {

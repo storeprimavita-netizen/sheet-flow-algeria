@@ -50,6 +50,8 @@ export type DataTableProps<T> = {
   rowActions?: (row: T) => React.ReactNode;
   /** detail sheet content per row (opened on row click, deep-linked via ?row=) */
   renderSheet?: (row: T) => { title: React.ReactNode; body: React.ReactNode };
+  /** extra controls on the toolbar row (start side), e.g. a view toggle */
+  toolbar?: React.ReactNode;
 };
 
 // ponytail: server pagination caps rendered rows at pageSize (~25); add
@@ -70,6 +72,7 @@ export function DataTable<T>({
   bulkActions,
   rowActions,
   renderSheet,
+  toolbar,
 }: DataTableProps<T>) {
   const t = useTranslations();
   const router = useRouter();
@@ -200,6 +203,7 @@ export function DataTable<T>({
     <div className="space-y-3">
       {/* toolbar */}
       <div className="flex items-center justify-end gap-2">
+        {toolbar ? <div className="me-auto flex items-center gap-1">{toolbar}</div> : null}
         <Button
           variant="ghost"
           size="icon"

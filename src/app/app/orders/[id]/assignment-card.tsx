@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { UserCog } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/field";
 import { assignAgents } from "../actions";
@@ -34,14 +33,16 @@ export function AssignmentCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Auto-saves on change, like tags/reason — no separate Save button.
+  async function save(nextConf: string, nextDeliv: string) {
+    setConf(nextConf);
+    setDeliv(nextDeliv);
     setBusy(true);
     setError(null);
     const res = await assignAgents({
       orderId,
-      confirmationAgent: conf === NONE ? null : conf,
-      deliveryAgent: deliv === NONE ? null : deliv,
+      confirmationAgent: nextConf === NONE ? null : nextConf,
+      deliveryAgent: nextDeliv === NONE ? null : nextDeliv,
     });
     setBusy(false);
     if (!res.ok) {
@@ -52,7 +53,7 @@ export function AssignmentCard({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card-surface space-y-4 rounded-xl p-5">
+    <div className="card-surface space-y-4 rounded-xl p-5" aria-busy={busy}>
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         <UserCog className="h-4 w-4" />
         {t("workbench.assignment")}
@@ -60,7 +61,7 @@ export function AssignmentCard({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t("workbench.assignConfirmation")}>
-          <Select value={conf} onValueChange={setConf}>
+          <Select value={conf} onValueChange={(v) => save(v, deliv)} disabled={busy}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -75,7 +76,7 @@ export function AssignmentCard({
           </Select>
         </Field>
         <Field label={t("workbench.assignDelivery")}>
-          <Select value={deliv} onValueChange={setDeliv}>
+          <Select value={deliv} onValueChange={(v) => save(conf, v)} disabled={busy}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -94,10 +95,6 @@ export function AssignmentCard({
       {error ? (
         <p className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{error}</p>
       ) : null}
-
-      <Button type="submit" disabled={busy}>
-        {busy ? t("actions.saving") : t("actions.save")}
-      </Button>
-    </form>
+    </div>
   );
 }

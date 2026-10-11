@@ -26,6 +26,7 @@ export function SwapCard({
 }) {
   const t = useTranslations("orders.swap");
   const canSwap = !swappedTo && SWAPPABLE.has(deliveryStatus);
+  if (!swappedTo && !swappedFrom && !canSwap) return null; // nothing to show → no empty card
 
   return (
     <div className="card-surface rounded-xl p-5 space-y-3">
