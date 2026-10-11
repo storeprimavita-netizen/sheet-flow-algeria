@@ -44,7 +44,7 @@ the bottom. Format:
 | 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | done |
 | 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | done |
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | done |
-| 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | planned |
+| 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | done |
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | planned |
 | 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | planned |
 | 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | planned |
@@ -3276,3 +3276,34 @@ unchanged until the user runs the steps above.
 - Screenshots: delivery dark, order detail light, overflow checks at 1440.
   Caught: PhoneLinks needed "use client" (500 on order detail).
 - Tests 78/78, build green.
+
+## Phase 15f — ZR Express ready to link (2026-10-11) — DONE
+- Verified against docs.zrexpress.app before building: stop desk =
+  `deliveryType:"pickup-point"` + `hubId` (POST /hubs/search, hub
+  `address.cityTerritoryId`); fees = GET /delivery-pricing/rates
+  (`toTerritoryCode`, `deliveryPrices[{deliveryType, price}]`).
+- 🔐 Webhook: tenant-safe (workspace = the active config whose own Svix
+  secret verifies — was `.limit(1)` across all workspaces), deduped on
+  svix-id, zod-validated payload, ZR state → `delivery_status` via the
+  workspace's `zr_state_map` (case/space-insensitive, hasOwn-guarded); update
+  goes through `orders` so triggers write history/stock.
+- ⚙️ Settings → ZR Express: mapping editor (states seen + add your own),
+  auto-push-on-confirm switch, "Sync delivery fees from ZR" (→ wilaya_fees,
+  known wilaya codes only).
+- 📦 `pushToZR()` extracted to lib/integrations/zrexpress-push.ts (client-
+  agnostic): admin button, bulk "Send to ZR" on the delivery queue (admin
+  select), and auto-push on confirm (service role — documented in DB.md
+  §Service-role uses; flag read via service role too, since agents can't
+  read admin-only settings). Push failures return a `warning`, never undo
+  the confirmation. 📍 Stop desk: hub picker on the order's ZR card; auto/
+  bulk push auto-picks when the wilaya has exactly one hub.
+- 🛡️ OWASP review of the diff: fixed missing zod on the ZR payload (non-UUID
+  parcel → 400) and `__proto__` mapping lookup. Rest clean (admin gates,
+  zod on actions, workspace scoping, fixed ZR base URL = no SSRF).
+- Proven live (dev server + local DB, fixtures removed after): valid/dup/
+  bad-sig/other-tenant events, unmapped vs mapped state (order → delivered,
+  history actor null), UI save of the mapping. New unit test
+  zrexpress-webhook.test.ts (3).
+- Not done: fee sync + hubs untested against real ZR (no creds) — first real
+  run should be watched; ZR bulk endpoint (100/req) unused (sequential push).
+- Tests 81/81, build green.

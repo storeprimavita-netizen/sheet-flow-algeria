@@ -99,14 +99,26 @@ Dashboard aggregate RPC(s) get added in the BI phase as migration
 
 | Key | Default | Used by |
 |---|---|---|
-| `return_fee` | `{"amount": 100}` | returned-order expense computation |
+| `return_fee` | `{"amount": 150}` | returned-order expense computation |
 | `duplicate_window` | `{"hours": 48}` | duplicate trigger |
 | `risk_weights` | `{"returned":2,"cancelled":1,"no_answer":0.5}` | `customer_stats` |
 | `stop_shipping_rule` | `{"min_orders":10,"min_delivery_rate":40}` | `wilaya_stats` |
 | `meeting_schedule` | 2 slots/week | meetings page |
+| `zr_state_map` | `{"map": {}}` | ZR state name (lower-cased) → `delivery_status`; applied by the ZR webhook (15f) |
+| `zr_auto_push` | `{"enabled": false}` | push a ZR parcel when an order is confirmed (15f) |
 
 ## Financial-effects rule
 
 `delivered` revenue and `returned` return-fee expenses are **always computed**
 (views/queries over orders + settings), never written into rows. The only
 stored money is what a human entered (expenses, ad spend, costs, fees, rates).
+
+## Service-role uses (documented exceptions)
+
+- Webhook route handlers (Shopify, Lightfunnels, ZR Express) — no user session.
+- Invites (`settings/users/actions.ts`) — creating auth users.
+- **ZR auto-push on confirm** (`orders/actions.ts` → `pushToZR`, 15f): the
+  confirming agent can't read the ZR API key or the admin-only `settings`
+  row, so after the agent's RLS-checked `transition_order_status` succeeds,
+  the push + flag read run with the service role, scoped to the caller's
+  workspace and that one order.

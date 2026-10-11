@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
@@ -15,7 +15,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getStatus } from "@/lib/statuses";
-import { updateOrderStatus } from "../actions";
+import { pushOrdersToZRExpress, updateOrderStatus } from "../actions";
 import type { DelivRow } from "./delivery-view";
 
 /** Apply a delivery-status change; toast + refresh. Shared by table + kanban. */
@@ -44,9 +44,23 @@ function accent(status: string): string {
   return "";
 }
 
-export function DeliveryTable({ rows, toolbar }: { rows: DelivRow[]; toolbar?: React.ReactNode }) {
+export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; toolbar?: React.ReactNode; isAdmin: boolean }) {
   const t = useTranslations();
+  const router = useRouter();
   const advance = useAdvanceDelivery();
+  const [sending, setSending] = React.useState(false);
+
+  // 📦 Bulk "Send to ZR" (admin): rows already sent are reported as failed, not re-sent.
+  async function sendToZR(ids: string[], clear: () => void) {
+    setSending(true);
+    const res = await pushOrdersToZRExpress(ids);
+    setSending(false);
+    const msg = t("settings.zrexpress.bulkSent", { sent: res.sent, failed: res.failed.length });
+    if (res.failed.length) toast.warning(`${msg} — ${res.failed[0].error}`);
+    else toast.success(msg);
+    clear();
+    router.refresh();
+  }
 
   const columns: Column<DelivRow>[] = [
     {
@@ -124,6 +138,13 @@ export function DeliveryTable({ rows, toolbar }: { rows: DelivRow[]; toolbar?: R
       rowKey={(r) => r.id}
       defaultDensity="compact"
       toolbar={toolbar}
+      selectable={isAdmin}
+      bulkActions={(keys, clear) => (
+        <Button size="sm" variant="outline" disabled={sending} onClick={() => sendToZR(keys, clear)}>
+          <Truck className="h-4 w-4" />
+          {t("settings.zrexpress.sendToZR")}
+        </Button>
+      )}
       empty={{
         title: t("orders.none"),
         description: t("orders.deliveryEmptyHint"),

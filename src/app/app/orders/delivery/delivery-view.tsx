@@ -27,7 +27,7 @@ export type DelivRow = {
 };
 
 /** Delivery queue: dense table by default, kanban as a URL-persisted toggle. */
-export function DeliveryView({ rows }: { rows: DelivRow[] }) {
+export function DeliveryView({ rows, isAdmin }: { rows: DelivRow[]; isAdmin: boolean }) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
@@ -60,6 +60,6 @@ export function DeliveryView({ rows }: { rows: DelivRow[] }) {
       <DeliveryKanban rows={rows} />
     </div>
   ) : (
-    <DeliveryTable rows={rows} toolbar={toggle} />
+    <DeliveryTable rows={rows} toolbar={toggle} isAdmin={isAdmin} />
   );
 }

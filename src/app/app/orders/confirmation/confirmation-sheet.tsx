@@ -57,7 +57,8 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
       toast.error(res.error);
       return;
     }
-    toast.success(t("common.updated"));
+    if (res.warning) toast.warning(res.warning);
+    else toast.success(t("common.updated"));
     if (openNext && nextKey) openRow(nextKey);
     router.refresh();
   }

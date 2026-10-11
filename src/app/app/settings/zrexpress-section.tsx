@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SecretField } from "@/components/fields/secret-field";
+import { createClient } from "@/lib/supabase/server";
+import { getSetting } from "@/lib/settings";
 import { saveZRExpressConfig, syncZRTerritories, registerZRWebhook } from "./actions";
+import { ZRAutomation } from "./zr-automation";
 
 /**
  * ZR Express delivery-company push integration. Separate card from the
@@ -23,6 +26,15 @@ export async function ZRExpressSection({
 }) {
   const t = await getTranslations();
   const cfg = (config?.config as { tenant_id?: string; api_key?: string } | null) ?? {};
+  const supabase = await createClient();
+  const [{ data: states }, stateMap, autoPush] = config
+    ? await Promise.all([
+        supabase.from("zr_shipments").select("state").eq("workspace_id", config.workspace_id).not("state", "is", null),
+        getSetting(config.workspace_id, "zr_state_map"),
+        getSetting(config.workspace_id, "zr_auto_push"),
+      ])
+    : [{ data: [] as { state: string | null }[] }, { map: {} }, { enabled: false }];
+  const seenStates = [...new Set((states ?? []).map((s) => s.state!.trim()))].sort();
   const webhookRegistered = !!config?.secret;
 
   return (
@@ -82,6 +94,8 @@ export async function ZRExpressSection({
           {webhookRegistered ? t("settings.zrexpress.webhookRegistered") : t("settings.zrexpress.webhookNotRegistered")}
         </Badge>
       </div>
+
+      {config ? <ZRAutomation seenStates={seenStates} map={stateMap.map} autoPush={autoPush.enabled} /> : null}
     </section>
   );
 }

@@ -62,6 +62,7 @@ export function OrderWorkflow({
         setError(res.error);
         return;
       }
+      if (res.warning) setError(res.warning); // e.g. ZR auto-push failed; the status change itself saved
     }
     setBusy(false);
     router.refresh();
