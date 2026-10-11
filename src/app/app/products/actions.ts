@@ -209,6 +209,20 @@ export async function addStockMovement(productId: string, formData: FormData) {
   revalidatePath("/app/products");
 }
 
+/** Per-product low-stock threshold (00023) — drives stock chips + dashboard alert. */
+export async function setLowStockThreshold(productId: string, value: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  await adminProfile();
+  const parsed = z.number().int().min(0).max(100000).safeParse(value);
+  if (!parsed.success) return { ok: false, error: "Threshold must be a whole number ≥ 0." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("products").update({ low_stock_threshold: parsed.data }).eq("id", z.string().uuid().parse(productId));
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/app/stock");
+  revalidatePath("/app/products");
+  revalidatePath("/app/dashboard");
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Ad-spend quick entry — shared widget (product page here; Dashboard in Ph.7)
 // ---------------------------------------------------------------------------

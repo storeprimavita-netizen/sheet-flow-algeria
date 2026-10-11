@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
-import { PageHeader } from "@/components/page-header";
 import { realInputsForProduct } from "@/lib/pricing-real";
 import { defaultInputs, loadScenarios } from "../../pricing-data";
 import { ScenarioEngine } from "../../scenario-engine";
@@ -28,7 +27,11 @@ export default async function ProductPricingPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("pricing.title")} subtitle={t("pricing.subtitleProduct")} />
+      {/* section heading, not a page h1 — the product header above owns the page title */}
+      <div>
+        <h2 className="text-base font-semibold">{t("pricing.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("pricing.subtitleProduct")}</p>
+      </div>
       <ScenarioEngine workspaceId={profile.workspaceId} productId={id} initial={initial} real={real} />
     </div>
   );

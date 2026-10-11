@@ -106,7 +106,7 @@
     "product_status": {
       "to_be_tested": "للاختبار",
       "tested": "تم الاختبار",
-      "confirmed": "مؤكد",
+      "confirmed": "معتمد",
       "cancelled": "ملغى"
     },
     "confirmation_status": {
@@ -427,7 +427,7 @@
     },
     "fields": {
       "product_price": "سعر المنتج (تكلفة)",
-      "euro_price": "سعر اليورو (دج)",
+      "euro_price": "سعر الصرف يورو ← دينار",
       "lead_cost_eur": "تكلفة العميل (€)",
       "confirmation_pct": "نسبة التأكيد %",
       "delivery_pct": "نسبة التوصيل %",
@@ -442,7 +442,8 @@
       "salary_month": "الراتب / شهر"
     },
     "breakEven": "نقطة التعادل: يتطلب معدل تسليم ≥ {pct}% لتحقيق الربح.",
-    "breakEvenNever": "غير مربح عند هذه المدخلات."
+    "breakEvenNever": "غير مربح عند هذه المدخلات.",
+    "incomplete": "مدخلات غير مكتملة"
   },
   "team": {
     "title": "الفريق والقواعد",
@@ -555,7 +556,16 @@
       "order_confirmed": "تأكيد الطلب",
       "order_reverted": "إلغاء التأكيد",
       "order_returned": "إرجاع الطلب"
-    }
+    },
+    "unitsOnHand": "الوحدات المتوفرة",
+    "stockValue": "قيمة المخزون",
+    "stockValueHint": "الوحدات المتوفرة × تكلفة الوحدة (تكلفة الشراء بالدينار).",
+    "lowCount": "مخزون منخفض",
+    "outCount": "نفد المخزون",
+    "unitCost": "تكلفة الوحدة",
+    "deltaHint": "+ للإضافة، − للإنقاص",
+    "adjustTitle": "تعديل المخزون — {name}",
+    "save": "تطبيق"
   },
   "reset": {
     "title": "تعيين كلمة مرور جديدة",

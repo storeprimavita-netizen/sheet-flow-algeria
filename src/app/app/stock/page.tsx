@@ -1,31 +1,45 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Boxes, Gem, PackageMinus, PackageX } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { LOW_STOCK_THRESHOLD, MANUAL_STOCK_REASONS } from "@/lib/enums";
+import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
-import { Field } from "@/components/field";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { EnumSelect } from "@/components/fields/enum-select";
+import { KpiTile } from "@/components/stats/kpi-tile";
 import { tableClass } from "@/components/field";
-import { addStockMovement } from "../products/actions";
+import { StockAdjustDialog, ThresholdInput } from "./stock-controls";
 
 export default async function StockHubPage() {
   const t = await getTranslations();
   const supabase = await createClient();
+  // Admin-only route (layout guard); product_costs is admin-only by RLS.
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, sku, stock")
+    .select("id, name, sku, stock, low_stock_threshold, cost:product_costs(sourcing_cost_dzd)")
+    .neq("status", "cancelled")
     .order("stock", { ascending: true });
 
-  const list = products ?? [];
+  const list = (products ?? []).map((p) => {
+    const unitCost = p.cost?.sourcing_cost_dzd ?? null;
+    return { ...p, unitCost, value: unitCost != null ? Math.max(p.stock, 0) * unitCost : null };
+  });
+  const units = list.reduce((n, p) => n + Math.max(p.stock, 0), 0);
+  const value = list.reduce((n, p) => n + (p.value ?? 0), 0);
+  const out = list.filter((p) => p.stock <= 0).length;
+  const low = list.filter((p) => p.stock > 0 && p.stock <= p.low_stock_threshold).length;
 
   return (
     <div className="space-y-6">
       <PageHeader title={t("stock.title")} subtitle={t("stock.hub.subtitle")} />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiTile icon={Boxes} label={t("stock.unitsOnHand")} value={units.toLocaleString("en-US").replace(/,/g, " ")} />
+        <KpiTile icon={Gem} label={t("stock.stockValue")} value={formatCurrency(value)} hint={t("stock.stockValueHint")} />
+        <KpiTile icon={PackageMinus} label={t("stock.lowCount")} value={String(low)} tone={low ? "danger" : undefined} />
+        <KpiTile icon={PackageX} label={t("stock.outCount")} value={String(out)} tone={out ? "danger" : undefined} />
+      </div>
 
       {!list.length ? (
         <Empty>{t("stock.hub.empty")}</Empty>
@@ -38,14 +52,16 @@ export default async function StockHubPage() {
                   <th>{t("fields.product")}</th>
                   <th>SKU</th>
                   <th>{t("stock.onHand")}</th>
-                  <th>{t("stock.hub.adjust")}</th>
+                  <th>{t("stock.threshold")}</th>
+                  <th className="!text-end">{t("stock.unitCost")}</th>
+                  <th className="!text-end">{t("stock.stockValue")}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((p) => {
-                  const out = p.stock <= 0;
-                  const low = !out && p.stock <= LOW_STOCK_THRESHOLD;
+                  const isOut = p.stock <= 0;
+                  const isLow = !isOut && p.stock <= p.low_stock_threshold;
                   return (
                     <tr key={p.id} className="hover:bg-surface-raised">
                       <td>
@@ -55,38 +71,23 @@ export default async function StockHubPage() {
                       </td>
                       <td className="text-muted-foreground">{p.sku ?? "—"}</td>
                       <td>
-                        <Chip token={out ? "danger" : low ? "warning" : "neutral"} size="sm">
+                        <Chip token={isOut ? "danger" : isLow ? "warning" : "neutral"} size="sm">
                           <span className="num">{p.stock}</span>
-                          {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
+                          {isOut ? ` · ${t("stock.out")}` : isLow ? ` · ${t("stock.low")}` : ""}
                         </Chip>
                       </td>
                       <td>
-                        <form
-                          action={addStockMovement.bind(null, p.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Input name="delta" type="number" step="1" required className="w-20" />
-                          <EnumSelect
-                            name="reason"
-                            defaultValue="purchase"
-                            options={MANUAL_STOCK_REASONS.map((r) => ({
-                              value: r,
-                              label: t(`stock.reasons.${r}`),
-                            }))}
-                          />
-                          <Input name="note" placeholder={t("stock.note")} className="w-28" />
-                          <Button type="submit" size="sm">
-                            {t("actions.create")}
-                          </Button>
-                        </form>
+                        <ThresholdInput productId={p.id} value={p.low_stock_threshold} label={t("stock.threshold")} />
                       </td>
+                      <td className="num whitespace-nowrap text-end text-muted-foreground">{formatCurrency(p.unitCost)}</td>
+                      <td className="num whitespace-nowrap text-end">{formatCurrency(p.value)}</td>
                       <td>
-                        <Link
-                          href={`/app/products/${p.id}/stock`}
-                          className="text-xs text-muted-foreground hover:underline"
-                        >
-                          {t("stock.history")}
-                        </Link>
+                        <div className="flex items-center justify-end gap-3">
+                          <StockAdjustDialog productId={p.id} name={p.name} />
+                          <Link href={`/app/products/${p.id}/stock`} className="whitespace-nowrap text-xs text-muted-foreground hover:underline">
+                            {t("stock.history")}
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

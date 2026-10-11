@@ -691,9 +691,9 @@ export default async function DashboardPage({
                   <tr>
                     <th>{t("fields.product")}</th>
                     <th>{t("dashboard.kpi.deliveryRate")}</th>
-                    <th className="text-end">{t("dashboard.kpi.revenue")}</th>
-                    <th className="text-end">{t("dashboard.kpi2.roas")}</th>
-                    <th className="text-end">{t("dashboard.kpi.netProfit")}</th>
+                    <th className="!text-end">{t("dashboard.kpi.revenue")}</th>
+                    <th className="!text-end">{t("dashboard.kpi2.roas")}</th>
+                    <th className="!text-end">{t("dashboard.kpi.netProfit")}</th>
                   </tr>
                 </thead>
                 <tbody>

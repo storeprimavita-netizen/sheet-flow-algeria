@@ -106,7 +106,7 @@
     "product_status": {
       "to_be_tested": "To be tested",
       "tested": "Tested",
-      "confirmed": "Confirmed",
+      "confirmed": "Validated",
       "cancelled": "Cancelled"
     },
     "confirmation_status": {
@@ -427,7 +427,7 @@
     },
     "fields": {
       "product_price": "Product price (COGS)",
-      "euro_price": "Euro price (DZD)",
+      "euro_price": "EUR → DA rate",
       "lead_cost_eur": "Cost / lead (€)",
       "confirmation_pct": "Confirmation %",
       "delivery_pct": "Delivery %",
@@ -442,7 +442,8 @@
       "salary_month": "Salary / month"
     },
     "breakEven": "Break-even: needs ≥ {pct}% delivery rate to profit.",
-    "breakEvenNever": "Never profitable at these inputs."
+    "breakEvenNever": "Never profitable at these inputs.",
+    "incomplete": "Incomplete inputs"
   },
   "team": {
     "title": "Team & Rules",
@@ -555,7 +556,16 @@
       "order_confirmed": "Order confirmed",
       "order_reverted": "Order reverted",
       "order_returned": "Order returned"
-    }
+    },
+    "unitsOnHand": "Units on hand",
+    "stockValue": "Stock value",
+    "stockValueHint": "Units on hand × unit cost (sourcing cost in DA).",
+    "lowCount": "Low stock",
+    "outCount": "Out of stock",
+    "unitCost": "Unit cost",
+    "deltaHint": "+ to add, − to remove",
+    "adjustTitle": "Adjust stock — {name}",
+    "save": "Apply"
   },
   "reset": {
     "title": "Set a new password",

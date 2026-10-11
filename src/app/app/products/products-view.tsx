@@ -9,7 +9,7 @@ import { LayoutGrid, Table2, MoreHorizontal, Pencil, Image as ImageIcon } from "
 
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { LOW_STOCK_THRESHOLD, PRODUCT_STATUSES } from "@/lib/enums";
+import { PRODUCT_STATUSES } from "@/lib/enums";
 import type { StatusToken } from "@/lib/statuses";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
@@ -37,6 +37,7 @@ export type ProductRow = {
   status: string;
   sale_price: number | null;
   stock: number;
+  low_stock_threshold: number;
   delivery_rate: number | null;
   net_profit: number | null;
   created_at: string;
@@ -132,7 +133,7 @@ export function ProductsView({ rows }: { rows: ProductRow[] }) {
       header: t("stock.stock"),
       numeric: true,
       sortable: true,
-      cell: (r) => <StockChip stock={r.stock} outLabel={t("stock.out")} lowLabel={t("stock.low")} />,
+      cell: (r) => <StockChip stock={r.stock} threshold={r.low_stock_threshold} outLabel={t("stock.out")} lowLabel={t("stock.low")} />,
     },
     {
       id: "delivery_rate",
@@ -226,9 +227,9 @@ function Thumb({ src, className }: { src: string | null; className: string }) {
   );
 }
 
-function StockChip({ stock, outLabel, lowLabel }: { stock: number; outLabel: string; lowLabel: string }) {
+function StockChip({ stock, threshold, outLabel, lowLabel }: { stock: number; threshold: number; outLabel: string; lowLabel: string }) {
   const out = stock <= 0;
-  const low = !out && stock <= LOW_STOCK_THRESHOLD;
+  const low = !out && stock <= threshold;
   return (
     <Chip token={out ? "danger" : low ? "warning" : "neutral"} size="sm">
       <span className="num">{stock}</span>
@@ -254,13 +255,14 @@ function ProductCard({ row, kebab }: { row: ProductRow; kebab: React.ReactNode }
   const t = useTranslations();
   return (
     <div className="card-surface flex h-full flex-col overflow-hidden rounded-xl">
-      <Link href={`/app/products/${row.id}`} className="relative block aspect-[4/3] bg-surface-raised">
+      {/* no image → compact icon strip, not a half-card grey block */}
+      <Link href={`/app/products/${row.id}`} className={cn("relative block bg-surface-raised", row.image ? "aspect-[4/3]" : "h-14")}>
         {row.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={row.image} alt="" className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-faint">
-            <ImageIcon className="h-8 w-8" />
+            <ImageIcon className="h-5 w-5" />
           </span>
         )}
       </Link>
@@ -271,7 +273,10 @@ function ProductCard({ row, kebab }: { row: ProductRow; kebab: React.ReactNode }
           </Link>
           {kebab}
         </div>
-        <StatusPill kind="product" status={row.status} size="sm" />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusPill kind="product" status={row.status} size="sm" />
+          <StockChip stock={row.stock} threshold={row.low_stock_threshold} outLabel={t("stock.out")} lowLabel={t("stock.low")} />
+        </div>
         <div className="mt-auto flex items-end justify-between">
           <div className="space-y-1">
             <div className="num text-lg font-semibold">{formatCurrency(row.sale_price)}</div>

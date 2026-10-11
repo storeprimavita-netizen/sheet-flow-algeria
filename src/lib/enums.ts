@@ -69,9 +69,6 @@ export const TASK_PRIORITIES = ["low", "medium", "high"] as const;
 // written by the order-status trigger, never by hand (Phase 5).
 export const MANUAL_STOCK_REASONS = ["purchase", "correction"] as const;
 
-// ponytail: fixed low-stock threshold; becomes a settings key when a phase needs it tunable
-export const LOW_STOCK_THRESHOLD = 5;
-
 // Rule categories — 4 fixed buckets, not user-extensible (no option_set).
 // Upgrade to option_sets if user asks for custom categories.
 export const RULE_CATEGORIES = [
