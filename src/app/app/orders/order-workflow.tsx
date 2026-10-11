@@ -41,30 +41,29 @@ export function OrderWorkflow({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const stage = String(fd.get("stage") ?? "");
-    if (stage !== "confirmation" && stage !== "delivery") return;
+    const comment = String(fd.get("agent_comment") ?? "").trim();
+    const conf = String(fd.get("confirmation_status") ?? order.confirmation_status);
+    const deliv = String(fd.get("delivery_status") ?? order.delivery_status);
+
+    // One Save: apply each stage whose status changed (confirmation first —
+    // delivery may depend on it). Comment-only edits go through the stage
+    // this role can edit, same as the old per-stage button.
+    const updates: { stage: "confirmation" | "delivery"; status: string }[] = [];
+    if (canConfirm && conf !== order.confirmation_status) updates.push({ stage: "confirmation", status: conf });
+    if (canDeliver && deliv !== order.delivery_status) updates.push({ stage: "delivery", status: deliv });
+    if (!updates.length) updates.push(canConfirm ? { stage: "confirmation", status: conf } : { stage: "delivery", status: deliv });
 
     setBusy(true);
     setError(null);
-
-    const comment = String(fd.get("agent_comment") ?? "").trim();
-    const status =
-      stage === "confirmation"
-        ? String(fd.get("confirmation_status") ?? "")
-        : String(fd.get("delivery_status") ?? "");
-
-    const res = await updateOrderStatus({
-      orderId: order.id,
-      stage,
-      status,
-      comment,
-    });
-
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
+    for (const u of updates) {
+      const res = await updateOrderStatus({ orderId: order.id, ...u, comment });
+      if (!res.ok) {
+        setBusy(false);
+        setError(res.error);
+        return;
+      }
     }
+    setBusy(false);
     router.refresh();
   }
 
@@ -106,18 +105,11 @@ export function OrderWorkflow({
           <p className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive">{error}</p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {canConfirm ? (
-            <Button type="submit" name="stage" value="confirmation" disabled={busy}>
-              {t("actions.save")}
-            </Button>
-          ) : null}
-          {canDeliver ? (
-            <Button type="submit" name="stage" value="delivery" disabled={busy}>
-              {t("actions.save")}
-            </Button>
-          ) : null}
-        </div>
+        {canConfirm || canDeliver ? (
+          <Button type="submit" disabled={busy}>
+            {busy ? t("actions.saving") : t("actions.save")}
+          </Button>
+        ) : null}
       </form>
 
       <div className="card-surface space-y-3 rounded-xl p-5">

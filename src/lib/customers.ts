@@ -68,3 +68,9 @@ export async function upsertCustomerFromOrder(
   if (error) throw new Error(error.message);
   return data.id;
 }
+
+/** wa.me deep link for a DZ number (05/06/07…, +213, 00213 all accepted). */
+export function whatsappHref(raw: string): string {
+  const local = normalizeDzPhone(raw);
+  return `https://wa.me/${local.startsWith("0") ? "213" + local.slice(1) : local}`;
+}

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
 import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/status-pill";
+import { PhoneLinks } from "@/components/phone-links";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -329,9 +330,7 @@ export function OrdersAllTable({
               <div className="text-xs uppercase tracking-wide text-muted-foreground">{t("fields.customer")}</div>
               <div>{r.customer_name ?? "—"}</div>
               {r.customer_phone ? (
-                <a href={`tel:${r.customer_phone}`} className="num text-info hover:underline">
-                  {r.customer_phone}
-                </a>
+                <PhoneLinks phone={r.customer_phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
               ) : null}
               <div className="text-muted-foreground">
                 {[r.commune, r.wilaya_name].filter(Boolean).join(" · ") || "—"}

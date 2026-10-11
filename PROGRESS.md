@@ -43,7 +43,7 @@ the bottom. Format:
 | 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | done |
 | 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | done |
 | 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | done |
-| 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | planned |
+| 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | done |
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | planned |
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | planned |
 | 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | planned |
@@ -3256,3 +3256,23 @@ unchanged until the user runs the steps above.
   **mobile horizontal overflow** (implicit grid auto track → grid-cols-1 +
   shell min-w-0).
 - Tests 78/78 (unit + RLS), build green, no hardcoded colors.
+
+## Phase 15e — Orders & queues (2026-10-11) — DONE
+- Done: `ACTIONABLE_CONFIRMATION` / `ACTIONABLE_DELIVERY` in statuses.ts (from
+  the `terminal` flags; swap counts as resolved) = ONE queue definition used
+  by sidebar badges, dashboard and both queue pages → badge === rows
+  (confirmation 14=14, was 17 vs 14; delivery 14=14, was ~45 vs 23). "Show
+  closed" toggle (`?show=all`) on both queues. Delivery queue: 💵 To collect
+  (sale·qty + fee, fee underneath), ZR tracking # + state, fixed-width status
+  select + fixed advance slot (no pill shift), view toggle on the DataTable
+  toolbar row (new `toolbar` slot). New `PhoneLinks` (📞 tel + 💬 wa.me via
+  `whatsappHref`) in confirmation/delivery/all tables + order detail; big
+  WhatsApp button in the confirmation sheet. Order detail: breadcrumb back
+  to the role's queue, wilaya, COD amount, ONE Save (applies whichever
+  stages changed; was "Save Save"), assignment auto-saves, cancellation
+  reason only on cancelled orders, empty swap card hidden.
+- Found + fixed: rls.test.ts teardown used `signOut()` = global scope →
+  every test run logged the dev browser (admin@seed.mnw) out. Now local.
+- Screenshots: delivery dark, order detail light, overflow checks at 1440.
+  Caught: PhoneLinks needed "use client" (500 on order detail).
+- Tests 78/78, build green.

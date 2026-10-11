@@ -262,3 +262,22 @@ export function currentStatus(order: { confirmation_status: string; delivery_sta
     ? { kind: "delivery", key: order.delivery_status }
     : { kind: "confirmation", key: order.confirmation_status };
 }
+
+/* Queue definitions — ONE source for the sidebar badges, the dashboard and the
+ * queue pages, so a badge always equals the rows its queue shows by default. */
+export const ACTIONABLE_CONFIRMATION = Object.values(CONFIRMATION_STATUS)
+  .filter((s) => !s.terminal)
+  .map((s) => s.key) as ("wait_for_confirmation" | "no_answer" | "closed_phone")[];
+/** In flight at/toward the courier; `swap` is a resolved state (order B carries on). */
+export const ACTIONABLE_DELIVERY = Object.values(DELIVERY_STATUS)
+  .filter((s) => !s.terminal && s.key !== "swap")
+  .map((s) => s.key) as (
+  | "wait_for_deposit"
+  | "bureau_deposited"
+  | "in_transit"
+  | "out_for_delivery"
+  | "stop_desk_waiting"
+  | "delayed"
+  | "returning"
+  | "exchange"
+)[];

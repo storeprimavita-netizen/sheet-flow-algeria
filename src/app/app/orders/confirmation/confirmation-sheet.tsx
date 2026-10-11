@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Phone, PhoneCall } from "lucide-react";
+import { Phone, MessageCircle, PhoneCall } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -14,6 +14,7 @@ import { StatusPill } from "@/components/status-pill";
 import { RiskBadge } from "@/components/risk-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { allStatuses, getStatus } from "@/lib/statuses";
+import { whatsappHref } from "@/lib/customers";
 import { updateOrderStatus, logConfirmationAttempt } from "../actions";
 import type { ConfRow } from "./confirmation-table";
 
@@ -97,14 +98,26 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
 
       {/* big tel: link */}
       {order.customer_phone ? (
-        <a
-          href={`tel:${order.customer_phone}`}
-          onClick={dial}
-          className="flex items-center justify-center gap-2 rounded-lg bg-success-bg py-3 text-base font-semibold text-success transition-colors hover:brightness-105"
-        >
-          <PhoneCall className="h-5 w-5" />
-          <span className="num">{order.customer_phone}</span>
-        </a>
+        <div className="flex gap-2">
+          <a
+            href={`tel:${order.customer_phone}`}
+            onClick={dial}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-success-bg py-3 text-base font-semibold text-success transition-colors hover:brightness-105"
+          >
+            <PhoneCall className="h-5 w-5" />
+            <span className="num">{order.customer_phone}</span>
+          </a>
+          <a
+            href={whatsappHref(order.customer_phone)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("orders.whatsapp")}
+            title={t("orders.whatsapp")}
+            className="flex items-center justify-center rounded-lg border border-border px-4 text-muted-foreground transition-colors hover:bg-surface-raised hover:text-foreground"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </a>
+        </div>
       ) : null}
 
       {/* risk + dial count */}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { ACTIONABLE_CONFIRMATION, ACTIONABLE_DELIVERY } from "@/lib/statuses";
 import { getCurrentUserRole } from "@/lib/rbac";
 import { AppShell } from "@/components/app-shell";
 
@@ -23,12 +24,12 @@ export default async function AppLayout({
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
-      .in("confirmation_status", ["wait_for_confirmation", "no_answer", "closed_phone"]),
+      .in("confirmation_status", ACTIONABLE_CONFIRMATION),
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("confirmation_status", "confirmed")
-      .eq("delivery_status", "wait_for_deposit"), // confirmed + not yet handed to the courier
+      .in("delivery_status", ACTIONABLE_DELIVERY), // = the delivery queue's default rows
     supabase
       .from("tasks")
       .select("*", { count: "exact", head: true })

@@ -16,6 +16,9 @@ export type DelivRow = {
   product_name: string | null;
   quantity: number;
   delivery_fee: number | null;
+  to_collect: number;
+  tracking_number: string | null;
+  zr_state: string | null;
   wilaya_name: string | null;
   delivery_type: string;
   delivery_status: string;
@@ -38,19 +41,25 @@ export function DeliveryView({ rows }: { rows: DelivRow[] }) {
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
-  return (
+  const toggle = (
+    <>
+      <Button variant={kanban ? "ghost" : "outline"} size="sm" className="gap-1.5" onClick={() => setView("table")}>
+        <Table2 className="h-4 w-4" />
+        {t("orders.viewTable")}
+      </Button>
+      <Button variant={kanban ? "outline" : "ghost"} size="sm" className="gap-1.5" onClick={() => setView("kanban")}>
+        <LayoutGrid className="h-4 w-4" />
+        {t("orders.viewKanban")}
+      </Button>
+    </>
+  );
+
+  return kanban ? (
     <div className="space-y-3">
-      <div className="flex justify-end gap-1">
-        <Button variant={kanban ? "ghost" : "outline"} size="sm" className="gap-1.5" onClick={() => setView("table")}>
-          <Table2 className="h-4 w-4" />
-          {t("orders.viewTable")}
-        </Button>
-        <Button variant={kanban ? "outline" : "ghost"} size="sm" className="gap-1.5" onClick={() => setView("kanban")}>
-          <LayoutGrid className="h-4 w-4" />
-          {t("orders.viewKanban")}
-        </Button>
-      </div>
-      {kanban ? <DeliveryKanban rows={rows} /> : <DeliveryTable rows={rows} />}
+      <div className="flex gap-1">{toggle}</div>
+      <DeliveryKanban rows={rows} />
     </div>
+  ) : (
+    <DeliveryTable rows={rows} toolbar={toggle} />
   );
 }

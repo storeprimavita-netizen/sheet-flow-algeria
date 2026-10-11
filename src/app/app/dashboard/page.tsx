@@ -32,7 +32,7 @@ import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
 import { ColorDot } from "@/components/ui/chip";
-import { TASK_PRIORITY_TOKEN } from "@/lib/statuses";
+import { ACTIONABLE_CONFIRMATION, TASK_PRIORITY_TOKEN } from "@/lib/statuses";
 import { ButtonLink } from "@/components/button-link";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { Funnel } from "@/components/stats/funnel";
@@ -204,7 +204,7 @@ export default async function DashboardPage({
     await Promise.all([
       supabase.from("orders").select("id", count).gte("placed_at", todayIso),
       supabase.from("orders").select("id", count).gte("placed_at", yesterdayIso).lt("placed_at", todayIso),
-      supabase.from("orders").select("id", count).in("confirmation_status", ["wait_for_confirmation", "no_answer", "closed_phone"]),
+      supabase.from("orders").select("id", count).in("confirmation_status", ACTIONABLE_CONFIRMATION),
       supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),
       supabase.from("orders").select("id", count).in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
       supabase.rpc("pnl_summary", {}),

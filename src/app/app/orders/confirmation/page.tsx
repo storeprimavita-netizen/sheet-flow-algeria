@@ -2,22 +2,30 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
+import { ButtonLink } from "@/components/button-link";
+import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
 import { OrderTabs } from "../order-tabs";
 import { ConfirmationTable, type ConfRow } from "./confirmation-table";
 
-export default async function ConfirmationQueuePage() {
+export default async function ConfirmationQueuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ show?: string }>;
+}) {
+  const showAll = (await searchParams).show === "all";
   const t = await getTranslations();
   const supabase = await createClient();
 
-  // RLS already scopes confirmation agents to this slice; the explicit filter
-  // makes the admin view match the same pending queue instead of "everything".
-  const { data: orders } = await supabase
+  // Default = actionable only (same list as the sidebar badge); "show closed"
+  // adds cancelled. Confirmed orders live in the delivery queue.
+  let query = supabase
     .from("orders")
     .select(
       "id, order_number, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, product:products(name)",
     )
-    .neq("confirmation_status", "confirmed")
     .order("created_at", { ascending: true });
+  query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
+  const { data: orders } = await query;
 
   const customerIds = [...new Set((orders ?? []).map((o) => o.customer_id).filter((id): id is string => !!id))];
 
@@ -77,7 +85,11 @@ export default async function ConfirmationQueuePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("orders.tabs.confirmation")} subtitle={t("orders.subtitle")} />
+      <PageHeader title={t("orders.tabs.confirmation")} subtitle={t("orders.subtitle")}>
+        <ButtonLink href={showAll ? "/app/orders/confirmation" : "/app/orders/confirmation?show=all"} variant="outline" size="sm">
+          {showAll ? t("orders.showActionable") : t("orders.showClosed")}
+        </ButtonLink>
+      </PageHeader>
       <OrderTabs active="confirmation" />
       <ConfirmationTable rows={rows} />
     </div>

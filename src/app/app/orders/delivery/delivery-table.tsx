@@ -9,6 +9,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
 import { StatusPill } from "@/components/status-pill";
+import { PhoneLinks } from "@/components/phone-links";
 import { StatusSelect } from "@/components/status-select";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
@@ -43,7 +44,7 @@ function accent(status: string): string {
   return "";
 }
 
-export function DeliveryTable({ rows }: { rows: DelivRow[] }) {
+export function DeliveryTable({ rows, toolbar }: { rows: DelivRow[]; toolbar?: React.ReactNode }) {
   const t = useTranslations();
   const advance = useAdvanceDelivery();
 
@@ -66,16 +67,39 @@ export function DeliveryTable({ rows }: { rows: DelivRow[] }) {
         <div className="min-w-0">
           <div className="truncate">{r.customer_name ?? "—"}</div>
           {r.customer_phone ? (
-            <a href={`tel:${r.customer_phone}`} onClick={(e) => e.stopPropagation()} className="num text-xs text-info hover:underline">
-              {r.customer_phone}
-            </a>
+            <PhoneLinks phone={r.customer_phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
           ) : null}
         </div>
       ),
     },
     { id: "product", header: t("fields.product"), cell: (r) => <span className="truncate">{r.product_name ?? "—"}</span> },
     { id: "quantity", header: t("fields.quantity"), numeric: true, cell: (r) => <span className="num">{r.quantity}</span> },
-    { id: "delivery_fee", header: t("fields.delivery_fee"), numeric: true, cell: (r) => formatCurrency(r.delivery_fee ?? 0) },
+    {
+      id: "to_collect",
+      header: t("orders.toCollect"),
+      numeric: true,
+      cell: (r) => (
+        <div className="whitespace-nowrap">
+          <div className="num font-medium">{formatCurrency(r.to_collect)}</div>
+          <div className="num text-xs text-muted-foreground">
+            {t("fields.delivery_fee")}: {formatCurrency(r.delivery_fee ?? 0)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "tracking",
+      header: t("orders.tracking"),
+      cell: (r) =>
+        r.tracking_number ? (
+          <div className="min-w-0">
+            <div className="num truncate text-xs font-medium">{r.tracking_number}</div>
+            {r.zr_state ? <div className="truncate text-xs text-muted-foreground">{r.zr_state}</div> : null}
+          </div>
+        ) : (
+          <span className="text-faint">—</span>
+        ),
+    },
     { id: "wilaya", header: t("fields.wilaya"), cell: (r) => r.wilaya_name ?? "—" },
     { id: "delivery_type", header: t("fields.delivery_type"), cell: (r) => t(`status.delivery_type.${r.delivery_type}`) },
     {
@@ -84,7 +108,7 @@ export function DeliveryTable({ rows }: { rows: DelivRow[] }) {
       align: "center",
       cell: (r) => (
         <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-1">
-          <StatusSelect kind="delivery" value={r.delivery_status} onChange={(v) => advance(r.id, v)} className="w-auto min-w-[9rem]" />
+          <StatusSelect kind="delivery" value={r.delivery_status} onChange={(v) => advance(r.id, v)} className="w-44" />
           <QuickAdvance row={r} advance={advance} />
         </div>
       ),
@@ -99,6 +123,7 @@ export function DeliveryTable({ rows }: { rows: DelivRow[] }) {
       rows={rows}
       rowKey={(r) => r.id}
       defaultDensity="compact"
+      toolbar={toolbar}
       empty={{
         title: t("orders.none"),
         description: t("orders.deliveryEmptyHint"),
@@ -112,7 +137,8 @@ function QuickAdvance({ row, advance }: { row: DelivRow; advance: (id: string, s
   const t = useTranslations();
   const nextKey = getStatus("delivery", row.delivery_status)?.next[0];
   const nextDef = nextKey ? getStatus("delivery", nextKey) : undefined;
-  if (!nextDef) return null;
+  // Fixed-width slot even when there's no next step, so pills line up.
+  if (!nextDef) return <span className="h-7 w-7 shrink-0" aria-hidden />;
   return (
     <Button
       variant="ghost"

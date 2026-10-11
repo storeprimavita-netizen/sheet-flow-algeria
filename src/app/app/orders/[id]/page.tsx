@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
+import { ChevronLeft } from "lucide-react";
+
 import { PageHeader } from "@/components/page-header";
+import { PhoneLinks } from "@/components/phone-links";
 import { Empty } from "@/components/empty";
 import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
@@ -36,7 +39,7 @@ export default async function OrderDetailPage({
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "*, product:products(name, sku), customer:customers(name, phone, commune)",
+      "*, product:products(name, sku), customer:customers(name, phone, commune), wilaya:wilayas(name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -130,8 +133,16 @@ export default async function OrderDetailPage({
     swapData.wilayas = wilayas ?? [];
   }
 
+  const phone = order.customer?.phone ?? order.customer_phone;
+  const queueHref = role === "delivery_agent" ? "/app/orders/delivery" : role === "confirmation_agent" ? "/app/orders/confirmation" : "/app/orders/all";
+  const isCancelled = order.confirmation_status === "cancelled" || order.delivery_status === "cancelled";
+
   return (
     <div className="space-y-6">
+      <Link href={queueHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {t("nav.orders")}
+      </Link>
       <PageHeader
         title={`${t("orders.edit")} ${order.order_number ?? order.id.slice(0, 8)}`}
       >
@@ -143,16 +154,18 @@ export default async function OrderDetailPage({
       <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
         <Meta label={t("fields.customer")}>
-          {order.customer?.name ?? order.customer_name ?? "—"}
-          {order.customer?.phone ?? order.customer_phone
-            ? ` · ${order.customer?.phone ?? order.customer_phone}`
-            : ""}
+          <div>{order.customer?.name ?? order.customer_name ?? "—"}</div>
+          {phone ? <PhoneLinks phone={phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
         </Meta>
         <Meta label={t("fields.quantity")}>{order.quantity}</Meta>
         <Meta label={t("fields.unit_price")}>{formatCurrency(order.sale_price)}</Meta>
         <Meta label={t("fields.total_amount")}>
           {formatCurrency((order.sale_price ?? 0) * order.quantity)}
         </Meta>
+        <Meta label={t("orders.toCollect")}>
+          <span className="num font-medium">{formatCurrency((order.sale_price ?? 0) * order.quantity + (order.delivery_fee ?? 0))}</span>
+        </Meta>
+        <Meta label={t("fields.wilaya")}>{order.wilaya ? `${order.wilaya_code}-${order.wilaya.name}` : "—"}</Meta>
         <Meta label={t("fields.city")}>{order.commune ?? "—"}</Meta>
         <Meta label={t("fields.address")}>{order.address ?? "—"}</Meta>
         <Meta label={t("fields.source")}>{order.source}</Meta>
@@ -174,6 +187,7 @@ export default async function OrderDetailPage({
         selectedTagIds={(orderTags ?? []).map((t) => t.option_id)}
         reasons={reasons}
         cancellationReasonId={order.cancellation_reason_option_id}
+        showReason={isCancelled}
       />
 
       <OrderWorkflow order={order} role={role} events={events ?? []} actorNames={actorNames} />
