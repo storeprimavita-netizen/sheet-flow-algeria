@@ -128,7 +128,7 @@ export default async function FinanceOverviewPage({
                 returns: `/app/orders/all${qs({ delivery_status: "returned", product_id: product })}`,
                 ads: `/app/finance/ad-spend${qs({ product })}`,
                 expenses: `/app/finance/expenses${qs({ product })}`,
-                fixed: "/app/settings#fixed-fees",
+                fixed: "/app/settings?section=fixed-fees",
               }}
             />
           ) : (

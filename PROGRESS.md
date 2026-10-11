@@ -47,7 +47,7 @@ the bottom. Format:
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | done |
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | done |
 | 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | done |
-| 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | planned |
+| 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | done |
 | 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | planned |
 
 ## Planning (2026-07-26, Fable) — DONE
@@ -3348,3 +3348,20 @@ unchanged until the user runs the steps above.
   phase (pages changing under the agent) — final shots taken in a separate
   tab. Screenshots: finance dark (DOM-verified) + light full page.
 - Tests 81/81, build green.
+
+## Phase 15i — Settings, contacts, rules polish (2026-10-12) — DONE
+- ⚙️ Settings: one section per view (`?section=`, side nav = links with
+  active state, horizontal scroller on mobile); each section loads only its
+  own data (was 15 queries + a 5 000px page with ~12 saves). Appearance moved
+  under Workspace. `#fixed-fees` links → `?section=fixed-fees`. "(DZD)"
+  labels → "(DA)".
+- 👥 Contacts: search-as-you-type (`SearchParamInput`, 300ms debounce, URL
+  `?q=`); **bug fixed**: any non-numeric search returned every customer (phone
+  query became `ilike '%%'`). Phone column → PhoneLinks (call + WhatsApp,
+  token colors instead of off-token blue). RiskBadge thresholds: 0 neutral /
+  1–29 warning / ≥30 danger (25 used to be a green shield).
+- 📜 Rules: native `<details>` markers really hidden (`list-none` +
+  `::-webkit-details-marker`), Plus / chevron+pencil icons. Category chips
+  render when a rule has a category (the two seed rules have none).
+- Screenshots: settings light, contacts dark (live search verified: "Riad" →
+  1 row), rules dark. Tests 81/81, build green.

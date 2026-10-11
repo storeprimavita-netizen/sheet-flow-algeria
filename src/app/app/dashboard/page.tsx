@@ -502,7 +502,7 @@ export default async function DashboardPage({
                 returns: ordersQs(filters, { delivery_status: "returned" }),
                 ads: finance("ad-spend"),
                 expenses: finance("expenses"),
-                fixed: "/app/settings#fixed-fees",
+                fixed: "/app/settings?section=fixed-fees",
               }}
             />
           ) : (

@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 
 import { StatusPill } from "@/components/status-pill";
 import { RiskBadge } from "@/components/risk-badge";
+import { PhoneLinks } from "@/components/phone-links";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { RateCell } from "@/components/stats/rate-bar";
@@ -62,9 +63,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
       id: "phone",
       header: t("fields.phone"),
       cell: (r) => (
-        <a href={`tel:${r.phone}`} onClick={(e) => e.stopPropagation()} className="num text-info hover:underline">
-          {r.phone}
-        </a>
+        <PhoneLinks phone={r.phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
       ),
     },
     { id: "wilaya", header: t("fields.wilaya"), cell: (r) => r.wilaya_name ?? "—" },
@@ -120,9 +119,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
 
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">{t("fields.phone")}</div>
-              <a href={`tel:${r.phone}`} className="num text-info hover:underline">
-                {r.phone}
-              </a>
+              <PhoneLinks phone={r.phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
               <div className="text-muted-foreground">{[r.commune, r.wilaya_name].filter(Boolean).join(" · ") || "—"}</div>
             </div>
 
