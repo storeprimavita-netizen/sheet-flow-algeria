@@ -267,6 +267,9 @@ async function applyMappedOrder(
   return { ok: true };
 }
 
+/** Shopify/Lightfunnels/ZR order payloads are a few KB; anything bigger is abuse. */
+export const MAX_WEBHOOK_BYTES = 256 * 1024;
+
 /**
  * Verify the provider's HMAC signature, then always store the raw event —
  * bad signature, bad JSON, and mapping failures all get a row (that's the
@@ -275,6 +278,7 @@ async function applyMappedOrder(
  */
 export async function processWebhook(config: ProviderConfig, req: Request): Promise<Response> {
   const body = await req.text();
+  if (body.length > MAX_WEBHOOK_BYTES) return jsonResponse({ error: "payload too large" }, 413);
   const signature = req.headers.get(config.signatureHeader) ?? "";
   const supabase = await createAdminClient();
 
@@ -297,7 +301,8 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
       workspace_id: integration?.workspaceId ?? null,
       provider: config.provider,
       signature_ok: signatureOk,
-      payload: payload as Json,
+      // Unauthenticated callers only get a metadata row — never their body.
+      payload: (signatureOk ? payload : { _rejected: true, bytes: body.length }) as Json,
       error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
     })
     .select("id")
@@ -313,12 +318,13 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
 }
 
 /** Re-run mapping/upsert for one stored event — the Settings → Integrations replay button. */
-export async function replayEvent(eventId: string): Promise<{ ok: boolean; error?: string }> {
+export async function replayEvent(eventId: string, workspaceId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createAdminClient();
   const { data: event } = await supabase
     .from("webhook_events")
     .select("id, provider, workspace_id, payload")
     .eq("id", eventId)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
   if (!event) return { ok: false, error: "event not found" };
   if (!event.workspace_id) return { ok: false, error: "event has no resolved workspace" };

@@ -70,8 +70,8 @@ export async function saveIntegration(formData: FormData) {
 }
 
 export async function replayWebhookEvent(eventId: string) {
-  await adminProfile(); // admin-only gate; replayEvent itself uses the service-role client
-  const { error } = await replayEvent(eventId);
+  const { workspaceId } = await adminProfile(); // admin-only gate; replayEvent uses the service-role client
+  const { error } = await replayEvent(eventId, workspaceId);
   if (error) throw new Error(error);
   revalidatePath("/app/settings");
 }
