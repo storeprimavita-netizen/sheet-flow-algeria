@@ -26,7 +26,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
-import { formatCurrency, formatDate, formatDuration } from "@/lib/format";
+import { formatCurrency, formatDate, formatDuration, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics, type PnlLines } from "@/lib/pricing";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
@@ -304,7 +304,7 @@ export default async function DashboardPage({
 
   const be = m?.breakeven_delivery_pct ?? null;
   const breakEvenSub =
-    be == null ? null : be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.kpi2.breakEven", { pct: be });
+    be == null ? null : be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.kpi2.breakEven", { pct: formatPercent(be) });
 
   // 🚨 alerts: each is an icon + sentence + link (never color alone).
   const losingWilayas = stats.per_wilaya.filter((w) => w.stop_shipping_auto && !w.stop_shipping_manual);
@@ -314,7 +314,7 @@ export default async function DashboardPage({
           {
             key: "be",
             icon: TrendingDown,
-            text: be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.alerts.belowBreakEven", { rate: m.delivery_rate, be }),
+            text: be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.alerts.belowBreakEven", { rate: formatPercent(m.delivery_rate), be: formatPercent(be) }),
             href: ordersQs(filters, { delivery_status: "returned" }),
           },
         ]
@@ -337,7 +337,7 @@ export default async function DashboardPage({
     ...losingWilayas.slice(0, 4).map((w) => ({
       key: `w-${w.wilaya_code}`,
       icon: MapPinOff,
-      text: t("dashboard.alerts.losingWilaya", { name: `${w.wilaya_code}-${w.wilaya_name ?? ""}`, rate: w.delivery_rate ?? 0 }),
+      text: t("dashboard.alerts.losingWilaya", { name: `${w.wilaya_code}-${w.wilaya_name ?? ""}`, rate: formatPercent(w.delivery_rate ?? 0) }),
       href: ordersQs(filters, { wilaya_code: String(w.wilaya_code) }),
     })),
   ];
@@ -403,7 +403,7 @@ export default async function DashboardPage({
           spark={spark((d) => d.revenue_dzd - d.invested_dzd)}
           sub={
             <span className="space-y-0.5">
-              <span className="block">{m?.margin_pct != null ? t("dashboard.kpi2.margin", { pct: m.margin_pct }) : "—"}</span>
+              <span className="block">{m?.margin_pct != null ? t("dashboard.kpi2.margin", { pct: formatPercent(m.margin_pct) }) : "—"}</span>
               {breakEvenSub ? <span className="block">{breakEvenSub}</span> : null}
             </span>
           }
@@ -510,7 +510,11 @@ export default async function DashboardPage({
           )}
         </div>
         <div className="card-surface space-y-3 rounded-xl p-5 lg:col-span-7">
-          <h2 className="text-sm font-semibold">{t("dashboard.timeChart.title")}</h2>
+          {/* the daily series is a trailing 30 days unless a period is picked — say so */}
+          <h2 className="text-sm font-semibold">
+            {t("dashboard.timeChart.title")}
+            {!filters.from ? <span className="font-normal text-muted-foreground"> · {t("dates.last30")}</span> : null}
+          </h2>
           <TimeChart daily={stats.daily} />
         </div>
       </div>
@@ -531,7 +535,7 @@ export default async function DashboardPage({
                 <li key={a.key}>
                   <Link href={a.href} className="group flex items-center gap-3 py-2 text-sm">
                     <a.icon className="h-4 w-4 shrink-0 text-warning" />
-                    <span className="min-w-0 flex-1 truncate group-hover:underline">{a.text}</span>
+                    <span className="line-clamp-2 min-w-0 flex-1 group-hover:underline">{a.text}</span>
                     <ArrowRight className="h-3.5 w-3.5 shrink-0 text-faint rtl:rotate-180" />
                   </Link>
                 </li>
@@ -661,7 +665,7 @@ export default async function DashboardPage({
                             {a.display_name ?? a.user_id.slice(0, 8)}
                           </Link>
                         </td>
-                        <td className="capitalize">{a.stage}</td>
+                        <td>{t(`orders.tabs.${a.stage === "delivery" ? "delivery" : "confirmation"}`)}</td>
                         <td className="num">{a.orders_handled}</td>
                         <td className="min-w-28">
                           <RateCell pct={rate} label={`${done}/${a.orders_handled}`} labelWidth="w-14" />

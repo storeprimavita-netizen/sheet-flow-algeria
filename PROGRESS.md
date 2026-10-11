@@ -48,7 +48,7 @@ the bottom. Format:
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | done |
 | 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | done |
 | 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | done |
-| 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | planned |
+| 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | done |
 
 ## Planning (2026-07-26, Fable) — DONE
 
@@ -3365,3 +3365,40 @@ unchanged until the user runs the steps above.
   render when a rule has a category (the two seed rules have none).
 - Screenshots: settings light, contacts dark (live search verified: "Riad" →
   1 row), rules dark. Tests 81/81, build green.
+
+## Phase 15j — Final sweep (2026-10-12) — DONE
+- 🛡️ OWASP 2nd pass (whole Phase 15 diff): no Critical/High/Medium. Fixed both
+  Lows + one pre-existing tenant bug:
+  - Shopify/Lightfunnels webhooks were `.limit(1)` (first workspace's config
+    won for every tenant) → workspace = config whose own HMAC verifies.
+    Proven live (WS1 secret → MNW Seed, WS2 → RLS Test WS2, bad → 401).
+  - 00024: `transition_order_status` returns `changed` (row locked FOR
+    UPDATE) → ZR auto-push only on a real change. 3 concurrent confirms →
+    [true,false,false].
+  - ZR webhook rejects missing/stale Svix headers before any DB work (junk
+    POST → 401, 0 rows).
+- 🎨 Impeccable re-audit: Dashboard 19→29/40, Orders 19→26/40; no console
+  errors anywhere. All 12 must-fix items fixed: delivery rows link to the
+  order; customer delivery rate over CLOSED orders (`customerDeliveryRate`,
+  tested); Arabic money/% kept LTR (`formatCurrency` + new `formatPercent`
+  wrap LRI…PDI; % templates take the formatted value); RTL chevrons flipped;
+  agent stage translated; TabsNav scrolls (finance overflow at 390 gone);
+  trend chart says "last 30 days" when no period; flat sparklines hidden;
+  alerts wrap 2 lines; bigger hit areas (KPI ⓘ, call/WhatsApp, history
+  link); RiskBadge reason in a focusable tooltip; product image links named.
+  Login 🛍️ → Store icon. Hardcoded-color grep: clean.
+- Tests 83/83, build green. Screenshots: .playwright-mcp/final/* (agent) +
+  Arabic dashboard verify.
+- Remaining nice-to-haves (not done): text-faint contrast 3.6:1 on "—",
+  per-queue subtitles, hide all-empty Tracking column, Arabic wilaya names /
+  "د.ج", order-detail Delete into an overflow menu, dashboard length (funnel
+  overlaps status breakdowns), trend chart real axis + period-following
+  series (needs a dashboard_stats change).
+- ponytail debt (deliberate shortcuts, all commented in code): users list 1
+  page; dashboard CSV 5000 rows; receivables aged by updated_at; ZR bulk
+  sequential (bulk endpoint unused); webhook tenant lookup O(workspaces)
+  HMACs; new-orders pill polls 20s; DataTable server pages ~25 rows;
+  break-even scan 0.5% steps.
+- USER: `npx supabase db push` (00020–00024); rotate the kimi.tx key; decide
+  on purging e686c83 from history before pushing `mnw`; 14h still needs the
+  Google Cloud setup.

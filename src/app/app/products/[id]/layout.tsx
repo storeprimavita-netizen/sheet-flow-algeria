@@ -45,7 +45,7 @@ export default async function ProductTabsLayout({
           <Link href="/app/products" className="hover:text-foreground">
             {tRoot("products.title")}
           </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
           <span className="text-foreground">{product.name}</span>
         </nav>
         <div className="flex items-center gap-3">

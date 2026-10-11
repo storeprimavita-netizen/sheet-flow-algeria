@@ -168,7 +168,7 @@ export default async function OrderDetailPage({
         <Meta label={t("fields.wilaya")}>{order.wilaya ? `${order.wilaya_code}-${order.wilaya.name}` : "—"}</Meta>
         <Meta label={t("fields.city")}>{order.commune ?? "—"}</Meta>
         <Meta label={t("fields.address")}>{order.address ?? "—"}</Meta>
-        <Meta label={t("fields.source")}>{order.source}</Meta>
+        <Meta label={t("fields.source")}>{t(`status.order_source.${order.source}`)}</Meta>
         <Meta label={t("fields.placed_at")}>{formatDateTime(order.placed_at)}</Meta>
       </div>
 

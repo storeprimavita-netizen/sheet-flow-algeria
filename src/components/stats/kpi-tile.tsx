@@ -47,7 +47,7 @@ export function KpiTile({
   const good = delta != null && (goodWhen === "up" ? delta >= 0 : delta <= 0);
   const inner = (
     <>
-      <div className={cn("flex items-center justify-between gap-2", hint && "pe-5")}>
+      <div className={cn("flex items-center justify-between gap-2", hint && "pe-6")}>
         <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
           {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" /> : null}
           <span className="truncate">{label}</span>
@@ -86,7 +86,7 @@ export function KpiTile({
         <button
           type="button"
           aria-label={hint}
-          className="absolute end-3 top-3.5 rounded p-0.5 text-faint hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="absolute end-1.5 top-2 rounded-md p-2 text-faint hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <Info className="h-3.5 w-3.5" />
         </button>

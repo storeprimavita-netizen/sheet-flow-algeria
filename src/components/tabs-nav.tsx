@@ -17,15 +17,15 @@ export async function TabsNav<K extends string>({
   if (!(await isCurrentUserAdmin())) return null;
 
   return (
-    <nav className="flex gap-1 border-b border-border text-sm">
+    <nav className="flex gap-1 overflow-x-auto border-b border-border text-sm [scrollbar-width:none]">
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
           className={
             tab.key === active
-              ? "border-b-2 border-primary px-3 py-2 font-medium text-foreground"
-              : "px-3 py-2 text-muted-foreground hover:text-foreground"
+              ? "shrink-0 whitespace-nowrap border-b-2 border-primary px-3 py-2 font-medium text-foreground"
+              : "shrink-0 whitespace-nowrap px-3 py-2 text-muted-foreground hover:text-foreground"
           }
         >
           {tab.label}

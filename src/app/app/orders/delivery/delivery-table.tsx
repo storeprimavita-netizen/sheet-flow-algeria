@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -70,7 +71,9 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
       cell: (r) => (
         <span className="flex items-center gap-2">
           <span className={"h-4 w-0.5 rounded " + (accent(r.delivery_status) || "bg-transparent")} aria-hidden />
-          <span className="num font-medium">{r.order_number ?? r.id.slice(0, 8)}</span>
+          <Link href={`/app/orders/${r.id}`} onClick={(e) => e.stopPropagation()} className="num font-medium hover:underline">
+            {r.order_number ?? r.id.slice(0, 8)}
+          </Link>
         </span>
       ),
     },
@@ -95,7 +98,7 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
       cell: (r) => (
         <div className="whitespace-nowrap">
           <div className="num font-medium">{formatCurrency(r.to_collect)}</div>
-          <div className="num text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             {t("fields.delivery_fee")}: {formatCurrency(r.delivery_fee ?? 0)}
           </div>
         </div>
@@ -169,7 +172,7 @@ function QuickAdvance({ row, advance }: { row: DelivRow; advance: (id: string, s
       title={`${t("orders.advanceTo")} ${t(nextDef.label)}`}
       onClick={() => advance(row.id, nextDef.key)}
     >
-      <ChevronRight className="h-4 w-4" />
+      <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />
     </Button>
   );
 }

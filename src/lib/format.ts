@@ -10,7 +10,16 @@ export function formatCurrency(
   const raw = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(raw)) return "—";
   const n = Math.round(raw) || 0; // || 0 folds -0
-  return `${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`;
+  return ltr(`${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`);
+}
+
+/** Wrap in Unicode LTR isolates (LRI…PDI) so a number keeps its order inside
+ * Arabic text: "−349 067 DA" never becomes "DA 349 067", "-391.4%" stays put. */
+export const ltr = (s: string) => `\u2066${s}\u2069`;
+
+/** "48.1%", isolated for RTL. Pass to templates without their own "%". */
+export function formatPercent(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? "—" : ltr(`${value}%`);
 }
 
 /** dd/mm/yyyy — the Algerian convention, same in AR and EN. A bare

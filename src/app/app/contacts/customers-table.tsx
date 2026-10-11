@@ -10,6 +10,7 @@ import { PhoneLinks } from "@/components/phone-links";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { RateCell } from "@/components/stats/rate-bar";
+import { customerDeliveryRate } from "@/lib/customers";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { currentStatus } from "@/lib/statuses";
 
@@ -74,9 +75,8 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
       id: "delivery_rate",
       header: t("fields.deliveryRate"),
       cell: (r) => {
-        if (r.total_orders === 0) return "—";
-        const pct = Math.round((r.delivered_orders / r.total_orders) * 100);
-        return <RateCell pct={pct} label={`${pct}% (${r.delivered_orders}/${r.total_orders})`} labelWidth="w-16" />;
+        const rate = customerDeliveryRate(r);
+        return rate ? <RateCell pct={rate.pct} label={rate.label} labelWidth="w-16" /> : "—";
       },
     },
     {

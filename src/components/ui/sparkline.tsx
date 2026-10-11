@@ -3,7 +3,7 @@ import * as React from "react";
 /**
  * Minimal inline-SVG sparkline — a single metric over time, no axes, no deps
  * (components.md chart rules). Uses currentColor so the caller sets the hue via
- * a token text-* class. Flat line when all values are equal or absent.
+ * a token text-* class. Renders nothing when there's no variation to show.
  */
 export function Sparkline({
   data,
@@ -18,7 +18,9 @@ export function Sparkline({
   className?: string;
   strokeWidth?: number;
 }) {
-  const pts = data.length >= 2 ? data : [...data, ...data]; // one point → flat line
+  // < 2 distinct values carries no trend — render nothing rather than a flat rule.
+  if (new Set(data).size < 2) return null;
+  const pts = data;
   const max = Math.max(...pts);
   const min = Math.min(...pts);
   const span = max - min || 1;
