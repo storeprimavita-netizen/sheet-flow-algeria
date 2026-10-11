@@ -14,7 +14,8 @@ Supabase (Postgres/Auth/RLS) + Vercel. Currency DZD (USD/EUR stored with rate).
 4. End of phase: `npm run build` (and `npm test` once it exists) green, then
    APPEND a block to `PROGRESS.md` (format documented there). Never leave the
    build broken.
-5. Tools (docs/TOOLING.md has the full rules): invoke the
+5. Tools (docs/TOOLING.md has the full rules — incl. the 🎨 impeccable,
+   🧭 ui-ux-pro-max, 🛡️ owasp-security, 🧠 karpathy-guidelines skills): invoke the
    `ponytail:ponytail` skill before writing code and run
    `ponytail:ponytail-review` on the diff before merging; use
    `graphify query "<question>"` to orient in the codebase and run

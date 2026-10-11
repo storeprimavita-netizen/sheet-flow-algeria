@@ -74,3 +74,21 @@ The design authority for phases 11–13 is the `cod-ui-polish` skill +
 - RLS: SQL-level tests using two seeded users (admin + agent) — Phase 10
   checklist, but any phase touching policies should smoke-test with an agent
   login.
+
+## Design / quality / security skills (added 2026-10-11, Phase 15)
+
+Vendored into `.claude/skills/` (project-scoped, so every phase chat gets
+them). Sources pinned at clone time; re-vendor deliberately, never auto-update.
+
+| Skill | Source | Use it for | Notes |
+|---|---|---|---|
+| 🎨 `impeccable` | github.com/pbakaus/impeccable (Apache-2.0) | `critique` / `audit` / `layout` / `polish` / `harden` on any screen; Operate mode for app UI | **Launcher NOT vendored** (it downloads an unpinned binary). Always take its "Launcher unavailable" path: read `docs/design/DESIGN_SYSTEM.md` + `cod-ui-polish` as the design context, then the command's `reference/*.md`. |
+| 🧭 `ui-ux-pro-max` | github.com/nextlevelbuilder/ui-ux-pro-max-skill (MIT) | UX rules by priority (a11y → touch → perf → layout → charts); `references/quick-reference.md`, `references/pro-rules.md`, `data/charts.csv`, `data/ux-guidelines.csv` | Its `scripts/search.py` is local-only Python; running it needs user permission (classifier blocks third-party scripts by default). Reading the CSV/MD data directly is enough. |
+| ✨ `frontend-design` | Anthropic official plugin | Aesthetic direction, avoiding templated defaults | Subordinate to `cod-ui-polish` (Slate & Emerald is approved — don't re-pick a palette). |
+| 🛡️ `owasp-security` | github.com/agamm/claude-code-owasp | Security review of every phase touching API routes, webhooks, actions, migrations/RLS, auth | Use its triage rubric — only reachable findings. Mandatory before merging any ZR Express / webhook / auth work. |
+| 🧠 `karpathy-guidelines` | github.com/forrestchang/andrej-karpathy-skills (MIT) | Think-before-coding, surgical diffs, verifiable success criteria | Complements `ponytail` (ponytail = do less; karpathy = state assumptions + define the check). |
+
+**Precedence when they disagree:** project rules (CLAUDE.md, locked decisions,
+`cod-ui-polish`, DESIGN_SYSTEM.md) > `impeccable` / `ui-ux-pro-max` /
+`frontend-design` taste. Impeccable's "go bold" never overrides "no hardcoded
+colors", the status system, or RTL logical props.
