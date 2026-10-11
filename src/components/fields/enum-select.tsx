@@ -39,16 +39,24 @@ export function EnumSelect({
   className?: string;
   id?: string;
 }) {
+  // Track the uncontrolled value too, so the trigger can render the selected
+  // label itself: Radix's SelectValue is empty until hydration (blank flash).
+  const [inner, setInner] = React.useState(defaultValue);
+  const current = value ?? inner;
+  const selected = options.find((o) => o.value === current);
   return (
     <Select
       name={name}
       value={value}
       defaultValue={defaultValue}
-      onValueChange={onChange}
+      onValueChange={(v) => {
+        setInner(v);
+        onChange?.(v);
+      }}
       disabled={disabled}
     >
       <SelectTrigger id={id} className={className}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{selected?.label}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (

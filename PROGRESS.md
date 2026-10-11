@@ -45,7 +45,7 @@ the bottom. Format:
 | 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | done |
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | done |
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | done |
-| 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | planned |
+| 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | done |
 | 15h 💼 Finance | docs/phases/phase-15-plan.md §15h | planned |
 | 15i ⚙️ Settings, contacts, team polish | docs/phases/phase-15-plan.md §15i | planned |
 | 15j ✨ Final sweep | docs/phases/phase-15-plan.md §15j | planned |
@@ -3306,4 +3306,27 @@ unchanged until the user runs the steps above.
   zrexpress-webhook.test.ts (3).
 - Not done: fee sync + hubs untested against real ZR (no creds) — first real
   run should be watched; ZR bulk endpoint (100/req) unused (sequential push).
+- Tests 81/81, build green.
+
+## Phase 15g — Products, pricing, stock (2026-10-12) — DONE
+- 🏷️ Stock hub: KPI strip (units on hand, 💎 stock value = Σ stock × unit
+  cost, low-stock count, out-of-stock count); per-product `low_stock_threshold`
+  editable inline (auto-saves; `setLowStockThreshold` action); unit cost +
+  stock value columns; one "Adjust" dialog per row (was 4 inline controls).
+  `LOW_STOCK_THRESHOLD` constant deleted — every chip (hub, product stock tab,
+  products grid/table) uses the per-product column; its ponytail debt note
+  removed.
+- 📦 Product overview: read-mode KPI strip (net profit + margin, ROAS,
+  delivery % + break-even, on hand vs threshold, stock value) from
+  pnl_summary/pnlMetrics above the edit form. Cards without an image get a
+  56px icon strip (was a 4:3 grey block) + stock chip. Product status
+  "Confirmed" relabelled "Validated" (key unchanged).
+- 💰 Pricing: incomplete scenarios (no sale price / rates) show an
+  "Incomplete inputs" chip and "—" instead of a false Profit + "≥0.5%"
+  break-even; "Euro price (DZD)" → "EUR → DA rate"; tab heading demoted from
+  page h1.
+- EnumSelect renders the selected label server-side (Radix SelectValue was
+  blank until hydration → empty selects on slow loads).
+- Screenshots: stock dark (dialog tested: +10 persisted, then reverted),
+  product overview + pricing light.
 - Tests 81/81, build green.

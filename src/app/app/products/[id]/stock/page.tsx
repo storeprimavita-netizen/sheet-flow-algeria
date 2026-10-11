@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/format";
-import { LOW_STOCK_THRESHOLD, MANUAL_STOCK_REASONS } from "@/lib/enums";
+import { MANUAL_STOCK_REASONS } from "@/lib/enums";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default async function ProductStockPage({
 
   const supabase = await createClient();
   const [{ data: product }, { data: movements }] = await Promise.all([
-    supabase.from("products").select("stock").eq("id", id).maybeSingle(),
+    supabase.from("products").select("stock, low_stock_threshold").eq("id", id).maybeSingle(),
     supabase
       .from("stock_movements")
       .select("*")
@@ -33,7 +33,7 @@ export default async function ProductStockPage({
   if (!product) notFound();
 
   const out = product.stock <= 0;
-  const low = !out && product.stock <= LOW_STOCK_THRESHOLD;
+  const low = !out && product.stock <= product.low_stock_threshold;
 
   return (
     <div className="space-y-6">

@@ -22,7 +22,7 @@ export default async function ProductsPage() {
   const [{ data: products }, { data: stats }, { data: pnls }, { data: recentOrders }, categories] = await Promise.all([
     supabase
       .from("products")
-      .select("id, name, sku, category_option_id, status, sale_price, stock, images, created_at")
+      .select("id, name, sku, category_option_id, status, sale_price, stock, low_stock_threshold, images, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("product_stats").select("*").eq("workspace_id", profile.workspaceId),
     supabase.rpc("pnl_by_product", {}), // all-time; null pnl for agents
@@ -59,6 +59,7 @@ export default async function ProductsPage() {
       status: p.status,
       sale_price: p.sale_price,
       stock: p.stock,
+      low_stock_threshold: p.low_stock_threshold,
       delivery_rate: s?.delivery_rate ?? null,
       net_profit: pnl && pnl.orders_delivered > 0 ? pnl.net_profit : null,
       created_at: p.created_at,

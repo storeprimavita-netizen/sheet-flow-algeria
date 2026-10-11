@@ -116,27 +116,30 @@ function ScenarioCard({
   const t = useTranslations();
   const r: ScenarioResult | null = useMemo(() => (noData ? null : computeScenario(inputs)), [inputs, noData]);
   const profitable = (r?.net_profit_per_order ?? 0) >= 0;
-  const breakEven = useMemo(() => (noData ? null : breakEvenDeliveryPct(inputs)), [inputs, noData]);
+  // No sale price or rates → every line is 0 and "0 ≥ 0" would read as Profit
+  // with a ≥0.5% break-even. Call it incomplete instead of a false verdict.
+  const incomplete = !inputs.sale_price || !inputs.confirmation_pct || !inputs.delivery_pct;
+  const breakEven = useMemo(() => (noData || incomplete ? null : breakEvenDeliveryPct(inputs)), [inputs, noData, incomplete]);
 
   return (
     <div className="card-surface space-y-4 rounded-xl p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{title}</h3>
         {r ? (
-          <Chip token={profitable ? "success" : "danger"} size="sm">
-            {profitable ? t("pricing.profit") : t("pricing.loss")}
+          <Chip token={incomplete ? "neutral" : profitable ? "success" : "danger"} size="sm">
+            {incomplete ? t("pricing.incomplete") : profitable ? t("pricing.profit") : t("pricing.loss")}
           </Chip>
         ) : null}
       </div>
 
       {/* highlights */}
       <div className="grid grid-cols-2 gap-2">
-        <Metric label={t("pricing.netOrder")} value={formatCurrency(r?.net_profit_per_order ?? null)} accent />
-        <Metric label={t("pricing.netMonth")} value={formatCurrency(r?.net_profit_per_month ?? null)} accent />
+        <Metric label={t("pricing.netOrder")} value={incomplete ? "—" : formatCurrency(r?.net_profit_per_order ?? null)} accent />
+        <Metric label={t("pricing.netMonth")} value={incomplete ? "—" : formatCurrency(r?.net_profit_per_month ?? null)} accent />
       </div>
 
       {/* break-even delivery rate */}
-      {r ? (
+      {r && !incomplete ? (
         <div className="rounded-lg bg-muted/40 p-2 text-xs">
           {breakEven === null ? (
             <span className="text-danger">{t("pricing.breakEvenNever")}</span>
