@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
-import { netProfit } from "@/lib/product-metrics";
+import { asPnl } from "@/lib/pricing";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { Funnel } from "@/components/stats/funnel";
 import { Chip } from "@/components/ui/chip";
@@ -17,20 +16,19 @@ export default async function ProductStatisticsPage({
 }) {
   const { id } = await params;
   const t = await getTranslations();
-  const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: stats }, { data: fixedFees }, { data: allStats }, { data: expenses }] = await Promise.all([
+  const [{ data: stats }, { data: pnlRaw }, { data: expenses }] = await Promise.all([
     supabase.from("product_stats").select("*").eq("id", id).maybeSingle(),
-    supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId),
-    supabase.from("product_stats").select("orders_delivered").eq("workspace_id", profile.workspaceId),
+    supabase.rpc("pnl_summary", { p_product: id }),
     supabase.from("expenses").select("category, amount_dzd").eq("product_id", id),
   ]);
   if (!stats) notFound();
 
-  const fixedFeesTotalDzd = (fixedFees ?? []).reduce((sum, f) => sum + (f.amount_dzd ?? 0), 0);
-  const totalDelivered = (allStats ?? []).reduce((sum, p) => sum + (p.orders_delivered ?? 0), 0);
-  const { allocatedFixedFees, net } = netProfit(stats, fixedFeesTotalDzd, totalDelivered);
+  // One money model (00022): same lines the dashboard and finance read.
+  const pnl = asPnl(pnlRaw);
+  const net = pnl?.net_profit ?? 0;
+  const allocatedFixedFees = pnl?.fixed_fees ?? 0;
 
   const delivered = stats.orders_delivered ?? 0;
   const hasData = (stats.orders_received ?? 0) > 0;

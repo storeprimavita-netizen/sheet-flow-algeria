@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
-import { netProfit } from "@/lib/product-metrics";
+import { asPnl } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { getOptionSet } from "@/lib/option-sets";
 import { AdSpendForm } from "@/components/finance/ad-spend-form";
@@ -20,14 +20,12 @@ export default async function ProductExpensesPage({
   const profile = (await getProfile())!;
 
   const supabase = await createClient();
-  const [{ data: product }, { data: expenses }, { data: suppliers }, { data: stats }, { data: allStats }, { data: fees }, usdRate, eurRate, subcategories] =
+  const [{ data: product }, { data: expenses }, { data: suppliers }, { data: pnlRaw }, usdRate, eurRate, subcategories] =
     await Promise.all([
       supabase.from("products").select("id").eq("id", id).maybeSingle(),
       supabase.from("expenses").select("*").eq("product_id", id).order("spent_on", { ascending: false }),
       supabase.from("contacts").select("id, name").order("name"),
-      supabase.from("product_stats").select("*").eq("id", id).maybeSingle(),
-      supabase.from("product_stats").select("orders_delivered").eq("workspace_id", profile.workspaceId),
-      supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
+      supabase.rpc("pnl_summary", { p_product: id }),
       supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "USD" }),
       supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
       getOptionSet(profile.workspaceId, "expense_subcategory"),
@@ -36,11 +34,10 @@ export default async function ProductExpensesPage({
 
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
 
-  const fixedFeesTotal = (fees ?? []).reduce((s, f) => s + (f.amount_dzd ?? 0), 0);
-  const totalDelivered = (allStats ?? []).reduce((s, p) => s + (p.orders_delivered ?? 0), 0);
-  const income = stats?.revenue_dzd ?? 0;
-  const spend = (stats?.expenses_dzd ?? 0) + (stats?.ad_spend_dzd ?? 0);
-  const net = stats ? netProfit(stats, fixedFeesTotal, totalDelivered).net : 0;
+  const pnl = asPnl(pnlRaw);
+  const income = pnl?.revenue ?? 0;
+  const net = pnl?.net_profit ?? 0;
+  const spend = income - net; // every cost line: COGS, returns, ads, expenses, fixed share
 
   return (
     <div className="space-y-6">

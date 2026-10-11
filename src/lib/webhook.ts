@@ -302,7 +302,7 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
       provider: config.provider,
       signature_ok: signatureOk,
       // Unauthenticated callers only get a metadata row — never their body.
-      payload: (signatureOk ? payload : { _rejected: true, bytes: body.length }) as Json,
+      payload: (signatureOk ? payload : { _rejected: true, bytes: body.length }) as NonNullable<Json>,
       error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
     })
     .select("id")

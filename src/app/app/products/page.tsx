@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
-import { netProfit } from "@/lib/product-metrics";
+import { asPnl } from "@/lib/pricing";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -19,21 +19,20 @@ export default async function ProductsPage() {
   const since = new Date(Date.now() - SPARK_DAYS * 86400000);
   const sinceISO = since.toISOString().slice(0, 10);
 
-  const [{ data: products }, { data: stats }, { data: fees }, { data: recentOrders }, categories] = await Promise.all([
+  const [{ data: products }, { data: stats }, { data: pnls }, { data: recentOrders }, categories] = await Promise.all([
     supabase
       .from("products")
       .select("id, name, sku, category_option_id, status, sale_price, stock, images, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("product_stats").select("*").eq("workspace_id", profile.workspaceId),
-    supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", profile.workspaceId).eq("is_active", true),
+    supabase.rpc("pnl_by_product", {}), // all-time; null pnl for agents
     supabase.from("orders").select("product_id, placed_at").gte("placed_at", since.toISOString()),
     getOptionSet(profile.workspaceId, "product_category"),
   ]);
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const statById = new Map((stats ?? []).map((s) => [s.id, s]));
-  const fixedFeesTotal = (fees ?? []).reduce((sum, f) => sum + (f.amount_dzd ?? 0), 0);
-  const totalDelivered = (stats ?? []).reduce((sum, s) => sum + (s.orders_delivered ?? 0), 0);
+  const pnlById = new Map((pnls ?? []).map((r) => [r.product_id, asPnl(r.pnl)]));
 
   // per-product daily order counts over the last 30 days (sparkline)
   const sparks = new Map<string, number[]>();
@@ -49,9 +48,7 @@ export default async function ProductsPage() {
 
   const rows: ProductRow[] = (products ?? []).map((p) => {
     const s = statById.get(p.id);
-    const { net } = s
-      ? netProfit(s, fixedFeesTotal, totalDelivered)
-      : { net: null as number | null };
+    const pnl = pnlById.get(p.id);
     const category = p.category_option_id ? categoryById.get(p.category_option_id) : undefined;
     return {
       id: p.id,
@@ -63,7 +60,7 @@ export default async function ProductsPage() {
       sale_price: p.sale_price,
       stock: p.stock,
       delivery_rate: s?.delivery_rate ?? null,
-      net_profit: s && (s.orders_delivered ?? 0) > 0 ? net : null,
+      net_profit: pnl && pnl.orders_delivered > 0 ? pnl.net_profit : null,
       created_at: p.created_at,
       spark: sparks.get(p.id) ?? new Array(SPARK_DAYS).fill(0),
     };
