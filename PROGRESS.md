@@ -37,7 +37,7 @@ the bottom. Format:
 | 14d — Stock hub + auto-decrement | docs/phases/phase-14-plan.md §14d | done |
 | 14e — Rules redesign | docs/phases/phase-14-plan.md §14e | done |
 | 14f — Users + Audit → Settings | docs/phases/phase-14-plan.md §14f | done |
-| 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | planned |
+| 14g — Analytics: delivery rate + timing stats (+ PRICING_AND_RISK.md) | docs/phases/phase-14-plan.md §14g | done |
 | 14h — Google Drive + Calendar (OAuth) | docs/phases/phase-14h-google-oauth.md | planned (needs user GCloud setup) |
 
 ## Planning (2026-07-26, Fable) — DONE
@@ -3146,3 +3146,18 @@ unchanged until the user runs the steps above.
 - Decisions: Plain text column + hardcoded RULE_CATEGORIES over option_set machinery (4 fixed buckets, upgrade to option_sets if user asks). Native `<details>` for edit toggle (no client JS). Radix EnumSelect for category field per CLAUDE.md no-native-select rule.
 - Known issues: None.
 - Next chat must know: 14g (Analytics: delivery rate + timing stats) is next — brief written. Migration `00020_analytics_timing.sql` (numbered after 14e's 00019). No 14e branch merge conflicts expected. Screenshot self-critique captured: rules-dark-final.png, rules-light-final.png — both themes verified, zero console errors.
+
+## Phase 14g — Analytics: delivery rate + timing stats (2026-10-11) — DONE
+- Done: migration 00020 (`agent_performance` + avg delivery/total time,
+  new `workspace_performance` view, both security_invoker); performance page
+  gains 2 columns + workspace-average strip (windowed + unwindowed paths);
+  delivery-rate `40% (2/5)` on customers table, contact header, confirmation
+  table + sheet. Stale 14a RLS tests updated (agents see all orders).
+- Files: supabase/migrations/00020_analytics_timing.sql, team/performance/*,
+  contacts/customers-table.tsx, contacts/[id]/page.tsx, orders/confirmation/*,
+  messages en/ar, docs/DB.md, database.types.ts, rls.test.ts.
+- Screenshots: performance page light + dark — both correct. Seed data gives
+  workspace avg delivery "0m" (seed writes confirmed+delivered same ts).
+- Known issues: remote DB needs `npx supabase db push` for 00020 (user step).
+  Removed a literal NUL byte from the perf group key (git saw file as binary).
+- Next chat must know: 14h still blocked on user GCloud setup.

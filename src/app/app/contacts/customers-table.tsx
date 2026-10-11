@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/status-pill";
 import { RiskBadge } from "@/components/risk-badge";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
+import { RateCell } from "@/components/stats/rate-bar";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { currentStatus } from "@/lib/statuses";
 
@@ -70,6 +71,15 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
     { id: "total_orders", header: t("common.total"), numeric: true, sortable: true, cell: (r) => r.total_orders },
     { id: "delivered", header: t("status.delivery_status.delivered"), numeric: true, cell: (r) => r.delivered_orders },
     { id: "returned", header: t("status.delivery_status.returned"), numeric: true, cell: (r) => r.returned_orders },
+    {
+      id: "delivery_rate",
+      header: t("fields.deliveryRate"),
+      cell: (r) => {
+        if (r.total_orders === 0) return "—";
+        const pct = Math.round((r.delivered_orders / r.total_orders) * 100);
+        return <RateCell pct={pct} label={`${pct}% (${r.delivered_orders}/${r.total_orders})`} labelWidth="w-16" />;
+      },
+    },
     {
       id: "risk",
       header: t("fields.risk"),

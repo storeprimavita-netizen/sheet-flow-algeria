@@ -16,6 +16,8 @@ export type PerfRow = {
   rate: number | null;
   lost: number;
   avg_decision_time: string | null;
+  avg_delivery_time: string | null;
+  avg_total_time: string | null;
 };
 
 export function PerformanceTable({ rows }: { rows: PerfRow[] }) {
@@ -40,6 +42,16 @@ export function PerformanceTable({ rows }: { rows: PerfRow[] }) {
       id: "avg_decision_time",
       header: t("team.avgDecisionTime"),
       cell: (r) => <span className="text-muted-foreground">{formatDuration(r.avg_decision_time)}</span>,
+    },
+    {
+      id: "avg_delivery_time",
+      header: t("team.avgDeliveryTime"),
+      cell: (r) => <span className="text-muted-foreground">{formatDuration(r.avg_delivery_time)}</span>,
+    },
+    {
+      id: "avg_total_time",
+      header: t("team.avgTotalTime"),
+      cell: (r) => <span className="text-muted-foreground">{formatDuration(r.avg_total_time)}</span>,
     },
   ];
 

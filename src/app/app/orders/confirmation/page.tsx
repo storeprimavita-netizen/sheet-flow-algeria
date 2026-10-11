@@ -69,6 +69,8 @@ export default async function ConfirmationQueuePage() {
       duplicate_of: o.duplicate_of,
       risk_score: stat?.risk_score ?? 0,
       risk_reason: t("orders.riskReason", { total, returned, cancelled }),
+      delivery_rate:
+        total > 0 ? `${Math.round(((stat?.delivered_orders ?? 0) / total) * 100)}% (${stat?.delivered_orders ?? 0}/${total})` : "—",
       recent,
     };
   });
