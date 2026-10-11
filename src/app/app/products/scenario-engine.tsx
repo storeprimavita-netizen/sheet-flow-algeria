@@ -202,7 +202,7 @@ function ScenarioCard({
 }
 
 const fmt = (n: number | null | undefined) =>
-  n == null ? "—" : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  n == null ? "—" : n.toLocaleString("en-US", { maximumFractionDigits: 2 }).replace(/,/g, "\u00a0");
 
 function Metric({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (

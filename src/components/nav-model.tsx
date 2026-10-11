@@ -49,6 +49,7 @@ export const NAV: NavSection[] = [
       { key: "all", href: "/app/orders/all", icon: ListChecks, adminOnly: true },
       { key: "confirmation", href: "/app/orders/confirmation", icon: PhoneCall, counter: "confirmation" },
       { key: "delivery", href: "/app/orders/delivery", icon: Truck, counter: "delivery" },
+      { key: "cash", href: "/app/orders/cash", icon: Banknote, adminOnly: true },
     ],
   },
   { key: "products", href: "/app/products", icon: Package, adminOnly: true },

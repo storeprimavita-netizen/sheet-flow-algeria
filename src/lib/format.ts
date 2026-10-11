@@ -1,27 +1,37 @@
-/** Locale-neutral display helpers. Algeria → DZD. */
+/** Locale-neutral display helpers. Algeria → DA. */
 
+const NBSP = "\u00a0";
+
+/** Whole dinars, space-grouped, never wraps: `135 900 DA`. `-0` renders `0`. */
 export function formatCurrency(
   value: number | string | null | undefined,
 ): string {
   if (value === null || value === undefined || value === "") return "—";
-  const n = typeof value === "string" ? Number(value) : value;
-  if (!Number.isFinite(n)) return "—";
-  return `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} DZD`;
+  const raw = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(raw)) return "—";
+  const n = Math.round(raw) || 0; // || 0 folds -0
+  return `${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`;
 }
 
-/** YYYY-MM-DD — unambiguous in both AR and EN contexts. */
+/** dd/mm/yyyy — the Algerian convention, same in AR and EN. A bare
+ * `YYYY-MM-DD` is read as a local calendar date (no UTC day shift). */
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = typeof value === "string" ? parseDate(value) : value;
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-CA");
+  return d.toLocaleDateString("en-GB");
+}
+
+function parseDate(s: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
 }
 
 export function formatDateTime(value: string | Date | null | undefined): string {
   if (!value) return "—";
   const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "—";
-  return `${d.toLocaleDateString("en-CA")} ${d.toLocaleTimeString("en-GB", {
+  return `${d.toLocaleDateString("en-GB")} ${d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
