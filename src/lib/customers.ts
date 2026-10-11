@@ -74,3 +74,17 @@ export function whatsappHref(raw: string): string {
   const local = normalizeDzPhone(raw);
   return `https://wa.me/${local.startsWith("0") ? "213" + local.slice(1) : local}`;
 }
+
+/**
+ * Customer delivery rate over CLOSED orders only — delivered ÷ (delivered +
+ * returned + cancelled). Open/in-flight orders (incl. the one being confirmed)
+ * aren't outcomes yet; counting them made a 1-of-1 customer read "50% (1/2)".
+ * null when the customer has no closed order.
+ */
+export function customerDeliveryRate(s: { delivered_orders?: number | null; returned_orders?: number | null; cancelled_orders?: number | null } | null | undefined) {
+  const delivered = s?.delivered_orders ?? 0;
+  const closed = delivered + (s?.returned_orders ?? 0) + (s?.cancelled_orders ?? 0);
+  if (!closed) return null;
+  const pct = Math.round((delivered / closed) * 100);
+  return { pct, label: `${pct}% (${delivered}/${closed})` };
+}

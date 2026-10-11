@@ -792,8 +792,8 @@
       "costPerDelivered": "Cost per delivered",
       "aov": "Avg. order value",
       "returnRate": "Return rate",
-      "margin": "Margin {pct}%",
-      "breakEven": "Break-even {pct}%",
+      "margin": "Margin {pct}",
+      "breakEven": "Break-even {pct}",
       "breakEvenUnreachable": "Break-even unreachable at these costs",
       "period": "Period"
     },
@@ -827,8 +827,8 @@
       "none": "All clear — nothing needs attention.",
       "lowStock": "{name}: {stock} left (threshold {min})",
       "lowBalance": "{name}: balance below threshold",
-      "losingWilaya": "{name}: delivery rate {rate}% — stop shipping suggested",
-      "belowBreakEven": "Delivery rate {rate}% is below break-even ({be}%)",
+      "losingWilaya": "{name}: delivery rate {rate} — stop shipping suggested",
+      "belowBreakEven": "Delivery rate {rate} is below break-even ({be})",
       "stuck": "{n} parcels with no update for {days}+ days"
     }
   },

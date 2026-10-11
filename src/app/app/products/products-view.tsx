@@ -256,7 +256,7 @@ function ProductCard({ row, kebab }: { row: ProductRow; kebab: React.ReactNode }
   return (
     <div className="card-surface flex h-full flex-col overflow-hidden rounded-xl">
       {/* no image → compact icon strip, not a half-card grey block */}
-      <Link href={`/app/products/${row.id}`} className={cn("relative block bg-surface-raised", row.image ? "aspect-[4/3]" : "h-14")}>
+      <Link href={`/app/products/${row.id}`} aria-label={row.name} className={cn("relative block bg-surface-raised", row.image ? "aspect-[4/3]" : "h-14")}>
         {row.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={row.image} alt="" className="h-full w-full object-cover" />

@@ -4,7 +4,7 @@ import { Banknote, Landmark, Megaphone, Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
@@ -109,7 +109,7 @@ export default async function FinanceOverviewPage({
               <Wallet className="h-4 w-4 text-muted-foreground" />
               {t("dashboard.pnl.title")}
             </h2>
-            {m?.margin_pct != null ? <span className="text-xs text-muted-foreground">{t("dashboard.kpi2.margin", { pct: m.margin_pct })}</span> : null}
+            {m?.margin_pct != null ? <span className="text-xs text-muted-foreground">{t("dashboard.kpi2.margin", { pct: formatPercent(m.margin_pct) })}</span> : null}
           </div>
           {pnl ? (
             <PnlWaterfall

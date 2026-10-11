@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { customerDeliveryRate } from "@/lib/customers";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
@@ -77,8 +78,7 @@ export default async function ConfirmationQueuePage({
       duplicate_of: o.duplicate_of,
       risk_score: stat?.risk_score ?? 0,
       risk_reason: t("orders.riskReason", { total, returned, cancelled }),
-      delivery_rate:
-        total > 0 ? `${Math.round(((stat?.delivered_orders ?? 0) / total) * 100)}% (${stat?.delivered_orders ?? 0}/${total})` : "—",
+      delivery_rate: customerDeliveryRate(stat)?.label ?? "—",
       recent,
     };
   });

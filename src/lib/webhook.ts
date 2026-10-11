@@ -77,23 +77,26 @@ export function verifySignature(
 }
 
 /**
- * The one active `integration_configs` row for a provider. ponytail:
- * single-workspace lookup — per-domain multi-tenant routing becomes matching
- * `config.store_domain` against the payload here later, callers don't change.
+ * Tenant-safe workspace resolution: each workspace's store signs with its own
+ * secret, so the workspace is whichever active config's secret verifies this
+ * body (was `.limit(1)` — the first workspace's config won for everyone).
+ * `configured` distinguishes "nobody set this provider up" from "bad signature".
+ * ponytail: O(workspaces) HMACs per event; key by store domain if tenants grow.
  */
 async function resolveWorkspace(
   supabase: SupabaseClient<Database>,
-  provider: Enums<"integration_provider">,
-): Promise<{ workspaceId: string; secret: string } | null> {
+  config: ProviderConfig,
+  body: string,
+  signature: string,
+): Promise<{ configured: boolean; match: { workspaceId: string; secret: string } | null }> {
   const { data } = await supabase
     .from("integration_configs")
     .select("workspace_id, secret")
-    .eq("provider", provider)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!data?.secret) return null;
-  return { workspaceId: data.workspace_id, secret: data.secret };
+    .eq("provider", config.provider)
+    .eq("is_active", true);
+  const rows = (data ?? []).filter((r): r is typeof r & { secret: string } => !!r.secret);
+  const hit = signature ? rows.find((r) => verifySignature(r.secret, body, signature, config.encoding)) : undefined;
+  return { configured: rows.length > 0, match: hit ? { workspaceId: hit.workspace_id, secret: hit.secret } : null };
 }
 
 /** Exact match on the 58-row national reference, substring fallback, else null. */
@@ -282,9 +285,8 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
   const signature = req.headers.get(config.signatureHeader) ?? "";
   const supabase = await createAdminClient();
 
-  const integration = await resolveWorkspace(supabase, config.provider);
-  const signatureOk =
-    !!integration && !!signature && verifySignature(integration.secret, body, signature, config.encoding);
+  const { configured, match: integration } = await resolveWorkspace(supabase, config, body, signature);
+  const signatureOk = !!integration;
 
   let payload: unknown = {};
   let parseError: string | null = null;
@@ -303,14 +305,14 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
       signature_ok: signatureOk,
       // Unauthenticated callers only get a metadata row — never their body.
       payload: (signatureOk ? payload : { _rejected: true, bytes: body.length }) as NonNullable<Json>,
-      error: !integration ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
+      error: !configured ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
     })
     .select("id")
     .single();
   if (eventError || !event) return jsonResponse({ error: eventError?.message ?? "failed to store event" }, 500);
 
-  if (!integration) return jsonResponse({ error: "secret not configured" }, 401);
-  if (!signatureOk) return jsonResponse({ error: "invalid signature" }, 401);
+  if (!configured) return jsonResponse({ error: "secret not configured" }, 401);
+  if (!integration) return jsonResponse({ error: "invalid signature" }, 401);
   if (parseError) return jsonResponse({ error: parseError }, 400);
 
   const result = await applyMappedOrder(supabase, config, integration.workspaceId, event.id, payload);

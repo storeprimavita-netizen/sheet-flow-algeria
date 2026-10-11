@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Gem, Megaphone, PackageCheck, Boxes, Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { DeleteButton } from "@/components/delete-button";
 import { KpiTile } from "@/components/stats/kpi-tile";
@@ -42,7 +42,7 @@ export default async function ProductDetailsPage({
             label={t("dashboard.kpi.netProfit")}
             value={formatCurrency(pnl.net_profit)}
             tone={pnl.net_profit >= 0 ? "success" : "danger"}
-            sub={m?.margin_pct != null ? t("dashboard.kpi2.margin", { pct: m.margin_pct }) : null}
+            sub={m?.margin_pct != null ? t("dashboard.kpi2.margin", { pct: formatPercent(m.margin_pct) }) : null}
             hint={t("dashboard.hint.netProfit")}
             href={`${base}/statistics`}
           />
@@ -55,7 +55,7 @@ export default async function ProductDetailsPage({
               m?.breakeven_delivery_pct != null
                 ? m.breakeven_delivery_pct > 100
                   ? t("dashboard.kpi2.breakEvenUnreachable")
-                  : t("dashboard.kpi2.breakEven", { pct: m.breakeven_delivery_pct })
+                  : t("dashboard.kpi2.breakEven", { pct: formatPercent(m.breakeven_delivery_pct) })
                 : null
             }
             hint={t("dashboard.hint.deliveryRate")}

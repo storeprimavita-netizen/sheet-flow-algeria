@@ -84,7 +84,7 @@ export default async function StockHubPage() {
                       <td>
                         <div className="flex items-center justify-end gap-3">
                           <StockAdjustDialog productId={p.id} name={p.name} />
-                          <Link href={`/app/products/${p.id}/stock`} className="whitespace-nowrap text-xs text-muted-foreground hover:underline">
+                          <Link href={`/app/products/${p.id}/stock`} className="whitespace-nowrap py-2 text-xs text-muted-foreground hover:underline">
                             {t("stock.history")}
                           </Link>
                         </div>

@@ -792,8 +792,8 @@
       "costPerDelivered": "التكلفة لكل طلب مُسلَّم",
       "aov": "متوسط قيمة الطلب",
       "returnRate": "نسبة الإرجاع",
-      "margin": "الهامش {pct}%",
-      "breakEven": "نقطة التعادل {pct}%",
+      "margin": "الهامش {pct}",
+      "breakEven": "نقطة التعادل {pct}",
       "breakEvenUnreachable": "نقطة التعادل غير قابلة للتحقيق بهذه التكاليف",
       "period": "الفترة"
     },
@@ -827,8 +827,8 @@
       "none": "كل شيء على ما يرام — لا شيء يحتاج انتباهك.",
       "lowStock": "{name}: تبقى {stock} (الحد {min})",
       "lowBalance": "{name}: الرصيد أقل من الحد",
-      "losingWilaya": "{name}: نسبة التوصيل {rate}% — يُقترح إيقاف الشحن",
-      "belowBreakEven": "نسبة التوصيل {rate}% أقل من نقطة التعادل ({be}%)",
+      "losingWilaya": "{name}: نسبة التوصيل {rate} — يُقترح إيقاف الشحن",
+      "belowBreakEven": "نسبة التوصيل {rate} أقل من نقطة التعادل ({be})",
       "stuck": "{n} طرود بدون تحديث منذ {days}+ أيام"
     }
   },

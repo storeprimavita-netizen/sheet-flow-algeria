@@ -10,6 +10,7 @@ import { Field, tableClass } from "@/components/field";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { RiskBadge } from "@/components/risk-badge";
+import { customerDeliveryRate } from "@/lib/customers";
 import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/status-pill";
 import { currentStatus } from "@/lib/statuses";
@@ -51,7 +52,7 @@ export default async function CustomerDetailPage({
 
   const wilayaName = new Map((wilayas ?? []).map((w) => [w.code, w.name]));
   const total = stat?.total_orders ?? 0;
-  const delivered = stat?.delivered_orders ?? 0;
+  const rate = customerDeliveryRate(stat);
   const returned = stat?.returned_orders ?? 0;
   const cancelled = stat?.cancelled_orders ?? 0;
   const noAnswer = stat?.no_answer_orders ?? 0;
@@ -61,9 +62,9 @@ export default async function CustomerDetailPage({
     <div className="space-y-6">
       <PageHeader title={customer.name} subtitle={customer.phone}>
         <RiskBadge score={stat?.risk_score ?? 0} />
-        {total > 0 ? (
+        {rate ? (
           <Chip token="neutral" size="sm">
-            {t("fields.deliveryRate")}: <span className="num">{Math.round((delivered / total) * 100)}% ({delivered}/{total})</span>
+            {t("fields.deliveryRate")}: <span className="num">{rate.label}</span>
           </Chip>
         ) : null}
       </PageHeader>

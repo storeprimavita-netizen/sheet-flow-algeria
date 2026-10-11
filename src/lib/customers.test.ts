@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeDzPhone } from "./customers";
+import { customerDeliveryRate, normalizeDzPhone } from "./customers";
 
 // Pinned against the SQL cases in normalize_dz_phone() (00001_core.sql).
 describe("normalizeDzPhone", () => {
@@ -24,5 +24,16 @@ describe("normalizeDzPhone", () => {
   });
   it("returns unmatched digits unchanged", () => {
     expect(normalizeDzPhone("12345")).toBe("12345");
+  });
+});
+
+describe("customerDeliveryRate (15j: closed orders only)", () => {
+  it("ignores open orders in the denominator", () => {
+    expect(customerDeliveryRate({ delivered_orders: 1, returned_orders: 0, cancelled_orders: 0 })?.label).toBe("100% (1/1)");
+    expect(customerDeliveryRate({ delivered_orders: 1, returned_orders: 1, cancelled_orders: 2 })?.label).toBe("25% (1/4)");
+  });
+  it("is null with no closed order", () => {
+    expect(customerDeliveryRate({ delivered_orders: 0, returned_orders: 0, cancelled_orders: 0 })).toBeNull();
+    expect(customerDeliveryRate(null)).toBeNull();
   });
 });

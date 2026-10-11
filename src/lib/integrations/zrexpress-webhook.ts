@@ -70,6 +70,13 @@ export async function processZRWebhook(req: Request): Promise<Response> {
     signature: req.headers.get("svix-signature") ?? "",
   };
 
+  // Cheap rejects before any DB work: Svix always sends all three headers and
+  // a fresh timestamp, so junk/stale requests cost no query and no row.
+  const ts = Number(headers.timestamp);
+  if (!headers.id || !headers.signature || !Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > TOLERANCE_SECONDS) {
+    return jsonResponse({ error: "invalid signature" }, 401);
+  }
+
   const supabase = await createAdminClient();
   const { data: configs } = await supabase
     .from("integration_configs")

@@ -1041,7 +1041,7 @@ isOneToOne: false
 { Args: { "p_ws": string }; Returns: undefined
                            },
 "transition_order_status":
-{ Args: { "p_confirmation_comment"?: string,"p_confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"p_delivery_status"?: Database["public"]['Enums']["delivery_status"],"p_order_id": string }; Returns: undefined
+{ Args: { "p_confirmation_comment"?: string,"p_confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"p_delivery_status"?: Database["public"]['Enums']["delivery_status"],"p_order_id": string }; Returns: boolean
                            }
           }
           Enums: {
