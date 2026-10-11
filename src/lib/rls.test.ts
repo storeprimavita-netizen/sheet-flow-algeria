@@ -167,33 +167,31 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
   });
 
   describe("orders: role-scoped visibility + cross-stage guard", () => {
-    test("confirmation agent sees only not-yet-confirmed orders", async () => {
+    test("confirmation agent sees all workspace orders (14a: visibility is role-blind, writes are role-scoped)", async () => {
       const { count, error } = await confAgent
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId);
       expect(error).toBeNull();
-      const { count: nonConfirmedTotal } = await admin
+      const { count: allTotal } = await admin
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .neq("confirmation_status", "confirmed");
-      expect(count).toBe(nonConfirmedTotal);
+        .eq("workspace_id", workspaceId);
+      expect(count).toBe(allTotal);
       expect(count).toBeGreaterThan(0);
     });
 
-    test("delivery agent sees only confirmed orders", async () => {
+    test("delivery agent sees all workspace orders", async () => {
       const { count, error } = await delivAgent
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId);
       expect(error).toBeNull();
-      const { count: confirmedTotal } = await admin
+      const { count: allTotal } = await admin
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .eq("confirmation_status", "confirmed");
-      expect(count).toBe(confirmedTotal);
+        .eq("workspace_id", workspaceId);
+      expect(count).toBe(allTotal);
       expect(count).toBeGreaterThan(0);
     });
 

@@ -87,7 +87,8 @@ Finally regenerate types:
 |---|---|
 | `customer_stats` | Contacts page + confirmation queue inline risk. Risk formula documented in the migration + SPEC §5; weights from `settings.risk_weights` |
 | `wilaya_stats` | Dashboard per-wilaya table; `stop_shipping_auto` computed from `settings.stop_shipping_rule` (min_orders + min_delivery_rate), `stop_shipping_manual` from `wilaya_fees` |
-| `agent_performance` | Team & Rules; per actor+stage: handled, confirmed/delivered, avg decision time |
+| `agent_performance` | Team performance page; per actor+stage: handled, confirmed/delivered, avg decision/delivery/total time |
+| `workspace_performance` | Team performance page header strip; same three timings, workspace-wide (00020) |
 | `product_stats` | Product Statistics tab + "Real" pricing scenario; money columns null for agents (admin-only source tables) |
 | `account_balances` | Finance → Accounts page + low-balance banner on overview; derived balance per account |
 

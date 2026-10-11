@@ -30,6 +30,7 @@ export type ConfRow = {
   duplicate_of: string | null;
   risk_score: number;
   risk_reason: string;
+  delivery_rate: string;
   recent: { id: string; order_number: string | null; delivery_status: string; placed_at: string | null }[];
 };
 
@@ -74,7 +75,17 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
     { id: "product", header: t("fields.product"), cell: (r) => <span className="truncate">{r.product_name ?? "—"}</span> },
     { id: "quantity", header: t("fields.quantity"), numeric: true, cell: (r) => <span className="num">{r.quantity}</span> },
     { id: "total", header: t("fields.total_amount"), numeric: true, cell: (r) => formatCurrency((r.sale_price ?? 0) * r.quantity) },
-    { id: "risk", header: t("fields.risk"), align: "center", cell: (r) => <RiskBadge score={r.risk_score} reason={r.risk_reason} /> },
+    {
+      id: "risk",
+      header: t("fields.risk"),
+      align: "center",
+      cell: (r) => (
+        <div className="space-y-0.5">
+          <RiskBadge score={r.risk_score} reason={r.risk_reason} />
+          <div className="num text-xs text-muted-foreground">{r.delivery_rate}</div>
+        </div>
+      ),
+    },
     {
       id: "status",
       header: t("fields.confirmation_status"),

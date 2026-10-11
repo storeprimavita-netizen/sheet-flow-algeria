@@ -110,6 +110,9 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
       {/* risk + dial count */}
       <div className="flex flex-wrap items-center gap-2">
         <RiskBadge score={order.risk_score} reason={order.risk_reason} size="md" />
+        <Chip token="neutral" size="sm">
+          {t("fields.deliveryRate")}: <span className="num">{order.delivery_rate}</span>
+        </Chip>
         <Chip token="neutral" size="sm" icon={<Phone className="h-3 w-3" />}>
           {t("orders.logAttempt")}: <span className="num">{order.confirmation_attempts}</span>
         </Chip>

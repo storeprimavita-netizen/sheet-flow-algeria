@@ -1781,6 +1781,8 @@ export type Database = {
       agent_performance: {
         Row: {
           avg_decision_time: string | null
+          avg_delivery_time: string | null
+          avg_total_time: string | null
           confirmed: number | null
           delivered: number | null
           lost: number | null
@@ -1881,6 +1883,23 @@ export type Database = {
             referencedRelation: "wilayas"
             referencedColumns: ["code"]
           },
+          {
+            foreignKeyName: "orders_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_performance: {
+        Row: {
+          avg_decision_time: string | null
+          avg_delivery_time: string | null
+          avg_total_time: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
           {
             foreignKeyName: "orders_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -2175,3 +2194,4 @@ export const Constants = {
     },
   },
 } as const
+

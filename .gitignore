@@ -53,3 +53,8 @@ supabase/.temp/
 
 # Playwright MCP transient output
 .playwright-mcp/
+
+# local scratch — never commit (kimi.tx holds an API key)
+kimi*
+.playwright-mcp/
+/*.png
