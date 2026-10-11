@@ -44,7 +44,7 @@ export async function updateOrderStatus(params: {
   const { orderId, stage, status, comment } = params;
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("transition_order_status", {
+  const { data: changed, error } = await supabase.rpc("transition_order_status", {
     p_order_id: orderId,
     p_confirmation_status: stage === "confirmation" && status !== "" ? (status as Enums<"confirmation_status">) : undefined,
     p_delivery_status: stage === "delivery" && status !== "" ? (status as Enums<"delivery_status">) : undefined,
@@ -57,7 +57,9 @@ export async function updateOrderStatus(params: {
   // (admin-only RLS) — the confirmation itself already passed the RPC's
   // authorization above. A push failure never undoes the confirmation; it
   // comes back as a warning and the admin can push from the order page.
-  if (stage === "confirmation" && status === "confirmed") {
+  // Only when THIS call flipped the order to confirmed: the RPC row-locks, so
+  // a double-submit can't push two parcels (OWASP 2nd pass, CWE-367).
+  if (changed && stage === "confirmation" && status === "confirmed") {
     // settings is admin-only (RLS): an agent's session would always read the
     // default (off), so the flag is read with the same service-role client.
     const profile = await getProfile();

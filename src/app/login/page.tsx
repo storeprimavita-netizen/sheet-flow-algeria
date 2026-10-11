@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Store } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,9 @@ export default function LoginPage() {
         </div>
 
         <div className="mb-6 text-center">
-          <div className="text-5xl">🛍️</div>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Store className="h-6 w-6" />
+          </div>
           <h1 className="mt-2 text-3xl font-bold text-foreground">MNW ERP</h1>
           <p className="mt-2 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
