@@ -1,7 +1,7 @@
 /** Skeleton for every /app section while its server component streams:
  * header, KPI row, then a table — the shape most pages share. */
 export default function AppLoading() {
-  const bar = "animate-pulse rounded-md bg-surface-raised";
+  const bar = "animate-pulse rounded-md bg-border";
   return (
     <div className="space-y-6" aria-busy="true">
       <div className="space-y-2">

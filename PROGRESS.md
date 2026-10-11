@@ -42,7 +42,7 @@ the bottom. Format:
 | 15a 🛡️ Security hardening (OWASP) | docs/phases/phase-15-plan.md §15a | done |
 | 15b 💰 One money model (pnl_summary + unit economics) | docs/phases/phase-15-plan.md §15b | done |
 | 15c 🧭 Shell, nav, formatters, date picker, 4 states | docs/phases/phase-15-plan.md §15c | done |
-| 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | planned |
+| 15d 📊 Dashboard rebuild | docs/phases/phase-15-plan.md §15d | done |
 | 15e 🛒 Orders & queues | docs/phases/phase-15-plan.md §15e | planned |
 | 15f 🚚 ZR Express ready-to-link | docs/phases/phase-15-plan.md §15f | planned |
 | 15g 📦 Products, pricing, stock | docs/phases/phase-15-plan.md §15g | planned |
@@ -3232,3 +3232,27 @@ unchanged until the user runs the steps above.
 - Known: dashboard "All" selects render blank at 390px (pre-existing) — 15d
   replaces that filter bar with the chip row.
 - Tests: 38 unit (format + pricing) green; build green.
+
+## Phase 15d — Dashboard rebuild (2026-10-11) — DONE
+- Done: 12-col grid. ⚡ Today strip (fixed, ignores filters): orders today vs
+  yesterday · to confirm · to ship · 💳 cash to collect (pnl_summary all-time)
+  · stuck parcels (at courier, no update 5+ days). 💰 Hero net profit (margin
+  + break-even sentence) + 8 KPI tiles from pnl_lines/pnlMetrics: revenue,
+  total costs, ROAS, cost per delivered, AOV, confirmation %, delivery % (red
+  when below break-even), return rate — each with an ⓘ formula tooltip,
+  delta vs previous period (costs: down = good), drill-through. 🧾 P&L
+  waterfall (new `components/dashboard/pnl-waterfall.tsx`, pure CSS, RTL via
+  logical inset). 🚨 Alerts card (below break-even, stuck parcels, low stock,
+  low account balance, wilayas flagged stop-shipping) — icon + sentence + link.
+  Per-product table gains ROAS + net (pnl_by_product). Agent decision time via
+  formatDuration. Header actions: add ad spend, new order.
+- 00023: `products.low_stock_threshold` (default 5) — alert now; 15g edits it.
+- Sidebar "to ship" counter = confirmed + wait_for_deposit (was any
+  wait_for_deposit, incl. cancelled → badge/row mismatch).
+- KpiTile: hint/sub/icon/hero/goodWhen props.
+- Screenshots: dark full page 1440, light 1440, 390 light. Fixed from shots:
+  break-even >100% printed "461.7%" (now "unreachable"), truncated
+  confirmation label, ⓘ overlapping values, invisible light skeleton,
+  **mobile horizontal overflow** (implicit grid auto track → grid-cols-1 +
+  shell min-w-0).
+- Tests 78/78 (unit + RLS), build green, no hardcoded colors.

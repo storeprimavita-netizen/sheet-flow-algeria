@@ -742,7 +742,63 @@
       "queue": "Your queue",
       "stats": "Your stats"
     },
-    "noData": "No data for this filter yet."
+    "noData": "No data for this filter yet.",
+    "today": {
+      "title": "Today",
+      "ordersToday": "Orders today",
+      "vsYesterday": "{n} yesterday",
+      "toConfirm": "To confirm",
+      "toShip": "To ship",
+      "cashToCollect": "Cash to collect",
+      "cashSub": "Delivered, not yet received",
+      "stuck": "Stuck parcels",
+      "stuckSub": "No update for {days}+ days"
+    },
+    "kpi2": {
+      "totalCosts": "Total costs",
+      "roas": "ROAS",
+      "costPerDelivered": "Cost per delivered",
+      "aov": "Avg. order value",
+      "returnRate": "Return rate",
+      "margin": "Margin {pct}%",
+      "breakEven": "Break-even {pct}%",
+      "breakEvenUnreachable": "Break-even unreachable at these costs",
+      "period": "Period"
+    },
+    "hint": {
+      "netProfit": "Revenue − product cost − returned orders × return fee − ad spend − expenses − fixed fees (prorated per day).",
+      "revenue": "Sale price × quantity of delivered orders. The delivery fee is paid by the customer to the courier, so it is not revenue.",
+      "totalCosts": "Product cost + return fees + ad spend + expenses + fixed fees for the period.",
+      "roas": "Revenue ÷ ad spend. Above 1 means ads return more than they cost.",
+      "costPerDelivered": "All costs ÷ delivered orders — what each delivered order really costs you.",
+      "aov": "Revenue ÷ delivered orders.",
+      "confirmationRate": "Confirmed orders ÷ orders received.",
+      "deliveryRate": "Delivered ÷ confirmed. Break-even = the delivery rate at which net profit is 0 with this period's costs.",
+      "returnRate": "Returned ÷ (delivered + returned).",
+      "cashToCollect": "Sale value of delivered orders with no cash collection recorded yet — money the courier owes you.",
+      "toConfirm": "Waiting for confirmation, no answer, or phone closed.",
+      "toShip": "Confirmed but not yet deposited at the courier.",
+      "stuck": "At the courier (deposited, in transit, out for delivery, stop desk) with no update for several days."
+    },
+    "pnl": {
+      "title": "Profit & loss",
+      "revenue": "Revenue",
+      "cogs": "Product cost",
+      "returns": "Return fees",
+      "ads": "Ad spend",
+      "expenses": "Expenses",
+      "fixed": "Fixed fees",
+      "net": "Net profit"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "none": "All clear — nothing needs attention.",
+      "lowStock": "{name}: {stock} left (threshold {min})",
+      "lowBalance": "{name}: balance below threshold",
+      "losingWilaya": "{name}: delivery rate {rate}% — stop shipping suggested",
+      "belowBreakEven": "Delivery rate {rate}% is below break-even ({be}%)",
+      "stuck": "{n} parcels with no update for {days}+ days"
+    }
   },
   "finance": {
     "subtitleOverview": "Invested vs revenue vs net profit for the period",
