@@ -8,6 +8,7 @@ import {
   getZRCredentials,
   createZRParcel,
   getZRParcel,
+  findZRParcelByExternalId,
   searchZRHubs,
   toInternationalDzPhone,
   zrErrorMessage,
@@ -115,22 +116,28 @@ export async function pushToZR(
   // COD: the customer pays the courier sale·qty + delivery fee.
   const amount = (order.sale_price ?? 0) * order.quantity + (order.delivery_fee ?? 0);
 
+  // Idempotency: a parcel may already exist from an earlier push whose DB insert failed.
   let parcel: { id: string };
+  let created = false;
   try {
-    parcel = await createZRParcel(creds, {
-      customerName: order.customer_name ?? "—",
-      phone: toInternationalDzPhone(order.customer_phone),
-      cityTerritoryId: wilayaTerritory.id,
-      districtTerritoryId: districtId,
-      street: order.address,
-      productName,
-      quantity: order.quantity,
-      unitPrice: order.sale_price ?? 0,
-      description: `${order.quantity}x ${productName}`.slice(0, 250),
-      amount,
-      externalId: order.id,
-      hubId: hub,
-    });
+    const found = await findZRParcelByExternalId(creds, order.id);
+    created = !found;
+    parcel =
+      found ??
+      (await createZRParcel(creds, {
+        customerName: order.customer_name ?? "—",
+        phone: toInternationalDzPhone(order.customer_phone),
+        cityTerritoryId: wilayaTerritory.id,
+        districtTerritoryId: districtId,
+        street: order.address,
+        productName,
+        quantity: order.quantity,
+        unitPrice: order.sale_price ?? 0,
+        description: `${order.quantity}x ${productName}`.slice(0, 250),
+        amount,
+        externalId: order.id,
+        hubId: hub,
+      }));
   } catch (e) {
     return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
   }
@@ -156,7 +163,17 @@ export async function pushToZR(
     state_updated_at: state ? new Date().toISOString() : null,
     last_synced_at: new Date().toISOString(),
   });
-  return error ? { ok: false, error: error.message } : { ok: true };
+  if (!error) return { ok: true };
+  if (error.code === "23505") {
+    // lost a race: if WE just created a parcel it is now a second real parcel nobody links to
+    if (created) console.error("zr duplicate parcel after racing push — cancel in ZR dashboard:", parcel.id, "order", order.id);
+    return { ok: false, error: "This order was already sent to ZR Express." };
+  }
+  console.error("zr_shipments insert failed after parcel creation", parcel.id, error.message);
+  return {
+    ok: false,
+    error: `Parcel ${parcel.id} exists at ZR Express but saving failed (${error.message}). Retry to link it.`,
+  };
 }
 
 /** Stop desks in an order's wilaya — for the hub picker on the order page. */

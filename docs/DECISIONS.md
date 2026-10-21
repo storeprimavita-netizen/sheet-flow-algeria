@@ -28,3 +28,5 @@
 | Orders already pushed to ZR / past wait_for_deposit | any | untouchable | – | – |
 | Direct attempts count / comment / cancellation reason | yes | yes (allow-listed) | no | – |
 Exceptional transitions: admin-only (delivered/returned corrections). Legacy `delivery_agent` enum, column and rows are retained; role leaves invite UI in ZR-2.
+
+| D13 | ZR prod-API guard (P0-3): any `*.zrexpress.app` host is reachable only when `NODE_ENV=production` AND (`VERCEL=1` with `VERCEL_ENV=production`, or, off Vercel, `ZR_ALLOW_PROD=1`). `ZR_ALLOW_PROD` is the one self-hosting escape hatch (the brief said none); it is ignored on Vercel, so previews stay blocked. `ZR_API_BASE` points tests/sandbox elsewhere. ZR fetches use `redirect:"error"`. **Deploy requirement:** Vercel "Automatically expose System Environment Variables" must stay ON; never set `ZR_ALLOW_PROD` on Vercel. The `externalId` search filter is unverified: run `scripts/zr-probe.ts` before the first production push (lookup failure aborts the push — fail-closed). | qa-reviewer findings on branch mnw-P0-3. |

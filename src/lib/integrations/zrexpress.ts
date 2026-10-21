@@ -9,7 +9,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 
-const BASE_URL = "https://api.zrexpress.app/api/v1";
+const PROD_BASE = "https://api.zrexpress.app/api/v1";
 
 export type ZRCredentials = { tenantId: string; apiKey: string };
 
@@ -38,9 +38,36 @@ export async function getZRCredentials(
   return { tenantId: config.tenant_id, apiKey: config.api_key };
 }
 
+/** Per-call so tests can set ZR_API_BASE. Any zrexpress.app host is reachable only from a
+ * real production deploy (VERCEL_ENV=production; self-hosted prod must set ZR_ALLOW_PROD=1) —
+ * a local `next start`, e2e run or preview sharing the prod DB must never ship real parcels. */
+function zrBaseUrl(): string {
+  const base = process.env.ZR_API_BASE || PROD_BASE;
+  let u: URL;
+  try {
+    u = new URL(base);
+  } catch {
+    throw new ZRExpressError("ZR_API_BASE is not a valid URL");
+  }
+  const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  const loopback = host === "localhost" || host === "127.0.0.1";
+  if (u.protocol !== "https:" && !(loopback && u.protocol === "http:")) {
+    throw new ZRExpressError("ZR_API_BASE must be https (or http on localhost)");
+  }
+  // NODE_ENV must also be production: a prod env file pulled onto a laptop must not make `next dev`/vitest "prod".
+  const isProd =
+    process.env.NODE_ENV === "production" &&
+    (process.env.VERCEL ? process.env.VERCEL_ENV === "production" : process.env.ZR_ALLOW_PROD === "1");
+  if ((host === "zrexpress.app" || host.endsWith(".zrexpress.app")) && !isProd) {
+    throw new ZRExpressError("ZR prod API blocked outside production; set ZR_API_BASE");
+  }
+  return base.replace(/\/+$/, "");
+}
+
 async function zrFetch<T>(creds: ZRCredentials, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${zrBaseUrl()}${path}`, {
     ...init,
+    redirect: "error", // a redirect must never carry our API key/body to another host (e.g. the real ZR API)
     headers: {
       "X-Tenant": creds.tenantId,
       "X-Api-Key": creds.apiKey,
@@ -156,7 +183,24 @@ export type ZRParcel = {
   id: string;
   trackingNumber: string | null;
   state: { name: string } | null;
+  externalId?: string | null;
 };
+
+/** Idempotency lookup: the parcel we already created for this order (externalId = order id), if any.
+ * Only an item whose externalId matches is returned — a filter ZR ignores must never make us adopt
+ * somebody else's parcel. */
+export async function findZRParcelByExternalId(creds: ZRCredentials, externalId: string): Promise<ZRParcel | null> {
+  // ponytail: filter field name unverified against a live tenant — confirm with zr-probe.
+  const res = await zrFetch<{ items?: ZRParcel[] }>(creds, "/parcels/search", {
+    method: "POST",
+    body: JSON.stringify({
+      pageNumber: 1,
+      pageSize: 20,
+      advancedFilter: { logic: "AND", filters: [{ field: "externalId", operator: "eq", value: externalId }] },
+    }),
+  });
+  return res.items?.find((p) => p.externalId === externalId) ?? null;
+}
 
 export async function getZRParcel(creds: ZRCredentials, id: string): Promise<ZRParcel> {
   return zrFetch<ZRParcel>(creds, `/parcels/${id}`);

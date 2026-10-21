@@ -11,7 +11,11 @@
  * names, phones, addresses and tracking numbers are never printed.
  * Paste the output into the chat (or the audit doc) to unlock the Finance work.
  */
-const BASE = "https://api.zrexpress.app/api/v1";
+const BASE = process.env.ZR_API_BASE || "https://api.zrexpress.app/api/v1";
+if (!BASE.startsWith("https://")) {
+  console.error("ZR_API_BASE must be https — refusing to send the API key over plain http.");
+  process.exit(1);
+}
 const tenant = process.env.ZR_TENANT_ID;
 const key = process.env.ZR_API_KEY;
 if (!tenant || !key) {
