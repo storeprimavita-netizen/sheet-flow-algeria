@@ -1,3 +1,5 @@
+> **Superseded in part (2026-10-21):** delivery-agent findings assume an internal delivery role; see DECISIONS D9/D10. There is no delivery agent.
+
 # Council D — Architecture / Perf / Security audit (read-only)
 
 Method: static read of migrations 00001-00024, server actions, pages, webhook libs. Build not re-run (no route-size output under Turbopack). Not run: RLS test suite (needs local docker).
