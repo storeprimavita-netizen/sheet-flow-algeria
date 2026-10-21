@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { lightfunnelProvider, shopifyProvider, verifySignature } from "./webhook";
+import { lightfunnelProvider, MAX_WEBHOOK_BYTES, processWebhook, shopifyProvider, verifySignature } from "./webhook";
 
 describe("verifySignature", () => {
   const secret = "shh";
@@ -85,5 +85,18 @@ describe("lightfunnelProvider.map", () => {
       variant: "Bleu / L",
       product_sku: "ABAYA-N",
     });
+  });
+});
+
+describe("processWebhook early rejects (no DB touched)", () => {
+  const post = (headers: Record<string, string>, body = "{}") =>
+    processWebhook(shopifyProvider, new Request("http://x/api/webhooks/shopify", { method: "POST", headers, body }));
+
+  it("401s a request with no signature header", async () => {
+    expect((await post({})).status).toBe(401);
+  });
+  it("413s an oversized declared content-length before reading", async () => {
+    const r = await post({ "x-shopify-hmac-sha256": "x", "content-length": String(MAX_WEBHOOK_BYTES + 1) });
+    expect(r.status).toBe(413);
   });
 });
