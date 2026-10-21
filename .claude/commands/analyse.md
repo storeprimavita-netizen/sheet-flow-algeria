@@ -1,31 +1,10 @@
 ---
-description: Phase-14 loop step 2 (glm-5.2) — pick next planned phase, trace it, append a GLM 5.2 execution brief, stop
+description: Loop step 1 (sonnet, forked) — pick next MASTER_PLAN task, trace it, write docs/briefs/<id>.md
+model: sonnet
+effort: medium
+context: fork
 ---
-
-Read CLAUDE.md and PROGRESS.md. In the phase table, find the FIRST 14-series row
-whose Status is "planned" AND whose phase file section does NOT yet contain a
-"### GLM 5.2 execution brief" subsection (top-down = dependency order) — that
-is your phase. If the only planned rows left are 14h (Google) or any row marked
-"needs user setup"/blocked, STOP and tell the user what setup is required.
-
-Read that phase's section in docs/phases/phase-14-plan.md §<id> (for 14h read
-the whole docs/phases/phase-14h-google-oauth.md) + the "Locked decisions" block.
-Use `graphify query` to orient, then trace every file/table/RLS policy/view the
-section actually touches — read the real current code, don't trust the plan
-blindly (it may have drifted since it was written). Do NOT write feature code,
-create a branch, or touch the phase table's Status.
-
-Produce a concrete execution brief and append it as a new subsection directly
-under that phase's `## 14x` heading in the SAME phase file:
-
-### GLM 5.2 execution brief
-- Exact files to touch (paths, not descriptions) and what changes in each.
-- Exact migration SQL skeleton if the phase needs one.
-- Order of steps (what must land before what).
-- Every place the "Locked decisions" assumptions were confirmed or turned out
-  stale, with the corrected fact.
-- Edge cases / gotchas found while tracing (RLS interactions, trigger
-  ordering, existing views that already compute part of this — reuse, don't
-  rebuild).
-
-Stop after appending. Do not run npm/build, do not commit.
+Pick the first not-done task in docs/MASTER_PLAN.md whose dependencies are met (or the id in $ARGUMENTS). If it needs an owner action/credential, stop and say which.
+Orient with `graphify query` first (not broad greps), then read the REAL code/migrations/policies the task touches — the plan may have drifted. Read docs sections the task cites; never docs/PROGRESS_ARCHIVE.md. No feature code, no branch.
+Write docs/briefs/<id>.md (≤ 60 lines): `risk: high|low` (high = RLS/auth/migration/money/webhook/ZR/public form), exact files + change per file, migration skeleton if any, step order, acceptance tests (named), edge cases found, confirmed/stale assumptions.
+Return ONLY: task id, risk tag, brief path, ≤ 5 bullets of what matters. Under 120 words.
