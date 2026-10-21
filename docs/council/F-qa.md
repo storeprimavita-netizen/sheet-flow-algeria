@@ -1,3 +1,5 @@
+> **Superseded in part (2026-10-21):** delivery-agent findings assume an internal delivery role; see DECISIONS D9/D10. There is no delivery agent.
+
 # Council F - QA/release review (read-only)
 Tests: with LOCAL_SUPABASE_URL=http://127.0.0.1:54321 (stack already up, seeded) vitest = 83/83 pass, 0 skipped.
 Secrets: origin/main history has only Lovable-era anon keys (public by design, old project) + local demo service_role (iss supabase-demo) in docs/phases/phase-12-sonnet-handoff.md. kimi.tx / zip are gitignored, not in history of any ref. No live secret found tracked.
