@@ -72,3 +72,10 @@ the bottom. Format:
 - Evidence: tsc clean, build green, 89/89 tests with local Supabase (was 85; +8 new, 3 retired). 
 - Known: UI still lists delivery_agent role and some agent pages now show narrower counts (browser check pending); `logConfirmationAttempt`/cancel-reason on shipped orders now error (UI should hide them — ZR-2); direct PATCH status churn on open unassigned orders skips self-assign (accepted).
 - Next: P0-3 ZR test seam + orphan-parcel fix.
+
+## P0-3 ZR test seam + orphan-parcel fix — DONE locally (branch mnw-P0-3, push gated)
+- Done: `ZR_API_BASE` seam; any `*.zrexpress.app` host reachable only when NODE_ENV=production and (Vercel production, or off-Vercel `ZR_ALLOW_PROD=1`) (D13); redirects refused; orphan parcel recovered by externalId lookup before re-insert.
+- Verify: qa-reviewer /verify passed twice (full diff, then delta); all findings fixed.
+- Evidence: gate OK (tsc, 104/104 tests with local Supabase, build, secret scan).
+- Open: live-tenant externalId search check needs owner run of `scripts/zr-probe.ts` (fail-closed before first prod push, D13).
+- Next: merge to mnw done; push waits on P0-6/P0-7 owner gates.
