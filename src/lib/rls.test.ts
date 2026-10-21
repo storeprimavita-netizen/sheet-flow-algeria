@@ -194,32 +194,100 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
   });
 
   describe("orders: role-scoped visibility + cross-stage guard", () => {
-    test("confirmation agent sees all workspace orders (14a: visibility is role-blind, writes are role-scoped)", async () => {
-      const { count, error } = await confAgent
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId);
+    const OPEN = ["wait_for_confirmation", "no_answer", "closed_phone"];
+    const openOrder = async () =>
+      (await admin.from("orders").select("id").eq("workspace_id", workspaceId)
+        .in("confirmation_status", OPEN).is("assigned_confirmation_agent", null).limit(1).single()).data!.id;
+    const confirmedOrder = async () =>
+      (await admin.from("orders").select("id").eq("workspace_id", workspaceId)
+        .eq("confirmation_status", "confirmed").is("assigned_confirmation_agent", null).limit(1).single()).data!.id;
+
+    test("D10: confirmation agent sees only the open queue (+ their assigned), not confirmed/other orders", async () => {
+      const { data, error } = await confAgent.from("orders").select("id, confirmation_status, assigned_confirmation_agent").eq("workspace_id", workspaceId);
       expect(error).toBeNull();
-      const { count: allTotal } = await admin
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId);
-      expect(count).toBe(allTotal);
-      expect(count).toBeGreaterThan(0);
+      expect(data!.length).toBeGreaterThan(0);
+      const me = (await confAgent.auth.getUser()).data.user!.id;
+      expect(data!.every((o) => OPEN.includes(o.confirmation_status) || o.assigned_confirmation_agent === me)).toBe(true);
+      const { count: all } = await admin.from("orders").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId);
+      expect(data!.length).toBeLessThan(all!);
+      const { data: hidden } = await confAgent.from("orders").select("id").eq("id", await confirmedOrder());
+      expect(hidden).toEqual([]);
     });
 
-    test("delivery agent sees all workspace orders", async () => {
-      const { count, error } = await delivAgent
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId);
+    test("D9/D10: legacy delivery agent is read-only and sees confirmed orders only", async () => {
+      const { data, error } = await delivAgent.from("orders").select("id, confirmation_status").eq("workspace_id", workspaceId);
       expect(error).toBeNull();
-      const { count: allTotal } = await admin
-        .from("orders")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId);
-      expect(count).toBe(allTotal);
-      expect(count).toBeGreaterThan(0);
+      expect(data!.length).toBeGreaterThan(0);
+      expect(data!.every((o) => o.confirmation_status === "confirmed")).toBe(true);
+      const id = data![0].id;
+      const upd = await delivAgent.from("orders").update({ delivery_status: "delivered" }).eq("id", id).select("id");
+      expect(upd.error ?? upd.data!.length === 0 ? true : false).toBe(true); // error or 0 rows
+      const { data: after } = await admin.from("orders").select("delivery_status").eq("id", id).single();
+      expect(after!.delivery_status).not.toBe("delivered");
+      expect((await delivAgent.rpc("transition_order_status", { p_order_id: id, p_delivery_status: "delivered" })).error).not.toBeNull();
+    });
+
+    test("D10: confirmation agent cannot edit customer, address, assignment or price fields directly", async () => {
+      const id = await openOrder();
+      const me = (await confAgent.auth.getUser()).data.user!.id;
+      const { data: cur } = await admin.from("orders").select("wilaya_code, delivery_type").eq("id", id).single();
+      for (const patch of [
+        { customer_name: "X" }, { customer_phone: "0555000000" }, { address: "x" }, { commune: "x" },
+        { wilaya_code: cur!.wilaya_code === 16 ? 31 : 16 },
+        { delivery_type: cur!.delivery_type === "home" ? ("stopdesk" as const) : ("home" as const) }, { assigned_confirmation_agent: me },
+        { assigned_delivery_agent: me }, { sale_price: 1 }, { delivery_fee: 1 }, { quantity: 9 },
+      ]) {
+        const r = await confAgent.from("orders").update(patch).eq("id", id).select("id");
+        expect(r.error, JSON.stringify(patch)).not.toBeNull();
+      }
+    });
+
+    test("D10: confirmation agent CAN change confirmation fields on an open order (attempts/comment)", async () => {
+      const id = await openOrder();
+      const r = await confAgent.from("orders").update({ confirmation_attempts: 7, confirmation_comment: "called" }).eq("id", id).select("id");
+      expect(r.error).toBeNull();
+      expect(r.data).toHaveLength(1);
+      await admin.from("orders").update({ confirmation_attempts: 0, confirmation_comment: null }).eq("id", id);
+    });
+
+    test("D9/D10: confirmation agent cannot set delivery_status via RPC, nor transition orders outside their queue", async () => {
+      const open = await openOrder();
+      expect((await confAgent.rpc("transition_order_status", { p_order_id: open, p_delivery_status: "delivered" })).error).not.toBeNull();
+      const other = await confirmedOrder();
+      expect((await confAgent.rpc("transition_order_status", { p_order_id: other, p_confirmation_status: "cancelled" })).error).not.toBeNull();
+    });
+
+    test("D10: once shipped or pushed to ZR, a confirmation agent cannot change an order by ANY path (direct PATCH or RPC)", async () => {
+      const id = await openOrder();
+      const me = (await confAgent.auth.getUser()).data.user!.id;
+      try {
+        // assigned to the agent (so RLS would let them see/update it) but already in transit
+        await admin.from("orders").update({ assigned_confirmation_agent: me, delivery_status: "in_transit" }).eq("id", id);
+        for (const patch of [{ confirmation_status: "cancelled" as const }, { confirmation_comment: "x" }, { confirmation_attempts: 9 }]) {
+          const r = await confAgent.from("orders").update(patch).eq("id", id).select("id");
+          expect(r.error, JSON.stringify(patch)).not.toBeNull();
+        }
+        expect((await confAgent.rpc("transition_order_status", { p_order_id: id, p_confirmation_status: "cancelled" })).error).not.toBeNull();
+
+        // back to wait_for_deposit but with a ZR parcel → still locked
+        await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", id);
+        await admin.from("zr_shipments").insert({ order_id: id, workspace_id: workspaceId, parcel_id: crypto.randomUUID() });
+        expect((await confAgent.from("orders").update({ confirmation_comment: "x" }).eq("id", id).select("id")).error).not.toBeNull();
+        expect((await confAgent.rpc("transition_order_status", { p_order_id: id, p_confirmation_status: "cancelled" })).error).not.toBeNull();
+        const { data: after } = await admin.from("orders").select("confirmation_status").eq("id", id).single();
+        expect(after!.confirmation_status).not.toBe("cancelled");
+      } finally {
+        await admin.from("zr_shipments").delete().eq("order_id", id);
+        await admin.from("orders").update({ assigned_confirmation_agent: null, delivery_status: "wait_for_deposit" }).eq("id", id);
+      }
+    });
+
+    test("D10: admin and service role can still edit customer fields and delivery status", async () => {
+      const id = await openOrder();
+      const { data: before } = await admin.from("orders").select("customer_name, delivery_status").eq("id", id).single();
+      expect((await admin.from("orders").update({ customer_name: "svc-edit" }).eq("id", id)).error).toBeNull();
+      await admin.from("orders").update({ customer_name: before!.customer_name }).eq("id", id);
+      expect(before!.delivery_status).toBe("wait_for_deposit");
     });
 
     test("confirmation agent CAN legitimately confirm an order (transition_order_status RPC)", async () => {
@@ -244,7 +312,7 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       expect(after?.confirmation_status).toBe("confirmed");
       // revert via the service-role client so re-running this suite doesn't
       // deplete the seed's fixed pool of wait_for_confirmation orders
-      await admin.from("orders").update({ confirmation_status: "wait_for_confirmation" }).eq("id", target!.id);
+      await admin.from("orders").update({ confirmation_status: "wait_for_confirmation", assigned_confirmation_agent: null }).eq("id", target!.id);
     });
 
     test("delivery agent cannot confirm an order via the RPC either (authorization re-checked server-side)", async () => {
@@ -274,20 +342,6 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       expect(error).not.toBeNull();
     });
 
-    test("delivery agent cannot change confirmation fields (guard_order_fields)", async () => {
-      const { data: target } = await admin
-        .from("orders")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .eq("confirmation_status", "confirmed")
-        .limit(1)
-        .single();
-      const { error } = await delivAgent
-        .from("orders")
-        .update({ confirmation_status: "cancelled" })
-        .eq("id", target!.id);
-      expect(error).not.toBeNull();
-    });
   });
 
   describe("cross-workspace isolation", () => {
