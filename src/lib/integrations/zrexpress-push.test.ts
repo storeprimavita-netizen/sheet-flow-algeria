@@ -115,8 +115,17 @@ describe("zr base guard", () => {
     expect(String((await blocked(undefined, { NODE_ENV: "production" })).err)).toMatch(/blocked/);
   });
 
+  it("blocks when only env vars say production but NODE_ENV does not (pulled prod env on a laptop), and preview+ZR_ALLOW_PROD", async () => {
+    expect(String((await blocked(undefined, { VERCEL: "1", VERCEL_ENV: "production", NODE_ENV: "development" })).err)).toMatch(/blocked/);
+    expect(String((await blocked(undefined, { ZR_ALLOW_PROD: "1", NODE_ENV: "development" })).err)).toMatch(/blocked/);
+    expect(String((await blocked(undefined, { VERCEL: "1", VERCEL_ENV: "preview", ZR_ALLOW_PROD: "1", NODE_ENV: "production" })).err)).toMatch(/blocked/);
+  });
+
   it("allows the prod URL only on a real production deploy (or explicit ZR_ALLOW_PROD)", async () => {
-    for (const env of [{ VERCEL: "1", VERCEL_ENV: "production" }, { ZR_ALLOW_PROD: "1" }] as Record<string, string>[]) {
+    for (const env of [
+      { VERCEL: "1", VERCEL_ENV: "production", NODE_ENV: "production" },
+      { ZR_ALLOW_PROD: "1", NODE_ENV: "production" },
+    ] as Record<string, string>[]) {
       const { err, calls } = await blocked(undefined, env);
       expect(err).toBeNull();
       expect(calls[0]).toMatch(/^https:\/\/api\.zrexpress\.app\/api\/v1\/parcels\/search$/);
@@ -183,5 +192,27 @@ describe("pushToZR", () => {
     spy.mockRestore();
     expect(urls.length).toBeGreaterThan(0);
     expect(urls.every((u) => u.startsWith("http://127.0.0.1:"))).toBe(true);
+  });
+
+  it("never follows a redirect (a 307 to the real API must not carry our key)", async () => {
+    const real = globalThis.fetch;
+    const seen: (RequestRedirect | undefined)[] = [];
+    const spy = vi.spyOn(globalThis, "fetch").mockImplementation(((u: string, i?: RequestInit) => (seen.push(i?.redirect), real(u, i))) as typeof fetch);
+    await pushToZR(fakeSupabase(null).client, "w", "o1");
+    spy.mockRestore();
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((r) => r === "error")).toBe(true);
+  });
+
+  it("insert error without a code reports the parcel id so it can be linked", async () => {
+    const r = await pushToZR(fakeSupabase({ message: "boom" }).client, "w", "o1");
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("p1") });
+  });
+
+  it("search items without externalId are never adopted (retry would create — fail-closed until zr-probe confirms the field)", async () => {
+    parcels.push({ id: "noext", externalId: undefined as unknown as string });
+    ignoreFilter = true;
+    await pushToZR(fakeSupabase(null).client, "w", "o1");
+    expect(creates).toBe(1);
   });
 });

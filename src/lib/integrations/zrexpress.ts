@@ -54,7 +54,10 @@ function zrBaseUrl(): string {
   if (u.protocol !== "https:" && !(loopback && u.protocol === "http:")) {
     throw new ZRExpressError("ZR_API_BASE must be https (or http on localhost)");
   }
-  const isProd = process.env.VERCEL ? process.env.VERCEL_ENV === "production" : process.env.ZR_ALLOW_PROD === "1";
+  // NODE_ENV must also be production: a prod env file pulled onto a laptop must not make `next dev`/vitest "prod".
+  const isProd =
+    process.env.NODE_ENV === "production" &&
+    (process.env.VERCEL ? process.env.VERCEL_ENV === "production" : process.env.ZR_ALLOW_PROD === "1");
   if ((host === "zrexpress.app" || host.endsWith(".zrexpress.app")) && !isProd) {
     throw new ZRExpressError("ZR prod API blocked outside production; set ZR_API_BASE");
   }
@@ -64,6 +67,7 @@ function zrBaseUrl(): string {
 async function zrFetch<T>(creds: ZRCredentials, path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${zrBaseUrl()}${path}`, {
     ...init,
+    redirect: "error", // a redirect must never carry our API key/body to another host (e.g. the real ZR API)
     headers: {
       "X-Tenant": creds.tenantId,
       "X-Api-Key": creds.apiKey,
