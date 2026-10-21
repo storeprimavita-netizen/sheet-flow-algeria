@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { upsertCustomerFromOrder } from "@/lib/customers";
 import { normalizeText, jsonResponse } from "@/lib/utils";
-import type { Database, Enums, Json, TablesInsert } from "@/lib/supabase/database.types";
+import type { Database, Enums, Json, TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
 
 export type MappedOrder = {
   external_id: string;
@@ -162,7 +162,7 @@ async function applyMappedOrder(
   workspaceId: string,
   eventId: string,
   rawPayload: unknown,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; retry?: boolean }> {
   const fail = async (error: string) => {
     await supabase
       .from("webhook_events")
@@ -238,14 +238,28 @@ async function applyMappedOrder(
 
   const { data: existing } = await supabase
     .from("orders")
-    .select("id")
+    .select("id, " + Object.keys(logistics).join(", "))
     .eq("workspace_id", workspaceId)
     .eq("source", config.provider)
     .eq("external_id", m.external_id)
     .maybeSingle();
 
-  const { error } = existing
-    ? await supabase.from("orders").update(logistics).eq("id", existing.id)
+  // Redelivery/replay may only FILL empty columns (e.g. a product that is now
+  // matchable) — it must never overwrite what an admin has since edited.
+  const row = existing as unknown as Record<string, unknown> | null;
+  const fill = row
+    ? Object.fromEntries(
+        Object.entries(logistics).filter(([k, v]) => v !== null && (row[k] === null || row[k] === undefined)),
+      )
+    : null;
+  // Fee provenance must follow the fee (the source column is NOT NULL, so the
+  // null-only filter never fills it on its own).
+  if (fill && "delivery_fee" in fill) fill.delivery_fee_source = deliveryFeeSource;
+
+  const { error } = row
+    ? Object.keys(fill!).length
+      ? await supabase.from("orders").update(fill! as TablesUpdate<"orders">).eq("id", row.id as string)
+      : { error: null }
     : await supabase.from("orders").insert({
         workspace_id: workspaceId,
         source: config.provider,
@@ -253,7 +267,12 @@ async function applyMappedOrder(
         placed_at: m.placed_at ?? new Date().toISOString(),
         ...logistics,
       } satisfies TablesInsert<"orders">);
-  if (error) return fail(error.message);
+  if (error) {
+    // Transient/DB failure: keep the event unprocessed (the provider's retry
+    // converges via the fill path above; a 23505 race resolves the same way).
+    await supabase.from("webhook_events").update({ error: error.message }).eq("id", eventId);
+    return { ok: false, error: error.message, retry: true };
+  }
 
   await Promise.all([
     supabase
@@ -274,19 +293,24 @@ async function applyMappedOrder(
 export const MAX_WEBHOOK_BYTES = 256 * 1024;
 
 /**
- * Verify the provider's HMAC signature, then always store the raw event —
- * bad signature, bad JSON, and mapping failures all get a row (that's the
- * audit trail and the replay source) — before mapping/upserting the order.
+ * Verify the provider's HMAC signature, then store the raw event (bad JSON and
+ * mapping failures get a row — the audit trail and replay source) before
+ * mapping/upserting the order. Unsigned/badly signed requests store nothing.
  * No user session → runs entirely through the service-role client.
  */
 export async function processWebhook(config: ProviderConfig, req: Request): Promise<Response> {
+  // Unauthenticated callers get rejected before any body read, DB call or row
+  // write — a junk flood must cost us nothing.
+  const signature = req.headers.get(config.signatureHeader);
+  if (!signature) return jsonResponse({ error: "missing signature" }, 401);
+  if (Number(req.headers.get("content-length")) > MAX_WEBHOOK_BYTES) return jsonResponse({ error: "payload too large" }, 413);
   const body = await req.text();
   if (body.length > MAX_WEBHOOK_BYTES) return jsonResponse({ error: "payload too large" }, 413);
-  const signature = req.headers.get(config.signatureHeader) ?? "";
   const supabase = await createAdminClient();
 
   const { configured, match: integration } = await resolveWorkspace(supabase, config, body, signature);
-  const signatureOk = !!integration;
+  if (!configured) return jsonResponse({ error: "secret not configured" }, 401);
+  if (!integration) return jsonResponse({ error: "invalid signature" }, 401);
 
   let payload: unknown = {};
   let parseError: string | null = null;
@@ -297,26 +321,26 @@ export async function processWebhook(config: ProviderConfig, req: Request): Prom
     parseError = "invalid json";
   }
 
+  // Only signature-verified events are stored (audit trail + replay source).
   const { data: event, error: eventError } = await supabase
     .from("webhook_events")
     .insert({
-      workspace_id: integration?.workspaceId ?? null,
+      workspace_id: integration.workspaceId,
       provider: config.provider,
-      signature_ok: signatureOk,
-      // Unauthenticated callers only get a metadata row — never their body.
-      payload: (signatureOk ? payload : { _rejected: true, bytes: body.length }) as NonNullable<Json>,
-      error: !configured ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
+      signature_ok: true,
+      payload: payload as NonNullable<Json>,
+      error: parseError,
     })
     .select("id")
     .single();
   if (eventError || !event) return jsonResponse({ error: eventError?.message ?? "failed to store event" }, 500);
 
-  if (!configured) return jsonResponse({ error: "secret not configured" }, 401);
-  if (!integration) return jsonResponse({ error: "invalid signature" }, 401);
   if (parseError) return jsonResponse({ error: parseError }, 400);
 
   const result = await applyMappedOrder(supabase, config, integration.workspaceId, event.id, payload);
-  return jsonResponse({ ok: result.ok, error: result.error }, 200);
+  // DB failures → 500 so the provider retries (unique key keeps it idempotent);
+  // mapping/validation failures are permanent → 200, fix via admin replay.
+  return jsonResponse({ ok: result.ok, error: result.error }, result.retry ? 500 : 200);
 }
 
 /** Re-run mapping/upsert for one stored event — the Settings → Integrations replay button. */
