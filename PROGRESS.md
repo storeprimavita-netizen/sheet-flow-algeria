@@ -3402,3 +3402,9 @@ unchanged until the user runs the steps above.
 - USER: `npx supabase db push` (00020–00024); rotate the kimi.tx key; decide
   on purging e686c83 from history before pushing `mnw`; 14h still needs the
   Google Cloud setup.
+
+## Launch push — Truth pass (2026-10-21) — IN PROGRESS
+- Baseline: `npm test` 43 pass / 40 skipped (RLS tests need local Supabase), `tsc` clean, `npm run build` green. Branch `mnw`, 104 commits ahead of origin/mnw (unpushed).
+- Secret audit: unpushed commit e686c83 had added `kimi.tx` (live-looking API key) + debug zip. Scrubbed from ALL local refs with git-filter-repo (user-approved); backup bundle outside repo (`~/mnw-erp-backup-*.bundle`, contains the key — delete after rotating) and tag `backup/pre-scrub-abc91cc`. origin/main already carries an old Lovable `.env` (publishable/anon keys only). Demo JWTs in docs/tests are Supabase public demo keys. **Owner: rotate the tokenrouter/kimi key (it was also displayed in an agent transcript).**
+- Workflow decision: only bootstrap/analyse/execute commands exist (Phase-14-specific). Verify = independent QA/security agent review; Ship = build+test+secret scan+push, both inline, no new skill files.
+- Origin remote re-added after filter-repo; upstream tracking must be re-set on first push.
