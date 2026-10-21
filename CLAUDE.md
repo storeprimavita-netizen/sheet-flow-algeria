@@ -5,21 +5,16 @@
 COD ecommerce ERP (Algeria), SaaS-ready single workspace. Next.js 16 +
 Supabase (Postgres/Auth/RLS) + Vercel. Currency DZD (USD/EUR stored with rate).
 
-## Session protocol (every execution chat)
+## Session protocol (every chat)
 
-1. Read `PROGRESS.md`, then your phase file `docs/phases/phase-XX.md`.
-2. Read ONLY the docs sections your phase file lists. Don't re-read the whole
-   spec; don't read `supabase/migrations_legacy/` (superseded v1).
-3. Work on a branch `mnw-<phase>`; merge `--no-ff` into `mnw` when green.
-4. End of phase: `npm run build` (and `npm test` once it exists) green, then
-   APPEND a block to `PROGRESS.md` (format documented there). Never leave the
-   build broken.
-5. Tools (docs/TOOLING.md has the full rules — incl. the 🎨 impeccable,
-   🧭 ui-ux-pro-max, 🛡️ owasp-security, 🧠 karpathy-guidelines skills): invoke the
-   `ponytail:ponytail` skill before writing code and run
-   `ponytail:ponytail-review` on the diff before merging; use
-   `graphify query "<question>"` to orient in the codebase and run
-   `graphify update .` after code changes (see §graphify below).
+Follow `.claude/loop.md` (loop v2: Analyse → Verify → Execute → Ship, cheap
+models for routine work, opus for high-risk review). Commands: `/bootstrap`,
+`/analyse`, `/verify`, `/execute`, `/ship`. State lives in `PROGRESS.md` (short;
+history in `docs/PROGRESS_ARCHIVE.md` — don't read), `docs/MASTER_PLAN.md`
+(task table), `docs/briefs/<id>.md`, `docs/DECISIONS.md`. Branch `mnw-<id>`,
+merge `--no-ff` into `mnw` when `scripts/gate.sh` is green. Tools:
+`ponytail:ponytail` before code, `graphify query` to orient (then
+`graphify update .`), `cod-ui-polish` for UI, `owasp-security` for security.
 
 ## Stack facts
 
