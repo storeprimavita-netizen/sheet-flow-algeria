@@ -14,3 +14,17 @@
 | D10 | **Permission matrix (replaces D8 middle path).** Admin: any valid transition, audited. Confirmation agent: confirmation-stage transitions only (retry, reschedule, cancel, confirm, recover backwards), orders in the confirmation queue/own assignment only; sees sale_price, quantity, delivery_fee (to quote COD total); cannot edit customer name/phone/address/assignment/wilaya (DB guard, not UI); no cost/profit/ads/finance. Legacy delivery_agent: read-only on shipped orders (COD amount only). Webhook/ZR sync: service role. Tests via real authenticated sessions (direct PostgREST/RPC). Implement as one migration + rls.test.ts cases (P0-4). | Owner D8 reply + addendum §2. |
 | D11 | ZR reliability % is **not in the documented API** (docs/ZR_EXPRESS_API_AUDIT.md §4). Nothing is shown as a "ZR score". Pending: ZR support answer. Fallback (separately labelled): "your ZR history for this phone" from `parcels/search` on our own tenant; MNW-own history metric second. | Addendum §3: do not fabricate. |
 | D12 | Money-with-ZR rule: `livre` never counts; collected-unpaid = `encaisse` ∪ `recouvert` parcels not yet on a SupplierPayment (ZR's `recouvert` follows `encaisse` and is still unpaid). **Deviates from "Encaisse only" in the addendum — awaiting owner confirmation.** Received = SupplierPayment.acceptedAt (API) + flagged manual receipts. Balance endpoint is a cross-check only; its field semantics are undocumented. Finance totals are not built until a read-only live probe confirms fields. | Addendum §4; audit §5. |
+
+## Final permission matrix (migration 00025, enforced in Postgres; tests in src/lib/rls.test.ts)
+| Capability | Admin | Confirmation agent | Legacy delivery agent | Service role (ZR/webhooks) |
+|---|---|---|---|---|
+| See orders | all | open queue (wait_for_confirmation/no_answer/closed_phone) + orders assigned to them (auto-assigned when they act) | confirmed orders, read-only | all |
+| Price / qty / delivery fee | see + edit | see (quote COD total), never edit | see | – |
+| Cost, profit, ads, finance, settings | yes | no (RLS, unchanged) | no | – |
+| Customer name/phone/address/commune/wilaya/delivery type | edit | **no (column allow-list, default-deny for new columns)** | no | webhook fills |
+| Assignment | edit (UI + bulk) | no; only auto-self-assign inside the transition RPC | no | – |
+| confirmation_status | any, audited | any value via RPC while order is in their queue and not yet handed to delivery (recovery/backward allowed) | no | – |
+| delivery_status | any, audited (an MNW correction, separate from ZR's `zr_shipments.state`) | **never** | **never** | ZR sync (authoritative) |
+| Orders already pushed to ZR / past wait_for_deposit | any | untouchable | – | – |
+| Direct attempts count / comment / cancellation reason | yes | yes (allow-listed) | no | – |
+Exceptional transitions: admin-only (delivered/returned corrections). Legacy `delivery_agent` enum, column and rows are retained; role leaves invite UI in ZR-2.

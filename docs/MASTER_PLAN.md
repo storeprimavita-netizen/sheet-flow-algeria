@@ -19,7 +19,7 @@ Every item runs Analyse → Verify → Execute → Ship (inline, see D1). Status
 | ID | Task | Deps | Verify |
 |---|---|---|---|
 | ZR-0 | ✅ API audit `docs/ZR_EXPRESS_API_AUDIT.md` (docs only; no live calls) | – | doc reviewed |
-| ZR-1 | Read-only probe script `scripts/zr-probe.ts` (workflows, balance, payments, one parcels/search; redacted) + owner runs it with prod token | P0-3 seam | owner pastes redacted output; audit §7 closed |
+| ZR-1 | ✅ script written (`scripts/zr-probe.ts`, read-only, shape-only output; smoke-tested with a bad key → 401s). Owner runs: `ZR_TENANT_ID=… ZR_API_KEY=… node scripts/zr-probe.ts`. Original: read-only probe script (workflows, balance, payments, one parcels/search; redacted) + owner runs it with prod token | P0-3 seam | owner pastes redacted output; audit §7 closed |
 | ZR-2 | Status sync: `occurredAt` stale-event guard, store `zr_shipments.state_slug/occurred_at/situation`, scheduled catch-up via parcels/search, remove delivery-queue/role UI (D9), audited admin correction | ZR-1 (state list), P0-4 | out-of-order event test, idempotency test |
 | ZR-3 | Customer history: ask ZR support about reliability endpoint; ship labelled "your ZR history" fallback in confirmation sheet with server-side cache + failure-tolerant | ZR-2 | matching/ambiguous/missing/failure/cache/permission tests |
 | ZR-4 | Finance ledger: `zr_payments`, `zr_payment_lines` (unique parcel/payment ids), manual receipts, discrepancy vs balance; dashboard compact tiles + Finance detail | ZR-1 verified fields, owner D12 | formula tests in audit §6 |
