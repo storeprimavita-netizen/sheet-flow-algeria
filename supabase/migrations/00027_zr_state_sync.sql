@@ -37,9 +37,12 @@ begin
   if not found then return null; end if;
 
   if p_state is not null then
-    -- strictly newer only: a stale or same-timestamp replay (webhook retry, Refresh)
-    -- must not re-sync the order over an admin correction
-    if v_ship.occurred_at is null or v_ship.occurred_at < p_occurred then
+    -- strictly newer, or same timestamp with a DIFFERENT state (ZR can change state
+    -- within one second). A same-state replay (webhook retry, Refresh) is a no-op so
+    -- it cannot re-sync the order over an admin correction. The order update below
+    -- lives in this branch, so it follows the same rule.
+    if v_ship.occurred_at is null or v_ship.occurred_at < p_occurred
+       or (v_ship.occurred_at = p_occurred and v_ship.state is distinct from p_state) then
       update public.zr_shipments
          set state = p_state, state_slug = p_slug,
              occurred_at = p_occurred, state_updated_at = p_occurred

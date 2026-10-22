@@ -141,6 +141,24 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await stock()).toBe(1);
   });
 
+  test("equal timestamp, different state is applied; same-state replay no-op; poll with same ts converges", async () => {
+    await setMap(MAP);
+    await reset();
+    await rpc("En Transit", T(10));
+    await rpc("Retour", T(10)); // same ts, different state
+    expect((await shipment()).state).toBe("Retour");
+    expect(await order()).toBe("returned");
+    await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
+    await rpc("Retour", T(10)); // same-state replay: admin correction survives
+    expect(await order()).toBe("delivered");
+    await applyZRParcelState(admin as never, ws, { id: parcel, state: { name: "Retour" }, stateAt: T(10) }); // poll converges
+    expect((await shipment()).state).toBe("Retour");
+  });
+
+  test("apply without a parcel timestamp throws instead of skipping", async () => {
+    await expect(applyZRParcelState(admin as never, ws, { id: parcel, state: { name: "Livre" } })).rejects.toThrow(/lastStateUpdateAt/);
+  });
+
   test("null occurred raises; null state does not wipe state; situation does not block a late state event", async () => {
     await setMap(MAP);
     await reset();

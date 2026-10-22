@@ -35,7 +35,7 @@ migration -> local apply + regen types -> webhook/apply fn + tests -> refresh ac
 
 ## Edge cases
 - Admin correction (orders.delivery_status edited by admin) is overwritten by the next NEWER ZR event; history shows actor null vs admin -> acceptable per D9, keep audit visible.
-- Equal occurredAt but different state: accepted (last write wins); log only.
+- Equal occurredAt but different state: applied (ZR can change state within a second); same-state equal-timestamp replay is a no-op (admin correction survives Refresh/retry). Parcel without lastStateUpdateAt: refresh/cron/apply error, never a silent ok. Cron visits workspaces in random order.
 - Existing rows occurred_at NULL: first event always applies.
 - Parcel state ZR-side regresses legitimately (returned -> redelivered): newer wins, status triggers handle stock.
 - Rate limit unpublished: sequential, backoff on 429, cap per run.

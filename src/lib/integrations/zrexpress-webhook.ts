@@ -108,6 +108,9 @@ export async function applyZRParcelState(
     if (error) throw new Error(error.message);
   };
   const stateName = p.state?.name?.trim();
+  // never report success while silently skipping the RPC (parcel without a timestamp)
+  if ((stateName && !p.stateAt) || ((p.situation != null || p.isReturn != null) && !(p.situationAt ?? p.stateAt)))
+    throw new Error("ZR parcel has no lastStateUpdateAt; cannot order the update.");
   if (stateName && p.stateAt) await call({ state: stateName, slug: p.state?.slug }, p.stateAt);
   const at = p.situationAt ?? p.stateAt;
   if ((p.situation != null || p.isReturn != null) && at) await call({ situation: p.situation, isReturn: p.isReturn }, at);

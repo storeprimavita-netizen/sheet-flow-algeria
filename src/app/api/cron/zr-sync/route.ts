@@ -26,7 +26,9 @@ export async function GET(req: Request): Promise<Response> {
 
   let polled = 0;
   let failed = 0;
-  for (const { workspace_id: ws } of configs ?? []) {
+  // shuffle so a slow/failing workspace can't permanently starve the later ones when maxDuration hits
+  const order = [...(configs ?? [])].sort(() => Math.random() - 0.5);
+  for (const { workspace_id: ws } of order) {
     try {
       const creds = await getZRCredentials(admin, ws);
       const { data: rows } = await admin
