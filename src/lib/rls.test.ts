@@ -344,6 +344,20 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
 
   });
 
+  describe("apply_zr_state is service_role only (00027)", () => {
+    const args = {
+      p_ws: "00000000-0000-0000-0000-000000000000", p_parcel: "00000000-0000-0000-0000-000000000000",
+      p_state: "Livre", p_slug: null as unknown as string, p_situation: null as unknown as string,
+      p_is_return: null as unknown as boolean, p_occurred: "2026-01-01T00:00:00Z",
+    };
+    test("anon and authenticated (admin included) are denied; service role is not", async () => {
+      expect((await sign(LOCAL_URL!, ANON_KEY).rpc("apply_zr_state", args)).error).not.toBeNull();
+      expect((await adminUser.rpc("apply_zr_state", args)).error).not.toBeNull();
+      expect((await confAgent.rpc("apply_zr_state", args)).error).not.toBeNull();
+      expect((await admin.rpc("apply_zr_state", args)).error).toBeNull();
+    });
+  });
+
   describe("cross-workspace isolation", () => {
     test("workspace 1 admin never sees workspace 2's product", async () => {
       const { data } = await adminUser.from("products").select("name");

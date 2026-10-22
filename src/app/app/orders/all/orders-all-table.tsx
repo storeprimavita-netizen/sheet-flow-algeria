@@ -271,13 +271,6 @@ export function OrdersAllTable({
                   {a.name}
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t("workbench.assignDelivery")}</DropdownMenuLabel>
-              {agents.filter((a) => a.role === "delivery_agent").map((a) => (
-                <DropdownMenuItem key={a.id} onSelect={() => run(bulkAssignAgents(keys, null, a.id), t("common.updated"), clear)}>
-                  {a.name}
-                </DropdownMenuItem>
-              ))}
             </DropdownMenuContent>
           </DropdownMenu>
 

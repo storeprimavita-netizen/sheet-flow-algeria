@@ -18,31 +18,27 @@ export function AssignmentCard({
   confirmationAgent,
   deliveryAgent,
   confirmationAgents,
-  deliveryAgents,
 }: {
   orderId: string;
   confirmationAgent: string | null;
   deliveryAgent: string | null;
   confirmationAgents: Agent[];
-  deliveryAgents: Agent[];
 }) {
   const t = useTranslations();
   const router = useRouter();
   const [conf, setConf] = useState(confirmationAgent ?? NONE);
-  const [deliv, setDeliv] = useState(deliveryAgent ?? NONE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Auto-saves on change, like tags/reason — no separate Save button.
-  async function save(nextConf: string, nextDeliv: string) {
+  async function save(nextConf: string) {
     setConf(nextConf);
-    setDeliv(nextDeliv);
     setBusy(true);
     setError(null);
     const res = await assignAgents({
       orderId,
       confirmationAgent: nextConf === NONE ? null : nextConf,
-      deliveryAgent: nextDeliv === NONE ? null : nextDeliv,
+      deliveryAgent, // D9: delivery agents are no longer assignable here; keep any legacy value
     });
     setBusy(false);
     if (!res.ok) {
@@ -59,30 +55,15 @@ export function AssignmentCard({
         {t("workbench.assignment")}
       </h2>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4">
         <Field label={t("workbench.assignConfirmation")}>
-          <Select value={conf} onValueChange={(v) => save(v, deliv)} disabled={busy}>
+          <Select value={conf} onValueChange={(v) => save(v)} disabled={busy}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE}>{t("workbench.unassigned")}</SelectItem>
               {confirmationAgents.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label={t("workbench.assignDelivery")}>
-          <Select value={deliv} onValueChange={(v) => save(conf, v)} disabled={busy}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>{t("workbench.unassigned")}</SelectItem>
-              {deliveryAgents.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.email}
                 </SelectItem>

@@ -526,7 +526,6 @@
   "workbench": {
     "assignment": "الإسناد",
     "assignConfirmation": "مُؤكِّد الطلبات",
-    "assignDelivery": "مُوصِّل الطلبات",
     "unassigned": "غير مُسند"
   },
   "stock": {
@@ -656,7 +655,7 @@
       "webhookRegistered": "الويب هوك مسجَّل",
       "webhookNotRegistered": "الويب هوك غير مسجَّل",
       "stateMapTitle": "حالة ZR ← حالة الطلب",
-      "stateMapHint": "حالات ZR تُضبط لكل حساب. اربط كل حالة بحالة توصيل للطلب؛ الحالات غير المربوطة تظهر على الشحنة فقط.",
+      "stateMapHint": "حالات ZR تُضبط لكل حساب. اربط كل حالة بحالة توصيل للطلب؛ الحالات غير المربوطة تظهر على الشحنة فقط. الافتراضي: livre / encaisse / recouvert ← تم التسليم، recupere_par_fournisseur ← مرتجع.",
       "notMapped": "غير مربوطة",
       "addState": "أضف اسم حالة ZR",
       "add": "إضافة",

@@ -17,6 +17,7 @@ export function OrderTaxonomyCard({
   reasons,
   cancellationReasonId,
   showReason,
+  locked = false,
 }: {
   orderId: string;
   tags: OptionRow[];
@@ -25,6 +26,8 @@ export function OrderTaxonomyCard({
   cancellationReasonId: string | null;
   /** only meaningful on a cancelled order */
   showReason: boolean;
+  /** non-admin on a shipped order: cancel reason is read-only/hidden */
+  locked?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -44,7 +47,7 @@ export function OrderTaxonomyCard({
           }}
         />
       </Field>
-      {showReason ? (
+      {showReason && !locked ? (
         <Field label={t("fields.cancellationReason")} hint={t("common.optional")}>
           <OptionSelect
             setKey="cancellation_reason"

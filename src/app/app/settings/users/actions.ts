@@ -23,7 +23,7 @@ async function baseUrl(): Promise<string> {
 // ---------------------------------------------------------------------------
 const inviteSchema = z.object({
   email: z.string().trim().email(),
-  role: z.enum(["admin", "confirmation_agent", "delivery_agent"]),
+  role: z.enum(["admin", "confirmation_agent"]), // D9: no new delivery agents (update schema keeps the legacy role)
   duty: z.string().trim(),
 });
 
