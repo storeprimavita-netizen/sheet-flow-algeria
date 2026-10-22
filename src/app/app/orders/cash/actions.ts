@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminProfile as adminProfile } from "@/lib/rbac";
+import { getUser, requireAdminProfile as adminProfile } from "@/lib/rbac";
 
 const optionalText = z.string().trim().optional().transform((v) => v || null);
 
@@ -15,15 +15,14 @@ const recordSchema = z.object({
 
 export async function recordCashCollection(orderId: string, formData: FormData) {
   const { workspaceId } = await adminProfile();
+  orderId = z.string().uuid().parse(orderId);
   const input = recordSchema.parse({
     amount_dzd: formData.get("amount_dzd"),
     note: formData.get("note"),
   });
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   const { error } = await supabase.from("cash_collections").insert({
     workspace_id: workspaceId,
     order_id: orderId,
@@ -31,6 +30,8 @@ export async function recordCashCollection(orderId: string, formData: FormData) 
     note: input.note,
     created_by: user?.id ?? null,
   });
+  // 23505 = cash_collections_order_uidx: double-click / second tab. Surface it, don't hide it.
+  if (error?.code === "23505") throw new Error("Cash already recorded for this order");
   if (error) throw new Error(error.message);
   revalidatePath("/app/orders/cash");
 }

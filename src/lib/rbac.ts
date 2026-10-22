@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -11,12 +12,16 @@ export type Profile = { role: Role; workspaceId: string };
  *
  * RLS is the real enforcement boundary; this is for UI/UX gating only.
  */
-export async function getProfile(): Promise<Profile | null> {
+/** React cache(): memoised per server render only (never across requests). */
+export const getUser = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  return (await supabase.auth.getUser()).data.user;
+});
+
+export const getProfile = cache(async (): Promise<Profile | null> => {
+  const user = await getUser();
   if (!user) return null;
+  const supabase = await createClient();
 
   const { data } = await supabase
     .from("profiles")
@@ -26,7 +31,7 @@ export async function getProfile(): Promise<Profile | null> {
 
   if (!data?.is_active || !data.workspace_id) return null;
   return { role: data.role as Role, workspaceId: data.workspace_id };
-}
+});
 
 export async function getCurrentUserRole(): Promise<Role | null> {
   return (await getProfile())?.role ?? null;

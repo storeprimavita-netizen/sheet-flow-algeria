@@ -100,3 +100,35 @@ describe("processWebhook early rejects (no DB touched)", () => {
     expect(r.status).toBe(413);
   });
 });
+
+// P0-2: replay (redelivery) must only fill empty columns, never overwrite admin edits.
+describe.skipIf(!process.env.LOCAL_SUPABASE_URL)("replayEvent after an admin edit (live)", () => {
+  it("keeps the admin's quantity/price/product", async () => {
+    const url = process.env.LOCAL_SUPABASE_URL!;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = url;
+    process.env.SUPABASE_SERVICE_ROLE_KEY =
+      process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ??
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { replayEvent } = await import("./webhook");
+    const db = await createAdminClient();
+    const { data: p } = await db.from("products").select("id, workspace_id").limit(1).single();
+    const ext = `p02-${Date.now()}`;
+    const payload = {
+      id: ext, order_number: 1, total_price: "4000", created_at: "2026-01-01T00:00:00Z",
+      customer: { first_name: "A", last_name: "B", phone: "0555123456" },
+      line_items: [{ quantity: 2, title: "no-such-product-zzz" }],
+    };
+    const { data: ev } = await db.from("webhook_events")
+      .insert({ workspace_id: p!.workspace_id, provider: "shopify", payload, signature_ok: true }).select("id").single();
+    expect((await replayEvent(ev!.id, p!.workspace_id)).ok).toBe(true);
+    const sel = () => db.from("orders").select("id, quantity, sale_price, product_id").eq("source", "shopify").eq("external_id", ext).single();
+    const { data: o } = await sel();
+    await db.from("orders").update({ quantity: 7, sale_price: 9999, product_id: p!.id }).eq("id", o!.id);
+    expect((await replayEvent(ev!.id, p!.workspace_id)).ok).toBe(true);
+    const { data: after } = await sel();
+    expect(after).toMatchObject({ quantity: 7, sale_price: 9999, product_id: p!.id });
+    await db.from("orders").delete().eq("id", o!.id);
+    await db.from("webhook_events").delete().eq("id", ev!.id);
+  });
+});
