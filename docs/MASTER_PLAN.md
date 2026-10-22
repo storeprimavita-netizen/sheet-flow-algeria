@@ -28,7 +28,7 @@ Every item runs Analyse → Verify → Execute → Ship (inline, see D1). Status
 | ID | Task | Notes |
 |---|---|---|
 | P1-1 | KPI contract migration (`orders.excluded_reason`, `kpi_lines`, `product_stock_v`) + tests | B §contract; check `ad_spend_daily.product_id` nullability first |
-| P1-7 | Delivery prices: import owner CSV (wilaya × home/stopdesk [+ return price]) into a rates table; order gets `delivery_fee` (charged) + `delivery_cost` (ZR price) by type; push COD amount = sale·qty + fee with correct `deliveryType`; P&L income at delivered incl. fee, delivery cost line (D14) | D14, owner CSV | pnl tests, push payload test |
+| P1-7 | Delivery prices: import owner CSV (wilaya × home/stopdesk [+ return price]) into a rates table; order `delivery_fee` by type; push COD amount = sale·qty + fee with correct `deliveryType`; expected payout check; income at delivered = product sale only, delivery fee pass-through, money-with-ZR → cash on receipt (D14) | D14, owner CSV | push payload test, pnl tests |
 | P1-2 | Dashboard rebuild: hero 4 (confirmation, delivery success, CPDO, ROI), stock/alerts strip, profit-vs-spend + funnel, product CPDO bars; Suspense per section; tooltips with formulas | C wireframe; needs P1-1 |
 | P1-3 | Orders table: default columns trimmed, hide-empty, filter popover, mobile cards, RTL clip check; screenshots both themes | verify C findings in live app first |
 | P1-4 | COD product-page builder: pages table (+RLS), image upload via Supabase Storage (server-signed), public route `/p/[slug]` mobile-first AR/FR, server-validated order submit (server prices, idempotency key, rate limit, transactional stock), source/landing attribution, tests | biggest item; needs P0-5; own phase brief |
