@@ -122,13 +122,17 @@ describe.skipIf(!process.env.LOCAL_SUPABASE_URL)("replayEvent after an admin edi
     const { data: ev } = await db.from("webhook_events")
       .insert({ workspace_id: p!.workspace_id, provider: "shopify", payload, signature_ok: true }).select("id").single();
     expect((await replayEvent(ev!.id, p!.workspace_id)).ok).toBe(true);
-    const sel = () => db.from("orders").select("id, quantity, sale_price, product_id").eq("source", "shopify").eq("external_id", ext).single();
+    const sel = () => db.from("orders").select("id, customer_id, quantity, sale_price, product_id").eq("source", "shopify").eq("external_id", ext).single();
     const { data: o } = await sel();
-    await db.from("orders").update({ quantity: 7, sale_price: 9999, product_id: p!.id }).eq("id", o!.id);
-    expect((await replayEvent(ev!.id, p!.workspace_id)).ok).toBe(true);
-    const { data: after } = await sel();
-    expect(after).toMatchObject({ quantity: 7, sale_price: 9999, product_id: p!.id });
-    await db.from("orders").delete().eq("id", o!.id);
-    await db.from("webhook_events").delete().eq("id", ev!.id);
+    try {
+      await db.from("orders").update({ quantity: 7, sale_price: 9999, product_id: p!.id }).eq("id", o!.id);
+      expect((await replayEvent(ev!.id, p!.workspace_id)).ok).toBe(true);
+      const { data: after } = await sel();
+      expect(after).toMatchObject({ quantity: 7, sale_price: 9999, product_id: p!.id });
+    } finally {
+      await db.from("orders").delete().eq("id", o!.id);
+      if (o?.customer_id) await db.from("customers").delete().eq("id", o.customer_id);
+      await db.from("webhook_events").delete().eq("id", ev!.id);
+    }
   });
 });

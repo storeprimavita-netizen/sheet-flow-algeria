@@ -79,3 +79,15 @@ the bottom. Format:
 - Evidence: gate OK (tsc, 104/104 tests with local Supabase, build, secret scan).
 - Open: live-tenant externalId search check needs owner run of `scripts/zr-probe.ts` (fail-closed before first prod push, D13).
 - Next: merge to mnw done; push waits on P0-6/P0-7 owner gates.
+
+## P0-5 /verify round 1 fixes (2026-10-22)
+- Cash: idempotent 23505 no-op, uuid parsed before adminProfile (also markDeposited), unique index now (order_id, workspace_id), types regenerated (FK only), tests deterministic + order-delete/audit test.
+- Manual: getProfile `cache()` memoisation unverified by test (check auth logs: dashboard <=2 /user hits).
+- Note (pre-existing, not P0-5): deleting a workspace that has audited-table rows already fails.
+
+## P0-5 Done — merge block (2026-10-22) — DONE (merged to mnw, push gated)
+- Done: unique(order_id, workspace_id) guard migration 00026; 23505 idempotent no-op in recordCashCollection; auth `cache()` memoisation in rbac.ts; layout/dashboard shared getUser.
+- Verify: risk high; /verify round 2 verdict PASS (round 1 fixes applied in 500b369 + follow-up commit).
+- Evidence: scripts/gate.sh GATE OK (tsc, 112/112 tests with live RLS, build, secret scan).
+- Known low debt: (a) second admin's different amount silently dropped on 23505; (b) migration 00026 gives generic FK error if prod cash rows point at another workspace's order; (c) no test for double-record, EXPLAIN, getProfile memoisation; (d) workspace delete blocked by audit trigger (pre-existing).
+- Next: owner backs up before db push 00020–00026 (P0-6). No push until P0-6/P0-7 gates cleared.

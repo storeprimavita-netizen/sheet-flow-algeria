@@ -14,8 +14,8 @@ const recordSchema = z.object({
 });
 
 export async function recordCashCollection(orderId: string, formData: FormData) {
-  const { workspaceId } = await adminProfile();
   orderId = z.string().uuid().parse(orderId);
+  const { workspaceId } = await adminProfile();
   const input = recordSchema.parse({
     amount_dzd: formData.get("amount_dzd"),
     note: formData.get("note"),
@@ -30,15 +30,15 @@ export async function recordCashCollection(orderId: string, formData: FormData) 
     note: input.note,
     created_by: user?.id ?? null,
   });
-  // 23505 = cash_collections_order_uidx: double-click / second tab. Surface it, don't hide it.
-  if (error?.code === "23505") throw new Error("Cash already recorded for this order");
-  if (error) throw new Error(error.message);
+  // 23505 = cash_collections_order_uidx: double-click / second tab -> idempotent no-op.
+  if (error && error.code !== "23505") throw new Error(error.message);
   revalidatePath("/app/orders/cash");
 }
 
 const depositSchema = z.object({ reference: optionalText });
 
 export async function markDeposited(collectionId: string, formData: FormData) {
+  collectionId = z.string().uuid().parse(collectionId);
   await adminProfile();
   const input = depositSchema.parse({ reference: formData.get("reference") });
 

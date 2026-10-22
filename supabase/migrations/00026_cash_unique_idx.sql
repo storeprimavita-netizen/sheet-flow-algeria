@@ -18,7 +18,9 @@ end $$;
 -- A plain unique INDEX (not a constraint): finance/overview embeds
 -- cash:cash_collections(id) and relies on an array (.length); a unique
 -- constraint would make PostgREST return an object instead. NULLs stay distinct.
-create unique index cash_collections_order_uidx on public.cash_collections (order_id);
+-- Includes workspace_id so a cross-workspace probe hits the FK (23503) like any
+-- missing order, never 23505 (no leak of cash existence); still 1 row/order via the FK.
+create unique index cash_collections_order_uidx on public.cash_collections (order_id, workspace_id);
 
 -- Composite FK so a cash row can never point at another workspace's order.
 -- ON DELETE SET NULL (order_id) nulls only order_id (workspace_id is NOT NULL). PG15+.

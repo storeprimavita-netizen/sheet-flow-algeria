@@ -23,13 +23,21 @@ describe.skipIf(!URL)("cash_collections (00026)", () => {
   let ws1: string;
   let ws2: string;
   let orderId: string;
+  let otherId: string;
   const created: string[] = [];
 
   beforeAll(async () => {
     admin = createClient(URL!, SERVICE_KEY, { auth: { persistSession: false } });
-    const { data: o } = await admin.from("orders").select("id, workspace_id").limit(1).single();
-    orderId = o!.id;
-    ws1 = o!.workspace_id;
+    // Deterministic: only orders that have no cash row yet.
+    const { data: used } = await admin.from("cash_collections").select("order_id").not("order_id", "is", null);
+    const taken = new Set((used ?? []).map((r) => r.order_id));
+    const { data: all } = await admin.from("orders").select("id, workspace_id").limit(500);
+    const free = (all ?? []).filter((r) => !taken.has(r.id));
+    ws1 = free[0].workspace_id;
+    const sameWs = free.filter((r) => r.workspace_id === ws1);
+    if (sameWs.length < 2) throw new Error("cash.test needs 2 orders without cash in one workspace");
+    orderId = sameWs[0].id;
+    otherId = sameWs[1].id;
     const { data: w } = await admin.from("workspaces").insert({ name: "cash-test-ws2" }).select("id").single();
     ws2 = w!.id;
   });
@@ -58,8 +66,7 @@ describe.skipIf(!URL)("cash_collections (00026)", () => {
   });
 
   test("cross-workspace insert (ws2 row -> ws1 order) is rejected by the composite FK", async () => {
-    const { data: other } = await admin.from("orders").select("id").eq("workspace_id", ws1).neq("id", orderId).limit(1).single();
-    const { error } = await admin.from("cash_collections").insert({ workspace_id: ws2, order_id: other!.id, amount_dzd: 1 });
+    const { error } = await admin.from("cash_collections").insert({ workspace_id: ws2, order_id: otherId, amount_dzd: 1 });
     expect(error?.code).toBe("23503");
   });
 
@@ -78,6 +85,16 @@ describe.skipIf(!URL)("cash_collections (00026)", () => {
   });
 
   test("recordCashCollection rejects a non-uuid orderId", async () => {
-    await expect(recordCashCollection("not-a-uuid", new FormData())).rejects.toThrow();
+    await expect(recordCashCollection("not-a-uuid", new FormData())).rejects.toThrow(/uuid/i);
+  });
+
+  test("order delete nulls order_id, cash row survives, audit row written", () => {
+    const out = psql(`begin;
+      insert into cash_collections(workspace_id, order_id, amount_dzd) values ('${ws1}','${otherId}',5);
+      delete from orders where id='${otherId}';
+      select (select count(*) from cash_collections where workspace_id='${ws1}' and amount_dzd=5 and order_id is null)
+        || ',' || (select count(*) from audit_log where table_name='cash_collections' and action='INSERT' and (new_row->>'amount_dzd')::numeric=5);
+      rollback;`);
+    expect(out).toMatch(/^1,[1-9]/m);
   });
 });
