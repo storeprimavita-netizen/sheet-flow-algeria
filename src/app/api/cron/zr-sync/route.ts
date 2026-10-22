@@ -54,6 +54,12 @@ export async function GET(req: Request): Promise<Response> {
           polled++;
         } catch {
           failed++; // one bad parcel must not stop the rest
+          // bump anyway so a failing parcel rotates to the back instead of starving the others
+          await admin
+            .from("zr_shipments")
+            .update({ last_synced_at: new Date().toISOString() })
+            .eq("workspace_id", ws)
+            .eq("parcel_id", parcel_id);
         }
       }
     } catch {

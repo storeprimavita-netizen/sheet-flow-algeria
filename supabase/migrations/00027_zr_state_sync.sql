@@ -17,7 +17,7 @@ create unique index zr_shipments_ws_parcel_uq on public.zr_shipments (workspace_
 -- Webhook replay dedupe (Svix retries). Rejected/unsigned rows have null external_id.
 create unique index webhook_events_dedupe_uq
   on public.webhook_events (provider, workspace_id, external_id)
-  where external_id is not null;
+  where provider = 'zrexpress' and external_id is not null;
 
 create or replace function public.apply_zr_state(
   p_ws uuid, p_parcel uuid, p_state text, p_slug text,
@@ -37,25 +37,26 @@ begin
   if not found then return null; end if;
 
   if p_state is not null then
-    if v_ship.occurred_at is null or v_ship.occurred_at <= p_occurred then
+    -- strictly newer only: a stale or same-timestamp replay (webhook retry, Refresh)
+    -- must not re-sync the order over an admin correction
+    if v_ship.occurred_at is null or v_ship.occurred_at < p_occurred then
       update public.zr_shipments
          set state = p_state, state_slug = p_slug,
              occurred_at = p_occurred, state_updated_at = p_occurred
        where order_id = v_ship.order_id
        returning * into v_ship;
-    end if;
 
-    -- order follows the STORED state (a stale payload re-syncs to the newest)
-    select value -> 'map' into v_map from public.settings
-     where workspace_id = p_ws and key = 'zr_state_map';
-    if not found then   -- never configured: built-in defaults
-      v_map := '{"livre":"delivered","encaisse":"delivered","recouvert":"delivered","recupere_par_fournisseur":"returned"}';
-    end if;
-    v_mapped := v_map ->> lower(btrim(v_ship.state));
-    if v_mapped is not null then
-      update public.orders set delivery_status = v_mapped::delivery_status
-       where id = v_ship.order_id and workspace_id = p_ws
-         and delivery_status is distinct from v_mapped::delivery_status;
+      select value -> 'map' into v_map from public.settings
+       where workspace_id = p_ws and key = 'zr_state_map';
+      if not found then   -- never configured: built-in defaults
+        v_map := '{"livre":"delivered","encaisse":"delivered","recouvert":"delivered","recupere_par_fournisseur":"returned"}';
+      end if;
+      v_mapped := v_map ->> lower(btrim(v_ship.state));
+      if v_mapped is not null then
+        update public.orders set delivery_status = v_mapped::delivery_status
+         where id = v_ship.order_id and workspace_id = p_ws
+           and delivery_status is distinct from v_mapped::delivery_status;
+      end if;
     end if;
   elsif v_ship.situation_at is null or v_ship.situation_at <= p_occurred then
     update public.zr_shipments

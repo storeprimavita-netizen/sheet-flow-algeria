@@ -1,3 +1,3 @@
 {
-  "crons": [{ "path": "/api/cron/zr-sync", "schedule": "*/30 * * * *" }]
+  "crons": [{ "path": "/api/cron/zr-sync", "schedule": "0 6 * * *" }]
 }

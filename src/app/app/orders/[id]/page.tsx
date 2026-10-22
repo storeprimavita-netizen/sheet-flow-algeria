@@ -84,6 +84,8 @@ export default async function OrderDetailPage({
     swappedFrom: { id: string; orderNumber: string | null } | null;
     wilayas: { code: number; name: string }[];
   } = { swappedTo: null, swappedFrom: null, wilayas: [] };
+  // agents can't see the ZR card but still need to know the order was pushed (locks cancel-reason)
+  const { data: zrExists } = await supabase.from("zr_shipments").select("order_id").eq("order_id", order.id).maybeSingle();
   if (isAdmin) {
     const { data: team } = await supabase
       .from("profiles")
@@ -186,7 +188,7 @@ export default async function OrderDetailPage({
         reasons={reasons}
         cancellationReasonId={order.cancellation_reason_option_id}
         showReason={isCancelled}
-        locked={!isAdmin && order.delivery_status !== "wait_for_deposit"}
+        locked={!isAdmin && (order.delivery_status !== "wait_for_deposit" || !!zrExists)}
       />
 
       <OrderWorkflow order={order} role={role} events={events ?? []} actorNames={actorNames} />

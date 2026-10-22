@@ -112,6 +112,24 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await stock()).toBe(2); // two genuine returned transitions, no extras
   });
 
+  test("returned -> admin sets delivered -> same-timestamp apply leaves delivered, stock once", async () => {
+    await setMap(MAP);
+    await reset();
+    await rpc("Retour", T(10));
+    await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
+    await rpc("Retour", T(10));
+    expect(await order()).toBe("delivered");
+    expect(await stock()).toBe(1);
+  });
+
+  test("shopify/lightfunnels redelivery of the same external_id is not blocked by the zr index", async () => {
+    const row = { workspace_id: ws, provider: "shopify", external_id: "dup_1", payload: {}, processed_at: new Date().toISOString() };
+    await admin.from("webhook_events").delete().eq("external_id", "dup_1");
+    expect((await admin.from("webhook_events").insert(row)).error).toBeNull();
+    expect((await admin.from("webhook_events").insert(row)).error).toBeNull();
+    await admin.from("webhook_events").delete().eq("external_id", "dup_1");
+  });
+
   test("returned -> stale -> returned moves stock once", async () => {
     await setMap(MAP);
     await reset();
