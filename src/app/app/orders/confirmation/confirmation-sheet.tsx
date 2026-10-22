@@ -102,7 +102,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
         <div className="flex gap-2">
           <a
             href={`tel:${order.customer_phone}`}
-            onClick={dial}
+            onClick={order.locked ? undefined : dial}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-success-bg py-3 text-base font-semibold text-success transition-colors hover:brightness-105"
           >
             <PhoneCall className="h-5 w-5" />

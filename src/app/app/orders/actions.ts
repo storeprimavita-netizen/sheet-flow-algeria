@@ -9,6 +9,7 @@ import type { Enums } from "@/lib/supabase/database.types";
 import { getProfile, isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { upsertCustomerFromOrder } from "@/lib/customers";
 import { getZRCredentials, getZRParcel, zrErrorMessage } from "@/lib/integrations/zrexpress";
+import { applyZRParcelState } from "@/lib/integrations/zrexpress-webhook";
 import { hubsForOrder, pushToZR } from "@/lib/integrations/zrexpress-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SETTINGS_SCHEMAS } from "@/lib/settings";
@@ -164,14 +165,21 @@ export async function refreshZRShipmentStatus(orderId: string): Promise<UpdateRe
     return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
   }
 
+  try {
+    await applyZRParcelState(await createAdminClient(), workspaceId, {
+      id: shipment.parcel_id,
+      live: true,
+      state: detail.state,
+      situation: detail.situation?.slug ?? detail.situation?.name,
+      isReturn: detail.isReturn,
+      stateAt: detail.lastStateUpdateAt ? new Date(detail.lastStateUpdateAt).toISOString() : undefined,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to apply ZR state." };
+  }
   const { error } = await supabase
     .from("zr_shipments")
-    .update({
-      tracking_number: detail.trackingNumber,
-      state: detail.state?.name ?? null,
-      state_updated_at: new Date().toISOString(),
-      last_synced_at: new Date().toISOString(),
-    })
+    .update({ tracking_number: detail.trackingNumber, last_synced_at: new Date().toISOString() })
     .eq("order_id", orderId);
   if (error) return { ok: false, error: error.message };
 

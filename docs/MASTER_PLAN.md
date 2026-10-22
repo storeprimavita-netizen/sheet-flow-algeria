@@ -14,13 +14,14 @@ Every item runs Analyse → Verify → Execute → Ship (inline, see D1). Status
 | P0-5 | ✅ (done locally; manual check: dashboard load shows <=2 /auth/v1/user hits) Index + unique(cash_collections.order_id) migration; auth `cache()` memoisation | – | explain/EXPLAIN, ≤1 auth call per page | – |
 | P0-6 | `db push` 00020–24 (+ new), regen types | P0-1..5 | types diff clean | **backup Supabase, run db push, rotate kimi key, delete bundle/kimi.tx** |
 | P0-7 | Env template, SETUP.md rewrite, TESTING.md fix, Vercel project, preview deploy + smoke | P0-6 | smoke on real URL | create Vercel project, 4 env vars, Supabase auth URLs; choose push target (new branch vs replace main) |
+| P0-8 | order_stock_effects: restore/undo stock when an order leaves returned (found in ZR-2 review round 4); prerequisite for allowing admin corrections out of returned | – | test: returned -> delivered reverses the order_returned movement | – |
 
 ## ZR addendum (2026-10-21) — ordered, integrated into P0/P1
 | ID | Task | Deps | Verify |
 |---|---|---|---|
 | ZR-0 | ✅ API audit `docs/ZR_EXPRESS_API_AUDIT.md` (docs only; no live calls) | – | doc reviewed |
 | ZR-1 | ✅ script written (`scripts/zr-probe.ts`, read-only, shape-only output; smoke-tested with a bad key → 401s). Owner runs: `ZR_TENANT_ID=… ZR_API_KEY=… node scripts/zr-probe.ts`. Original: read-only probe script (workflows, balance, payments, one parcels/search; redacted) + owner runs it with prod token | P0-3 seam | owner pastes redacted output; audit §7 closed |
-| ZR-2 | Status sync: `occurredAt` stale-event guard, store `zr_shipments.state_slug/occurred_at/situation`, scheduled catch-up via parcels/search, remove delivery-queue/role UI (D9), audited admin correction | ZR-1 (state list), P0-4 | out-of-order event test, idempotency test |
+| ZR-2 | ✅ (done locally, round 5 PASS; push gated) Status sync: `occurredAt` stale-event guard, store `zr_shipments.state_slug/occurred_at/situation`, scheduled catch-up via parcels/search, remove delivery-queue/role UI (D9), audited admin correction | ZR-1 (state list), P0-4 | out-of-order event test, idempotency test |
 | ZR-3 | Customer history: ask ZR support about reliability endpoint; ship labelled "your ZR history" fallback in confirmation sheet with server-side cache + failure-tolerant | ZR-2 | matching/ambiguous/missing/failure/cache/permission tests |
 | ZR-4 | Finance ledger: `zr_payments`, `zr_payment_lines` (unique parcel/payment ids), manual receipts, discrepancy vs balance; dashboard compact tiles + Finance detail | ZR-1 verified fields, owner D12 | formula tests in audit §6 |
 

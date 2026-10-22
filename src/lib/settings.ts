@@ -38,7 +38,7 @@ const DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   risk_weights: { returned: 2, cancelled: 1, no_answer: 0.5 },
   stop_shipping_rule: { min_orders: 10, min_delivery_rate: 40 },
   meeting_schedule: { slots: [] },
-  zr_state_map: { map: {} },
+  zr_state_map: { map: { livre: "delivered", encaisse: "delivered", recouvert: "delivered", recupere_par_fournisseur: "returned" } },
   zr_auto_push: { enabled: false },
 };
 

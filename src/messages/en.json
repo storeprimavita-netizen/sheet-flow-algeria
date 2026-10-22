@@ -526,7 +526,6 @@
   "workbench": {
     "assignment": "Assignment",
     "assignConfirmation": "Confirmation agent",
-    "assignDelivery": "Delivery agent",
     "unassigned": "Unassigned"
   },
   "stock": {
@@ -656,7 +655,7 @@
       "webhookRegistered": "webhook registered",
       "webhookNotRegistered": "webhook not registered",
       "stateMapTitle": "ZR status → order status",
-      "stateMapHint": "ZR's statuses are set per account. Map each one to an order delivery status; unmapped statuses are only shown on the shipment.",
+      "stateMapHint": "ZR's statuses are set per account. Map each one to an order delivery status; unmapped statuses are only shown on the shipment. Defaults: livre / encaisse / recouvert → Delivered, recupere_par_fournisseur → Returned.",
       "notMapped": "Not mapped",
       "addState": "Add a ZR status name",
       "add": "Add",

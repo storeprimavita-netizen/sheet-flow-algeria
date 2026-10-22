@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 import type { Role } from "@/lib/roles";
 import { EnumSelect } from "@/components/fields/enum-select";
 
-const ROLES: Role[] = ["confirmation_agent", "delivery_agent", "admin"];
+// D9: delivery_agent stays in the enum but is only offered to a row that already has it.
+const ROLES: Role[] = ["confirmation_agent", "admin"];
 
 /** Role picker + a plain-language description of what the selected role can
  * see (section-checklists.md §Team & Rules), updating live as the choice
@@ -30,7 +31,7 @@ export function RoleSelect({
         defaultValue={defaultValue}
         onChange={(v) => setRole(v as Role)}
         disabled={disabled}
-        options={ROLES.map((r) => ({ value: r, label: t(`role.${r}`) }))}
+        options={(defaultValue === "delivery_agent" ? [...ROLES, defaultValue] : ROLES).map((r) => ({ value: r, label: t(`role.${r}`) }))}
       />
       <p className="text-xs text-muted-foreground">{t(`role.descriptions.${role}`)}</p>
     </div>

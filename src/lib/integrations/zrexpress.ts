@@ -65,7 +65,8 @@ function zrBaseUrl(): string {
 }
 
 async function zrFetch<T>(creds: ZRCredentials, path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${zrBaseUrl()}${path}`, {
+  const url = `${zrBaseUrl()}${path}`;
+  const doFetch = () => fetch(url, {
     ...init,
     redirect: "error", // a redirect must never carry our API key/body to another host (e.g. the real ZR API)
     headers: {
@@ -76,6 +77,11 @@ async function zrFetch<T>(creds: ZRCredentials, path: string, init: RequestInit 
       ...init.headers,
     },
   });
+  let res = await doFetch();
+  if (res.status === 429) { // ponytail: one backoff retry; cron is sequential and capped
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await doFetch();
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new ZRExpressError(`ZR Express ${init.method ?? "GET"} ${path} → ${res.status}: ${body.slice(0, 500)}`);
@@ -182,7 +188,11 @@ export async function createZRParcel(creds: ZRCredentials, input: CreateParcelIn
 export type ZRParcel = {
   id: string;
   trackingNumber: string | null;
-  state: { name: string } | null;
+  state: { name: string; slug?: string | null } | null;
+  /** ZR returns situation as an object; slug is the stable key */
+  situation?: { slug?: string | null; name?: string | null } | null;
+  isReturn?: boolean | null;
+  lastStateUpdateAt?: string | null;
   externalId?: string | null;
 };
 
@@ -217,7 +227,7 @@ export async function createZRWebhookEndpoint(
     method: "POST",
     body: JSON.stringify({
       url: callbackUrl,
-      eventTypes: ["parcel.state.updated"],
+      eventTypes: ["parcel.state.updated", "parcel.state.situation.created", "parcel.isReturn.updated"],
       description: "MNW ERP",
     }),
   });

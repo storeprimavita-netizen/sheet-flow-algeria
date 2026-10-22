@@ -7,10 +7,10 @@
  * Tenant-safe: each ZR tenant registers its own endpoint with its own Svix
  * secret, so the workspace is whichever active config's secret verifies the
  * event (no shared "first config" guess). Deduped on svix-id (Svix retries).
- * `zr_shipments.state` always mirrors ZR; `orders.delivery_status` follows
- * only through the workspace's own `zr_state_map` setting (ZR states are a
- * per-tenant workflow) — the update goes through `orders`, so the status
- * triggers still write history + stock exactly as a UI change would.
+ * `zr_shipments.state` mirrors ZR; `orders.delivery_status` follows the
+ * STORED state via the workspace's `zr_state_map`, all inside the
+ * `apply_zr_state` RPC (one transaction under the shipment row lock), so
+ * webhook / refresh / cron can interleave and still end on the newest state.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -19,7 +19,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonResponse } from "@/lib/utils";
 import { MAX_WEBHOOK_BYTES } from "@/lib/webhook";
 import type { Json } from "@/lib/supabase/database.types";
-import { SETTINGS_SCHEMAS, zrStateKey } from "@/lib/settings";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 const TOLERANCE_SECONDS = 300; // reject events signed more than 5 minutes off
 
@@ -48,18 +49,75 @@ export function verifyZRWebhookSignature(secret: string, body: string, headers: 
 }
 
 // zod at the trust boundary (CLAUDE.md): only the fields we act on, bounded.
+// Timestamps are ISO with offsets; invalid ones are dropped here and rejected
+// later only if no usable timestamp remains.
+const ts = z.string().max(40).datetime({ offset: true }).optional().catch(undefined);
+const name = z.string().trim().min(1).max(100);
 const payloadSchema = z
   .object({
+    eventType: z.string().max(100).optional(),
     type: z.string().max(100).optional(),
+    occurredAt: ts,
     data: z
       .object({
         id: z.string().uuid().optional(),
-        state: z.object({ name: z.string().trim().min(1).max(100).optional() }).nullish(),
+        state: z.object({ name: name.optional().catch(undefined), slug: name.nullish().catch(undefined) }).nullish().catch(undefined),
+        situation: z.object({ slug: name.nullish().catch(undefined) }).nullish().catch(undefined),
+        isReturn: z.boolean().nullish().catch(undefined),
+        lastStateUpdateAt: ts,
       })
       .optional(),
   })
   .passthrough();
-type ParcelStateUpdatedPayload = z.infer<typeof payloadSchema>;
+type ZRPayload = z.infer<typeof payloadSchema>;
+
+const iso = (v: string | undefined) => (v ? new Date(v).toISOString() : undefined);
+
+export type ZRParcelState = {
+  id: string;
+  /** true when read from ZR's current state (Refresh/cron): equal-timestamp state changes apply. Webhooks leave it false. */
+  live?: boolean;
+  state?: { name?: string | null; slug?: string | null } | null;
+  situation?: string | null;
+  isReturn?: boolean | null;
+  /** state timestamp (data.lastStateUpdateAt) */
+  stateAt?: string;
+  /** situation / isReturn timestamp */
+  situationAt?: string;
+};
+
+/**
+ * The one apply path (webhook, refresh, cron). State and situation go through
+ * the RPC separately so a situation event can never block a late state event
+ * and a null state can never wipe the stored one. Throws on RPC error.
+ */
+export async function applyZRParcelState(
+  admin: SupabaseClient<Database>,
+  workspaceId: string,
+  p: ZRParcelState,
+): Promise<void> {
+  const call = async (args: { state?: string; slug?: string | null; situation?: string | null; isReturn?: boolean | null }, at: string) => {
+    const { error } = await admin.rpc("apply_zr_state", {
+      p_ws: workspaceId,
+      p_parcel: p.id,
+      // explicit nulls (an omitted key would not resolve the function); generated arg types are non-null
+      p_state: (args.state ?? null) as string, // null = situation path
+      p_slug: (args.slug ?? null) as string,
+      p_situation: (args.situation ?? null) as string,
+      p_is_return: (args.isReturn ?? null) as boolean,
+      p_occurred: at,
+      p_live: !!p.live,
+    });
+    if (error) throw new Error(error.message);
+  };
+  const stateName = p.state?.name?.trim();
+  // never report success while silently skipping the RPC (parcel without a timestamp)
+  if ((stateName && !p.stateAt) || ((p.situation != null || p.isReturn != null) && !(p.situationAt ?? p.stateAt)))
+    throw new Error("ZR parcel has no lastStateUpdateAt; cannot order the update.");
+  if (stateName && p.stateAt) await call({ state: stateName, slug: p.state?.slug }, p.stateAt);
+  const at = p.situationAt ?? p.stateAt;
+  if ((p.situation != null || p.isReturn != null) && at) await call({ situation: p.situation, isReturn: p.isReturn }, at);
+}
 
 export async function processZRWebhook(req: Request): Promise<Response> {
   const body = await req.text();
@@ -72,8 +130,8 @@ export async function processZRWebhook(req: Request): Promise<Response> {
 
   // Cheap rejects before any DB work: Svix always sends all three headers and
   // a fresh timestamp, so junk/stale requests cost no query and no row.
-  const ts = Number(headers.timestamp);
-  if (!headers.id || !headers.signature || !Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > TOLERANCE_SECONDS) {
+  const tsNum = Number(headers.timestamp);
+  if (!headers.id || !headers.signature || !Number.isFinite(tsNum) || Math.abs(Date.now() / 1000 - tsNum) > TOLERANCE_SECONDS) {
     return jsonResponse({ error: "invalid signature" }, 401);
   }
 
@@ -87,19 +145,22 @@ export async function processZRWebhook(req: Request): Promise<Response> {
   const integration = (configs ?? []).find((c) => c.secret && verifyZRWebhookSignature(c.secret, body, headers)) ?? null;
   const signatureOk = !!integration;
 
+  // A row exists from a previous delivery: processed => duplicate; unprocessed
+  // (earlier apply failed) => reuse it and apply again.
+  let eventId: string | null = null;
   if (integration) {
     const { data: seen } = await supabase
       .from("webhook_events")
-      .select("id")
+      .select("id, processed_at")
       .eq("provider", "zrexpress")
       .eq("workspace_id", integration.workspace_id)
       .eq("external_id", headers.id)
-      .limit(1)
       .maybeSingle();
-    if (seen) return jsonResponse({ ok: true, duplicate: true }, 200);
+    if (seen?.processed_at) return jsonResponse({ ok: true, duplicate: true }, 200);
+    eventId = seen?.id ?? null;
   }
 
-  let payload: ParcelStateUpdatedPayload = {};
+  let payload: ZRPayload = {};
   let parseError: string | null = null;
   try {
     const parsed = payloadSchema.safeParse(JSON.parse(body));
@@ -109,53 +170,54 @@ export async function processZRWebhook(req: Request): Promise<Response> {
     parseError = "invalid json";
   }
 
-  await supabase.from("webhook_events").insert({
+  const eventType = payload.eventType ?? payload.type;
+  const stateAt = iso(payload.data?.lastStateUpdateAt) ?? iso(payload.occurredAt);
+  const situationAt = iso(payload.occurredAt) ?? iso(payload.data?.lastStateUpdateAt);
+  const isState = eventType === "parcel.state.updated";
+  const isSituation = eventType === "parcel.state.situation.created" || eventType === "parcel.isReturn.updated";
+  if (!parseError && (isState || isSituation) && !(isState ? stateAt : situationAt)) parseError = "missing or invalid timestamp";
+
+  const rejected = !configs?.length ? "integration not configured" : !signatureOk ? "invalid signature" : parseError;
+  const row = {
     workspace_id: integration?.workspace_id ?? null,
-    provider: "zrexpress",
+    provider: "zrexpress" as const,
     external_id: signatureOk ? headers.id : null,
     signature_ok: signatureOk,
     payload: (!signatureOk ? { _rejected: true, bytes: body.length } : parseError ? { _unparsable: body.slice(0, 5000) } : payload) as NonNullable<Json>,
-    error: !configs?.length ? "integration not configured" : !signatureOk ? "invalid signature" : parseError,
-    processed_at: new Date().toISOString(),
-  });
-
-  if (!configs?.length) return jsonResponse({ error: "integration not configured" }, 401);
-  if (!integration) return jsonResponse({ error: "invalid signature" }, 401);
-  if (parseError) return jsonResponse({ error: parseError }, 400);
-
-  const ws = integration.workspace_id;
-  const parcelId = payload.data?.id;
-  const stateName = payload.data?.state?.name;
-  if (payload.type === "parcel.state.updated" && parcelId) {
-    const { data: shipment } = await supabase
-      .from("zr_shipments")
-      .update({ state: stateName ?? null, state_updated_at: new Date().toISOString() })
-      .eq("workspace_id", ws)
-      .eq("parcel_id", parcelId)
-      .select("order_id")
-      .maybeSingle();
-
-    if (shipment && stateName) {
-      const { data: row } = await supabase
-        .from("settings")
-        .select("value")
-        .eq("workspace_id", ws)
-        .eq("key", "zr_state_map")
-        .maybeSingle();
-      const parsed = SETTINGS_SCHEMAS.zr_state_map.safeParse(row?.value);
-      const key = zrStateKey(stateName);
-      // hasOwn: a ZR state literally named "__proto__" must not resolve to Object.prototype.
-      const mapped = parsed.success && Object.hasOwn(parsed.data.map, key) ? parsed.data.map[key] : undefined;
-      if (mapped) {
-        await supabase
-          .from("orders")
-          .update({ delivery_status: mapped })
-          .eq("workspace_id", ws)
-          .eq("id", shipment.order_id)
-          .neq("delivery_status", mapped);
-      }
-    }
+    error: rejected,
+  };
+  if (rejected) {
+    // terminal: logged as processed so a same-id retry is a duplicate, not a re-run
+    await supabase.from("webhook_events").insert({ ...row, processed_at: new Date().toISOString() });
+    return jsonResponse({ error: rejected }, rejected === "invalid signature" || rejected === "integration not configured" ? 401 : 400);
   }
+  const ws = integration!.workspace_id;
+  if (!eventId) {
+    const ins = await supabase.from("webhook_events").insert({ ...row, processed_at: null }).select("id").single();
+    if (ins.error) {
+      if (ins.error.code !== "23505") return jsonResponse({ error: "storage failure" }, 500);
+      return jsonResponse({ ok: true, duplicate: true }, 200); // concurrent delivery of the same svix-id is already in flight
+    }
+    eventId = ins.data.id;
+  }
+
+  try {
+    const parcelId = payload.data?.id;
+    if (parcelId && (isState || isSituation)) {
+      await applyZRParcelState(supabase, ws, {
+        id: parcelId,
+        state: isState ? payload.data?.state : undefined,
+        situation: isSituation ? payload.data?.situation?.slug : undefined,
+        isReturn: isSituation ? payload.data?.isReturn : undefined,
+        stateAt,
+        situationAt,
+      });
+    }
+  } catch (e) {
+    await supabase.from("webhook_events").update({ error: e instanceof Error ? e.message.slice(0, 500) : "apply failed" }).eq("id", eventId);
+    return jsonResponse({ error: "apply failed" }, 500); // Svix retries with the same svix-id
+  }
+  await supabase.from("webhook_events").update({ processed_at: new Date().toISOString(), error: null }).eq("id", eventId);
   await supabase
     .from("integration_configs")
     .update({ last_event_at: new Date().toISOString() })

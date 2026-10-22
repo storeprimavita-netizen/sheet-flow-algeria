@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserAdmin } from "@/lib/rbac";
 import { customerDeliveryRate } from "@/lib/customers";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -16,13 +17,14 @@ export default async function ConfirmationQueuePage({
   const showAll = (await searchParams).show === "all";
   const t = await getTranslations();
   const supabase = await createClient();
+  const isAdmin = await isCurrentUserAdmin();
 
   // Default = actionable only (same list as the sidebar badge); "show closed"
   // adds cancelled. Confirmed orders live in the delivery queue.
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, product:products(name)",
+      "id, order_number, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product:products(name), zr:zr_shipments(order_id)",
     )
     .order("created_at", { ascending: true });
   query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
@@ -80,6 +82,8 @@ export default async function ConfirmationQueuePage({
       risk_reason: t("orders.riskReason", { total, returned, cancelled }),
       delivery_rate: customerDeliveryRate(stat)?.label ?? "—",
       recent,
+      // shipped orders: agents may not log attempts (DB already blocks writes, 00025)
+      locked: !isAdmin && (o.delivery_status !== "wait_for_deposit" || (Array.isArray(o.zr) ? o.zr.length > 0 : !!o.zr)),
     };
   });
 

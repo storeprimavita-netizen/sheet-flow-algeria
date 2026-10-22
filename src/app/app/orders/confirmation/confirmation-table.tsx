@@ -32,6 +32,8 @@ export type ConfRow = {
   risk_score: number;
   risk_reason: string;
   delivery_rate: string;
+  /** non-admin + already shipped: hide attempt logging */
+  locked: boolean;
   recent: { id: string; order_number: string | null; delivery_status: string; placed_at: string | null }[];
 };
 

@@ -853,14 +853,14 @@ isOneToOne: false
                   ]
                 },"zr_shipments": {
                   Row: {
-                    "created_at": string,"last_synced_at": string | null,"order_id": string,"parcel_id": string,"pushed_at": string,"state": string | null,"state_updated_at": string | null,"tracking_number": string | null,"updated_at": string,"workspace_id": string
+                    "created_at": string,"is_return": boolean | null,"last_synced_at": string | null,"occurred_at": string | null,"order_id": string,"parcel_id": string,"pushed_at": string,"situation": string | null,"situation_at": string | null,"state": string | null,"state_slug": string | null,"state_updated_at": string | null,"tracking_number": string | null,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"last_synced_at"?: string | null,"order_id": string,"parcel_id": string,"pushed_at"?: string,"state"?: string | null,"state_updated_at"?: string | null,"tracking_number"?: string | null,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"is_return"?: boolean | null,"last_synced_at"?: string | null,"occurred_at"?: string | null,"order_id": string,"parcel_id": string,"pushed_at"?: string,"situation"?: string | null,"situation_at"?: string | null,"state"?: string | null,"state_slug"?: string | null,"state_updated_at"?: string | null,"tracking_number"?: string | null,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"last_synced_at"?: string | null,"order_id"?: string,"parcel_id"?: string,"pushed_at"?: string,"state"?: string | null,"state_updated_at"?: string | null,"tracking_number"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"is_return"?: boolean | null,"last_synced_at"?: string | null,"occurred_at"?: string | null,"order_id"?: string,"parcel_id"?: string,"pushed_at"?: string,"situation"?: string | null,"situation_at"?: string | null,"state"?: string | null,"state_slug"?: string | null,"state_updated_at"?: string | null,"tracking_number"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1005,7 +1005,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "bootstrap_workspace":
+            "apply_zr_state":
+{ Args: { "p_is_return": boolean,"p_live"?: boolean,"p_occurred": string,"p_parcel": string,"p_situation": string,"p_slug": string,"p_state": string,"p_ws": string }; Returns: string
+                           },
+"bootstrap_workspace":
 { Args: { "p_email": string,"p_workspace_name"?: string }; Returns: string
                            },
 "current_app_role":
