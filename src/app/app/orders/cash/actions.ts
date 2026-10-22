@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireAdminProfile as adminProfile } from "@/lib/rbac";
+import { getUser, requireAdminProfile as adminProfile } from "@/lib/rbac";
 
 const optionalText = z.string().trim().optional().transform((v) => v || null);
 
@@ -14,6 +14,7 @@ const recordSchema = z.object({
 });
 
 export async function recordCashCollection(orderId: string, formData: FormData) {
+  orderId = z.string().uuid().parse(orderId);
   const { workspaceId } = await adminProfile();
   const input = recordSchema.parse({
     amount_dzd: formData.get("amount_dzd"),
@@ -21,9 +22,7 @@ export async function recordCashCollection(orderId: string, formData: FormData) 
   });
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   const { error } = await supabase.from("cash_collections").insert({
     workspace_id: workspaceId,
     order_id: orderId,
@@ -31,13 +30,15 @@ export async function recordCashCollection(orderId: string, formData: FormData) 
     note: input.note,
     created_by: user?.id ?? null,
   });
-  if (error) throw new Error(error.message);
+  // 23505 = cash_collections_order_uidx: double-click / second tab -> idempotent no-op.
+  if (error && error.code !== "23505") throw new Error(error.message);
   revalidatePath("/app/orders/cash");
 }
 
 const depositSchema = z.object({ reference: optionalText });
 
 export async function markDeposited(collectionId: string, formData: FormData) {
+  collectionId = z.string().uuid().parse(collectionId);
   await adminProfile();
   const input = depositSchema.parse({ reference: formData.get("reference") });
 

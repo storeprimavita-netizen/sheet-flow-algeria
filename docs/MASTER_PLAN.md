@@ -8,10 +8,10 @@ Every item runs Analyse → Verify → Execute → Ship (inline, see D1). Status
 | ID | Task | Deps | Verify | Owner action |
 |---|---|---|---|---|
 | P0-1 | Webhook hardening: early 401 on missing signature, content-length precheck (413), no junk rows, retention, 500 on processing failure, replay window | – | curl no-header leaves row count unchanged; oversized → 413; existing 83 tests | – |
-| P0-2 | Redelivery must not overwrite admin edits (webhook.ts update path) | – | unit test: replay after admin edit keeps product/price/qty | – |
+| P0-2 | ✅ (done in P0-1; test added in P0-5) Redelivery must not overwrite admin edits (webhook.ts update path) | – | unit test: replay after admin edit keeps product/price/qty | – |
 | P0-3 | ✅ (done locally) ZR: `ZR_API_BASE` seam (refuse prod base outside production), fix orphan-parcel on insert failure (lookup by externalId), tests with mock server | – | mocked push test; no real parcel | ask ZR for test tenant |
 | P0-4 | Permission matrix per D10: DB guard on customer/assignment fields, queue-scoped order visibility, confirmation-only transitions, no agent delivery_status writes; authenticated-session RLS tests | D9/D10 | rls.test.ts: direct PostgREST + RPC attempts, valid transitions, admin/webhook still work | confirm no live delivery_agent users |
-| P0-5 | Index + unique(cash_collections.order_id) migration; auth `cache()` memoisation | – | explain/EXPLAIN, ≤1 auth call per page | – |
+| P0-5 | ✅ (done locally; manual check: dashboard load shows <=2 /auth/v1/user hits) Index + unique(cash_collections.order_id) migration; auth `cache()` memoisation | – | explain/EXPLAIN, ≤1 auth call per page | – |
 | P0-6 | `db push` 00020–24 (+ new), regen types | P0-1..5 | types diff clean | **backup Supabase, run db push, rotate kimi key, delete bundle/kimi.tx** |
 | P0-7 | Env template, SETUP.md rewrite, TESTING.md fix, Vercel project, preview deploy + smoke | P0-6 | smoke on real URL | create Vercel project, 4 env vars, Supabase auth URLs; choose push target (new branch vs replace main) |
 

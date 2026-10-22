@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { getProfile, getUser } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDate, formatDuration, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics, type PnlLines } from "@/lib/pricing";
@@ -131,9 +131,7 @@ export default async function DashboardPage({
   const profile = (await getProfile())!;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const [{ data: products }, { data: wilayas }, { data: team }, { data: nextMeeting }, { data: myTasks }] = await Promise.all([
     supabase.from("products").select("id, name").order("name"),

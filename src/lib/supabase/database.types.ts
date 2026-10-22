@@ -152,11 +152,11 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
-      foreignKeyName: "cash_collections_order_id_fkey"
-      columns: ["order_id"]
+      foreignKeyName: "cash_collections_order_ws_fkey"
+      columns: ["order_id","workspace_id"]
 isOneToOne: false
       referencedRelation: "orders"
-      referencedColumns: ["id"]
+      referencedColumns: ["id","workspace_id"]
     },{
       foreignKeyName: "cash_collections_workspace_id_fkey"
       columns: ["workspace_id"]

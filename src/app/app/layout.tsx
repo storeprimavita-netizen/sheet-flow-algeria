@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ACTIONABLE_CONFIRMATION, ACTIONABLE_DELIVERY } from "@/lib/statuses";
-import { getCurrentUserRole } from "@/lib/rbac";
+import { getCurrentUserRole, getUser } from "@/lib/rbac";
 import { AppShell } from "@/components/app-shell";
 
 /** Auth gate for all /app/* routes (defense-in-depth; the proxy already redirects). */
@@ -12,9 +12,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) redirect("/login");
 
   const role = await getCurrentUserRole();
