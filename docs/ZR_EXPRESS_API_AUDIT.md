@@ -61,3 +61,12 @@ Webhook events: `parcel.state.updated`, `parcel.state.situation.created`, `parce
 - `zrexpress-webhook.ts` writes `state_updated_at = now()` and updates `delivery_status` unconditionally — **no comparison with the event's `occurredAt`/`lastStateUpdateAt`**, so an out-of-order older event can overwrite a newer state (violates addendum §5). Fix in the status task.
 - States are matched by *name* via `zr_state_map`; `encaisse`/`recouvert` appear nowhere in src or migrations, so no collection state is tracked yet.
 - `getZRParcel` only reads `{id, trackingNumber, state.name}`; amounts/situation/`isReturn` are discarded.
+
+## 8. Live read-only probe results (2026-10-22, owner's tenant; no writes)
+- **Auth/base URL OK.** `supplier-balance` → `{totalAmountPaid, totalAmountReadyToBePaid, totalAmountDelivered, totalAmountNotReadyCashed, totalAmountReadyToBeCashed}` (5 fields). Tenant had paid=628,100 and the other four = 0 (no parcel in livre/encaisse at probe time), so **the meaning of the four non-paid fields is still unverified** — re-probe when a parcel sits in `livre`/`encaisse`.
+- **Supplier payments:** 6 total, every `status` = `credited`, all accepted. Sum of latest 5 = 620,500; `totalAmountPaid` 628,100 (difference presumed to be the oldest payment — unverified).
+- **Parcel states seen (latest 100):** `recouvert` 81, `recupere_par_fournisseur` 19 (= returns, `isReturn` true). `paymentMethod` = `cash`. So `recouvert` = already paid out; `recupere_par_fournisseur` = returned to us.
+- **Customers:** fields are only `id,name,phone,instruction,timeSlot,deliveryPreference` → **no reliability score (D11 confirmed for the API).**
+- **Parcels search filter syntax works** (`advancedFilter` on `trackingNumber` returned exactly 1). An `externalId` filter is accepted (200, 0 rows for an unknown id) but **no existing parcel has an `externalId`** (all pre-MNW), so a positive match is unproven until MNW creates one. The adoption guard in `findZRParcelByExternalId` (exact-match only) stays.
+- **Payment line items / `/{id}/details` return HTTP 400 with an empty body** for the latest payment id (also tried empty body, GET → 405, `/treasury-transactions/search` → 404). Line-level reconciliation is **blocked**; Finance (ZR-4) will use payment-level totals + parcel states, and ask ZR support for the correct line-items call.
+- Workflow slugs in `workflows/search` are under a different field than `slug` (probe printed `undefined`); names are listed (`commande_recue … livre … encaisse … recouvert … recupere_par_fournisseur`).
