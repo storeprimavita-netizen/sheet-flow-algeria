@@ -1006,7 +1006,7 @@ isOneToOne: false
           }
           Functions: {
             "apply_zr_state":
-{ Args: { "p_is_return": boolean,"p_occurred": string,"p_parcel": string,"p_situation": string,"p_slug": string,"p_state": string,"p_ws": string }; Returns: string
+{ Args: { "p_is_return": boolean,"p_live"?: boolean,"p_occurred": string,"p_parcel": string,"p_situation": string,"p_slug": string,"p_state": string,"p_ws": string }; Returns: string
                            },
 "bootstrap_workspace":
 { Args: { "p_email": string,"p_workspace_name"?: string }; Returns: string

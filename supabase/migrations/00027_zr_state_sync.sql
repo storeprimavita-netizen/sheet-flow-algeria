@@ -21,7 +21,8 @@ create unique index webhook_events_dedupe_uq
 
 create or replace function public.apply_zr_state(
   p_ws uuid, p_parcel uuid, p_state text, p_slug text,
-  p_situation text, p_is_return boolean, p_occurred timestamptz
+  p_situation text, p_is_return boolean, p_occurred timestamptz,
+  p_live boolean default false
 ) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
@@ -37,12 +38,15 @@ begin
   if not found then return null; end if;
 
   if p_state is not null then
-    -- strictly newer, or same timestamp with a DIFFERENT state (ZR can change state
-    -- within one second). A same-state replay (webhook retry, Refresh) is a no-op so
-    -- it cannot re-sync the order over an admin correction. The order update below
-    -- lives in this branch, so it follows the same rule.
+    -- strictly newer always applies. A same-timestamp DIFFERENT state applies only for
+    -- live reads (p_live: Refresh/cron read ZR's current state, so a tie means ZR changed
+    -- state within one second). Webhooks (p_live false) ignore ties: delivery order is not
+    -- guaranteed, so a tie could be a late older event. A same-state replay is a no-op so
+    -- it cannot re-sync the order over an admin correction; the comparison is
+    -- case/whitespace-insensitive. The order update lives in this branch too.
     if v_ship.occurred_at is null or v_ship.occurred_at < p_occurred
-       or (v_ship.occurred_at = p_occurred and v_ship.state is distinct from p_state) then
+       or (p_live and v_ship.occurred_at = p_occurred
+           and lower(btrim(v_ship.state)) is distinct from lower(btrim(p_state))) then
       update public.zr_shipments
          set state = p_state, state_slug = p_slug,
              occurred_at = p_occurred, state_updated_at = p_occurred
@@ -72,9 +76,9 @@ begin
   return v_ship.order_id;
 end; $$;
 
-revoke execute on function public.apply_zr_state(uuid, uuid, text, text, text, boolean, timestamptz)
+revoke execute on function public.apply_zr_state(uuid, uuid, text, text, text, boolean, timestamptz, boolean)
   from public, anon, authenticated;
-grant execute on function public.apply_zr_state(uuid, uuid, text, text, text, boolean, timestamptz)
+grant execute on function public.apply_zr_state(uuid, uuid, text, text, text, boolean, timestamptz, boolean)
   to service_role;
 
 -- Default map for workspaces that never set one; an owner-set map is untouched.

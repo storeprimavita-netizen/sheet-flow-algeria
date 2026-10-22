@@ -43,6 +43,7 @@ export async function GET(req: Request): Promise<Response> {
           const p = await getZRParcel(creds, parcel_id);
           await applyZRParcelState(admin, ws, {
             id: parcel_id,
+            live: true,
             state: p.state,
             situation: p.situation?.slug ?? p.situation?.name,
             isReturn: p.isReturn,

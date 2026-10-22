@@ -14,6 +14,7 @@ Every item runs Analyse → Verify → Execute → Ship (inline, see D1). Status
 | P0-5 | ✅ (done locally; manual check: dashboard load shows <=2 /auth/v1/user hits) Index + unique(cash_collections.order_id) migration; auth `cache()` memoisation | – | explain/EXPLAIN, ≤1 auth call per page | – |
 | P0-6 | `db push` 00020–24 (+ new), regen types | P0-1..5 | types diff clean | **backup Supabase, run db push, rotate kimi key, delete bundle/kimi.tx** |
 | P0-7 | Env template, SETUP.md rewrite, TESTING.md fix, Vercel project, preview deploy + smoke | P0-6 | smoke on real URL | create Vercel project, 4 env vars, Supabase auth URLs; choose push target (new branch vs replace main) |
+| P0-8 | order_stock_effects: restore/undo stock when an order leaves returned (found in ZR-2 review round 4); prerequisite for allowing admin corrections out of returned | – | test: returned -> delivered reverses the order_returned movement | – |
 
 ## ZR addendum (2026-10-21) — ordered, integrated into P0/P1
 | ID | Task | Deps | Verify |

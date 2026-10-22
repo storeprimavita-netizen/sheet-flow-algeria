@@ -141,18 +141,64 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await stock()).toBe(1);
   });
 
-  test("equal timestamp, different state is applied; same-state replay no-op; poll with same ts converges", async () => {
+  test("live tie (different state) is applied and converges; same-state replay is a no-op; stock counted", async () => {
     await setMap(MAP);
     await reset();
     await rpc("En Transit", T(10));
-    await rpc("Retour", T(10)); // same ts, different state
+    await rpc("Retour", T(10), { p_live: true }); // same ts, different state, live read
     expect((await shipment()).state).toBe("Retour");
     expect(await order()).toBe("returned");
+    expect(await stock()).toBe(1);
     await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
-    await rpc("Retour", T(10)); // same-state replay: admin correction survives
+    await rpc("Retour", T(10), { p_live: true }); // same-state replay: admin correction survives
+    await rpc(" RETOUR ", T(10), { p_live: true }); // case/whitespace variant is the same state
     expect(await order()).toBe("delivered");
-    await applyZRParcelState(admin as never, ws, { id: parcel, state: { name: "Retour" }, stateAt: T(10) }); // poll converges
-    expect((await shipment()).state).toBe("Retour");
+    await applyZRParcelState(admin as never, ws, { id: parcel, live: true, state: { name: "retour" }, stateAt: T(10) });
+    expect(await order()).toBe("delivered");
+    expect(await stock()).toBe(1);
+  });
+
+  test("tie with a different state is ignored for non-live (webhook) callers", async () => {
+    await setMap(MAP);
+    await reset();
+    await rpc("En Transit", T(10));
+    await rpc("Retour", T(10)); // p_live defaults false
+    expect((await shipment()).state).toBe("En Transit");
+    expect(await order()).toBe("in_transit");
+    expect(await stock()).toBe(0);
+    await applyZRParcelState(admin as never, ws, { id: parcel, state: { name: "Retour" }, stateAt: T(10) }); // live omitted
+    expect((await shipment()).state).toBe("En Transit");
+  });
+
+  test("webhook tie with different mapped state is ignored", async () => {
+    await setMap(MAP);
+    await reset();
+    expect((await hook(stateEvt("En Transit", T(10)))).status).toBe(200);
+    expect((await hook(stateEvt("Livre", T(10)))).status).toBe(200);
+    expect((await shipment()).state).toBe("En Transit");
+    expect(await order()).toBe("in_transit");
+  });
+
+  test("returned -> late delivered (webhook, same ts, ignored) -> poll returned: exactly one order_returned movement", async () => {
+    await setMap(MAP);
+    await reset();
+    expect((await hook(stateEvt("Retour", T(10)))).status).toBe(200);
+    expect(await stock()).toBe(1);
+    expect((await hook(stateEvt("Livre", T(10)))).status).toBe(200); // late, same ts
+    expect(await order()).toBe("returned");
+    await applyZRParcelState(admin as never, ws, { id: parcel, live: true, state: { name: "Retour" }, stateAt: T(10) });
+    expect(await order()).toBe("returned");
+    expect(await stock()).toBe(1);
+  });
+
+  test("webhook timestamps: occurredAt alone is the fallback; neither -> 400", async () => {
+    await setMap(MAP);
+    await reset();
+    const evt = { eventType: "parcel.state.updated", occurredAt: T(7), data: { id: parcel, state: { name: "En Transit" } } };
+    expect((await hook(evt)).status).toBe(200);
+    expect(new Date((await shipment()).occurred_at!).toISOString()).toBe(T(7));
+    expect((await hook({ eventType: "parcel.state.updated", data: { id: parcel, state: { name: "Livre" } } })).status).toBe(400);
+    expect((await shipment()).state).toBe("En Transit");
   });
 
   test("apply without a parcel timestamp throws instead of skipping", async () => {

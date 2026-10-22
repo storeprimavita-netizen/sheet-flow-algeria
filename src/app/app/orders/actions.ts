@@ -168,6 +168,7 @@ export async function refreshZRShipmentStatus(orderId: string): Promise<UpdateRe
   try {
     await applyZRParcelState(await createAdminClient(), workspaceId, {
       id: shipment.parcel_id,
+      live: true,
       state: detail.state,
       situation: detail.situation?.slug ?? detail.situation?.name,
       isReturn: detail.isReturn,

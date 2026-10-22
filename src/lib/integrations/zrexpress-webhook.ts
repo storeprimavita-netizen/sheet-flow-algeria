@@ -75,6 +75,8 @@ const iso = (v: string | undefined) => (v ? new Date(v).toISOString() : undefine
 
 export type ZRParcelState = {
   id: string;
+  /** true when read from ZR's current state (Refresh/cron): equal-timestamp state changes apply. Webhooks leave it false. */
+  live?: boolean;
   state?: { name?: string | null; slug?: string | null } | null;
   situation?: string | null;
   isReturn?: boolean | null;
@@ -104,6 +106,7 @@ export async function applyZRParcelState(
       p_situation: (args.situation ?? null) as string,
       p_is_return: (args.isReturn ?? null) as boolean,
       p_occurred: at,
+      p_live: !!p.live,
     });
     if (error) throw new Error(error.message);
   };
