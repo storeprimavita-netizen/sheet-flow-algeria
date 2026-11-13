@@ -1,1 +1,102 @@
 @AGENTS.md
+
+# MNW COD ERP — project conventions
+
+COD ecommerce ERP (Algeria), SaaS-ready single workspace. Next.js 16 +
+Supabase (Postgres/Auth/RLS) + Vercel. Currency DZD (USD/EUR stored with rate).
+
+## Session protocol (every chat)
+
+Follow `.claude/loop.md` (loop v2: Analyse → Verify → Execute → Ship, cheap
+models for routine work, opus for high-risk review). Commands: `/bootstrap`,
+`/analyse`, `/verify`, `/execute`, `/ship`. State lives in `PROGRESS.md` (short;
+history in `docs/PROGRESS_ARCHIVE.md` — don't read), `docs/MASTER_PLAN.md`
+(task table), `docs/briefs/<id>.md`, `docs/DECISIONS.md`. Branch `mnw-<id>`,
+merge `--no-ff` into `mnw` when `scripts/gate.sh` is green. Tools:
+`ponytail:ponytail` before code, `graphify query` to orient (then
+`graphify update .`), `cod-ui-polish` for UI, `owasp-security` for security.
+
+## Stack facts
+
+- **Next.js 16 is NOT the Next.js you know** (see AGENTS.md): check
+  `node_modules/next/dist/docs/` before using an API you're unsure of.
+  Session refresh lives in `src/proxy.ts` (not middleware).
+- Supabase clients: `server.ts` (RSC/actions, RLS-scoped), `client.ts`
+  (browser), `admin.ts` (service role — **server-only**: webhooks, invites;
+  never import into client components). Types in
+  `src/lib/supabase/database.types.ts` are **generated, never hand-edited**:
+  `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`.
+- i18n: next-intl v4, cookie locale, EN/AR with RTL. Every user-visible
+  string goes in `src/messages/{en,ar}.json`. Use logical CSS props
+  (`ps-`, `border-e`, `start-0`) so RTL works.
+- UI: Tailwind v4 + primitives in `src/components/ui/`. Reuse
+  `PageHeader/Empty/Field/ButtonLink/DeleteButton` etc.
+
+## Code style
+
+- TypeScript strict, no `any`. zod-validate every form action + webhook payload.
+- Server components by default; client components only for interactivity.
+- Mutations = server actions colocated in `actions.ts` per route, using the
+  session client (RLS-enforced). Service role only where documented.
+- Money: numeric DZD; format with `src/lib/format.ts` (thousands separators).
+  Foreign currency rows store `amount`, `currency`, `fx_rate`, generated
+  `amount_dzd`.
+- Pricing math lives ONLY in `src/lib/pricing.ts` — never fork the formulas.
+
+## UI & design (phases 11–13 and any UI work after)
+
+The `cod-ui-polish` skill (`.claude/skills/cod-ui-polish/` — SKILL.md +
+`references/*`) is the design authority; `docs/design/DESIGN_SYSTEM.md` holds
+the concrete token values. **Approved direction: A — Slate & Emerald.** Rules:
+
+- **No hardcoded colors.** Every color is a CSS variable from `globals.css`.
+  `text-white`, `bg-white`, `#hex`, `rgb()`, `glass-card`, `text-gradient` in
+  feature code are bugs — grep the files you touch before finishing.
+- **Dark is the default theme; light must be equally correct.** Verify both.
+- **Statuses through one source** (`src/lib/statuses.ts` + `<StatusPill>`),
+  never ad-hoc colored text. System statuses have fixed keys; taxonomy fields
+  are user-extensible option sets.
+- **No raw `<input>`/native `<select>` in feature code** — use
+  `components/fields/*` and the Radix Select/Combobox (the native `<select>`
+  caused the white-on-white dropdown bug).
+- **Four states always**: loading (skeleton) / empty (with action) / error
+  (reason + retry) / populated. Money is tabular, DZD, thousands-separated.
+- **Screenshot self-critique is MANDATORY at the end of every UI task**: run the
+  app, screenshot each screen you touched in **both themes** with the Playwright
+  MCP, fix what the screenshots show, and note in `PROGRESS.md` what was
+  captured and fixed. If no browser MCP is available, say so explicitly rather
+  than silently skipping. (To run locally: the Supabase docker stack + a dev
+  server pointed at `http://127.0.0.1:54321`; seed users are in `scripts/
+  seed-dev.ts`.)
+
+## RLS rules of thumb (the wall is the DB, UI is cosmetic)
+
+- Every business table: `workspace_id` + policy
+  `workspace_id = public.current_workspace_id()` and role predicate.
+- Financial tables (`product_costs`, `expenses`, `ad_spend_daily`,
+  `fixed_fees`, `exchange_rates`, `cash_collections`, `product_scenarios`,
+  `settings`, `contacts`, `audit_log`, `webhook_events`) are **admin-only**.
+  If a feature needs agents to see money, the feature is wrong — re-read
+  docs/SPEC.md §2.
+- New table checklist: workspace_id FK · RLS enable + policies ·
+  `set_updated_at` trigger · `audit_row()` trigger if config/financial ·
+  add to docs/DB.md table · regen types.
+- Status changes: update `orders`; triggers write history/stock — never
+  insert into `order_status_history` from the app.
+
+## Running
+
+`npm run dev` · build gate `npm run build` · migrations `npx supabase db push`
+· env in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`). Never commit `.env.local`; never
+expose the service key to the client.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

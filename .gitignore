@@ -39,3 +39,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify knowledge graph (regenerated locally)
+/graphify-out/
+
+# supabase local CLI temp
+/supabase/.temp/
+
+# business reference sheets (kept local)
+*.xlsx
+supabase/.branches/
+supabase/.temp/
+
+# Playwright MCP transient output
+.playwright-mcp/
+
+# local scratch — never commit (kimi.tx holds an API key)
+kimi*
+.playwright-mcp/
+/*.png
