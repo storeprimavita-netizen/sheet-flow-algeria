@@ -85,8 +85,8 @@ export function CommandPalette({ role, children }: { role: Role | null; children
             {navItems.map((n) => (
               <CommandItem
                 key={n.href}
-                value={t(`nav.${n.key}`)}
-                keywords={n.oldKey ? [t(`navOld.${n.oldKey}`)] : undefined}
+                value={n.href}
+                keywords={[t(`nav.${n.key}`), ...(n.oldKey ? [t(`navOld.${n.oldKey}`)] : [])]}
                 onSelect={() => go(n.href)}
               >
                 <n.icon />

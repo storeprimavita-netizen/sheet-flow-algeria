@@ -10,6 +10,7 @@ import {
   Receipt,
   Megaphone,
   Banknote,
+  HandCoins,
   Landmark,
   Users,
   Building2,
@@ -30,6 +31,7 @@ export type NavLeaf = {
   key: string; // i18n key under nav.*
   oldKey?: string; // previous label, i18n key under navOld.* (⌘K matches it too)
   href: string;
+  match?: string[]; // extra path prefixes that light this leaf (longest prefix wins)
   icon: IconType;
   adminOnly?: boolean;
   counter?: CounterKey;
@@ -59,7 +61,7 @@ export const GROUPS: NavGroup[] = [
     items: [
       { key: "confirmation", href: "/app/orders/confirmation", icon: PhoneCall, counter: "confirmation" },
       { key: "shipping", oldKey: "delivery", href: "/app/orders/delivery", icon: Truck, counter: "delivery" },
-      { key: "all", href: "/app/orders/all", icon: ListChecks, adminOnly: true },
+      { key: "all", href: "/app/orders/all", match: ["/app/orders"], icon: ListChecks, adminOnly: true },
       { key: "customers", oldKey: "contacts", href: "/app/contacts", icon: Users, adminOnly: true },
     ],
   },
@@ -79,7 +81,7 @@ export const GROUPS: NavGroup[] = [
       { key: "accounts", href: "/app/finance/accounts", icon: Landmark, adminOnly: true },
       { key: "expenses", href: "/app/finance/expenses", icon: Receipt, adminOnly: true },
       { key: "adSpend", href: "/app/finance/ad-spend", icon: Megaphone, adminOnly: true },
-      { key: "courierCash", oldKey: "cash", href: "/app/orders/cash", icon: Banknote, adminOnly: true },
+      { key: "courierCash", oldKey: "cash", href: "/app/orders/cash", icon: HandCoins, adminOnly: true },
       { key: "income", href: "/app/finance/income", icon: Banknote, adminOnly: true },
       { key: "suppliers", href: "/app/contacts/suppliers", icon: Building2, adminOnly: true },
     ],
@@ -129,6 +131,7 @@ export function navLeaves(role: Role | null): NavLeaf[] {
 /** Longest-prefix match: exactly one leaf is active. */
 export function activeLeafHref(role: Role | null, pathname: string): string | undefined {
   return navLeaves(role)
-    .filter((l) => pathname === l.href || pathname.startsWith(l.href + "/"))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+    .flatMap((l) => [l.href, ...(l.match ?? [])].map((p) => ({ p, href: l.href })))
+    .filter(({ p }) => pathname === p || pathname.startsWith(p + "/"))
+    .sort((a, b) => b.p.length - a.p.length)[0]?.href;
 }

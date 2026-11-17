@@ -142,10 +142,14 @@ export function AppShell({
         <button
           type="button"
           aria-expanded={isOpen}
-          aria-label={`${t("nav.toggleGroup")}: ${t(`nav.${group.key}`)}`}
-          disabled={hasActive}
-          onClick={() => toggleGroup(group.key, isOpen)}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:hover:text-muted-foreground"
+          aria-disabled={hasActive}
+          onClick={() => {
+            if (!hasActive) toggleGroup(group.key, isOpen);
+          }}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors",
+            hasActive ? "cursor-default" : "hover:text-foreground",
+          )}
         >
           <span className="truncate">{t(`nav.${group.key}`)}</span>
           {!isOpen && total > 0 ? <Counter n={total} /> : null}

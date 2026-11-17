@@ -1,33 +1,25 @@
 {
   "tagline": "الدفع عند الاستلام",
   "nav": {
-    "dashboard": "لوحة التحكم",
     "orders": "الطلبات",
     "all": "كل الطلبات",
     "confirmation": "التأكيد",
-    "delivery": "التوصيل",
     "products": "المنتجات",
-    "finance": "المالية",
     "financeOverview": "نظرة عامة",
     "expenses": "المصاريف",
     "adSpend": "مصاريف الإعلانات",
     "accounts": "الحسابات",
     "income": "الإيرادات",
-    "contacts": "جهات الاتصال",
     "customers": "العملاء",
     "suppliers": "الموردون",
     "stock": "المخزون",
-    "team": "الفريق والقواعد",
     "rules": "القواعد",
     "meetings": "الاجتماعات",
     "tasks": "المهام",
     "performance": "الأداء",
-    "users": "المستخدمون",
     "audit": "سجل التدقيق",
     "settingsOverview": "نظرة عامة",
-    "settings": "الإعدادات",
     "toggleSidebar": "تبديل الشريط الجانبي",
-    "cash": "النقد",
     "home": "الرئيسية",
     "groupSell": "البيع",
     "groupCatalog": "الكتالوج",
@@ -38,8 +30,7 @@
     "shipping": "الشحن",
     "courierCash": "نقد شركة التوصيل",
     "pricing": "حاسبة التسعير",
-    "usersRoles": "المستخدمون والصلاحيات",
-    "toggleGroup": "تبديل المجموعة"
+    "usersRoles": "المستخدمون والصلاحيات"
   },
   "navOld": {
     "dashboard": "لوحة التحكم",
@@ -47,7 +38,6 @@
     "cash": "النقد",
     "contacts": "جهات الاتصال",
     "users": "المستخدمون",
-    "team": "الفريق والقواعد",
     "planner": "المخطط"
   },
   "theme": {
