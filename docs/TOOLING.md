@@ -92,3 +92,38 @@ them). Sources pinned at clone time; re-vendor deliberately, never auto-update.
 `cod-ui-polish`, DESIGN_SYSTEM.md) > `impeccable` / `ui-ux-pro-max` /
 `frontend-design` taste. Impeccable's "go bold" never overrides "no hardcoded
 colors", the status system, or RTL logical props.
+
+## v3 tooling update (2026-11-17)
+
+- **Loop v3** replaces everything above about workflow: `.claude/loop.md`,
+  `/auto`, `scripts/gate.sh`, `scripts/step.sh`. Branch `v3`, not `mnw`.
+- **graphify is optional.** The repo moved to macOS where it is not installed;
+  hooks in `.claude/settings.json` call it only if it is on PATH. Without it,
+  use Explore + targeted Grep.
+- **ponytail** is a user-level plugin; use it when installed, otherwise
+  `karpathy-guidelines` + `mnw-codebase-hygiene` cover the same ground.
+- **Browser MCPs** in `.mcp.json`: `chrome-devtools` (pinned 1.13.0; snapshots,
+  screenshots, Lighthouse for the store speed budget) and `shadcn`. Playwright
+  MCP works too if installed at user level. One of them is required for any
+  `ui` task.
+- **New/changed skills**: `luxe-modesty-store-theme` (store only, built from
+  the owner's theme), `cod-ui-polish/references/navigation-ia.md` (IA v3),
+  `mnw-codebase-hygiene` (feature folders, data layer, thin actions, RLS rules).
+- **Antigravity**: `.agents/` + `docs/ANTIGRAVITY.md`.
+
+### Where the borrowed rules came from (read 2026-11-17; nothing new vendored)
+
+| Source | What we took | Not taken |
+|---|---|---|
+| ZazenCodes software factory v2 (github.com/zazencodes/zazencodes-season-3, GPLv3 — ideas only, no code copied) | script-decided gate before any reviewer, reviewers routed by risk × surface, one verdict-first file per agent, max 3 rounds then human, protected paths, one worktree per job | GitHub-issue intake, auto-merge to main |
+| Claude Code best practices (code.claude.com/docs/en/best-practices) | advisory vs enforced split, spec in a file + fresh session, read-only reviewer, explicit stop conditions | – |
+| Anthropic "harness design for long-running apps" | separate evaluator that drives the running app | sprint/context-reset machinery |
+| Impeccable 4.5.2 (already vendored, manual) | ≤ 5 nav groups, no icon-only nav, always show location, no emoji as icons, skeletons, empty states teach | its launcher, hooks and live mode (run outside model approval) |
+| Vercel web-interface-guidelines | URL holds filters/tabs, links vs buttons, aria-label on icon buttons, confirm/undo, tabular-nums | the skill itself (it fetches remote instructions at run time) |
+| shadcn skill | semantic tokens only, no manual `dark:` overrides | – |
+| Next.js docs (project structure, data security) | `_components`/`_lib` private folders, server-only data layer returning DTOs, thin re-authorising actions | – |
+| Supabase agent-skills | `to authenticated`, `(select …)` wrapping, USING + WITH CHECK, `security_invoker` views, no `user_metadata` auth | – |
+
+Optional installs if wanted later (review before committing):
+`npx skills add supabase/agent-skills`, `npx skills add shadcn/ui`,
+`npx impeccable detect src/` (deterministic UI lint).

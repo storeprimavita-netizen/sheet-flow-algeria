@@ -173,3 +173,5 @@ stop-shipping thresholds · Status label localization via i18n messages.
 6. **`meeting_objectives` is a table** (as spec'd) with a trigger enforcing
    "objectives before held".
 7. Spec's `no_answer` replaces v1's `not_answer` enum value.
+
+> **v3 (2026-11-17):** scope and navigation are extended by `docs/specs/` and decisions D15–D24. Where they disagree with this file, v3 wins (notably §1 navigation, §6 pricing, §9 integrations).

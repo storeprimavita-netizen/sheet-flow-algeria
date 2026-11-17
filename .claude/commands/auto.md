@@ -12,6 +12,6 @@ For each task:
 5. `ship <id>`. On any STOP from ship → stop.
 6. Next task.
 
-Parallel option: when the next two or three `todo` tasks have different lanes and none is lane `db`, you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
+Parallel option: when the next two or three `todo` tasks have different lanes and at most one has a migration (`M`), you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
 
 Stop conditions are listed in `.claude/loop.md` — halt on any of them, never work around one. When you stop or finish, report in ≤ 10 lines: tasks shipped (id + merge commit), the task you stopped on and exactly what the owner must decide or provide, and what the next `/auto` will pick up.

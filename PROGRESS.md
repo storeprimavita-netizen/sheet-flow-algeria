@@ -101,3 +101,11 @@ the bottom. Format:
 - Known low debt: (D1) ignored webhook tie is marked processed with no error trace; (D2) alternating live ties can write a second order_returned movement (root cause P0-8); situation clock for cron/refresh derives from lastStateUpdateAt; daily cron on Hobby.
 - Owner: set CRON_SECRET in Vercel; re-register ZR webhook endpoint in Settings; check remote zr_shipments for duplicate (workspace_id,parcel_id) before db push; back up before pushing 00020–00027.
 - Next: P0-6/P0-7 owner gates, then push. No push until cleared.
+
+## v3 setup — loop, skills, plan (2026-11-17) — DONE (branch v3, pushed)
+- Done: loop v3 (`.claude/loop.md`, `/auto`, routed review with `ui-reviewer` + `qa-reviewer`, `scripts/step.sh` commit+push per step, gate now checks i18n parity, hardcoded colors, protected paths, deleted tests); shared conventions moved to AGENTS.md; skills: navigation IA v3 in `cod-ui-polish`, structure rules in `mnw-codebase-hygiene`, new `luxe-modesty-store-theme`; 12 specs in `docs/specs/`; MASTER_PLAN v3; decisions D15–D24; Antigravity config in `.agents/` + `docs/ANTIGRAVITY.md`.
+- Verify: docs/tooling only, risk low. No app code changed.
+- Evidence: `scripts/gate.sh` GATE OK on this Mac (tsc, 63 unit tests, i18n 754 keys, build, secret scan). **RLS suite skipped: 70 tests did not run — Docker/Supabase is not running here.**
+- Machine notes: repo moved from Linux to macOS; `node_modules` reinstalled with `npm ci`; the graphify hooks pointed at a Linux path and are now no-ops when graphify is absent; `mnw` is retired in favour of `v3` (D15).
+- Owner: inputs O-1…G-1 at the top of docs/MASTER_PLAN.md. Most urgent: O-1 (local Supabase) and P-1 (calculator formulas arrived blank).
+- Next: `/auto` picks PRICE-1 or NAV-1 once O-1 is closed; nothing built yet.

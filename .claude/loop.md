@@ -58,8 +58,8 @@ summary. A reviewer that did not try to break it has not reviewed it.
 ## Parallel work
 
 - At most 3 tasks at once, each in its own worktree (`git worktree add .worktrees/<id> -b v3-<id> v3`).
-- Two tasks may run together only if their `lane` differs. Lane `db` (any
-  migration) is **exclusive**: one migration-bearing task at a time, numbered at
+- Two tasks may run together only if their `lane` differs **and** at most one
+  of them has a migration (column `M` in the plan). Migrations are numbered at
   build time from the latest file in `supabase/migrations/`.
 - Claude and Antigravity never work the same task; the claim on `v3` is the lock.
 
@@ -69,7 +69,9 @@ Owner input or credential missing · destructive DB change · remote `db push` �
 merge into `main` · production deploy · new paid service · new npm dependency not
 named in the spec · real parcels, real customer messages, real ad-platform events ·
 a decision that is not in DECISIONS.md · 3 review rounds without PASS · gate
-failing twice on the same cause · the plan's next task is `blocked`.
+failing twice on the same cause · the plan's next task is `blocked` · a risk-H
+task that touches the database while the gate reports "RLS suite SKIPPED" (D24) ·
+a `ui` task when the app cannot be run for screenshots.
 
 ## Enforced vs advisory
 
