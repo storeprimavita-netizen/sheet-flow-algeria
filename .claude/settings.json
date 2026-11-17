@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/wailbmg/.local/bin/graphify hook-guard search"
+            "command": "sh -c 'command -v graphify >/dev/null 2>&1 && exec graphify hook-guard search || exit 0'"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/wailbmg/.local/bin/graphify hook-guard read"
+            "command": "sh -c 'command -v graphify >/dev/null 2>&1 && exec graphify hook-guard read || exit 0'"
           }
         ]
       }

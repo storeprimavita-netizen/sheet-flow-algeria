@@ -58,3 +58,7 @@ supabase/.temp/
 kimi*
 .playwright-mcp/
 /*.png
+
+# loop v3: parallel worktrees + owner drop folder (source material, superseded by skills/specs)
+/.worktrees/
+/THEME+CALCULATOR/
