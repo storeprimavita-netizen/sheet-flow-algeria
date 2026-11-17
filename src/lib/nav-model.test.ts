@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { GROUPS, HOME, activeLeafHref, navLeaves, visibleNav } from "@/components/nav-model";
+import { GROUPS, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
@@ -58,5 +58,14 @@ describe("nav model", () => {
     expect(a("/app/orders/new")).toBe("/app/orders/all");
     expect(a("/app/orders/cash")).toBe("/app/orders/cash");
     expect(a("/app/orders/confirmation")).toBe("/app/orders/confirmation");
+  });
+  it("parseClosedGroups tolerates corrupt values", () => {
+    expect(parseClosedGroups(null)).toEqual({});
+    expect(parseClosedGroups("{bad")).toEqual({});
+    expect(parseClosedGroups("[1]")).toEqual({});
+    expect(parseClosedGroups('{"a":true,"b":3}')).toEqual({ a: true });
+  });
+  it("settings group starts collapsed", () => {
+    expect(GROUPS.find((g) => g.key === "groupSettings")?.defaultClosed).toBe(true);
   });
 });

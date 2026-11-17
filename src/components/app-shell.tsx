@@ -23,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { visibleNav, activeLeafHref, type NavLeaf, type NavGroup, type CounterKey } from "@/components/nav-model";
+import { visibleNav, activeLeafHref, parseClosedGroups, type NavLeaf, type NavGroup, type CounterKey } from "@/components/nav-model";
 
 const COLLAPSE_KEY = "mnw:sidebar-collapsed";
 const GROUPS_KEY = "mnw:nav-groups";
@@ -48,12 +48,7 @@ export function AppShell({
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "{}");
-      if (saved && typeof saved === "object") setClosedGroups(saved as Record<string, boolean>);
-    } catch {
-      /* ignore corrupt value */
-    }
+    setClosedGroups(parseClosedGroups(localStorage.getItem(GROUPS_KEY)));
   }, []);
 
   function toggleGroup(key: string, nextClosed: boolean) {
@@ -128,7 +123,7 @@ export function AppShell({
 
   function Group({ group }: { group: NavGroup }) {
     const hasActive = group.items.some((i) => i.href === activeHref);
-    const isOpen = hasActive || !closedGroups[group.key];
+    const isOpen = hasActive || !(closedGroups[group.key] ?? group.defaultClosed ?? false);
     const total = group.items.reduce((n, c) => n + (c.counter ? counts[c.counter] ?? 0 : 0), 0);
     if (collapsed) {
       return (

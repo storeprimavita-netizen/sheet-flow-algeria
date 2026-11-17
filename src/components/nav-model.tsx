@@ -41,6 +41,7 @@ export type NavGroup = {
   key: string; // i18n key under nav.*
   items: NavLeaf[];
   pinned?: "bottom";
+  defaultClosed?: boolean; // collapsed until the user opens it (still forced open when active)
 };
 
 export type VisibleNav = { home: NavLeaf | null; groups: NavGroup[] };
@@ -98,6 +99,7 @@ export const GROUPS: NavGroup[] = [
   {
     key: "groupSettings",
     pinned: "bottom",
+    defaultClosed: true,
     items: [
       { key: "usersRoles", oldKey: "users", href: "/app/settings/users", icon: Users, adminOnly: true },
       { key: "audit", href: "/app/settings/audit", icon: ScrollText, adminOnly: true },
@@ -134,4 +136,15 @@ export function activeLeafHref(role: Role | null, pathname: string): string | un
     .flatMap((l) => [l.href, ...(l.match ?? [])].map((p) => ({ p, href: l.href })))
     .filter(({ p }) => pathname === p || pathname.startsWith(p + "/"))
     .sort((a, b) => b.p.length - a.p.length)[0]?.href;
+}
+
+/** Parse the persisted user-collapsed map; anything malformed yields {}. */
+export function parseClosedGroups(raw: string | null): Record<string, boolean> {
+  try {
+    const v: unknown = JSON.parse(raw ?? "{}");
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    return Object.fromEntries(Object.entries(v).filter(([, x]) => typeof x === "boolean")) as Record<string, boolean>;
+  } catch {
+    return {};
+  }
 }
