@@ -90,7 +90,8 @@ navigation, images, performance. It replaces guesses from old training data.
   field components, the two design skills) > modern-web-guidance > habit.
   A guide never justifies a hardcoded color, a raw `<input>` in the app, or
   a new dependency.
-- **App:** keep the existing Radix primitives and field components; use the
+- **App:** keep the existing Radix primitives and field components (never run
+  the `migrate-radix-to-base` skill unless the owner asks); use the
   guides for behaviour, accessibility and performance inside them, not to
   swap components.
 - **Store:** prefer native platform features over JavaScript (lighter pages) —

@@ -109,3 +109,11 @@ the bottom. Format:
 - Machine notes: repo moved from Linux to macOS; `node_modules` reinstalled with `npm ci`; the graphify hooks pointed at a Linux path and are now no-ops when graphify is absent; `mnw` is retired in favour of `v3` (D15).
 - Owner: inputs O-1…G-1 at the top of docs/MASTER_PLAN.md. Most urgent: O-1 (local Supabase) and P-1 (calculator formulas arrived blank).
 - Next: `/auto` picks PRICE-1 or NAV-1 once O-1 is closed; nothing built yet.
+
+## Local stack + night run ready (2026-11-17) — DONE (branch v3, pushed)
+- Done: colima + local Supabase on this Mac (`supabase/config.toml`, 27 migrations applied cleanly on a fresh DB), `.env.local` (local only), seed loaded, `scripts/dev-up.sh`, `scripts/night-run.sh`, `scripts/seed-register.mjs` (seed had been broken since `server-only` was added to admin.ts). Owner input O-1 closed.
+- Test fix: `rls.test.ts` now arranges its own "confirmed order not assigned to the agent" fixture — a fresh seed assigned every confirmed order to the seed agent, so two D10 assertions had no target. Policies unchanged.
+- Evidence: `scripts/gate.sh` GATE OK — tsc, **133/133 tests with the live RLS suite**, i18n, color lint, build, secret scan. Seed admin signs in; `/login` serves 200.
+- Skills added: `modern-web-guidance` (Google Chrome; owner's user plugin + copy for Antigravity), `supabase`, `supabase-postgres-best-practices`, `shadcn` (owner-installed). `migrate-radix-to-base` came with shadcn — not to be used.
+- Not verified: the loop has not yet run a task end to end; chrome-devtools MCP was added but not exercised; Antigravity untested.
+- Next: `scripts/night-run.sh` → `/auto` picks P0-8, then the first eligible rows.

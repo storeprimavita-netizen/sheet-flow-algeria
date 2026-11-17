@@ -57,7 +57,7 @@ same local DB; it looks up existing users/workspace/rows before creating
 anything, so re-running does not duplicate data:
 
 ```
-node --env-file=.env.local scripts/seed-dev.ts
+node --import ./scripts/seed-register.mjs --env-file=.env.local scripts/seed-dev.ts
 ```
 
 It refuses to run unless `NEXT_PUBLIC_SUPABASE_URL` looks like localhost

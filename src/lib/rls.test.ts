@@ -202,6 +202,19 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       (await admin.from("orders").select("id").eq("workspace_id", workspaceId)
         .eq("confirmation_status", "confirmed").is("assigned_confirmation_agent", null).limit(1).single()).data!.id;
 
+    // A fresh seed assigns every confirmed order to the seed agent, so nothing
+    // would be hidden from them. Guarantee one confirmed order that is not
+    // theirs (as when an admin confirms), so the "cannot see / cannot touch
+    // orders outside the queue" assertions always have a target.
+    beforeAll(async () => {
+      const base = () => admin.from("orders").select("id").eq("workspace_id", workspaceId).eq("confirmation_status", "confirmed");
+      const { data: free } = await base().is("assigned_confirmation_agent", null).limit(1);
+      if (free?.length) return;
+      const { data: pick } = await base().eq("delivery_status", "delivered").limit(1).single();
+      const { error } = await admin.from("orders").update({ assigned_confirmation_agent: null }).eq("id", pick!.id);
+      if (error) throw error;
+    });
+
     test("D10: confirmation agent sees only the open queue (+ their assigned), not confirmed/other orders", async () => {
       const { data, error } = await confAgent.from("orders").select("id, confirmation_status, assigned_confirmation_agent").eq("workspace_id", workspaceId);
       expect(error).toBeNull();

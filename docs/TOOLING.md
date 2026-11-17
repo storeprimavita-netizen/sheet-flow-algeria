@@ -114,9 +114,12 @@ colors", the status system, or RTL logical props.
 ### modern-web-guidance (added 2026-11-17, owner request)
 
 Google Chrome's skill (github.com/GoogleChrome/modern-web-guidance, Apache-2.0,
-stewarded with Edge, Firefox and MDN). Vendored: `SKILL.md` + `LICENSE` only,
-from commit `64a6d708f5a4`, in `.claude/skills/modern-web-guidance/` and linked
-into `.agents/skills/`. The ~260 guides are **not** in the repo: the skill
+stewarded with Edge, Firefox and MDN). Claude Code gets it from the owner's
+user-level plugin (`modern-web-guidance@googlechrome`, auto-updating; on a new
+machine: `/plugin marketplace add GoogleChrome/modern-web-guidance` then
+`/plugin install modern-web-guidance@googlechrome`). For Antigravity a copy of
+`SKILL.md` + `LICENSE` (commit `64a6d708f5a4`) is vendored in
+`.agents/skills/modern-web-guidance/`. The ~260 guides are **not** in the repo: the skill
 fetches them at use time with `npx -y modern-web-guidance@latest search|retrieve`
 (needs network; runs Google's published npm package, unpinned by design).
 Precedence and the browser-support policy are in AGENTS.md. To update: re-copy
@@ -131,6 +134,21 @@ in `skills-lock.json`. Real files live in `.agents/skills/`, symlinked into
 `.claude/skills/` (the opposite direction from the project's own skills — both
 agents see both sets). Markdown only, no scripts. Project overrides are in
 AGENTS.md → RLS section (numbered migrations, local stack only).
+
+### shadcn skills (installed by the owner 2026-11-17)
+
+`npx skills add shadcn/ui` → `shadcn` and `migrate-radix-to-base`, pinned in
+`skills-lock.json`. Use `shadcn` for component composition rules. **Do not run
+`migrate-radix-to-base`** — the app stays on Radix (AGENTS.md); it came along
+with the install and is only for an owner-requested migration.
+
+### Local stack on this Mac (set up 2026-11-17)
+
+`scripts/dev-up.sh` starts colima → local Supabase (`supabase/config.toml`,
+project id `mnw-erp`) → dev server. `.env.local` points at the local stack
+only. Seed: `node --import ./scripts/seed-register.mjs --env-file=.env.local
+scripts/seed-dev.ts` (the `--import` maps Next's `server-only` marker so plain
+Node can load `admin.ts`). Night run: `scripts/night-run.sh [N]`.
 
 ### Where the borrowed rules came from (read 2026-11-17; nothing new vendored)
 

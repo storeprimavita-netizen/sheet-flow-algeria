@@ -6,7 +6,7 @@
 # Usage: scripts/sync-agent-skills.sh --copy | --link
 set -euo pipefail
 cd "$(dirname "$0")/.."
-shared="cod-ui-polish luxe-modesty-store-theme modern-web-guidance mnw-codebase-hygiene owasp-security karpathy-guidelines"
+shared="cod-ui-polish luxe-modesty-store-theme mnw-codebase-hygiene owasp-security karpathy-guidelines"
 mode=${1:-}
 case "$mode" in --copy|--link) ;; *) echo "usage: $0 --copy | --link"; exit 1 ;; esac
 for s in $shared; do
