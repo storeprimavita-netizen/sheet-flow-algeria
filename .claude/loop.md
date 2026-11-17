@@ -90,7 +90,7 @@ guard), Postgres RLS + `rls.test.ts`. A task may not edit its own checks
 5. One task per context: after Ship, `/clear` (or let `/auto` fork the next one).
 6. Don't switch model mid-task in the main session; forks carry their own model.
 7. Don't poll; background agents notify. `/loop` only for external state (CI, deploy).
-8. Skill hygiene: only `cod-ui-polish`, `luxe-modesty-store-theme`, `modern-web-guidance`, `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines` auto-trigger; other UI skills are called by hand.
+8. Skill hygiene: only `cod-ui-polish`, `luxe-modesty-store-theme`, `modern-web-guidance`, `supabase`, `supabase-postgres-best-practices`, `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines` auto-trigger; other UI skills are called by hand.
 
 ## Safety (unchanged)
 

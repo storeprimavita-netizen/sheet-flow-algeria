@@ -123,6 +123,15 @@ Precedence and the browser-support policy are in AGENTS.md. To update: re-copy
 `SKILL.md` from the repo. Antigravity alternative:
 `agy plugin install https://github.com/GoogleChrome/modern-web-guidance`.
 
+### Supabase skills (installed by the owner 2026-11-17)
+
+`npx skills add supabase/agent-skills` → `supabase` (v0.1.2) and
+`supabase-postgres-best-practices` (v1.1.1, MIT), commit `c9be0e931b79`, pinned
+in `skills-lock.json`. Real files live in `.agents/skills/`, symlinked into
+`.claude/skills/` (the opposite direction from the project's own skills — both
+agents see both sets). Markdown only, no scripts. Project overrides are in
+AGENTS.md → RLS section (numbered migrations, local stack only).
+
 ### Where the borrowed rules came from (read 2026-11-17; nothing new vendored)
 
 | Source | What we took | Not taken |

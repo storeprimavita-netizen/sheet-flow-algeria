@@ -117,6 +117,12 @@ navigation, images, performance. It replaces guesses from old training data.
   the feature is wrong — re-read `docs/SPEC.md` §2.
 - Public store pages never get anon table grants: a `server-only` data layer
   returns published-only DTOs with no cost fields.
+- Skills `supabase` and `supabase-postgres-best-practices` (by Supabase) load
+  for any database, RLS, auth or migration work. Where they differ from this
+  project, the project wins: migrations are hand-numbered (`000NN_name.sql`,
+  next number after the latest file); all work targets the **local** stack —
+  never add the remote Supabase MCP server to `.mcp.json`, never `supabase
+  link`, `db push` or `db pull` against the linked project (owner only).
 - New table checklist: `workspace_id` FK · RLS enable + policies ·
   `set_updated_at` trigger · `audit_row()` trigger if config/financial · add to
   `docs/DB.md` · regen types · RLS test with an agent session.
