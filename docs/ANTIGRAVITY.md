@@ -16,7 +16,7 @@ briefs and review files on branch `v3`.
 | `AGENTS.md` | Project conventions (shared with Claude Code) | always |
 | `.agents/rules/antigravity.md` | "You are the Antigravity agent" rules: claim as `claimed:antigravity`, push every step, never `main` | `trigger: always_on` |
 | `.agents/skills/loop-*` | The loop: `loop-bootstrap`, `loop-analyse`, `loop-execute`, `loop-verify`, `loop-ship`, `loop-auto` | `/loop-auto 3`, or by description |
-| `.agents/skills/<shared>` | Symlinks to `.claude/skills/`: `cod-ui-polish`, `luxe-modesty-store-theme`, `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines` | by description |
+| `.agents/skills/<shared>` | Symlinks to `.claude/skills/`: `cod-ui-polish`, `luxe-modesty-store-theme`, `modern-web-guidance` (Google Chrome), `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines` | by description |
 | `.agents/agents/qa-reviewer.md`, `ui-reviewer.md` | Reviewer subagents (model tier `pro`) | started by `loop-verify` |
 | `.agents/mcp_config.json` | `chrome-devtools` (screenshots, Lighthouse) and `shadcn` MCP servers | workspace MCP config |
 | `scripts/step.sh` | Commit + push one step (refuses `main`, secret-scans, never forces) | called by every stage |

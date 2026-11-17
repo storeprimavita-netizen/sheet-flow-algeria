@@ -13,6 +13,7 @@ stop condition. Cheap models for routine work, opus for high-risk review.
 Reviewers: `qa-reviewer` (risk high / security), `ui-reviewer` (surface ui).
 
 Skills: `karpathy-guidelines` + `mnw-codebase-hygiene` before code,
+`modern-web-guidance` (Google Chrome) before any HTML/CSS/client JS,
 `cod-ui-polish` for app UI, `luxe-modesty-store-theme` for store UI,
 `owasp-security` for security review. `impeccable`, `ui-ux-pro-max` and
 `frontend-design` are vendored but manual-only (`/impeccable critique …`).

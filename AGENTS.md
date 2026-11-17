@@ -79,6 +79,32 @@ App rules (the gate lints the first one):
   touched screen in both themes (and AR + EN) with a browser MCP, fix what the
   screenshots show, note it in PROGRESS.md. No browser MCP → say so explicitly.
 
+## Modern web platform (skill `modern-web-guidance`, by Google Chrome)
+
+Before writing or changing HTML, CSS or client-side JS, search the skill's
+guides (`npx -y modern-web-guidance@latest search "<2–5 word capability>"`,
+then `retrieve "<id>"`) — forms, validation, autofill, accessibility, dialogs,
+navigation, images, performance. It replaces guesses from old training data.
+
+- **Precedence:** project rules (tokens, RTL logical props, status system,
+  field components, the two design skills) > modern-web-guidance > habit.
+  A guide never justifies a hardcoded color, a raw `<input>` in the app, or
+  a new dependency.
+- **App:** keep the existing Radix primitives and field components; use the
+  guides for behaviour, accessibility and performance inside them, not to
+  swap components.
+- **Store:** prefer native platform features over JavaScript (lighter pages) —
+  native form validation and autofill attributes, `<dialog>`, lazy images,
+  fetch priority for the main photo.
+- **Browser support policy:** use *Baseline Widely available* features freely.
+  Anything newer needs the guide's fallback and must still work — plainer is
+  fine — without it. Store pages are opened mostly on phones, often inside
+  the Facebook / Instagram / TikTok in-app browsers, so an order must never
+  depend on a new feature. No heavy polyfills.
+- The CLI needs network access and runs the published `modern-web-guidance`
+  npm package; if it is unreachable, say so and continue with the project
+  skills — do not block the task.
+
 ## RLS rules of thumb (the wall is the DB, UI is cosmetic)
 
 - Every business table: `workspace_id` + policy

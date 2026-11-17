@@ -4,6 +4,6 @@ description: Loop stage 3 on the MNW project — implement docs/briefs/<id>.md o
 ---
 Follow the body of `.claude/commands/execute.md` exactly, with these substitutions:
 - Ignore its frontmatter (Claude Code settings).
-- Skills named there are in `.agents/skills/` (`karpathy-guidelines`, `mnw-codebase-hygiene`, `cod-ui-polish` for app UI, `luxe-modesty-store-theme` for store UI). `ponytail` is a Claude Code plugin — skip it.
+- Skills named there are in `.agents/skills/` (`karpathy-guidelines`, `mnw-codebase-hygiene`, `modern-web-guidance` before any HTML/CSS/client JS, `cod-ui-polish` for app UI, `luxe-modesty-store-theme` for store UI). `ponytail` is a Claude Code plugin — skip it.
 - Only work a task whose plan status is `claimed:antigravity`.
 `scripts/gate.sh` decides whether the work is done; never edit it, the reviewers, or delete a test to pass it. Do not merge.

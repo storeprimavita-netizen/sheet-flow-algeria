@@ -111,6 +111,18 @@ colors", the status system, or RTL logical props.
   `mnw-codebase-hygiene` (feature folders, data layer, thin actions, RLS rules).
 - **Antigravity**: `.agents/` + `docs/ANTIGRAVITY.md`.
 
+### modern-web-guidance (added 2026-11-17, owner request)
+
+Google Chrome's skill (github.com/GoogleChrome/modern-web-guidance, Apache-2.0,
+stewarded with Edge, Firefox and MDN). Vendored: `SKILL.md` + `LICENSE` only,
+from commit `64a6d708f5a4`, in `.claude/skills/modern-web-guidance/` and linked
+into `.agents/skills/`. The ~260 guides are **not** in the repo: the skill
+fetches them at use time with `npx -y modern-web-guidance@latest search|retrieve`
+(needs network; runs Google's published npm package, unpinned by design).
+Precedence and the browser-support policy are in AGENTS.md. To update: re-copy
+`SKILL.md` from the repo. Antigravity alternative:
+`agy plugin install https://github.com/GoogleChrome/modern-web-guidance`.
+
 ### Where the borrowed rules came from (read 2026-11-17; nothing new vendored)
 
 | Source | What we took | Not taken |
