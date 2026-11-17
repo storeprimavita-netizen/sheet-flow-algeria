@@ -38,7 +38,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | P0-1…P0-5 | Webhook hardening, ZR seam, permission matrix, cash unique index | – | H | sec | – | – | – | done |
 | ZR-0, ZR-2 | ZR API audit; ZR status sync | CARRIER | H | sec | – | – | – | done |
 | P0-8 | `order_stock_effects`: undo stock when an order leaves `returned` | CARRIER | H | – | M | orders | O-1 | blocked:owner decision — does returned→cancelled take the restock back off? (review-1: double deduction on reopen, flaky tests) |
-| CARRIER-0 | Reconcile `wilayas` (58 rows) with the 69 the carriers serve; reseed fees | CARRIER | H | – | M | orders | O-1 | claimed:claude |
+| CARRIER-0 | Reconcile `wilayas` (58 rows) with the 69 the carriers serve; reseed fees | CARRIER | H | – | M | orders | O-1 | blocked:owner must confirm names+codes for wilayas 59–69 and their starting delivery fees (review-0) |
 
 ## Wave 1 — clarity (owner's main complaint)
 
