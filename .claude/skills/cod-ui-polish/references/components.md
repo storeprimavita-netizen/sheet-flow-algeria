@@ -58,16 +58,9 @@ Columns from the status set, counts in headers, cards sized to content with a ma
 
 ## Navigation
 
-Persistent left sidebar. **Only the active section's subsections are expanded** — every other section with children collapses to just its parent link (accordion, auto-expand on navigation, not user-toggled):
+**The section map, grouping, URLs, breadcrumbs, hub pages, emoji policy and mobile bar are defined in `navigation-ia.md` (v3) — read it before touching the shell.** The old six-section accordion is retired. What stays from here is the visual treatment:
 
-```
-Dashboard · Orders (All / Confirmation / Delivery) · Products ·
-Finance (Overview / Expenses / Ad spend / Income) ·
-Contacts (Customers / Suppliers) · Team & Rules (Rules / Meetings / Tasks /
-Performance / Users / Audit log) · Settings
-```
-
-Finance is hidden entirely for agent roles (RLS-backed, not just hidden in the UI).
+Money is hidden entirely for agent roles (RLS-backed, not just hidden in the UI).
 
 Active item: background tint + left accent bar + colored icon. Live badges on Confirmation (pending), Delivery (awaiting deposit), Tasks (my open) — muted at zero. Collapses to an icon rail with tooltips; state persists. The sidebar footer is a single avatar row that opens a dropdown menu (theme toggle, language switcher, sign out) rather than three stacked buttons. The brand mark (logo + name) lives in the top bar, not the sidebar header. **⌘K command palette**: jump anywhere, search orders by phone or ID, search products and customers, run actions ("Add ad spend", "New order"). `?` shows the shortcut overlay.
 

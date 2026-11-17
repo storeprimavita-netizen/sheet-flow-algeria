@@ -10,8 +10,11 @@ This project's features work; its interface was generated without a design syste
 ## Decisions already made (do not re-litigate)
 
 - **Dark theme is the default**; light exists in Settings and must be equally correct.
-- **Confirmation queue** = table list, click a row to open the detail sheet. No separate call-mode screen.
-- **Delivery view** = dense table by default, kanban as an optional toggle.
+- **This skill is for the back-office app only** (`/app/**`, `/login`). Public store pages follow `luxe-modesty-store-theme`; the two systems never mix.
+- **Navigation = five job-named workspaces** (Sell · Catalog · Store · Money · Team) + Home + Settings, groups always visible, breadcrumb + purpose line on every page — `references/navigation-ia.md`.
+- **Icons are Lucide; emoji only in user-authored content** (option labels, tags, task titles, saved view names) — same file.
+- **Confirmation queue** = saved views the agent chooses: table (default) or kanban by status, each with its own filters and columns; click a row or card to open the detail sheet. No separate call-mode screen. Spec: `docs/specs/CONF.md`.
+- **Shipping view** = dense table by default, kanban as an optional toggle.
 - **Products list** = grid of cards with images by default (table is a secondary toggle).
 - **Dashboard per-wilaya** = table with in-cell rate bars, with a small map of Algeria beside it.
 - **Tasks page** = kanban board by status by default (list is a secondary toggle).
@@ -64,6 +67,7 @@ Prefer the boring, legible option. This is a tool people use for eight hours, no
 
 ## References
 
+- `references/navigation-ia.md` — **read first for any shell, routing or new-page work**: the v3 section map, canonical homes, breadcrumbs, hub pages, emoji policy, mobile bar.
 - `references/design-tokens.md` — the dark-first token system, theming rules, typography, spacing.
 - `references/status-system.md` — every status, its color, its icon, allowed transitions, the pill component contract.
 - `references/components.md` — input inventory, form rules, table conventions, chart rules, navigation, states.
