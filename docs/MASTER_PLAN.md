@@ -44,7 +44,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
-| NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names | NAV | L | ui | – | shell | O-1 | claimed:claude |
+| NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names | NAV | L | ui | – | shell | O-1 | blocked:3 reviews without PASS — open Settings group squeezes the sidebar at 720 px height and cuts off Money (review-3); light theme, agent roles, ⌘K not browser-checked |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | todo |
 | NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | todo |
 | NAV-4 | Emoji in option labels and saved views; label overrides for system statuses | NAV | L | ui | M | shell | NAV-1 | todo |
