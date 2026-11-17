@@ -24,7 +24,8 @@ describe.skipIf(!URL)("order_stock_effects: return undone (00028)", () => {
   };
   async function reset() {
     await admin.from("stock_movements").delete().eq("order_id", orderId);
-    await admin.from("orders").update({ delivery_status: "wait_for_deposit", confirmation_status: "pending" }).eq("id", orderId);
+    const { error } = await admin.from("orders").update({ delivery_status: "wait_for_deposit", confirmation_status: "wait_for_confirmation" }).eq("id", orderId);
+    expect(error).toBeNull();
     await admin.from("stock_movements").delete().eq("order_id", orderId);
   }
 
@@ -81,7 +82,7 @@ describe.skipIf(!URL)("order_stock_effects: return undone (00028)", () => {
     const start = await stockOf();
     await setO({ confirmation_status: "confirmed" });
     await setO({ delivery_status: "returned" });
-    await setO({ confirmation_status: "pending" }); // branch 3 guard: returned excluded
+    await setO({ confirmation_status: "wait_for_confirmation" }); // branch 3 guard: returned excluded
     expect((await reasons()).filter((m) => m.reason === "order_reverted")).toHaveLength(0);
     expect(await stockOf()).toBe(start);
   });

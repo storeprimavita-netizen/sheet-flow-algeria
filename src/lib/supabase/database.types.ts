@@ -902,7 +902,7 @@ isOneToOne: false
           Views: {
             "account_balances": {
                   Row: {
-                    "account_id": string | null,"balance": number | null,"currency": Database["public"]['Enums']["currency_code"] | null,"is_active": boolean | null,"low_balance_threshold": number | null,"name": string | null,"opening_balance": number | null,"workspace_id": string | null
+                    "account_id": string,"balance": number | null,"currency": Database["public"]['Enums']["currency_code"],"is_active": boolean,"low_balance_threshold": number,"name": string,"opening_balance": number,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
@@ -922,7 +922,7 @@ isOneToOne: false
                   ]
                 },"agent_performance": {
                   Row: {
-                    "avg_decision_time": string | null,"avg_delivery_time": string | null,"avg_total_time": string | null,"confirmed": number | null,"delivered": number | null,"lost": number | null,"orders_handled": number | null,"stage": string | null,"user_id": string | null,"workspace_id": string | null
+                    "avg_decision_time": string | null,"avg_delivery_time": string | null,"avg_total_time": string | null,"confirmed": number | null,"delivered": number | null,"lost": number | null,"orders_handled": number | null,"stage": string,"user_id": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
@@ -936,7 +936,7 @@ isOneToOne: false
                   ]
                 },"customer_stats": {
                   Row: {
-                    "cancelled_orders": number | null,"commune": string | null,"confirmed_orders": number | null,"delivered_orders": number | null,"id": string | null,"name": string | null,"no_answer_orders": number | null,"phone": string | null,"returned_orders": number | null,"risk_score": number | null,"total_orders": number | null,"wilaya_code": number | null,"workspace_id": string | null
+                    "cancelled_orders": number | null,"commune": string | null,"confirmed_orders": number | null,"delivered_orders": number | null,"id": string,"name": string,"no_answer_orders": number | null,"phone": string,"returned_orders": number | null,"risk_score": number | null,"total_orders": number | null,"wilaya_code": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
@@ -956,7 +956,7 @@ isOneToOne: false
                   ]
                 },"product_stats": {
                   Row: {
-                    "ad_spend_dzd": number | null,"confirmation_rate": number | null,"delivery_rate": number | null,"expenses_dzd": number | null,"id": string | null,"name": string | null,"orders_confirmed": number | null,"orders_delivered": number | null,"orders_received": number | null,"orders_returned": number | null,"revenue_dzd": number | null,"sourcing_cost_dzd": number | null,"status": Database["public"]['Enums']["product_status"] | null,"stock": number | null,"workspace_id": string | null
+                    "ad_spend_dzd": number | null,"confirmation_rate": number | null,"delivery_rate": number | null,"expenses_dzd": number | null,"id": string,"name": string,"orders_confirmed": number | null,"orders_delivered": number | null,"orders_received": number | null,"orders_returned": number | null,"revenue_dzd": number | null,"sourcing_cost_dzd": number | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
@@ -970,7 +970,7 @@ isOneToOne: false
                   ]
                 },"wilaya_stats": {
                   Row: {
-                    "confirmed_orders": number | null,"delivered_orders": number | null,"delivery_rate": number | null,"returned_orders": number | null,"stop_shipping_auto": boolean | null,"stop_shipping_manual": boolean | null,"total_orders": number | null,"wilaya_code": number | null,"wilaya_name": string | null,"workspace_id": string | null
+                    "confirmed_orders": number | null,"delivered_orders": number | null,"delivery_rate": number | null,"returned_orders": number | null,"stop_shipping_auto": boolean | null,"stop_shipping_manual": boolean | null,"total_orders": number | null,"wilaya_code": number | null,"wilaya_name": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
@@ -990,7 +990,7 @@ isOneToOne: false
                   ]
                 },"workspace_performance": {
                   Row: {
-                    "avg_decision_time": string | null,"avg_delivery_time": string | null,"avg_total_time": string | null,"workspace_id": string | null
+                    "avg_decision_time": string | null,"avg_delivery_time": string | null,"avg_total_time": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
@@ -1048,7 +1048,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
+            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_return_undone","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1168,7 +1168,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
+            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_return_undone"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
           }
         }
 } as const
