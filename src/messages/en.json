@@ -27,7 +27,28 @@
     "settingsOverview": "Overview",
     "settings": "Settings",
     "toggleSidebar": "Toggle sidebar",
-    "cash": "Cash"
+    "cash": "Cash",
+    "home": "Home",
+    "groupSell": "Sell",
+    "groupCatalog": "Catalog",
+    "groupStore": "Store",
+    "groupMoney": "Money",
+    "groupTeam": "Team",
+    "groupSettings": "Settings",
+    "shipping": "Shipping",
+    "courierCash": "Courier cash",
+    "pricing": "Pricing calculator",
+    "usersRoles": "Users & roles",
+    "toggleGroup": "Toggle group"
+  },
+  "navOld": {
+    "dashboard": "Dashboard",
+    "delivery": "Delivery",
+    "cash": "Cash",
+    "contacts": "Contacts",
+    "users": "Users",
+    "team": "Team & Rules",
+    "planner": "Planner"
   },
   "theme": {
     "dark": "Dark",

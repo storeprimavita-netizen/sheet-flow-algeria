@@ -23,9 +23,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { visibleNav, type NavLeaf, type CounterKey } from "@/components/nav-model";
+import { visibleNav, activeLeafHref, type NavLeaf, type NavGroup, type CounterKey } from "@/components/nav-model";
 
 const COLLAPSE_KEY = "mnw:sidebar-collapsed";
+const GROUPS_KEY = "mnw:nav-groups";
 
 export function AppShell({
   user,
@@ -43,11 +44,25 @@ export function AppShell({
   const tooltipSide = useLocale() === "ar" ? "left" : "right";
   const [open, setOpen] = useState(false); // mobile drawer
   const [collapsed, setCollapsed] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({}); // user overrides
+  const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({}); // user-collapsed groups
 
   useEffect(() => {
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "{}");
+      if (saved && typeof saved === "object") setClosedGroups(saved as Record<string, boolean>);
+    } catch {
+      /* ignore corrupt value */
+    }
   }, []);
+
+  function toggleGroup(key: string, nextClosed: boolean) {
+    setClosedGroups((g) => {
+      const next = { ...g, [key]: nextClosed };
+      localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   function toggleCollapsed() {
     setCollapsed((c) => {
@@ -56,14 +71,11 @@ export function AppShell({
     });
   }
 
-  const sections = visibleNav(role);
+  const { home, groups } = visibleNav(role);
+  const mainGroups = groups.filter((g) => g.pinned !== "bottom");
+  const bottomGroups = groups.filter((g) => g.pinned === "bottom");
   const initial = (user.email?.[0] ?? "M").toUpperCase();
-
-  // Longest-prefix match: exactly one leaf is active.
-  const allLeaves: NavLeaf[] = sections.flatMap((s) => [s, ...(s.children ?? [])]);
-  const activeHref = allLeaves
-    .filter((l) => pathname === l.href || pathname.startsWith(l.href + "/"))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  const activeHref = activeLeafHref(role, pathname);
 
   function Counter({ counter, n: given }: { counter?: CounterKey; n?: number }) {
     if (!counter && given === undefined) return null;
@@ -80,7 +92,7 @@ export function AppShell({
     );
   }
 
-  function Leaf({ item, child }: { item: NavLeaf; child?: boolean }) {
+  function Leaf({ item }: { item: NavLeaf }) {
     const Icon = item.icon;
     const active = activeHref === item.href;
     const label = t(`nav.${item.key}`);
@@ -91,7 +103,7 @@ export function AppShell({
         aria-label={collapsed ? label : undefined}
         className={cn(
           "group relative flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
-          collapsed ? "justify-center px-2" : child ? "ps-9 pe-3" : "px-3",
+          collapsed ? "justify-center px-2" : "px-3",
           active
             ? "bg-primary/10 font-medium text-foreground"
             : "text-muted-foreground hover:bg-surface-raised hover:text-foreground",
@@ -114,48 +126,62 @@ export function AppShell({
     );
   }
 
-  // Every top-level row looks the same (icon + label); sections with children
-  // expand inline with a chevron — open while you're inside them, toggleable.
-  const nav = (
-    <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-      {sections.map((section) => {
-        if (!section.children || collapsed) return <Leaf key={section.href} item={section} />;
-        const sectionActive =
-          activeHref === section.href || section.children.some((c) => c.href === activeHref);
-        const isOpen = expanded[section.key] ?? sectionActive;
-        const total = section.children.reduce((n, c) => n + (c.counter ? counts[c.counter] ?? 0 : 0), 0);
-        const hasCounter = total > 0;
-        return (
-          <div key={section.key}>
-            <button
-              type="button"
-              aria-expanded={isOpen}
-              onClick={() => setExpanded((e) => ({ ...e, [section.key]: !isOpen }))}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                sectionActive ? "font-medium text-foreground" : "text-muted-foreground hover:bg-surface-raised hover:text-foreground",
-              )}
-            >
-              <section.icon className={cn("h-4 w-4 shrink-0", sectionActive && "text-primary")} />
-              <span className="truncate">{t(`nav.${section.key}`)}</span>
-              {!isOpen && hasCounter ? <Counter n={total} /> : null}
-              <ChevronDown
-                className={cn("h-3.5 w-3.5 shrink-0 text-faint transition-transform", !(!isOpen && hasCounter) && "ms-auto", !isOpen && "-rotate-90 rtl:rotate-90")}
-              />
-            </button>
-            {isOpen ? (
-              <div className="mt-0.5 space-y-0.5">
-                {section.children.map((c) => <Leaf key={c.href} item={c} child />)}
-              </div>
-            ) : null}
+  function Group({ group }: { group: NavGroup }) {
+    const hasActive = group.items.some((i) => i.href === activeHref);
+    const isOpen = hasActive || !closedGroups[group.key];
+    const total = group.items.reduce((n, c) => n + (c.counter ? counts[c.counter] ?? 0 : 0), 0);
+    if (collapsed) {
+      return (
+        <div className="space-y-0.5 border-t border-border pt-2 first:border-t-0 first:pt-0">
+          {group.items.map((i) => <Leaf key={i.href} item={i} />)}
+        </div>
+      );
+    }
+    return (
+      <div>
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-label={`${t("nav.toggleGroup")}: ${t(`nav.${group.key}`)}`}
+          disabled={hasActive}
+          onClick={() => toggleGroup(group.key, isOpen)}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:hover:text-muted-foreground"
+        >
+          <span className="truncate">{t(`nav.${group.key}`)}</span>
+          {!isOpen && total > 0 ? <Counter n={total} /> : null}
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
+              !(!isOpen && total > 0) && "ms-auto",
+              !isOpen && "-rotate-90 rtl:rotate-90",
+            )}
+          />
+        </button>
+        {isOpen ? (
+          <div className="mt-0.5 space-y-0.5">
+            {group.items.map((i) => <Leaf key={i.href} item={i} />)}
           </div>
-        );
-      })}
-    </nav>
+        ) : null}
+      </div>
+    );
+  }
+
+  const nav = (
+    <>
+      <nav className="flex-1 space-y-3 overflow-y-auto p-3">
+        {home ? <Leaf item={home} /> : null}
+        {mainGroups.map((g) => <Group key={g.key} group={g} />)}
+      </nav>
+      {bottomGroups.length ? (
+        <div className="space-y-3 border-t border-border p-3">
+          {bottomGroups.map((g) => <Group key={g.key} group={g} />)}
+        </div>
+      ) : null}
+    </>
   );
 
   const brand = (
-    <Link href={sections[0]?.href ?? "/app"} className="flex min-w-0 items-center gap-2.5">
+    <Link href={home?.href ?? groups[0]?.items[0]?.href ?? "/app"} className="flex min-w-0 items-center gap-2.5">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Store className="h-4 w-4" />
       </span>

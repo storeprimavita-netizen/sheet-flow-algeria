@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { visibleNav } from "@/components/nav-model";
+import { navLeaves } from "@/components/nav-model";
 
 /**
  * ⌘K palette: navigate anywhere (role-filtered), run quick actions, and search
@@ -53,13 +53,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const sections = visibleNav(role);
-  // Leaf destinations only — a section href duplicates one of its children.
-  const navItems = sections.flatMap((s) =>
-    s.children?.length
-      ? s.children.map((c) => ({ key: c.key, href: c.href, Icon: c.icon }))
-      : [{ key: s.key, href: s.href, Icon: s.icon }],
-  );
+  const navItems = navLeaves(role);
 
   function go(href: string) {
     setOpen(false);
@@ -89,8 +83,13 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           <CommandEmpty>{t("cmd.empty")}</CommandEmpty>
           <CommandGroup heading={t("cmd.navigate")}>
             {navItems.map((n) => (
-              <CommandItem key={n.href} value={t(`nav.${n.key}`)} onSelect={() => go(n.href)}>
-                <n.Icon />
+              <CommandItem
+                key={n.href}
+                value={t(`nav.${n.key}`)}
+                keywords={n.oldKey ? [t(`navOld.${n.oldKey}`)] : undefined}
+                onSelect={() => go(n.href)}
+              >
+                <n.icon />
                 {t(`nav.${n.key}`)}
               </CommandItem>
             ))}

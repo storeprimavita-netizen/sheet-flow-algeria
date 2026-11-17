@@ -27,7 +27,28 @@
     "settingsOverview": "نظرة عامة",
     "settings": "الإعدادات",
     "toggleSidebar": "تبديل الشريط الجانبي",
-    "cash": "النقد"
+    "cash": "النقد",
+    "home": "الرئيسية",
+    "groupSell": "البيع",
+    "groupCatalog": "الكتالوج",
+    "groupStore": "المتجر",
+    "groupMoney": "المال",
+    "groupTeam": "الفريق",
+    "groupSettings": "الإعدادات",
+    "shipping": "الشحن",
+    "courierCash": "نقد شركة التوصيل",
+    "pricing": "حاسبة التسعير",
+    "usersRoles": "المستخدمون والصلاحيات",
+    "toggleGroup": "تبديل المجموعة"
+  },
+  "navOld": {
+    "dashboard": "لوحة التحكم",
+    "delivery": "التوصيل",
+    "cash": "النقد",
+    "contacts": "جهات الاتصال",
+    "users": "المستخدمون",
+    "team": "الفريق والقواعد",
+    "planner": "المخطط"
   },
   "theme": {
     "dark": "داكن",
