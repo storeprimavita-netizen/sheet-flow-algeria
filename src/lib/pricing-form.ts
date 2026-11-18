@@ -13,6 +13,7 @@ import {
   type DeepPartial,
   type PricingSettings,
   type Rounding,
+  type ScenarioResult,
 } from "./pricing-v2";
 
 export const ROUNDING_OPTIONS = ["none", "up100", "nearest50", "nearest100", "charm900", "charm990", "charm99"] as const satisfies readonly Rounding[];
@@ -340,4 +341,20 @@ export function stockCostTotal(perPieceDzd: number | null | undefined, quantity:
   if (typeof perPieceDzd !== "number" || !Number.isFinite(perPieceDzd) || perPieceDzd <= 0) return null;
   if (!Number.isFinite(quantity) || quantity <= 0) return null;
   return perPieceDzd * quantity;
+}
+
+// ---------- break-even presentation ----------
+
+export type BreakEvenKey = keyof ScenarioResult["breakEven"];
+
+/**
+ * D52: a null break-even is either a MISSING input ("—") or "Not possible"
+ * (inputs are all there, the price just cannot cover the costs). Classification
+ * only; the numbers come from the engine.
+ */
+export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | "missing" | "impossible" {
+  if (r.breakEven[key] !== null) return "value";
+  if (key === "minSellingPrice") return "missing";
+  const complete = r.finalPrice !== null && r.totalCost !== null && r.adCostPerDeliveredUsd !== null;
+  return complete ? "impossible" : "missing";
 }

@@ -16,6 +16,7 @@ import { WebhookEventsSection } from "./webhook-events-section";
 import { FeesSection } from "./fees-section";
 import { FixedFeesSection } from "./fixed-fees-section";
 import { ExchangeRatesSection } from "./exchange-rates-section";
+import { PricingSection } from "./pricing-section";
 import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
 import { OptionsSection } from "./options-section";
@@ -28,6 +29,7 @@ const NAV_SECTIONS = [
   ["delivery-fees", "settings.deliveryFees"],
   ["fixed-fees", "settings.fixedFees"],
   ["exchange-rates", "settings.exchangeRates"],
+  ["pricing", "settings.pricing"],
   ["engine-rules", "settings.engineRules"],
   ["meeting-schedule", "settings.meetingSchedule"],
   ["options", "settings.options.title"],
@@ -155,6 +157,13 @@ async function SectionBody({ section }: { section: SectionId }) {
         supabase.rpc("current_fx_rate", { p_ws: ws, p_currency: "EUR" }),
       ]);
       return <ExchangeRatesSection rates={exchangeRatesRes.data ?? []} current={{ USD: usd.data ?? null, EUR: eur.data ?? null }} />;
+    }
+    case "pricing": {
+      const [settings, row] = await Promise.all([
+        getSetting(ws, "pricing_defaults"),
+        supabase.from("settings").select("key").eq("workspace_id", ws).eq("key", "pricing_defaults").maybeSingle(),
+      ]);
+      return <PricingSection settings={settings} saved={row.data !== null} />;
     }
     case "engine-rules": {
       const [returnFee, duplicateWindow, riskWeights, stopShippingRule] = await Promise.all([

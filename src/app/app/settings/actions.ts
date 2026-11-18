@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
-import { setSetting, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
+import { setSetting, SETTINGS_SCHEMAS, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
 import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
@@ -390,6 +390,35 @@ export async function saveEngineRules(formData: FormData) {
   const failed = results.find((r) => !r.ok);
   if (failed && !failed.ok) throw new Error(failed.error);
   revalidatePath("/app/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Pricing defaults (settings key `pricing_defaults`, D50) — typed result, the
+// form is too large for FormData and is validated by the strict schema.
+// ---------------------------------------------------------------------------
+export type PricingActionResult = { ok: true } | { ok: false; error: "invalid" | "failed" };
+
+export async function savePricingDefaults(input: unknown): Promise<PricingActionResult> {
+  const { workspaceId } = await adminProfile();
+  const parsed = SETTINGS_SCHEMAS.pricing_defaults.safeParse(input);
+  // the editor never submits an unset target: null would blank every price
+  if (!parsed.success || parsed.data.target.value === null) return { ok: false, error: "invalid" };
+  const res = await setSetting(workspaceId, "pricing_defaults", parsed.data);
+  if (!res.ok) return { ok: false, error: "failed" };
+  revalidatePath("/app/settings");
+  revalidatePath("/app/products", "layout");
+  return { ok: true };
+}
+
+/** Back to the built-in defaults = delete the row (audit logs the DELETE). */
+export async function resetPricingDefaults(): Promise<PricingActionResult> {
+  const { workspaceId } = await adminProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.from("settings").delete().eq("workspace_id", workspaceId).eq("key", "pricing_defaults");
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/app/settings");
+  revalidatePath("/app/products", "layout");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

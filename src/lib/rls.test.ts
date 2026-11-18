@@ -166,6 +166,35 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     await ws2Admin.auth.signOut({ scope: "local" });
   });
 
+  test("pricing_defaults: agent cannot write; admin reset (delete) is audited as DELETE", async () => {
+    const agentIns = await confAgent
+      .from("settings")
+      .insert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } });
+    expect(agentIns.error).not.toBeNull();
+
+    const ins = await adminUser
+      .from("settings")
+      .upsert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } }, { onConflict: "workspace_id,key" });
+    expect(ins.error).toBeNull();
+    const del = await adminUser
+      .from("settings")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("key", "pricing_defaults")
+      .select();
+    expect(del.error).toBeNull();
+    expect(del.data).toHaveLength(1);
+    const { data: audit } = await adminUser
+      .from("audit_log")
+      .select("action, old_row")
+      .eq("workspace_id", workspaceId)
+      .eq("table_name", "settings")
+      .eq("action", "DELETE")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    expect((audit?.[0]?.old_row as { key?: string } | null)?.key).toBe("pricing_defaults");
+  });
+
   test("agent select on audit_log returns 0 rows", async () => {
     const { data, error } = await confAgent.from("audit_log").select("*");
     expect(error).toBeNull();
