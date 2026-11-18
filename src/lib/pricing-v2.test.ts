@@ -173,7 +173,7 @@ describe("null not NaN", () => {
     expect(r).toEqual({ best: null, medium: null, worst: null });
     expect(resolveAdCosts(NaN).worst).toBeNull();
     expect(resolveAdCosts(null, S, { best: 0 }).best).toBe(0);
-    const all = computeAll(S, { ...benz, adCostUsd: { medium: null as unknown as number } });
+    const all = computeAll(S, { ...benz, adCostUsd: { medium: null } });
     expect(all.best.totalCost).toBeNull();
   });
   it("invalid rounding / mode strings are ignored; bad percentages give null", () => {
@@ -255,7 +255,7 @@ describe("review 3 fixes", () => {
     const ws = { target: { mode: "markup" as const, value: 0.65 } };
     const r = computeAll(ws, { ...benz, finalPrice: null, overrides: { target: { mode: "profit" } } }).medium;
     expect(r.recommendedPrice).toBeNull();
-    expect(mergeSettings(S, { target: { value: 2000 } }).target).toEqual({ mode: "profit", value: 2000 });
+    expect(mergeSettings(S, { target: { value: 2000 } }).target).toEqual({ mode: "profit", value: null });
   });
   it("out-of-range settings give null", () => {
     expect(mid(benz, { ...S, share: 50 }).recommendedPrice).toBeNull();
@@ -264,10 +264,33 @@ describe("review 3 fixes", () => {
     expect(mid({ ...benz, adCostUsd: { medium: -1 } }).recommendedPrice).toBeNull();
     expect(mid(benz, { ...S, adMultiplier: { best: -1, worst: 1.23 } }).recommendedPrice).toBe(5500);
     expect(mid(benz, { ...S, target: { mode: "profit", value: -5000 } }).recommendedPrice).toBeNull();
-    expect(mid(benz, { ...S, target: { mode: "markup", value: 65 } }).recommendedPrice).not.toBeNull();
+    expect(mid(benz, { ...S, target: { mode: "markup", value: 65 } }).recommendedPrice).toBeNull();
+    expect(mid(benz, { ...S, target: { mode: "markup", value: 10 } }).recommendedPrice).not.toBeNull();
   });
   it("up100 with non-positive exact price is null, never -0", () => {
-    expect(applyRounding(-0.5, "up100")).toBe(-0);
+    for (const m of ["none", "up100", "nearest50", "nearest100", "charm900", "charm990", "charm99"] as const) {
+      expect(applyRounding(-0.5, m)).toBeNull();
+      expect(applyRounding(0, m)).toBeNull();
+    }
+    expect(applyRounding(40, "nearest100")).toBeNull();
+  });
+  it("share 100% is valid", () => {
+    expect(r2(mid(benz, { ...S, share: 1 }).lines.platformMonthly)).toBe(328.66);
+  });
+  it("value-only target override gives empty price, both directions", () => {
+    const a = computeAll({ target: { mode: "markup", value: 0.65 } }, { ...benz, finalPrice: null, overrides: { target: { value: 2000 } } }).medium;
+    expect(a.recommendedPrice).toBeNull();
+    const b = computeAll(S, { ...benz, finalPrice: null, overrides: { target: { value: 0.65 } } }).medium;
+    expect(b.recommendedPrice).toBeNull();
+    expect(mergeSettings(S, { target: { mode: "markup", value: 0.65 } }).target).toEqual({ mode: "markup", value: 0.65 });
+  });
+  it("invalid default price is null; negative medium ad cost is null", () => {
+    expect(computeScenario(S, benz, medIn, null, -100).finalPrice).toBeNull();
+    expect(resolveAdCosts(-1).medium).toBeNull();
+  });
+  it("k just below 1 and charm990 boundary", () => {
+    expect(mid(benz, { ...S, platformPct: 0.5176 }).recommendedPrice).toBe(59239400);
+    expect(applyRounding(5990.004, "charm990")).toBe(5990);
   });
   it("worst finalPrice falls back to medium recommended when empty", () => {
     expect(computeAll(S, { ...benz, finalPrice: null }).worst.finalPrice).toBe(5500);

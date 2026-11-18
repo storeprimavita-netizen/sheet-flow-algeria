@@ -71,7 +71,7 @@ export const NATIVE_PLATFORM_PRESET = { platformPct: 0, platformMonthlyUsd: 0 } 
 export type PricingProduct = {
   stockCostDzd: number;
   quantity: number;
-  adCostUsd: { best?: number | null; medium: number; worst?: number | null };
+  adCostUsd: { best?: number | null; medium: number | null; worst?: number | null };
   finalPrice?: number | null;
   overrides?: DeepPartial<PricingSettings> | null;
 };
@@ -174,9 +174,14 @@ export function mergeSettings(base: PricingSettings, overrides?: DeepPartial<Pri
   const { target: ot, ...rest } = (overrides ?? {}) as DeepPartial<PricingSettings>;
   const out = mergeNode({ ...base, target: undefined }, rest) as PricingSettings;
   if (!ROUNDINGS.includes(out.rounding)) out.rounding = base.rounding;
-  const mode = ot?.mode === "profit" || ot?.mode === "markup" ? ot.mode : base.target.mode;
-  const value = fin(ot?.value) ? ot.value : mode === base.target.mode ? base.target.value : null;
-  out.target = { mode, value };
+  // D52: a value counts only together with a valid mode; value alone -> empty target.
+  const validMode = ot?.mode === "profit" || ot?.mode === "markup";
+  if (validMode) {
+    const sameMode = ot.mode === base.target.mode;
+    out.target = { mode: ot.mode as "profit" | "markup", value: fin(ot.value) ? ot.value : sameMode ? base.target.value : null };
+  } else {
+    out.target = fin(ot?.value) ? { mode: base.target.mode, value: null } : { ...base.target };
+  }
   return out;
 }
 
@@ -191,7 +196,7 @@ export function resolveAdCosts(
   const derived = (m: number) => (fin(medium) && medium >= 0 && fin(m) && m >= 0 ? round2(medium * m) : null);
   return {
     best: fin(typed.best) ? typed.best : derived(settings.adMultiplier.best),
-    medium: fin(medium) ? medium : null,
+    medium: fin(medium) && medium >= 0 ? medium : null,
     worst: fin(typed.worst) ? typed.worst : derived(settings.adMultiplier.worst),
   };
 }
@@ -203,7 +208,12 @@ export function resolveAdCosts(
  * reading: next number ending 900/990/99 at or above exact) never do.
  */
 export function applyRounding(exact: N, rounding: Rounding): N {
-  if (!fin(exact)) return null;
+  if (!fin(exact) || exact <= 0) return null;
+  const out = roundRaw(exact, rounding);
+  return fin(out) && out > 0 ? out : null;
+}
+
+function roundRaw(exact: number, rounding: Rounding): N {
   const x = round2(exact);
   const charm = (step: number, ending: number) => {
     const base = Math.floor(x / step) * step + ending;
@@ -230,6 +240,9 @@ export function applyRounding(exact: N, rounding: Rounding): N {
 }
 
 // ---------- engine ----------
+
+/** D52: markup above 1000% of product cost is treated as a typo (65 for 65%). */
+export const MAX_MARKUP = 10;
 
 const emptyBreakEven = (): ScenarioResult["breakEven"] => ({
   minConfirmation: null,
@@ -258,7 +271,7 @@ export function computeScenario(
   const frac = (x: N) => (fin(x) && x >= 0 && x < 1 ? x : null);
   const st = {
     platformPct: frac(settings.platformPct),
-    share: frac(settings.share),
+    share: fin(settings.share) && settings.share >= 0 && settings.share <= 1 ? settings.share : null,
     platformMonthlyUsd: nn(settings.platformMonthlyUsd),
     months: nn(settings.months),
     packaging: nn(settings.packaging),
@@ -266,7 +279,12 @@ export function computeScenario(
     otherPerOrder: nn(settings.otherPerOrder),
     returnCost: nn(settings.returnCost),
     otherStockFees: nn(settings.otherStockFees),
-    target: nn(settings.target.value),
+    target:
+      settings.target.mode === "markup"
+        ? fin(settings.target.value) && settings.target.value >= 0 && settings.target.value <= MAX_MARKUP
+          ? settings.target.value
+          : null
+        : nn(settings.target.value),
   };
   const inRange = (x: N) => (fin(x) && x > 0 && x <= 1 ? x : null);
   const c = inRange(s.confirm);
@@ -308,7 +326,7 @@ export function computeScenario(
   const recommendedPrice = applyRounding(exactPrice, settings.rounding);
 
   const fallback = defaultPrice === undefined ? recommendedPrice : defaultPrice;
-  const P = fin(finalPrice) && finalPrice > 0 ? finalPrice : fallback;
+  const P = fin(finalPrice) && finalPrice > 0 ? finalPrice : fin(fallback) && fallback > 0 ? fallback : null;
   const profitPerPiece = sub(sub(P, totalCost), mul(P, k));
   const netProfit = mul(profitPerPiece, sellableOk);
   const margin = div(profitPerPiece, P);
