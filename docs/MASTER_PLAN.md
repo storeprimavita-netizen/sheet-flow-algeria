@@ -38,7 +38,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 |---|---|---|---|---|---|---|---|---|
 | P0-1…P0-5 | Webhook hardening, ZR seam, permission matrix, cash unique index | – | H | sec | – | – | – | done |
 | ZR-0, ZR-2 | ZR API audit; ZR status sync | CARRIER | H | sec | – | – | – | done |
-| P0-8 | `order_stock_effects`: undo stock when an order leaves `returned`. Rule D25: target stock held by an order = quantity if confirmed and not returned/cancelled, else 0 — reconcile to the target instead of firing per event. Branch `v3-P0-8` exists: fix review-1 (double deduction on reopen; each live test file creates its own product + order) | CARRIER | H | – | M | orders | O-1 | claimed:claude |
+| P0-8 | `order_stock_effects`: undo stock when an order leaves `returned`. Rule D25: target stock held by an order = quantity if confirmed and not returned/cancelled, else 0 — reconcile to the target instead of firing per event. Branch `v3-P0-8` exists: fix review-1 (double deduction on reopen; each live test file creates its own product + order) | CARRIER | H | – | M | orders | O-1 | blocked:review rounds exhausted — review-4 open: apply D31 (swapped order holds no stock after carrier sync), make swap_order safe on double submit; then one more review. Reset to todo to continue on v3-P0-8 |
 | CARRIER-0 | Wilayas stay 58 (D26). Fix the dashboard map: centroids 49–58 in `src/lib/geo/algeria-wilayas.ts` are misnumbered vs the seed (review-0 finding 2) and some names are garbled; webhook wilaya name match prefers the longest name. No migration | CARRIER | L | ui | – | orders | O-1 | todo |
 
 ## Wave 1 — clarity (owner's main complaint)
