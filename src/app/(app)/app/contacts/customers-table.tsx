@@ -13,10 +13,11 @@ import { RateCell } from "@/components/stats/rate-bar";
 import { customerDeliveryRate } from "@/lib/customers";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { currentStatus } from "@/lib/statuses";
+import { OrderNo } from "@/components/order-no";
 
 export type CustomerOrder = {
   id: string;
-  order_number: string | null;
+  order_seq: number;
   product_name: string | null;
   quantity: number;
   sale_price: number | null;
@@ -145,7 +146,7 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
                           className="num font-medium hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {o.order_number ?? o.id.slice(0, 8)}
+                          <OrderNo seq={o.order_seq} />
                         </Link>
                         <StatusPill kind={s.kind} status={s.key} size="sm" />
                       </div>

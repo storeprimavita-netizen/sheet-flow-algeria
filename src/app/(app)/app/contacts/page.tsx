@@ -44,7 +44,7 @@ export default async function CustomersPage({
     ? await supabase
         .from("orders")
         .select(
-          "id, customer_id, order_number, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)",
+          "id, customer_id, order_seq, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)",
         )
         .in("customer_id", customerIds)
         .order("placed_at", { ascending: false })
@@ -57,7 +57,7 @@ export default async function CustomersPage({
     const list = ordersByCustomer.get(o.customer_id) ?? [];
     list.push({
       id: o.id,
-      order_number: o.order_number,
+      order_seq: o.order_seq,
       product_name: o.product?.name ?? null,
       quantity: o.quantity,
       sale_price: o.sale_price,

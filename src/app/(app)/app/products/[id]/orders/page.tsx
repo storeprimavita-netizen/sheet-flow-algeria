@@ -19,7 +19,7 @@ export default async function ProductOrdersPage({
     supabase.from("products").select("id").eq("id", id).maybeSingle(),
     supabase
       .from("orders")
-      .select("id, order_number, placed_at, customer_name, quantity, sale_price, confirmation_status, delivery_status")
+      .select("id, order_seq, placed_at, customer_name, quantity, sale_price, confirmation_status, delivery_status")
       .eq("product_id", id)
       .order("placed_at", { ascending: false })
       .limit(200),
@@ -28,7 +28,7 @@ export default async function ProductOrdersPage({
 
   const rows: ProductOrderRow[] = (orders ?? []).map((o) => ({
     id: o.id,
-    order_number: o.order_number,
+    order_seq: o.order_seq,
     placed_at: o.placed_at,
     customer_name: o.customer_name,
     quantity: o.quantity,

@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime, formatOrderNo, ltr } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
 import { ChevronLeft } from "lucide-react";
 
@@ -150,7 +150,14 @@ export default async function OrderDetailPage({
         {t("nav.orders")}
       </Link>
       <PageHeader
-        title={`${t("orders.edit")} ${order.order_number ?? order.id.slice(0, 8)}`}
+        title={`${t("orders.edit")} ${ltr(formatOrderNo(order.order_seq))}`}
+        subtitle={
+          order.order_number ? (
+            <>
+              {t("orders.platformRef")}: <bdi dir="ltr">{order.order_number}</bdi>
+            </>
+          ) : undefined
+        }
       >
         {isAdmin ? (
           <DeleteButton table="orders" id={order.id} redirectTo="/app/orders" />
