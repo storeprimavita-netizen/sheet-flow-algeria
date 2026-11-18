@@ -167,6 +167,25 @@ describe("pickWilaya", () => {
   it("ties go to the lowest code", () => {
     expect(pickWilaya([{ code: 9, name: "Aa" }, { code: 4, name: "Aa" }], "x Aa x")).toBe(4);
   });
+  it("handles apostrophes, curly quotes and prefixes", () => {
+    expect(pickWilaya(rows, "Wilaya d'Alger")).toBe(16);
+    expect(pickWilaya(rows, "Wilaya de Béjaïa")).toBe(6);
+    expect(pickWilaya(rows, "M\u2019Sila")).toBe(28);
+    expect(pickWilaya(rows, "El M\u2019Ghair")).toBe(57);
+  });
+  it("short or ambiguous input -> null", () => {
+    expect(pickWilaya(rows, "In")).toBeNull();
+    expect(pickWilaya(rows, "Bordj")).toBeNull();
+    expect(pickWilaya(rows, "Ain")).toBeNull();
+    expect(pickWilaya(rows, "Algérie")).toBeNull();
+  });
+  it("southern loose matches", () => {
+    expect(pickWilaya(rows, "Béni Abbès, Algérie")).toBe(52);
+    expect(pickWilaya(rows, "In Salah")).toBe(53);
+    expect(pickWilaya(rows, "Timimoun")).toBe(49);
+    expect(pickWilaya(rows, "El Meniaa")).toBe(58);
+    expect(pickWilaya(rows, "Bordj Bou Arreridj, Algérie")).toBe(34);
+  });
   it("unknown or empty -> null", () => {
     expect(pickWilaya(rows, "Atlantis")).toBeNull();
     expect(pickWilaya(rows, "")).toBeNull();
