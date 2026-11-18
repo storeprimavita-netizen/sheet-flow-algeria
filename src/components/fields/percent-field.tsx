@@ -15,6 +15,17 @@ export function normalizePercent(text: string, max: number, decimals: number): s
   return String(Math.round(n * f) / f);
 }
 
+/** What blur must do: the normalised text AND the value to report, or null when nothing changed. */
+export function blurChange(
+  text: string,
+  max: number,
+  decimals: number,
+  nullable: boolean,
+): { text: string; value: number | null } | null {
+  const normalized = normalizePercent(text, max, decimals);
+  return normalized === text ? null : { text: normalized, value: parsePercentInput(normalized, nullable) };
+}
+
 /**
  * Percent input: `%` suffix, tabular, clamps to 0–`max` and rounds to
  * `decimals` on blur. Posts via `name`.
@@ -54,7 +65,11 @@ export function PercentField({
   const [value, setValue] = React.useState(defaultValue == null ? "" : String(defaultValue));
 
   function clamp() {
-    setValue(normalizePercent(value, max, decimals));
+    const change = blurChange(value, max, decimals, nullable);
+    if (change) {
+      setValue(change.text);
+      onChange?.(change.value);
+    }
   }
 
   return (

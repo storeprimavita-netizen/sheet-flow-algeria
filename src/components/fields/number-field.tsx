@@ -3,7 +3,9 @@
 import * as React from "react";
 
 export function parseNumberInput(text: string): number | null {
-  return text === "" || text === "." ? null : Number(text);
+  if (text === "" || text === ".") return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**

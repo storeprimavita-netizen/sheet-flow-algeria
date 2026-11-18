@@ -24,19 +24,19 @@ import {
 import type { PricingSettings, Rounding } from "@/lib/pricing-v2";
 import { MAX_MARKUP } from "@/lib/pricing-v2";
 
-/** Display-only unit suffix per field. */
-const UNIT: Partial<Record<FieldKey, string>> = {
-  officialRate: "DA",
-  parallelRate: "DA",
-  platformMonthlyUsd: "USD",
-  months: "×",
-  packaging: "DA",
-  confirmationFee: "DA",
-  otherPerOrder: "DA",
-  returnCost: "DA",
-  otherStockFees: "DA",
-  "adMultiplier.best": "×",
-  "adMultiplier.worst": "×",
+/** Display-only unit per field (message key under `unit.`). */
+const UNIT: Partial<Record<FieldKey, "dzd" | "usd" | "times">> = {
+  officialRate: "dzd",
+  parallelRate: "dzd",
+  platformMonthlyUsd: "usd",
+  months: "times",
+  packaging: "dzd",
+  confirmationFee: "dzd",
+  otherPerOrder: "dzd",
+  returnCost: "dzd",
+  otherStockFees: "dzd",
+  "adMultiplier.best": "times",
+  "adMultiplier.worst": "times",
 };
 
 export type FormUpdate = (fn: (f: PricingForm) => PricingForm) => void;
@@ -91,7 +91,7 @@ export function PricingFieldGroups({
               const dflt = defaultFor(f, defaults);
               const dfltText = f.pct ? `${dflt}%` : `${dflt}`;
               const value = form.values[f.key];
-              const overridden = override && value !== null && value !== dflt;
+              const overridden = override && value !== null;
               const set = (v: number | null) => update((cur) => ({ ...cur, values: { ...cur.values, [f.key]: v } }));
               const key = `${f.key}-${resetKey}-${gens[f.key] ?? 0}`;
               const common = {
@@ -133,7 +133,7 @@ export function PricingFieldGroups({
                     {f.pct ? (
                       <PercentField key={key} {...common} defaultValue={value} nullable decimals={2} max={100} />
                     ) : (
-                      <NumberField key={key} {...common} defaultValue={value} unit={UNIT[f.key]} />
+                      <NumberField key={key} {...common} defaultValue={value} unit={UNIT[f.key] ? t(`unit.${UNIT[f.key]}`) : undefined} />
                     )}
                   </div>
                   {err ? (
@@ -265,7 +265,7 @@ export function TargetEditor({
                 <NumberField
                   key={valueKey}
                   id={id}
-                  unit="DA"
+                  unit={t("unit.dzd")}
                   defaultValue={form.targetValue}
                   placeholder={dfltText}
                   invalid={!!err}

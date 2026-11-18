@@ -5,7 +5,7 @@ import { AlertTriangle, Minus, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Chip } from "@/components/ui/chip";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
-import { formatCurrency, formatPercent, formatUsd, ltr } from "@/lib/format";
+import { formatCurrency, formatInt, formatPercent, formatUsd, ltr } from "@/lib/format";
 import { breakEvenState, type BreakEvenKey } from "@/lib/pricing-form";
 import type { ScenarioName, ScenarioResult } from "@/lib/pricing-v2";
 
@@ -63,7 +63,7 @@ function format(v: number, fmt: Fmt): string {
     case "pct":
       return formatPercent(Math.round(v * 10) / 10);
     case "int":
-      return formatCurrency(Math.ceil(v)).replace(/ DA⁩$/, "⁩");
+      return formatInt(Math.ceil(v));
   }
 }
 

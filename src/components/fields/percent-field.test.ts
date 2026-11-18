@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizePercent, parsePercentInput } from "./percent-field";
+import { blurChange, normalizePercent, parsePercentInput } from "./percent-field";
 
 describe("PercentField helpers", () => {
   it("max above 100 is reachable (markup 150%, cap 1000%)", () => {
@@ -17,5 +17,11 @@ describe("PercentField helpers", () => {
     expect(parsePercentInput("", false)).toBe(0);
     expect(parsePercentInput("12.5", true)).toBe(12.5);
     expect(normalizePercent("", 100, 1)).toBe("");
+  });
+  it("blur reports the clamped/rounded value, not the typed one", () => {
+    expect(blurChange("120", 100, 1, false)).toEqual({ text: "100", value: 100 });
+    expect(blurChange("1500", 1000, 2, true)).toEqual({ text: "1000", value: 1000 });
+    expect(blurChange("33.333", 100, 2, false)).toEqual({ text: "33.33", value: 33.33 });
+    expect(blurChange("50", 100, 1, false)).toBeNull();
   });
 });

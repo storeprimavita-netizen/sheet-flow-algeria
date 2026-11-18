@@ -172,6 +172,14 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       .insert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } });
     expect(agentIns.error).not.toBeNull();
 
+    // keep whatever was saved before so the shared local DB is left as found
+    const { data: prev } = await admin
+      .from("settings")
+      .select("value")
+      .eq("workspace_id", workspaceId)
+      .eq("key", "pricing_defaults")
+      .maybeSingle();
+
     const ins = await adminUser
       .from("settings")
       .upsert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } }, { onConflict: "workspace_id,key" });
@@ -193,6 +201,11 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       .order("created_at", { ascending: false })
       .limit(1);
     expect((audit?.[0]?.old_row as { key?: string } | null)?.key).toBe("pricing_defaults");
+    if (prev) {
+      await admin
+        .from("settings")
+        .upsert({ workspace_id: workspaceId, key: "pricing_defaults", value: prev.value }, { onConflict: "workspace_id,key" });
+    }
   });
 
   test("agent select on audit_log returns 0 rows", async () => {

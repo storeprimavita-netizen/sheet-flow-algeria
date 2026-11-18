@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   countOverrides,
+  breakEvenState,
   formErrors,
   formFromOverrides,
   formFromSettings,
@@ -33,10 +34,14 @@ describe("percent in -> fraction stored", () => {
 });
 
 describe("overrides diff", () => {
-  it("empty -> inherit (not 0), equal-to-default not stored", () => {
+  it("empty -> inherit (not 0); a typed value equal to the default is pinned", () => {
     const f = blank();
     f.values.packaging = D.packaging;
-    expect(overridesFromForm(f, D)).toEqual({});
+    expect(overridesFromForm(f, D)).toEqual({ packaging: D.packaging });
+    // an existing override equal to the new default survives editing another field
+    const g = formFromOverrides({ share: D.share }, D);
+    g.values.packaging = 123;
+    expect(overridesFromForm(g, D)).toEqual({ share: D.share, packaging: 123 });
     expect(overridesFromForm(blank(), D)).toEqual({});
   });
   it("target value alone changed stores mode AND value together", () => {
@@ -177,5 +182,31 @@ describe("productPricingInputSchema", () => {
     expect(productPricingInputSchema.safeParse({ ...ok, finalPrice: 0 }).success).toBe(false);
     expect(productPricingInputSchema.safeParse({ ...ok, adMediumUsd: -1 }).success).toBe(false);
     expect(productPricingInputSchema.safeParse({ ...ok, overrides: { share: 2 } }).success).toBe(false);
+  });
+});
+
+describe("review 1 findings", () => {
+  it("target mode switched away from the default with no value is an error (product form)", () => {
+    const f = blank();
+    f.targetMode = "markup";
+    expect(formErrors(f, false, D.target.mode).target).toBe("required");
+    f.targetValue = 50;
+    expect(formErrors(f, false, D.target.mode).target).toBeUndefined();
+    expect(formErrors(blank(), false, D.target.mode).target).toBeUndefined();
+  });
+  it("sub-cent final price / ad cost refused at the boundary", () => {
+    const base = { productId: "11111111-1111-4111-8111-111111111111", overrides: {}, adBestUsd: null, adMediumUsd: 2.2, adWorstUsd: null, finalPrice: null };
+    expect(productPricingInputSchema.safeParse({ ...base, finalPrice: 0.004 }).success).toBe(false);
+    expect(productPricingInputSchema.safeParse({ ...base, adMediumUsd: 2.255 }).success).toBe(false);
+    expect(productPricingInputSchema.safeParse({ ...base, adMediumUsd: 2.25, finalPrice: 4500.5 }).success).toBe(true);
+  });
+  it("breakEvenState: platform fee >= 100% of price is impossible, not missing", () => {
+    const hi = { ...D, platformPct: 0.9, months: 0 };
+    const r = computeAll(hi, { stockCostDzd: 81600, quantity: 50, adCostUsd: { medium: 2.2 }, finalPrice: 4500 }).medium;
+    expect(r.k).toBeGreaterThanOrEqual(1);
+    {
+      expect(breakEvenState(r, "minSellingPrice")).toBe("impossible");
+      expect(breakEvenState(r, "minConfirmation")).toBe("impossible");
+    }
   });
 });

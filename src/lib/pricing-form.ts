@@ -179,9 +179,10 @@ export type FormErrors = Partial<Record<FieldKey | "target", "required" | "range
 
 /**
  * Per-field problems. `requireAll` (workspace settings): empty is an error.
- * Otherwise (product overrides): empty = inherit, only typed values are checked.
+ * Otherwise (product overrides): empty = inherit, only typed values are checked;
+ * a target mode different from `defaultMode` needs a value.
  */
-export function formErrors(form: PricingForm, requireAll: boolean): FormErrors {
+export function formErrors(form: PricingForm, requireAll: boolean, defaultMode?: TargetMode): FormErrors {
   const errors: FormErrors = {};
   for (const f of PRICING_FIELDS) {
     const v = form.values[f.key];
@@ -193,6 +194,7 @@ export function formErrors(form: PricingForm, requireAll: boolean): FormErrors {
     if (requireAll) errors.target = "required";
   } else if (!targetValueValid(form.targetMode, targetToStored(form.targetMode, form.targetValue))) errors.target = "range";
   if (requireAll && form.rounding === null) errors.target ??= "required";
+  if (!requireAll && form.targetValue === null && defaultMode !== undefined && form.targetMode !== defaultMode) errors.target = "required";
   return errors;
 }
 
@@ -206,24 +208,24 @@ export function settingsFromForm(form: PricingForm): PricingSettings {
 
 /**
  * Product form -> sparse overrides vs the current workspace defaults.
- * Empty fields inherit; values equal to the default are not stored. `target` is
- * ONE unit (D52): stored as {mode, value} whenever either differs from the
- * default, never value alone.
+ * Empty fields inherit; every typed value is stored as an override even when it
+ * equals the current default (it is pinned until the field's reset empties it).
+ * `target` is ONE unit (D52): stored as {mode, value} whenever the mode differs
+ * from the default or a value is typed, never value alone.
  */
 export function overridesFromForm(form: PricingForm, defaults: PricingSettings): DeepPartial<PricingSettings> {
   const out: Bag = {};
   for (const f of PRICING_FIELDS) {
     const shown = form.values[f.key];
     if (shown === null) continue;
-    const stored = toStored(f, shown);
-    if (stored !== getAt(defaults, f.key)) setAt(out, f.key, stored);
+    setAt(out, f.key, toStored(f, shown));
   }
   const value = form.targetValue === null ? null : targetToStored(form.targetMode, form.targetValue);
   const modeDiffers = form.targetMode !== defaults.target.mode;
-  if (modeDiffers || (value !== null && value !== defaults.target.value)) {
+  if (modeDiffers || value !== null) {
     out.target = { mode: form.targetMode, value };
   }
-  if (form.rounding !== null && form.rounding !== defaults.rounding) out.rounding = form.rounding;
+  if (form.rounding !== null) out.rounding = form.rounding;
   return out as DeepPartial<PricingSettings>;
 }
 
@@ -317,10 +319,10 @@ export const MAX_FINAL_PRICE = 9_999_999_999.99;
 export const productPricingInputSchema = z.object({
   productId: z.uuid(),
   overrides: pricingOverridesSchema,
-  adBestUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
-  adMediumUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
-  adWorstUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
-  finalPrice: z.number().gt(0).max(MAX_FINAL_PRICE).nullable(),
+  adBestUsd: z.number().min(0).max(MAX_AD_USD).multipleOf(0.01).nullable(),
+  adMediumUsd: z.number().min(0).max(MAX_AD_USD).multipleOf(0.01).nullable(),
+  adWorstUsd: z.number().min(0).max(MAX_AD_USD).multipleOf(0.01).nullable(),
+  finalPrice: z.number().gt(0).max(MAX_FINAL_PRICE).multipleOf(0.01).nullable(),
 });
 
 // ---------- lenient read (DB -> engine) ----------
@@ -368,7 +370,7 @@ export type BreakEvenKey = keyof ScenarioResult["breakEven"];
  */
 export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | "missing" | "impossible" {
   if (r.breakEven[key] !== null) return "value";
-  if (key === "minSellingPrice") return "missing";
   const complete = r.finalPrice !== null && r.totalCost !== null && r.adCostPerDeliveredUsd !== null;
-  return complete ? "impossible" : "missing";
+  if (complete || (r.totalCost !== null && r.k !== null && r.k >= 1)) return "impossible";
+  return "missing";
 }

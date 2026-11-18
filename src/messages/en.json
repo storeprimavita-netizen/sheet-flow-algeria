@@ -950,7 +950,11 @@
   },
   "pricingV2": {
     "title": "Pricing",
-    "scenario": { "best": "Best", "medium": "Medium", "worst": "Worst" },
+    "scenario": {
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
     "missing": "Missing input",
     "notPossible": "Not possible",
     "notPossibleHint": "The price cannot cover the costs at any value of this input.",
@@ -977,9 +981,20 @@
       "returnCost": "Return cost (DA / returned order)",
       "otherStockFees": "Other stock fees (DA, total)",
       "deadPct": "Dead stock",
-      "confirmPct": { "best": "Confirmation, best", "medium": "Confirmation, medium", "worst": "Confirmation, worst" },
-      "deliveryPct": { "best": "Delivery, best", "medium": "Delivery, medium", "worst": "Delivery, worst" },
-      "adMultiplier": { "best": "Ad cost multiplier, best", "worst": "Ad cost multiplier, worst" }
+      "confirmPct": {
+        "best": "Confirmation, best",
+        "medium": "Confirmation, medium",
+        "worst": "Confirmation, worst"
+      },
+      "deliveryPct": {
+        "best": "Delivery, best",
+        "medium": "Delivery, medium",
+        "worst": "Delivery, worst"
+      },
+      "adMultiplier": {
+        "best": "Ad cost multiplier, best",
+        "worst": "Ad cost multiplier, worst"
+      }
     },
     "target": {
       "label": "Profit target",
@@ -1051,7 +1066,8 @@
       "emptyAction": "Set stock cost",
       "errorTitle": "The pricing could not load",
       "belowBreakEven": "Below break-even in {scenarios}: at the final price this product loses money.",
-      "table": "Pricing results by scenario"
+      "table": "Pricing results by scenario",
+      "quantityInvalid": "Enter a whole number from 0 to 1,000,000."
     },
     "rows": {
       "groupAds": "Ads",
@@ -1072,6 +1088,11 @@
       "minDelivery": "Minimum delivery rate",
       "maxAdCostUsd": "Maximum ad cost / order (USD)",
       "minSellingPrice": "Minimum selling price"
+    },
+    "unit": {
+      "dzd": "DA",
+      "usd": "USD",
+      "times": "×"
     }
   },
   "errorPage": {
@@ -1080,5 +1101,8 @@
     "retry": "Try again",
     "ref": "Reference"
   },
-  "audit": { "redactedPill": "Redacted", "redacted": "Secret value hidden; the code identifies the value without revealing it" }
+  "audit": {
+    "redactedPill": "Redacted",
+    "redacted": "Secret value hidden; the code identifies the value without revealing it"
+  }
 }

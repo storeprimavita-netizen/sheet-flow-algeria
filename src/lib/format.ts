@@ -13,6 +13,13 @@ export function formatCurrency(
   return ltr(`${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`);
 }
 
+/** Whole number, space-grouped, no unit, isolated for RTL: `135 900`. */
+export function formatInt(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const n = Math.round(value) || 0;
+  return ltr(n.toLocaleString("en-US").replace(/,/g, NBSP));
+}
+
 /** US dollars, comma-grouped, isolated for RTL: `$1,234` (whole) or `$2.20` with `{ decimals: 2 }`. */
 export function formatUsd(value: number | string | null | undefined, opts: { decimals?: number } = {}): string {
   if (value === null || value === undefined || value === "") return "—";

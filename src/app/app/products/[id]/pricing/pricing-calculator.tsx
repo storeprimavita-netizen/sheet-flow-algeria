@@ -46,6 +46,8 @@ type Draft = {
 };
 
 const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD);
+export const MAX_QUANTITY = 1_000_000;
+const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
 const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE);
 
 export function PricingCalculator({
@@ -75,10 +77,11 @@ export function PricingCalculator({
   const [baseline, setBaseline] = React.useState(() => JSON.stringify(draft));
   const [pending, startTransition] = React.useTransition();
 
-  const errors = formErrors(draft.form, false);
+  const errors = formErrors(draft.form, false, defaults.target.mode);
   const priceErr = !priceOk(draft.finalPrice);
+  const qtyErr = !qtyOk(draft.quantity);
   const adErr = { best: !adOk(draft.adBest), medium: !adOk(draft.adMedium), worst: !adOk(draft.adWorst) };
-  const valid = Object.keys(errors).length === 0 && !priceErr && !adErr.best && !adErr.medium && !adErr.worst;
+  const valid = Object.keys(errors).length === 0 && !priceErr && !qtyErr && !adErr.best && !adErr.medium && !adErr.worst;
   const dirty = JSON.stringify(draft) !== baseline;
 
   const overrides = React.useMemo(() => overridesFromForm(draft.form, defaults), [draft.form, defaults]);
@@ -141,7 +144,7 @@ export function PricingCalculator({
     <Field label={label} htmlFor={`pp-${key}`}>
       <NumberField
         id={`pp-${key}`}
-        unit="USD"
+        unit={t("unit.usd")}
         defaultValue={draft[key]}
         placeholder={hint}
         invalid={adErr[key.slice(2).toLowerCase() as "best" | "medium" | "worst"]}
@@ -161,10 +164,12 @@ export function PricingCalculator({
             <NumberField
               id="pp-quantity"
               defaultValue={stock}
+              invalid={qtyErr}
               describedBy="pp-quantity-hint"
-              onChange={(v) => set("quantity", v === null ? null : Math.floor(v))}
+              onChange={(v) => set("quantity", v)}
             />
             <p id="pp-quantity-hint" className="mt-1 text-xs text-muted-foreground">
+              {qtyErr ? <span className="text-destructive">{t("product.quantityInvalid")} </span> : null}
               {t("product.quantityHint")}
             </p>
           </Field>
@@ -181,7 +186,7 @@ export function PricingCalculator({
           <Field label={t("product.finalPrice")} htmlFor="pp-final">
             <NumberField
               id="pp-final"
-              unit="DA"
+              unit={t("unit.dzd")}
               defaultValue={draft.finalPrice}
               placeholder={salePrice === null ? undefined : String(salePrice)}
               invalid={priceErr}
