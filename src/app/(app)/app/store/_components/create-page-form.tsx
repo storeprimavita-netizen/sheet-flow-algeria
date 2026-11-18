@@ -27,7 +27,7 @@ export function CreatePageForm({ storeId, products }: { storeId: string; product
         toast.success(t("pages.create"));
         router.push(`/app/store/pages/${r.id}`);
       } else {
-        setError(r.error === "slug_taken" ? t("editor.errSlugTaken") : r.error === "invalid" ? t("editor.errInvalid") : t("editor.errFailed"));
+        setError(r.error === "slug_taken" ? t("editor.errSlugTaken") : r.error === "product_taken" ? t("editor.errProductTaken") : r.error === "invalid" ? t("editor.errInvalid") : t("editor.errFailed"));
       }
     });
   }

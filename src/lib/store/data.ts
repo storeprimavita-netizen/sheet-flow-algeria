@@ -41,15 +41,16 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
   const p = slugSchema.safeParse(pageSlug);
   if (!s.success || !p.success) return null;
 
-  const { data: store } = await db
+  const { data: store, error: storeErr } = await db
     .from("stores")
     .select("id, workspace_id, slug, name, status, theme, settings")
     .eq("slug", s.data)
     .eq("status", "live")
     .maybeSingle();
+  if (storeErr) throw new Error(`store lookup failed: ${storeErr.message}`);
   if (!store) return null;
 
-  const { data: page } = await db
+  const { data: page, error: pageErr } = await db
     .from("store_pages")
     .select("id, workspace_id, store_id, product_id, slug, title, blocks, seo")
     .eq("store_id", store.id)
@@ -57,15 +58,17 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
     .eq("status", "published")
     .eq("kind", "product")
     .maybeSingle();
+  if (pageErr) throw new Error(`page lookup failed: ${pageErr.message}`);
   if (!page || !page.product_id || page.workspace_id !== store.workspace_id) return null;
 
-  const { data: product } = await db
+  const { data: product, error: productErr } = await db
     .from("products")
     .select("id, workspace_id, name, sale_price, images, is_active")
     .eq("id", page.product_id)
     .eq("is_active", true)
     .not("sale_price", "is", null)
     .maybeSingle();
+  if (productErr) throw new Error(`product lookup failed: ${productErr.message}`);
   if (!product || product.workspace_id !== store.workspace_id || product.sale_price === null) return null;
 
   return assembleProductPage(db, store, page, product);
@@ -76,7 +79,7 @@ type PageRow = Pick<Database["public"]["Tables"]["store_pages"]["Row"], "slug" |
 type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "images">;
 
 /** Shared by the public page and the admin preview: the same DTO either way, so a preview shows what a visitor will see. */
-export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow, product: ProductRow): Promise<PublicProductPage> {
+export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow & { id?: string }, product: ProductRow): Promise<PublicProductPage> {
   const blocks = blocksSchema.safeParse(page.blocks);
   const seo = seoSchema.safeParse(page.seo);
   const settings = publicSettingsSchema.safeParse(store.settings);
@@ -84,7 +87,7 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
 
   const [variants, related] = await Promise.all([
     loadVariants(db, product.id),
-    loadRelated(db, store.id, store.workspace_id, blocks.success ? blocks.data : []),
+    loadRelated(db, store.id, store.workspace_id, blocks.success ? blocks.data : [], page.id),
   ]);
 
   return {
@@ -118,6 +121,8 @@ async function loadVariants(db: Db, productId: string): Promise<PublicVariant[]>
     db.from("product_variants").select("id, stock").eq("product_id", productId).eq("is_active", true),
     db.from("product_variant_values").select("variant_id, option_id, value_id").eq("product_id", productId),
   ]);
+  const failed = [opts, vals, vars, joins].find((r) => r.error);
+  if (failed?.error) throw new Error(`variants lookup failed: ${failed.error.message}`);
   const pos = new Map((opts.data ?? []).map((o) => [o.id, o.position]));
   const label = new Map((vals.data ?? []).map((v) => [v.id, v.label]));
   return (vars.data ?? []).flatMap((v) => {
@@ -130,10 +135,10 @@ async function loadVariants(db: Db, productId: string): Promise<PublicVariant[]>
   });
 }
 
-async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks: Block[]): Promise<PublicRelated[]> {
-  const ids = blocks.flatMap((b) => (b.type === "related" ? b.pageIds : [])).slice(0, 6);
+async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks: Block[], selfId?: string): Promise<PublicRelated[]> {
+  const ids = blocks.flatMap((b) => (b.type === "related" ? b.pageIds : [])).filter((id) => id !== selfId).slice(0, 6);
   if (!ids.length) return [];
-  const { data: pages } = await db
+  const { data: pages, error: pagesErr } = await db
     .from("store_pages")
     .select("id, slug, title, product_id")
     .in("id", ids)
@@ -141,27 +146,43 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
     .eq("workspace_id", workspaceId)
     .eq("status", "published")
     .eq("kind", "product");
+  if (pagesErr) throw new Error(`related lookup failed: ${pagesErr.message}`);
   const productIds = (pages ?? []).flatMap((p) => (p.product_id ? [p.product_id] : []));
   if (!productIds.length) return [];
-  const { data: products } = await db
+  const { data: products, error: productsErr } = await db
     .from("products")
     .select("id, name, sale_price, images")
     .in("id", productIds)
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
     .not("sale_price", "is", null);
+  if (productsErr) throw new Error(`related products lookup failed: ${productsErr.message}`);
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
-  return (pages ?? []).flatMap((pg) => {
+  const order = new Map(ids.map((id, i) => [id, i]));
+  const ordered = [...(pages ?? [])].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  return ordered.flatMap((pg) => {
     const pr = pg.product_id ? byId.get(pg.product_id) : undefined;
     if (!pr || pr.sale_price === null) return [];
     return [{ slug: pg.slug, title: stripEmoji(pr.name) || pg.title, image: (pr.images ?? []).find(isHttps) ?? null, price: Number(pr.sale_price) }];
   });
 }
 
+/** Live store slugs, cached once: random /s/<unknown>/<x> URLs 404 here without a per-URL cache entry or query. */
+const liveStoreSlugs = unstable_cache(
+  async (): Promise<string[]> => {
+    const { data, error } = await (await createAdminClient()).from("stores").select("slug").eq("status", "live");
+    if (error) throw new Error(`live stores lookup failed: ${error.message}`);
+    return (data ?? []).map((r) => r.slug.toLowerCase());
+  },
+  ["store-live-slugs"],
+  { tags: ["store-public"], revalidate: PUBLIC_REVALIDATE_S },
+);
+
 /** Cached for 120 s (covers trigger-driven stock); every mutation also calls updateTag('store-public'). */
 export async function getPublicProductPage(storeSlug: string, pageSlug: string): Promise<PublicProductPage | null> {
   // bad slugs never reach the cache or the database
   if (!storeSlugSchema.safeParse(storeSlug).success || !slugSchema.safeParse(pageSlug).success) return null;
+  if (!(await liveStoreSlugs()).includes(storeSlug.toLowerCase())) return null;
   const run = unstable_cache(
     async () => loadPublicProductPage(await createAdminClient(), storeSlug, pageSlug),
     ["store-page", storeSlug, pageSlug],

@@ -11,11 +11,11 @@ import { slugSchema, storeSlugSchema } from "@/lib/store/url";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
-export type StoreResult = { ok: true; id?: string } | { ok: false; error: "invalid" | "slug_taken" | "exists" | "needs_product" | "forbidden" | "failed" };
+export type StoreResult = { ok: true; id?: string } | { ok: false; error: "invalid" | "slug_taken" | "product_taken" | "exists" | "needs_product" | "forbidden" | "failed" };
 
 const fail = (error: Extract<StoreResult, { ok: false }>["error"]): StoreResult => ({ ok: false, error });
 const dbFail = (e: { code?: string; message: string }): StoreResult =>
-  e.code === "23505" ? fail("slug_taken") : e.message.includes("violates check constraint") ? fail("needs_product") : fail("failed");
+  e.code === "23505" ? fail(e.message.includes("product_id") ? "product_taken" : "slug_taken") : e.message.includes("violates check constraint") ? fail("needs_product") : fail("failed");
 
 const name = z.string().trim().min(1).max(80);
 const uuid = z.uuid();
@@ -41,6 +41,12 @@ export async function createStore(formData: FormData): Promise<StoreResult> {
     .select("id")
     .single();
   if (error) return dbFail(error);
+  // two quick requests can both pass the check above: the oldest store wins, the loser removes its own row
+  const { data: all } = await supabase.from("stores").select("id").eq("workspace_id", workspaceId).order("created_at").order("id");
+  if (all && all.length > 1 && all[0].id !== data.id) {
+    await supabase.from("stores").delete().eq("id", data.id);
+    return fail("exists");
+  }
   done();
   return { ok: true, id: data.id };
 }

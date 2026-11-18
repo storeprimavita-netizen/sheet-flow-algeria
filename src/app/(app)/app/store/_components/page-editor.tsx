@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/button-link";
 import { Field } from "@/components/field";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,13 +21,13 @@ import { linkPageProduct, publishPage, savePage, unpublishPage, type StoreResult
 type Row = { id: string; block: Block };
 type Seo = { title: string; description: string; image: string };
 type Props = {
-  page: { id: string; title: string; slug: string; status: string; productId: string | null; blocks: Block[]; seo: Partial<Seo> };
+  page: { id: string; title: string; slug: string; status: string; productId: string | null; productOk: boolean; blocks: Block[]; seo: Partial<Seo> };
   store: { slug: string; status: string };
   products: { id: string; name: string }[];
 };
 
-const rid = () => crypto.randomUUID();
-const toRows = (blocks: Block[]): Row[] => blocks.map((block) => ({ id: rid(), block }));
+// deterministic ids: identical on server and client, so hydration matches
+const toRows = (blocks: Block[]): Row[] => blocks.map((block, i) => ({ id: `r${i}`, block }));
 const toSeo = (s: Props["page"]["seo"]): Seo => ({ title: s.title ?? "", description: s.description ?? "", image: s.image ?? "" });
 const cleanSeo = (s: Seo) => Object.fromEntries(Object.entries(s).filter(([, v]) => v.trim() !== "")) as Partial<Seo>;
 const snapshot = (title: string, slug: string, rows: Row[], seo: Seo) => JSON.stringify({ title, slug, blocks: rows.map((r) => r.block), seo });
@@ -45,6 +46,8 @@ export function PageEditor({ page, store, products }: Props) {
   const [status, setStatus] = useState(page.status);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState("");
+  const nextId = useRef(page.blocks.length);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const focusRef = useRef<{ id: string; dir: "up" | "down" } | null>(null);
 
   const dirty = useMemo(() => snapshot(title, slug, rows, seo) !== saved, [title, slug, rows, seo, saved]);
@@ -65,7 +68,7 @@ export function PageEditor({ page, store, products }: Props) {
   }, [rows]);
 
   const errMsg = (r: Extract<StoreResult, { ok: false }>) =>
-    r.error === "slug_taken" ? t("errSlugTaken") : r.error === "invalid" ? t("errInvalid") : r.error === "needs_product" ? t("errNeedsProduct") : t("errFailed");
+    r.error === "slug_taken" ? t("errSlugTaken") : r.error === "product_taken" ? t("errProductTaken") : r.error === "invalid" ? t("errInvalid") : r.error === "needs_product" ? t("errNeedsProduct") : t("errFailed");
 
   function move(i: number, d: -1 | 1) {
     const j = i + d;
@@ -80,7 +83,7 @@ export function PageEditor({ page, store, products }: Props) {
   const add = (type: Block["type"]) => {
     const block: Block =
       type === "heading" ? { type, text: "" } : type === "text" ? { type, text: "" } : type === "image" ? { type, url: "", alt: "" } : { type: "list", items: [""] };
-    setRows((rs) => [...rs, { id: rid(), block }]);
+    setRows((rs) => [...rs, { id: `r${nextId.current++}`, block }]);
   };
 
   function save() {
@@ -99,7 +102,7 @@ export function PageEditor({ page, store, products }: Props) {
   }
 
   function togglePublish() {
-    if (status === "published" && !window.confirm(`${t("unpublishTitle")}\n${t("unpublishBody")}`)) return;
+    setConfirmOpen(false);
     start(async () => {
       const r = status === "published" ? await unpublishPage(page.id) : await publishPage(page.id);
       if (r.ok) {
@@ -120,7 +123,7 @@ export function PageEditor({ page, store, products }: Props) {
   }
 
   const published = status === "published";
-  const publishReason = !page.productId ? t("publishNeedsProduct") : dirty ? t("publishNeedsSave") : null;
+  const publishReason = !page.productId ? t("publishNeedsProduct") : !page.productOk ? t("publishProductNotReady") : dirty ? t("publishNeedsSave") : null;
   const liveReason = store.status !== "live" ? t("viewLiveDisabledStore") : !published ? t("viewLiveDisabledPage") : null;
   const lockedRow = (label: string) => (
     <li className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
@@ -157,7 +160,7 @@ export function PageEditor({ page, store, products }: Props) {
             </ButtonLink>
           )}
           <span title={publishReason ?? undefined}>
-            <Button type="button" variant={published ? "outline" : "default"} size="sm" disabled={pending || (!published && publishReason !== null)} onClick={togglePublish}>
+            <Button type="button" variant={published ? "outline" : "default"} size="sm" disabled={pending || (!published && publishReason !== null)} onClick={published ? () => setConfirmOpen(true) : togglePublish}>
               {published ? t("unpublish") : t("publish")}
             </Button>
           </span>
@@ -187,6 +190,7 @@ export function PageEditor({ page, store, products }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <Combobox
               className="min-w-64"
+              ariaLabel={t("product")}
               value={page.productId ?? ""}
               onChange={(v) => link(v)}
               options={products.map((p) => ({ value: p.id, label: p.name }))}
@@ -287,6 +291,22 @@ export function PageEditor({ page, store, products }: Props) {
           </Field>
         </div>
       </section>
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("unpublishTitle")}</DialogTitle>
+            <DialogDescription>{t("unpublishBody")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+              {t("cancel")}
+            </Button>
+            <Button type="button" onClick={togglePublish} disabled={pending}>
+              {t("unpublish")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

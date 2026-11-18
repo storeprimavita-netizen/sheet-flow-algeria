@@ -22,10 +22,11 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
   if (!page || !store) notFound();
 
   const [{ data: products }, { data: used }] = await Promise.all([
-    supabase.from("products").select("id, name").order("name"),
+    supabase.from("products").select("id, name, is_active, sale_price").order("name"),
     supabase.from("store_pages").select("product_id").eq("store_id", store.id).neq("id", id),
   ]);
   const taken = new Set((used ?? []).map((u) => u.product_id));
+  const linked = (products ?? []).find((p) => p.id === page.product_id);
   const blocks = blocksSchema.safeParse(page.blocks);
   const seo = seoSchema.safeParse(page.seo);
 
@@ -43,11 +44,12 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
           slug: page.slug,
           status: page.status,
           productId: page.product_id,
+          productOk: !!linked && linked.is_active && linked.sale_price !== null,
           blocks: blocks.success ? blocks.data : [],
           seo: seo.success ? seo.data : {},
         }}
         store={{ slug: store.slug, status: store.status }}
-        products={(products ?? []).filter((p) => !taken.has(p.id))}
+        products={(products ?? []).filter((p) => !taken.has(p.id)).map((p) => ({ id: p.id, name: p.name }))}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
 import { getProfile, isCurrentUserAdmin, requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { upsertCustomerFromOrder } from "@/lib/customers";
+import { markStorePublicStale } from "@/lib/store/invalidate";
 import { getZRCredentials, getZRParcel, zrErrorMessage } from "@/lib/integrations/zrexpress";
 import { applyZRParcelState } from "@/lib/integrations/zrexpress-webhook";
 import { hubsForOrder, pushToZR } from "@/lib/integrations/zrexpress-push";
@@ -52,6 +53,7 @@ export async function updateOrderStatus(params: {
     p_confirmation_comment: stage === "confirmation" ? comment || undefined : undefined,
   });
   if (error) return { ok: false, error: error.message };
+  markStorePublicStale(); // order status moves stock, which the public page shows
 
   // ⚡ Auto-push to ZR on confirm (Settings → ZR Express, default off). Runs
   // with the service role: the confirming agent can't read the ZR API key
@@ -257,6 +259,7 @@ export async function bulkTransition(
     const { error } = await supabase.rpc("transition_order_status", { p_order_id: id, [key]: value });
     if (error) return { ok: false, error: error.message };
   }
+  markStorePublicStale();
   revalidatePath("/app/orders/all");
   return { ok: true };
 }
@@ -294,6 +297,7 @@ export async function updateDeliveryStatus(orderId: string, formData: FormData) 
     p_delivery_status: input.status,
   });
   if (error) throw new Error(error.message);
+  markStorePublicStale();
   revalidatePath("/app/orders/delivery");
   revalidatePath(`/app/orders/${orderId}`);
 }
@@ -492,6 +496,7 @@ export async function swapOrder(orderId: string, formData: FormData) {
     if (custErr) throw new Error(custErr.message);
   }
 
+  markStorePublicStale();
   revalidatePath("/app/orders");
   redirect(`/app/orders/${newOrderId}`);
 }

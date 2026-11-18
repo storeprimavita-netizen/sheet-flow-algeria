@@ -37,6 +37,7 @@ export function Combobox({
   disabled,
   disabledReason,
   className,
+  ariaLabel,
   onCreate,
   createLabel = (q) => `Create "${q}"`,
 }: {
@@ -50,6 +51,7 @@ export function Combobox({
   disabled?: boolean;
   disabledReason?: string;
   className?: string;
+  ariaLabel?: string;
   onCreate?: (label: string) => void;
   createLabel?: (query: string) => string;
 }) {
@@ -73,6 +75,7 @@ export function Combobox({
       {name ? <input type="hidden" name={name} value={current} /> : null}
       <PopoverTrigger
         disabled={disabled}
+        aria-label={ariaLabel}
         title={disabled ? disabledReason : undefined}
         className={cn(
           "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",

@@ -1,5 +1,6 @@
 import { getZRCredentials, getZRParcel } from "@/lib/integrations/zrexpress";
 import { applyZRParcelState } from "@/lib/integrations/zrexpress-webhook";
+import { markStorePublicStale } from "@/lib/store/invalidate";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonResponse } from "@/lib/utils";
@@ -69,5 +70,6 @@ export async function GET(req: Request): Promise<Response> {
       failed++; // one bad workspace must not stop the others
     }
   }
+  if (polled > 0) markStorePublicStale();
   return jsonResponse({ ok: true, polled, failed }, 200);
 }
