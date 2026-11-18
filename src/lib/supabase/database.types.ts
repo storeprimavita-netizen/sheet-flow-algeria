@@ -1516,6 +1516,9 @@ isOneToOne: false
 "pnl_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
                            },
+"save_variant_config":
+{ Args: { "p_config": Json,"p_product": string }; Returns: undefined
+                           },
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined
                            },
