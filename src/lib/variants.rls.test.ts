@@ -1,0 +1,501 @@
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+
+import { deleteWorkspaces } from "@/lib/test-cleanup";
+
+/** Live STORE-1 checks (D54): options, values, variants, stock per size, count by size. */
+const URL = process.env.LOCAL_SUPABASE_URL;
+const ANON_KEY =
+  process.env.LOCAL_SUPABASE_ANON_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+const SERVICE_KEY =
+  process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const SEED_PASSWORD = "SeedDev!2026";
+
+const psql = (sql: string) =>
+  execFileSync("docker", ["exec", "-i", "supabase_db_mnw-erp", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"], {
+    input: sql,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+async function signIn(email: string) {
+  const c = client(ANON_KEY);
+  const { error } = await c.auth.signInWithPassword({ email, password: SEED_PASSWORD });
+  if (error) throw new Error(`sign in ${email}: ${error.message}`);
+  return c;
+}
+
+describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
+  let svc: SupabaseClient;
+  let anon: SupabaseClient;
+  let adminUser: SupabaseClient;
+  let confAgent: SupabaseClient;
+  let ws: string;
+  let ws2: string;
+  const users: string[] = [];
+  const tag = () => `v-${crypto.randomUUID()}`;
+
+  async function userIn(workspace: string, role: "admin" | "confirmation_agent") {
+    const email = `st1-${role}-${crypto.randomUUID()}@test.mnw`;
+    const { data, error } = await svc.auth.admin.createUser({ email, password: SEED_PASSWORD, email_confirm: true });
+    if (error) throw error;
+    users.push(data.user.id);
+    const up = await svc.from("profiles").update({ workspace_id: workspace, role, is_active: true }).eq("user_id", data.user.id);
+    expect(up.error).toBeNull();
+    return signIn(email);
+  }
+
+  /** product + option "Size" + one value and one variant per label */
+  async function product(labels: string[] = ["S", "M", "L"], workspace = ws) {
+    const p = (await svc.from("products").insert({ workspace_id: workspace, name: tag() }).select("id").single()).data!.id as string;
+    const o = (await svc.from("product_options").insert({ workspace_id: workspace, product_id: p, name: "Size" }).select("id").single()).data!.id as string;
+    const values: Record<string, string> = {};
+    const variants: Record<string, string> = {};
+    for (const [i, label] of labels.entries()) {
+      const v = await svc.from("product_option_values").insert({ workspace_id: workspace, product_id: p, option_id: o, label, position: i }).select("id").single();
+      expect(v.error).toBeNull();
+      values[label] = v.data!.id;
+      const x = await svc.from("product_variants").insert({ workspace_id: workspace, product_id: p }).select("id").single();
+      expect(x.error).toBeNull();
+      variants[label] = x.data!.id;
+      const j = await svc.from("product_variant_values").insert({ variant_id: x.data!.id, option_id: o, value_id: v.data!.id, product_id: p, workspace_id: workspace });
+      expect(j.error).toBeNull();
+    }
+    return { p, o, values, variants };
+  }
+  async function order(p: string, variantId: string | null, over: Record<string, unknown> = {}, workspace = ws) {
+    const r = await svc
+      .from("orders")
+      .insert({ workspace_id: workspace, product_id: p, variant_id: variantId, quantity: 2, confirmation_status: "confirmed", ...over })
+      .select("id")
+      .single();
+    expect(r.error).toBeNull();
+    return r.data!.id as string;
+  }
+  const status = async (id: string, delivery_status: string) => expect((await svc.from("orders").update({ delivery_status }).eq("id", id)).error).toBeNull();
+  const vstock = async (v: string) => (await svc.from("product_variants").select("stock").eq("id", v).single()).data!.stock as number;
+  const pstock = async (p: string) => (await svc.from("products").select("stock").eq("id", p).single()).data!.stock as number;
+  const buy = (p: string, delta: number, variant_id: string | null = null) =>
+    svc.from("stock_movements").insert({ workspace_id: ws, product_id: p, variant_id, delta, reason: "purchase" });
+  const moves = async (id: string) =>
+    ((await svc.from("stock_movements").select("delta, reason, variant_id").eq("order_id", id).order("created_at")).data ?? []) as { delta: number; reason: string; variant_id: string | null }[];
+
+  beforeAll(async () => {
+    svc = client(SERVICE_KEY);
+    anon = client(ANON_KEY);
+    ws = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
+    ws2 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
+    adminUser = await userIn(ws, "admin");
+    confAgent = await userIn(ws, "confirmation_agent");
+  });
+  afterAll(async () => {
+    if (!svc) return;
+    const wss = [ws, ws2].filter(Boolean);
+    await svc.from("product_variant_values").delete().in("workspace_id", wss);
+    for (const t of ["product_option_values", "product_options", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
+      await svc.from(t).delete().in("workspace_id", wss);
+    }
+    expect((await deleteWorkspaces(svc, wss)).error).toBeNull();
+    for (const id of users) await svc.auth.admin.deleteUser(id);
+  });
+
+  // ---- access -------------------------------------------------------------
+  test("agent reads but cannot write options, values, variants; no cost field; anon has no grant", async () => {
+    const { p, o, values, variants } = await product();
+    for (const table of ["product_options", "product_option_values", "product_variants", "product_variant_values"] as const) {
+      const r = await confAgent.from(table).select("*").eq("product_id", p);
+      expect(r.error).toBeNull();
+      expect(r.data!.length).toBeGreaterThan(0);
+      expect(Object.keys(r.data![0]).filter((k) => /cost|price|margin|profit/i.test(k))).toEqual([]);
+      expect((await anon.from(table).select("*")).error).not.toBeNull();
+    }
+    expect((await confAgent.from("product_options").insert({ workspace_id: ws, product_id: p, name: "X" })).error).not.toBeNull();
+    expect((await confAgent.from("product_option_values").insert({ workspace_id: ws, product_id: p, option_id: o, label: "Q" })).error).not.toBeNull();
+    expect((await confAgent.from("product_variants").insert({ workspace_id: ws, product_id: p })).error).not.toBeNull();
+    const upd = await confAgent.from("product_variants").update({ sku: "hack" }).eq("id", variants.S).select("id");
+    expect(upd.data ?? []).toEqual([]);
+    const del = await confAgent.from("product_option_values").delete().eq("id", values.S).select("id");
+    expect(del.data ?? []).toEqual([]);
+    expect((await adminUser.from("product_variants").update({ sku: "ok" }).eq("id", variants.S).select("id")).data).toHaveLength(1);
+  });
+
+  test("no function added by this task is executable by anon", () => {
+    const out = psql(`select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname in ('variant_label','orders_variant_label','product_id_immutable',
+        'product_variants_stock_guard','product_variant_values_unique_set','stock_count_variants')
+      and has_function_privilege('anon', p.oid, 'execute')`);
+    expect(out.trim()).toBe("");
+  });
+
+  // ---- integrity ----------------------------------------------------------
+  test("a join row to a value of another product or workspace is refused; one value per option; duplicate value sets refused", async () => {
+    const a = await product(["S", "M"]);
+    const b = await product(["S", "M"]);
+    const c = await product(["S"], ws2);
+    const extra = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: a.p }).select("id").single()).data!.id as string;
+    const bad = (value_id: string, product_id = a.p, workspace_id = ws) =>
+      svc.from("product_variant_values").insert({ variant_id: extra, option_id: a.o, value_id, product_id, workspace_id });
+    expect((await bad(b.values.S)).error).not.toBeNull(); // value of another product
+    expect((await bad(c.values.S)).error).not.toBeNull(); // value of another workspace
+    expect((await bad(a.values.S, a.p, ws2)).error).not.toBeNull(); // workspace mismatch
+    expect((await bad(a.values.S)).error?.message).toMatch(/already has these values/); // same set as variant S
+    expect((await bad(a.values.M)).error?.message).toMatch(/already has these values/);
+    // two values of one option on one variant
+    const second = await svc.from("product_variant_values").insert({ variant_id: a.variants.S, option_id: a.o, value_id: a.values.M, product_id: a.p, workspace_id: ws });
+    expect(second.error).not.toBeNull();
+    // two values with the same label in one option
+    expect((await svc.from("product_option_values").insert({ workspace_id: ws, product_id: a.p, option_id: a.o, label: " s " })).error).not.toBeNull();
+  });
+
+  test("product_id is immutable on options, values and variants", async () => {
+    const a = await product(["S"]);
+    const b = await product(["S"]);
+    expect((await svc.from("product_options").update({ product_id: b.p }).eq("id", a.o)).error).not.toBeNull();
+    expect((await svc.from("product_variants").update({ product_id: b.p }).eq("id", a.variants.S)).error).not.toBeNull();
+  });
+
+  test("re-running the data migration adds nothing; blank, non-object and duplicate entries are skipped", async () => {
+    const p = (
+      await svc
+        .from("products")
+        .insert({
+          workspace_id: ws,
+          name: tag(),
+          variants: [{ label: "X", sku: "x-1" }, { label: "  " }, 5, { label: "x" }, { label: "Y" }, { sku: "no-label" }, { label: 7 }],
+        })
+        .select("id")
+        .single()
+    ).data!.id as string;
+    const sql = readFileSync("supabase/migrations/00043_product_variants_data.sql", "utf8");
+    const count = async () => (await svc.from("product_variants").select("id, stock, sku").eq("product_id", p)).data!;
+    psql(sql);
+    const first = await count();
+    expect(first).toHaveLength(2);
+    expect(first.every((v) => v.stock === 0)).toBe(true);
+    expect(first.find((v) => v.sku === "x-1")).toBeTruthy();
+    expect(((await svc.from("product_options").select("id").eq("product_id", p)).data ?? []).length).toBe(1);
+    psql(sql);
+    expect(await count()).toHaveLength(2);
+    expect(((await svc.from("product_options").select("id").eq("product_id", p)).data ?? []).length).toBe(1);
+    expect(await pstock(p)).toBe(0);
+  });
+
+  test("variant and product mismatch is refused for orders and movements; a movement on a size moves the size and the total", async () => {
+    const a = await product(["S"]);
+    const b = await product(["S"]);
+    expect((await svc.from("orders").insert({ workspace_id: ws, product_id: a.p, variant_id: b.variants.S, quantity: 1 })).error).not.toBeNull();
+    expect((await svc.from("orders").insert({ workspace_id: ws, product_id: null, variant_id: a.variants.S, quantity: 1 })).error).not.toBeNull();
+    expect((await buy(a.p, 3, b.variants.S)).error).not.toBeNull();
+    // a purchase on a size (the product stock tab, as admin session)
+    const r = await adminUser.from("stock_movements").insert({ workspace_id: ws, product_id: a.p, variant_id: a.variants.S, delta: 4, reason: "purchase", created_by: (await adminUser.auth.getUser()).data.user!.id });
+    expect(r.error).toBeNull();
+    expect(await vstock(a.variants.S)).toBe(4);
+    expect(await pstock(a.p)).toBe(4);
+  });
+
+  test("a new variant starts at 0; direct stock update refused; a referenced variant cannot be deleted; a product delete cascades", async () => {
+    const a = await product(["S"]);
+    expect((await svc.from("product_variants").insert({ workspace_id: ws, product_id: a.p, stock: 5 })).error).not.toBeNull();
+    expect((await svc.from("product_variants").update({ stock: 9 }).eq("id", a.variants.S)).error).not.toBeNull();
+    expect((await svc.from("products").update({ stock: 9 }).eq("id", a.p)).error).not.toBeNull();
+    await order(a.p, a.variants.S);
+    expect((await svc.from("product_variants").delete().eq("id", a.variants.S)).error).not.toBeNull();
+    const free = await product(["S", "M"]);
+    expect((await svc.from("product_option_values").delete().eq("id", free.values.S)).error).not.toBeNull(); // used by a variant
+    expect((await svc.from("products").delete().eq("id", free.p)).error).toBeNull();
+    expect(((await svc.from("product_variants").select("id").eq("product_id", free.p)).data ?? []).length).toBe(0);
+  });
+
+  // ---- stock follows the size --------------------------------------------
+  test.each(["bureau_deposited", "in_transit", "out_for_delivery", "delivered", "returning", "exchange"])(
+    "changing M to L at %s moves the hold in one logged step (order_stock_sync)",
+    async (stage) => {
+      const a = await product(["M", "L"]);
+      await buy(a.p, 10);
+      const o = await order(a.p, a.variants.M);
+      await status(o, stage);
+      expect(await vstock(a.variants.M)).toBe(-2);
+      expect(await pstock(a.p)).toBe(8);
+      expect((await svc.from("orders").update({ variant_id: a.variants.L }).eq("id", o)).error).toBeNull();
+      expect(await vstock(a.variants.M)).toBe(0);
+      expect(await vstock(a.variants.L)).toBe(-2);
+      expect(await pstock(a.p)).toBe(8); // total unchanged: the piece is still out
+      const m = await moves(o);
+      expect(m.slice(-2).map((x) => x.reason)).toEqual(["order_stock_sync", "order_stock_sync"]);
+      expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+    },
+  );
+
+  test("a size goes to -1 without refusing a status change; the stage view is unchanged", async () => {
+    const a = await product(["M"]);
+    await buy(a.p, 5); // all on the product, none on the size: nothing counted
+    const o = await order(a.p, a.variants.M, { quantity: 1 });
+    await status(o, "in_transit");
+    expect(await vstock(a.variants.M)).toBe(-1);
+    const view = await svc.from("product_variant_stock_v").select("*").eq("product_id", a.p).single();
+    expect(view.data).toMatchObject({ total: 4, variants_total: -1, not_assigned: 5, count_needed: true });
+    await status(o, "delivered");
+    const stages = await adminUser.from("product_stock_stages").select("in_stock, reserved, on_road, delivered").eq("product_id", a.p).single();
+    expect(stages.data).toMatchObject({ in_stock: 4, reserved: 0, on_road: 0, delivered: 1 });
+  });
+
+  test("a legacy order (label only) keeps moving the product; assigning a size takes the piece from not assigned", async () => {
+    const a = await product(["M"]);
+    await buy(a.p, 5);
+    const o = await order(a.p, null, { quantity: 1, variant: "typed M" });
+    await status(o, "in_transit");
+    expect(await pstock(a.p)).toBe(4);
+    expect(await vstock(a.variants.M)).toBe(0);
+    expect((await svc.from("orders").update({ variant_id: a.variants.M }).eq("id", o)).error).toBeNull();
+    expect(await vstock(a.variants.M)).toBe(-1);
+    expect(await pstock(a.p)).toBe(4);
+  });
+
+  test("order delete releases per size (old-rule reservation)", async () => {
+    const a = await product(["M"]);
+    await buy(a.p, 5);
+    const o = await order(a.p, a.variants.M, { confirmation_status: "wait_for_confirmation" });
+    expect((await svc.from("stock_movements").insert({ workspace_id: ws, product_id: a.p, variant_id: a.variants.M, delta: -2, reason: "order_confirmed", order_id: o })).error).toBeNull();
+    expect(await vstock(a.variants.M)).toBe(-2);
+    expect((await svc.from("orders").delete().eq("id", o)).error).toBeNull();
+    expect(await vstock(a.variants.M)).toBe(0);
+    expect(await pstock(a.p)).toBe(5);
+  });
+
+  test("swap keeps the size, even if it was deactivated since", async () => {
+    const a = await product(["M"]);
+    await buy(a.p, 5);
+    const o = await order(a.p, a.variants.M);
+    await status(o, "returning");
+    await svc.from("product_variants").update({ is_active: false }).eq("id", a.variants.M);
+    const r = await adminUser.rpc("swap_order", { p_order_id: o, p_customer_id: null as unknown as string, p_customer_name: "B", p_customer_phone: "0555000111", p_wilaya_code: 16, p_commune: "x", p_address: "y" });
+    expect(r.error).toBeNull();
+    const b = (await svc.from("orders").select("variant_id, variant").eq("id", r.data as string).single()).data!;
+    expect(b.variant_id).toBe(a.variants.M);
+    expect(b.variant).toBe("M");
+  });
+
+  test("an inactive size is refused on insert and on update of variant_id; a direct patch writes the label", async () => {
+    const a = await product(["M", "L"]);
+    await svc.from("product_variants").update({ is_active: false }).eq("id", a.variants.L);
+    expect((await svc.from("orders").insert({ workspace_id: ws, product_id: a.p, variant_id: a.variants.L, quantity: 1 })).error?.message).toMatch(/inactive/);
+    const o = await order(a.p, a.variants.M);
+    expect((await svc.from("orders").update({ variant_id: a.variants.L }).eq("id", o)).error?.message).toMatch(/inactive/);
+    await svc.from("product_variants").update({ is_active: true }).eq("id", a.variants.L);
+    expect((await svc.from("orders").update({ variant_id: a.variants.L }).eq("id", o)).error).toBeNull();
+    expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+    // an unrelated update of an order on an inactive size is fine
+    await svc.from("product_variants").update({ is_active: false }).eq("id", a.variants.L);
+    expect((await svc.from("orders").update({ customer_name: "x" }).eq("id", o)).error).toBeNull();
+  });
+
+  test("an agent cannot change variant_id", async () => {
+    const a = await product(["M", "L"]);
+    const o = await order(a.p, a.variants.M, { confirmation_status: "wait_for_confirmation" });
+    const r = await confAgent.from("orders").update({ variant_id: a.variants.L }).eq("id", o).select("id");
+    expect(r.error !== null || (r.data ?? []).length === 0).toBe(true);
+    expect((await svc.from("orders").select("variant_id").eq("id", o).single()).data!.variant_id).toBe(a.variants.M);
+  });
+
+  // ---- count by size ------------------------------------------------------
+  test("count by size: absolute counts, two linked lines per changed size, total unchanged", async () => {
+    const a = await product(["S", "M", "L"]);
+    await buy(a.p, 20);
+    const r = await adminUser.rpc("stock_count_variants", {
+      p_product: a.p,
+      p_counts: [{ variant_id: a.variants.S, count: 5 }, { variant_id: a.variants.M, count: 7 }, { variant_id: a.variants.L, count: 0 }],
+    });
+    expect(r.error).toBeNull();
+    expect(r.data).toBe(2); // L already matched
+    expect(await vstock(a.variants.S)).toBe(5);
+    expect(await vstock(a.variants.M)).toBe(7);
+    expect(await pstock(a.p)).toBe(20);
+    expect((await svc.from("product_variant_stock_v").select("not_assigned, count_needed").eq("product_id", a.p).single()).data).toMatchObject({ not_assigned: 8, count_needed: true });
+    const lines = (await svc.from("stock_movements").select("count_id, delta, variant_id").eq("reason", "stock_count").eq("product_id", a.p)).data!;
+    expect(lines).toHaveLength(4);
+    const byCount = Map.groupBy(lines, (l) => l.count_id);
+    expect(byCount.size).toBe(2);
+    for (const pair of byCount.values()) expect(pair.reduce((s, l) => s + l.delta, 0)).toBe(0);
+    // typing the same numbers again changes nothing
+    const again = await adminUser.rpc("stock_count_variants", { p_product: a.p, p_counts: [{ variant_id: a.variants.S, count: 5 }] });
+    expect(again.data).toBe(0);
+    // counts are absolute: a later count of 3 moves -2
+    await adminUser.rpc("stock_count_variants", { p_product: a.p, p_counts: [{ variant_id: a.variants.S, count: 3 }] });
+    expect(await vstock(a.variants.S)).toBe(3);
+    expect(await pstock(a.p)).toBe(20);
+  });
+
+  test("count by size: refused for another workspace's product, an agent, anon and a variant of another product", async () => {
+    const a = await product(["S"]);
+    const other = await product(["S"]);
+    const foreign = await product(["S"], ws2);
+    const c = (p: string, v: string) => ({ p_product: p, p_counts: [{ variant_id: v, count: 3 }] });
+    expect((await adminUser.rpc("stock_count_variants", c(foreign.p, foreign.variants.S))).error).not.toBeNull();
+    expect((await confAgent.rpc("stock_count_variants", c(a.p, a.variants.S))).error).not.toBeNull();
+    expect((await anon.rpc("stock_count_variants", c(a.p, a.variants.S))).error).not.toBeNull();
+    expect((await svc.rpc("stock_count_variants", c(a.p, a.variants.S))).error).not.toBeNull();
+    expect((await adminUser.rpc("stock_count_variants", c(a.p, other.variants.S))).error?.message).toMatch(/does not belong/);
+    expect(await vstock(a.variants.S)).toBe(0);
+    expect(await vstock(other.variants.S)).toBe(0);
+    expect((await adminUser.rpc("stock_count_variants", { p_product: a.p, p_counts: [{ variant_id: a.variants.S, count: -1 }] })).error).not.toBeNull();
+  });
+
+  // ---- save_variant_config (00048, D55) -----------------------------------
+  const uid = () => crypto.randomUUID();
+  const bare = async (workspace = ws) => (await svc.from("products").insert({ workspace_id: workspace, name: tag() }).select("id").single()).data!.id as string;
+  type Cfg = { options: { id: string; name: string; values: { id: string; label: string }[] }[]; variants: { id: string; sku: string | null; is_active: boolean; values: Record<string, string> }[] };
+  const save = (c: SupabaseClient, p: string, cfg: Cfg) => c.rpc("save_variant_config", { p_product: p, p_config: cfg });
+  const counts = async (p: string) => ({
+    options: (await svc.from("product_options").select("id", { count: "exact", head: true }).eq("product_id", p)).count,
+    variants: (await svc.from("product_variants").select("id", { count: "exact", head: true }).eq("product_id", p)).count,
+  });
+  const sizeCfg = () => {
+    const o = uid(), s = uid(), m = uid(), vs = uid(), vm = uid();
+    const cfg: Cfg = {
+      options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }],
+      variants: [
+        { id: vs, sku: null, is_active: true, values: { [o]: s } },
+        { id: vm, sku: "SKU-M", is_active: true, values: { [o]: m } },
+      ],
+    };
+    return { cfg, o, s, m, vs, vm };
+  };
+
+  test("save_variant_config: create, swap two labels, deactivate and reactivate in one transaction", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+    expect((await svc.from("product_variants").select("sku, stock").eq("id", a.vm).single()).data).toEqual({ sku: "SKU-M", stock: 0 });
+    // swap S and M
+    a.cfg.options[0].values = [{ id: a.s, label: "M" }, { id: a.m, label: "S" }];
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_option_values").select("label").eq("id", a.s).single()).data!.label).toBe("M");
+    // deactivate, then reactivate; the size's values never change
+    a.cfg.variants[0].is_active = false;
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_variants").select("is_active").eq("id", a.vs).single()).data!.is_active).toBe(false);
+    a.cfg.variants[0].is_active = true;
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_variants").select("is_active").eq("id", a.vs).single()).data!.is_active).toBe(true);
+    expect((await svc.from("product_variant_values").select("value_id").eq("variant_id", a.vs).single()).data!.value_id).toBe(a.s);
+  });
+
+  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option after sizes exist is refused", async () => {
+    const p = await bare();
+    const o = uid(), s = uid(), m = uid();
+    const tabA: Cfg = { options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }], variants: [] };
+    expect((await save(adminUser, p, tabA)).error).toBeNull();
+    // tab B adds Color and saves S/Red and M/Red
+    const c = uid(), red = uid(), vs = uid(), vm = uid();
+    const tabB: Cfg = {
+      options: [tabA.options[0], { id: c, name: "Color", values: [{ id: red, label: "Red" }] }],
+      variants: [
+        { id: vs, sku: null, is_active: true, values: { [o]: s, [c]: red } },
+        { id: vm, sku: null, is_active: true, values: { [o]: m, [c]: red } },
+      ],
+    };
+    expect((await save(adminUser, p, tabB)).error).toBeNull();
+    // tab A saves sizes S and M with one option only
+    const stale: Cfg = { ...tabA, variants: [{ id: uid(), sku: null, is_active: true, values: { [o]: s } }, { id: uid(), sku: null, is_active: true, values: { [o]: m } }] };
+    const r = await save(adminUser, p, stale);
+    expect(r.error?.message).toBe("stale");
+    expect(await counts(p)).toEqual({ options: 2, variants: 2 });
+    // a new option once sizes exist
+    const extra: Cfg = { ...tabB, options: [...tabB.options, { id: uid(), name: "Fit", values: [{ id: uid(), label: "Slim" }] }] };
+    expect((await save(adminUser, p, extra)).error?.message).toBe("stale");
+    expect(await counts(p)).toEqual({ options: 2, variants: 2 });
+  });
+
+  test("save_variant_config: ids of another product or workspace, another workspace's product, an agent and anon are refused", async () => {
+    const mine = await product(["S"]);
+    const p = await bare();
+    const a = sizeCfg();
+    // option id that lives under another product of the same workspace
+    const stolen: Cfg = { options: [{ id: mine.o, name: "Size", values: [{ id: uid(), label: "Z" }] }], variants: [] };
+    expect((await save(adminUser, p, stolen)).error?.message).toMatch(/another product/);
+    // value id of another product
+    const stolenValue: Cfg = { options: [{ id: uid(), name: "Size", values: [{ id: mine.values.S, label: "S" }] }], variants: [] };
+    expect((await save(adminUser, p, stolenValue)).error).not.toBeNull();
+    // ids from another workspace
+    const foreign = await product(["S"], ws2);
+    const f1: Cfg = { options: [{ id: foreign.o, name: "Size", values: [{ id: uid(), label: "Z" }] }], variants: [] };
+    expect((await save(adminUser, p, f1)).error).not.toBeNull();
+    const f2: Cfg = { ...a.cfg, variants: [{ id: foreign.variants.S, sku: null, is_active: true, values: { [a.o]: a.s } }] };
+    expect((await save(adminUser, p, f2)).error).not.toBeNull();
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+    // a product of another workspace
+    expect((await save(adminUser, foreign.p, a.cfg)).error).not.toBeNull();
+    expect(await counts(foreign.p)).toEqual({ options: 1, variants: 1 });
+    // agent, anon, service role
+    expect((await save(confAgent, p, a.cfg)).error).not.toBeNull();
+    expect((await save(anon, p, a.cfg)).error).not.toBeNull();
+    expect((await save(svc, p, a.cfg)).error).not.toBeNull();
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+  });
+
+  test("save_variant_config: a save refused half-way leaves no renamed option and no new size", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    // rename the option, add a size with the same values as S: refused at commit
+    const dup: Cfg = {
+      options: [{ ...a.cfg.options[0], name: "Renamed" }],
+      variants: [...a.cfg.variants, { id: uid(), sku: null, is_active: true, values: { [a.o]: a.s } }],
+    };
+    expect((await save(adminUser, p, dup)).error?.message).toMatch(/already has these values/);
+    expect((await svc.from("product_options").select("name").eq("id", a.o).single()).data!.name).toBe("Size");
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+    // drop a value a size still uses: refused, the rename of another value is rolled back
+    const used: Cfg = { options: [{ ...a.cfg.options[0], values: [{ id: a.s, label: "Small" }] }], variants: a.cfg.variants };
+    expect((await save(adminUser, p, used)).error?.code).toBe("23503");
+    expect((await svc.from("product_option_values").select("label").eq("id", a.s).single()).data!.label).toBe("S");
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+  });
+
+  test("the table refuses a size that lacks a value, and a new option on a product whose sizes have values", async () => {
+    const p = await bare();
+    const o1 = uid(), s = uid(), o2 = uid(), red = uid(), v = uid();
+    const cfg: Cfg = {
+      options: [
+        { id: o1, name: "Size", values: [{ id: s, label: "S" }] },
+        { id: o2, name: "Color", values: [{ id: red, label: "Red" }] },
+      ],
+      variants: [{ id: v, sku: null, is_active: true, values: { [o1]: s, [o2]: red } }],
+    };
+    expect((await save(adminUser, p, cfg)).error).toBeNull();
+    // a value row that leaves the size incomplete
+    expect((await svc.from("product_variant_values").delete().eq("variant_id", v).eq("option_id", o2)).error?.message).toMatch(/exactly one value/);
+    // a new option after sizes have values
+    expect((await svc.from("product_options").insert({ workspace_id: ws, product_id: p, name: "Fit" })).error?.message).toMatch(/exactly one value/);
+    expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", v)).data).toHaveLength(2);
+  });
+
+  // ---- order size changes -------------------------------------------------
+  test("a size change moves the hold at reserved (bureau_deposited), stop_desk_waiting and delayed; changeOrderVariant (admin update) rewrites the label; a direct patch of the label is rewritten", async () => {
+    for (const stage of ["bureau_deposited", "stop_desk_waiting", "delayed"]) {
+      const a = await product(["M", "L"]);
+      await buy(a.p, 5);
+      const o = await order(a.p, a.variants.M);
+      await status(o, stage);
+      const total = await pstock(a.p);
+      const heldM = await vstock(a.variants.M);
+      // what the admin action does: an update of variant_id on the session client
+      const r = await adminUser.from("orders").update({ variant_id: a.variants.L }).eq("id", o).select("id");
+      expect(r.error).toBeNull();
+      expect(r.data).toHaveLength(1);
+      expect(await vstock(a.variants.M)).toBe(heldM + 2);
+      expect(await vstock(a.variants.L)).toBe(-2);
+      expect(await pstock(a.p)).toBe(total);
+      expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+      // a direct patch of the label cannot disagree with the size
+      expect((await svc.from("orders").update({ variant: "hacked" }).eq("id", o)).error).toBeNull();
+      expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+    }
+  });
+});

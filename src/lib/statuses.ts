@@ -29,6 +29,7 @@ import {
   CircleDot,
   OctagonAlert,
   CircleCheck,
+  ListChecks,
 } from "lucide-react";
 
 export type IconType = React.ComponentType<{ className?: string }>;
@@ -45,7 +46,7 @@ export type StatusToken =
   | "orange"
   | "rose";
 
-export type StatusKind = "confirmation" | "delivery" | "product" | "task";
+export type StatusKind = "confirmation" | "delivery" | "product" | "task" | "stock";
 
 /** Every chip color token — the fixed palette user-created options may pick from. */
 export const CHIP_TOKENS: StatusToken[] = [
@@ -99,7 +100,9 @@ function def(
         ? "delivery_status"
         : kind === "product"
           ? "product_status"
-          : "task_status";
+          : kind === "stock"
+            ? "stock_status"
+            : "task_status";
   return {
     key,
     label: `status.${group}.${key}`,
@@ -171,11 +174,17 @@ export const TASK_STATUS: Record<string, StatusDef> = {
   done: def("task", "done", "success", CircleCheck, [], { terminal: true }),
 };
 
+/** Stock health of a product with sizes (STORE-1, D54): shown on the stock hub, product list and product page. */
+export const STOCK_STATUS: Record<string, StatusDef> = {
+  count_needed: def("stock", "count_needed", "warning", ListChecks, []),
+};
+
 export const STATUS_KINDS: Record<StatusKind, Record<string, StatusDef>> = {
   confirmation: CONFIRMATION_STATUS,
   delivery: DELIVERY_STATUS,
   product: PRODUCT_STATUS,
   task: TASK_STATUS,
+  stock: STOCK_STATUS,
 };
 
 export function getStatus(kind: StatusKind, key: string): StatusDef | undefined {

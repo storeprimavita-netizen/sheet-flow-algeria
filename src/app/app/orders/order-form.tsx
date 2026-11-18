@@ -20,10 +20,13 @@ type ProductOpt = {
   name: string;
   sku: string | null;
   sale_price: number | null;
-  variants: unknown;
+  /** active sizes only: an inactive size is never offered on a new order */
+  sizes: { id: string; label: string }[];
   images?: string[] | null;
   status?: string | null;
 };
+const NONE = "__none"; // Radix Select needs a non-empty sentinel for "no size yet"
+
 type WilayaOpt = { code: number; name: string };
 type FeeMap = Record<number, { home_fee: number; stopdesk_fee: number }>;
 
@@ -36,12 +39,18 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
   const t = useTranslations();
 
   const [productId, setProductId] = React.useState("");
+  const [variantId, setVariantId] = React.useState(NONE);
   const [wilayaCode, setWilayaCode] = React.useState("");
   const [deliveryType, setDeliveryType] = React.useState<string>("home");
   const [feeSource, setFeeSource] = React.useState<"wilaya_table" | "manual">("wilaya_table");
 
   const product = products.find((p) => p.id === productId);
-  const variants = Array.isArray(product?.variants) ? (product?.variants as { label: string }[]) : [];
+  const sizes = product?.sizes ?? [];
+
+  function onProduct(id: string) {
+    setProductId(id);
+    setVariantId(NONE); // a size belongs to one product
+  }
 
   const fee = fees[Number(wilayaCode)];
   const seededFee = fee ? (deliveryType === "stopdesk" ? fee.stopdesk_fee : fee.home_fee) : 0;
@@ -64,19 +73,28 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
           <ProductCombobox
             products={productOpts}
             value={productId}
-            onChange={setProductId}
+            onChange={onProduct}
             name="product_id"
             placeholder={t("fields.none")}
           />
         </Field>
-        <Field label={t("fields.variant")} htmlFor="variant" hint={t("common.optional")}>
-          <Input id="variant" name="variant" list="variant-options" />
-          <datalist id="variant-options">
-            {variants.map((v) => (
-              <option key={v.label} value={v.label} />
-            ))}
-          </datalist>
-        </Field>
+        {sizes.length ? (
+          <Field label={t("orders.sizeTitle")} hint={t("common.optional")}>
+            <Select value={variantId} onValueChange={setVariantId} name="variant_id">
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>{t("orders.chooseSize")}</SelectItem>
+                {sizes.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    <bdi>{v.label}</bdi>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        ) : null}
         <Field label={t("fields.quantity")}>
           <QuantityStepper name="quantity" defaultValue={1} />
         </Field>

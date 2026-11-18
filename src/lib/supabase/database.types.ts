@@ -121,6 +121,12 @@ isOneToOne: false
       foreignKeyName: "ad_spend_daily_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "ad_spend_daily_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -290,6 +296,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "expenses_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "expenses_product_id_fkey"
@@ -497,14 +509,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "address": string | null,"assigned_confirmation_agent": string | null,"assigned_delivery_agent": string | null,"cancellation_reason_option_id": string | null,"commune": string | null,"confirmation_attempts": number,"confirmation_comment": string | null,"confirmation_status": Database["public"]['Enums']["confirmation_status"],"created_at": string,"created_by": string | null,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_fee": number | null,"delivery_fee_source": Database["public"]['Enums']["delivery_fee_source"],"delivery_status": Database["public"]['Enums']["delivery_status"],"delivery_type": Database["public"]['Enums']["delivery_type"],"duplicate_of": string | null,"excluded_reason": string | null,"external_id": string | null,"id": string,"is_duplicate_suspect": boolean,"order_number": string | null,"placed_at": string | null,"product_id": string | null,"quantity": number,"sale_price": number | null,"source": Database["public"]['Enums']["order_source"],"swapped_to_order_id": string | null,"updated_at": string,"variant": string | null,"webhook_event_id": string | null,"wilaya_code": number | null,"workspace_id": string
+                    "address": string | null,"assigned_confirmation_agent": string | null,"assigned_delivery_agent": string | null,"cancellation_reason_option_id": string | null,"commune": string | null,"confirmation_attempts": number,"confirmation_comment": string | null,"confirmation_status": Database["public"]['Enums']["confirmation_status"],"created_at": string,"created_by": string | null,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_fee": number | null,"delivery_fee_source": Database["public"]['Enums']["delivery_fee_source"],"delivery_status": Database["public"]['Enums']["delivery_status"],"delivery_type": Database["public"]['Enums']["delivery_type"],"duplicate_of": string | null,"excluded_reason": string | null,"external_id": string | null,"id": string,"is_duplicate_suspect": boolean,"order_number": string | null,"placed_at": string | null,"product_id": string | null,"quantity": number,"sale_price": number | null,"source": Database["public"]['Enums']["order_source"],"swapped_to_order_id": string | null,"updated_at": string,"variant": string | null,"variant_id": string | null,"webhook_event_id": string | null,"wilaya_code": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id": string
+                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"variant_id"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id": string
                   }
                   Update: {
-                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id"?: string
+                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"variant_id"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -553,6 +565,12 @@ isOneToOne: false
       foreignKeyName: "orders_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -561,6 +579,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "orders"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_variant_fk"
+      columns: ["variant_id","product_id"]
+isOneToOne: false
+      referencedRelation: "product_variants"
+      referencedColumns: ["id","product_id"]
     },{
       foreignKeyName: "orders_webhook_event_id_fkey"
       columns: ["webhook_event_id"]
@@ -615,10 +639,122 @@ isOneToOne: true
       foreignKeyName: "product_costs_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: true
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "product_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: true
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "product_costs_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_option_values": {
+                  Row: {
+                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_option_values_option_id_product_id_fkey"
+      columns: ["option_id","product_id"]
+isOneToOne: false
+      referencedRelation: "product_options"
+      referencedColumns: ["id","product_id"]
+    },{
+      foreignKeyName: "product_option_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_option_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_option_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_option_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_option_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_option_values_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_options": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_options_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_options_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_options_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_options_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_options_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_options_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
@@ -654,6 +790,12 @@ isOneToOne: false
       columns: ["product_id","workspace_id"]
 isOneToOne: false
       referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
       referencedColumns: ["product_id","workspace_id"]
     },{
       foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
@@ -703,10 +845,128 @@ isOneToOne: false
       foreignKeyName: "product_scenarios_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "product_scenarios_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "product_scenarios_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_variant_values": {
+                  Row: {
+                    "option_id": string,"product_id": string,"value_id": string,"variant_id": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "option_id": string,"product_id": string,"value_id": string,"variant_id": string,"workspace_id": string
+                  }
+                  Update: {
+                    "option_id"?: string,"product_id"?: string,"value_id"?: string,"variant_id"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_variant_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_variant_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variant_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variant_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variant_values_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_variant_values_value_id_product_id_option_id_fkey"
+      columns: ["value_id","product_id","option_id"]
+isOneToOne: false
+      referencedRelation: "product_option_values"
+      referencedColumns: ["id","product_id","option_id"]
+    },{
+      foreignKeyName: "product_variant_values_variant_id_product_id_fkey"
+      columns: ["variant_id","product_id"]
+isOneToOne: false
+      referencedRelation: "product_variants"
+      referencedColumns: ["id","product_id"]
+    },{
+      foreignKeyName: "product_variant_values_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_variants": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"product_id": string,"sku": string | null,"stock": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id": string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id"?: string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_variants_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_variants_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variants_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variants_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_variants_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_variants_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
@@ -807,14 +1067,14 @@ isOneToOne: false
                   ]
                 },"stock_movements": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"delta": number,"id": string,"note": string | null,"order_id": string | null,"product_id": string,"reason": Database["public"]['Enums']["stock_reason"],"workspace_id": string
+                    "count_id": string | null,"created_at": string,"created_by": string | null,"delta": number,"id": string,"note": string | null,"order_id": string | null,"product_id": string,"reason": Database["public"]['Enums']["stock_reason"],"variant_id": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"delta": number,"id"?: string,"note"?: string | null,"order_id"?: string | null,"product_id": string,"reason": Database["public"]['Enums']["stock_reason"],"workspace_id": string
+                    "count_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"delta": number,"id"?: string,"note"?: string | null,"order_id"?: string | null,"product_id": string,"reason": Database["public"]['Enums']["stock_reason"],"variant_id"?: string | null,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"delta"?: number,"id"?: string,"note"?: string | null,"order_id"?: string | null,"product_id"?: string,"reason"?: Database["public"]['Enums']["stock_reason"],"workspace_id"?: string
+                    "count_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"delta"?: number,"id"?: string,"note"?: string | null,"order_id"?: string | null,"product_id"?: string,"reason"?: Database["public"]['Enums']["stock_reason"],"variant_id"?: string | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -845,8 +1105,20 @@ isOneToOne: false
       foreignKeyName: "stock_movements_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "stock_movements_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stock_movements_variant_fk"
+      columns: ["variant_id","product_id"]
+isOneToOne: false
+      referencedRelation: "product_variants"
+      referencedColumns: ["id","product_id"]
     },{
       foreignKeyName: "stock_movements_workspace_id_fkey"
       columns: ["workspace_id"]
@@ -890,6 +1162,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "tasks_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "tasks_product_id_fkey"
@@ -1124,6 +1402,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"product_variant_stock_v": {
+                  Row: {
+                    "count_needed": boolean | null,"not_assigned": number | null,"product_id": string,"total": number,"variant_count": number | null,"variants_total": number | null,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "products_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"wilaya_stats": {
                   Row: {
                     "confirmed_orders": number | null,"delivered_orders": number | null,"delivery_rate": number | null,"returned_orders": number | null,"stop_shipping_auto": boolean | null,"stop_shipping_manual": boolean | null,"total_orders": number | null,"wilaya_code": number | null,"wilaya_name": string | null,"workspace_id": string
@@ -1224,8 +1516,14 @@ isOneToOne: false
 "pnl_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
                            },
+"save_variant_config":
+{ Args: { "p_config": Json,"p_product": string }; Returns: undefined
+                           },
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined
+                           },
+"stock_count_variants":
+{ Args: { "p_counts": Json,"p_product": string }; Returns: number
                            },
 "stock_order_reasons":
 { Args: Record<PropertyKey, never>; Returns: (Database["public"]['Enums']["stock_reason"])[]
@@ -1238,10 +1536,13 @@ isOneToOne: false
                            },
 "transition_order_status":
 { Args: { "p_confirmation_comment"?: string,"p_confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"p_delivery_status"?: Database["public"]['Enums']["delivery_status"],"p_order_id": string }; Returns: boolean
+                           },
+"variant_label":
+{ Args: { "p_variant": string }; Returns: string
                            }
           }
           Enums: {
-            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped"|"order_shipped","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
+            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped"|"order_shipped"|"stock_count","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1361,7 +1662,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped", "order_shipped"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
+            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped", "order_shipped", "stock_count"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
           }
         }
 } as const

@@ -338,7 +338,7 @@ export async function setOrderCancellationReason(orderId: string, optionId: stri
 // ---------------------------------------------------------------------------
 const createOrderSchema = z.object({
   product_id: z.string().uuid(),
-  variant: optionalText,
+  variant_id: z.preprocess((v) => (typeof v === "string" && v.trim() && v !== "__none" ? v.trim() : null), z.string().uuid().nullable()),
   quantity: z.coerce.number().int().min(1),
   customer_name: z.string().trim().min(1),
   customer_phone: z.string().trim().min(1),
@@ -355,7 +355,7 @@ export async function createOrder(formData: FormData) {
   const { workspaceId } = await adminProfile();
   const input = createOrderSchema.parse({
     product_id: formData.get("product_id"),
-    variant: formData.get("variant"),
+    variant_id: formData.get("variant_id"),
     quantity: formData.get("quantity"),
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone"),
@@ -388,7 +388,7 @@ export async function createOrder(formData: FormData) {
       workspace_id: workspaceId,
       source: "manual",
       product_id: input.product_id,
-      variant: input.variant,
+      variant_id: input.variant_id, // the label snapshot is written by a trigger
       quantity: input.quantity,
       customer_id: customerId,
       customer_name: input.customer_name,
@@ -409,6 +409,31 @@ export async function createOrder(formData: FormData) {
 
   revalidatePath("/app/orders/all");
   redirect(`/app/orders/${data.id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Change (or assign) the size of an order — admin only. The database moves the stock hold
+// from the old variant to the new one in one logged step and rewrites the label (D54.6).
+// ---------------------------------------------------------------------------
+const changeOrderVariantSchema = z.object({ orderId: z.string().uuid(), variantId: z.string().uuid() });
+
+export async function changeOrderVariant(orderId: string, variantId: string): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const parsed = changeOrderVariantSchema.safeParse({ orderId, variantId });
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ variant_id: parsed.data.variantId })
+    .eq("id", parsed.data.orderId)
+    .eq("workspace_id", workspaceId)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data?.length) return { ok: false, error: "order not found" };
+  revalidatePath(`/app/orders/${parsed.data.orderId}`);
+  revalidatePath("/app/orders");
+  revalidatePath("/app/stock");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

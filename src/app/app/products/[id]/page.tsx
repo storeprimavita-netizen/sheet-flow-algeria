@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Gem, Megaphone, PackageCheck, Boxes, Wallet } from "lucide-react";
@@ -9,6 +10,9 @@ import { asKpi, kpiPct, kpiRoas } from "@/lib/kpi";
 import { DeleteButton } from "@/components/delete-button";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { ProductForm } from "../product-form";
+import { VariantsEditor } from "../_components/variants-editor";
+import { StatusPill } from "@/components/status-pill";
+import { loadProductVariants } from "@/lib/catalog/variants-data";
 
 export default async function ProductDetailsPage({
   params,
@@ -19,11 +23,13 @@ export default async function ProductDetailsPage({
   const t = await getTranslations();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: cost }, { data: pnlRaw }, { data: kpiRaw }] = await Promise.all([
+  const [{ data: product }, { data: cost }, { data: pnlRaw }, { data: kpiRaw }, variantMap, { data: sizeStock }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("product_costs").select("*").eq("product_id", id).maybeSingle(),
     supabase.rpc("pnl_summary", { p_product: id }),
     supabase.rpc("kpi_summary", { p_product: id }),
+    loadProductVariants(supabase, [id]),
+    supabase.from("product_variant_stock_v").select("count_needed").eq("product_id", id).maybeSingle(),
   ]);
 
   if (!product) notFound();
@@ -83,7 +89,23 @@ export default async function ProductDetailsPage({
           />
         </div>
       ) : null}
+      {sizeStock?.count_needed ? (
+        <Link href={`${base}/stock`} className="inline-flex items-center gap-2 text-sm hover:underline">
+          <StatusPill kind="stock" status="count_needed" />
+        </Link>
+      ) : null}
       <ProductForm product={product} cost={cost} />
+      <VariantsEditor
+        productId={product.id}
+        initialOptions={variantMap.get(id)?.options ?? []}
+        initialVariants={(variantMap.get(id)?.variants ?? []).map((v) => ({
+          id: v.id,
+          sku: v.sku,
+          isActive: v.isActive,
+          stock: v.stock,
+          values: v.values,
+        }))}
+      />
       <div className="flex justify-end border-t border-border pt-4">
         <DeleteButton table="products" id={product.id} redirectTo="/app/products" />
       </div>

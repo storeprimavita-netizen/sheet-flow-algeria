@@ -17,6 +17,8 @@ import { ZRShipmentCard } from "./zr-shipment-card";
 import { OrderTaxonomyCard } from "./order-taxonomy-card";
 import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
+import { VariantCard } from "./variant-card";
+import { loadProductVariants } from "@/lib/catalog/variants-data";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -135,6 +137,8 @@ export default async function OrderDetailPage({
     swapData.wilayas = wilayas ?? [];
   }
 
+  const productSizes = isAdmin && order.product_id ? ((await loadProductVariants(supabase, [order.product_id])).get(order.product_id)?.variants ?? []) : [];
+
   const phone = order.customer?.phone ?? order.customer_phone;
   const queueHref = role === "delivery_agent" ? "/app/orders/delivery" : role === "confirmation_agent" ? "/app/orders/confirmation" : "/app/orders/all";
   const isCancelled = order.confirmation_status === "cancelled" || order.delivery_status === "cancelled";
@@ -161,6 +165,11 @@ export default async function OrderDetailPage({
 
       <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
+        {order.variant ? (
+          <Meta label={t("orders.sizeTitle")}>
+            <bdi>{order.variant}</bdi>
+          </Meta>
+        ) : null}
         <Meta label={t("fields.customer")}>
           <div>{order.customer?.name ?? order.customer_name ?? "—"}</div>
           {phone ? <PhoneLinks phone={phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
@@ -207,6 +216,15 @@ export default async function OrderDetailPage({
           confirmationAgent={order.assigned_confirmation_agent}
           deliveryAgent={order.assigned_delivery_agent}
           confirmationAgents={confirmationAgents}
+        />
+      ) : null}
+
+      {isAdmin && productSizes.length ? (
+        <VariantCard
+          orderId={order.id}
+          currentId={order.variant_id}
+          oldLabel={order.variant}
+          sizes={productSizes.map((v) => ({ id: v.id, label: v.label, isActive: v.isActive }))}
         />
       ) : null}
 

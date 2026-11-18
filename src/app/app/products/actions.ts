@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { fxRateFor } from "@/lib/fx";
+import { countBySizeSchema, uuid, variantConfigSchema } from "@/lib/variants";
 import {
   PRODUCT_STATUSES,
   EXPENSE_CATEGORIES,
@@ -18,14 +19,6 @@ import {
 export type UpdateResult = { ok: true } | { ok: false; error: string };
 
 const lines = (text: string) => text.split("\n").map((l) => l.trim()).filter(Boolean);
-
-// "label | sku" per line, sku optional — the "simple jsonb list editor" the phase brief calls for.
-function parseVariants(text: string): { label: string; sku?: string }[] {
-  return lines(text).map((line) => {
-    const [label, sku] = line.split("|").map((s) => s.trim());
-    return sku ? { label, sku } : { label };
-  });
-}
 
 const optionalNumber = z.preprocess((v) => {
   const s = String(v ?? "").trim();
@@ -78,7 +71,6 @@ export async function saveProduct(id: string | null, formData: FormData) {
     sale_price: input.sale_price,
     notes: input.notes,
     is_active: formData.get("is_active") === "on",
-    variants: parseVariants(String(formData.get("variants") ?? "")),
     images: lines(String(formData.get("images") ?? "")),
   };
 
@@ -189,6 +181,7 @@ const stockMovementSchema = z.object({
   delta: z.coerce.number().int().refine((v) => v !== 0, "Delta can't be zero"),
   reason: z.enum(MANUAL_STOCK_REASONS),
   note: optionalText,
+  variant_id: nullableUuid, // null = "Not assigned to a size" (explicit choice for a product with sizes)
 });
 
 export async function addStockMovement(productId: string, formData: FormData) {
@@ -197,6 +190,7 @@ export async function addStockMovement(productId: string, formData: FormData) {
     delta: formData.get("delta"),
     reason: formData.get("reason"),
     note: formData.get("note"),
+    variant_id: formData.get("variant_id"),
   });
 
   const supabase = await createClient();
@@ -207,6 +201,57 @@ export async function addStockMovement(productId: string, formData: FormData) {
   revalidatePath(`/app/products/${productId}/stock`);
   revalidatePath("/app/stock");
   revalidatePath("/app/products");
+}
+
+// ---------------------------------------------------------------------------
+// Options, values and variants (STORE-1, D54). Ids are client-generated UUIDs, upserted by id:
+// RLS (admin write, own workspace) and the composite FKs keep a foreign id from landing anywhere.
+// Variants are deactivated, never deleted; a value or option still used by a variant cannot be removed.
+// ---------------------------------------------------------------------------
+export type VariantResult =
+  | { ok: true }
+  | { ok: false; code: "invalid" | "duplicate_value" | "duplicate_variant" | "in_use" | "stale" | "failed"; error: string };
+
+function variantFailure(error: { code?: string; message: string }): VariantResult {
+  if (error.code === "23505" && error.message.includes("product_option_values_label_uniq")) return { ok: false, code: "duplicate_value", error: error.message };
+  if (error.message.includes("same values") || error.message.includes("already has these values")) return { ok: false, code: "duplicate_variant", error: error.message };
+  if (error.message === "stale") return { ok: false, code: "stale", error: error.message };
+  if (error.code === "23503") return { ok: false, code: "in_use", error: error.message };
+  return { ok: false, code: "failed", error: error.message };
+}
+
+/** One transaction in `save_variant_config` (00048): any refusal rolls the whole save back. */
+export async function saveVariantConfig(productId: string, raw: unknown): Promise<VariantResult> {
+  await adminProfile();
+  const pid = uuid.safeParse(productId);
+  const parsed = variantConfigSchema.safeParse(raw);
+  if (!pid.success || !parsed.success) {
+    const msg = parsed.success ? "Invalid product" : (parsed.error.issues[0]?.message ?? "Invalid input");
+    return { ok: false, code: msg === "duplicate_value" ? "duplicate_value" : msg === "duplicate_variant" ? "duplicate_variant" : "invalid", error: msg };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_variant_config", { p_product: pid.data, p_config: parsed.data });
+  if (error) return variantFailure(error);
+
+  revalidatePath(`/app/products/${pid.data}`);
+  revalidatePath(`/app/products/${pid.data}/stock`);
+  revalidatePath("/app/stock");
+  return { ok: true };
+}
+
+/** Count by size (D54.2): absolute shelf counts, one transaction in `stock_count_variants`. */
+export async function countBySize(productId: string, raw: unknown): Promise<{ ok: true; changed: number } | { ok: false; error: string }> {
+  await adminProfile();
+  const pid = uuid.safeParse(productId);
+  const counts = countBySizeSchema.safeParse(raw);
+  if (!pid.success || !counts.success) return { ok: false, error: "invalid" };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("stock_count_variants", { p_product: pid.data, p_counts: counts.data });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/app/products/${pid.data}/stock`);
+  revalidatePath("/app/stock");
+  revalidatePath("/app/products");
+  return { ok: true, changed: data ?? 0 };
 }
 
 /** Per-product low-stock threshold (00023) — drives stock chips + dashboard alert. */
