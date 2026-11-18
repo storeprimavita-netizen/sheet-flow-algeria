@@ -140,3 +140,8 @@ the bottom. Format:
 - Each task is close but each review round found new medium findings; rounds were counted per attempt (3 per run after the owner reset a task to `todo`). To continue any of them, set its row back to `todo`.
 - Loop notes: (1) the live test suite is not isolated — the gate fails 1–3 tests on a used local DB and passes after `scripts/db-reset.sh`; (2) `db-reset.sh` seeding fails on some first runs and works on retry; (3) `execute` does not merge `v3` into an existing task branch, so it read stale briefs until the coordinator merged; (4) `decide` writes D-rows on the task branch — the coordinator copied them to `v3`.
 - Next `/auto`: P1-1 (KPI contract), then NOTIF-1, PRICE-1. NAV-2…5, CONF-*, STORE-*, P1-7 stay skipped until NAV-1 / P0-8 / CARRIER-0 are unblocked.
+
+## CARRIER-0 — DONE (merged under D40, owner asked to merge)
+- Verify: reviews ended without PASS; no high finding open. Open medium/low moved to follow-up row CARRIER-0-F.
+- Evidence: full scripts/gate.sh GATE OK on the branch with v3 merged in (143 tests).
+- Open: Arabic legend in the 390 px map screenshot reported reversed (review-3).
