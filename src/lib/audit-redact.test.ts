@@ -45,6 +45,27 @@ describe("auditRedact", () => {
   });
 });
 
+describe("auditRedact key normalisation", () => {
+  const cases = ["secret_token", "meta_access_token", "capi_token", "telegram_bot_token", "zr_api_key", "x-api-key", "apiSecret", "accessToken", "clientSecret", "credentials"];
+  test.each(cases)("masks %s", (k) => {
+    const s = JSON.stringify(auditRedact({ [k]: "PLAINVAL" }));
+    expect(s).not.toContain("PLAINVAL");
+    expect(s).toContain("[redacted:");
+  });
+  test("nested credentials object is masked", () => {
+    expect(JSON.stringify(auditRedact({ credentials: { pass: "p" } }))).not.toContain('"p"');
+  });
+  test("allow-list and non-secret names stay", () => {
+    const o = { color_token: "rose", tracking_token_id: "t1", token_count: 2, monkey: "x" };
+    expect(auditRedact(o)).toEqual(o);
+  });
+  test("settings rows with multi-word names", () => {
+    for (const key of ["telegram_bot_token", "meta_access_token"]) {
+      expect(JSON.stringify(auditRedact({ key, value: "VAL123" }))).not.toContain("VAL123");
+    }
+  });
+});
+
 describe("diffRows", () => {
   test("page rows never contain the secret; changed fingerprint is shown", () => {
     const c = diffRows({ id: 1, secret: "whsec_old" }, { id: 1, secret: "whsec_new" });

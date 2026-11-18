@@ -61,4 +61,21 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     const { data: cfg } = await svc.from("integration_configs").select("secret").eq("workspace_id", ws).single();
     expect(cfg!.secret).toBe(SECRET);
   });
+
+  test("key normalisation through the live function", async () => {
+    const names = ["secret_token", "meta_access_token", "capi_token", "telegram_bot_token", "zr_api_key", "x-api-key", "apiSecret", "accessToken", "clientSecret", "credentials"];
+    const j = Object.fromEntries(names.map((n) => [n, "PLAIN_" + n]));
+    const { data } = await svc.rpc("audit_redact", { j: { ...j, color_token: "rose", tracking_token_id: "t1" } });
+    expect(JSON.stringify(data)).not.toContain("PLAIN_");
+    expect(data).toMatchObject({ color_token: "rose", tracking_token_id: "t1" });
+    const { data: kv } = await svc.rpc("audit_redact", { j: { key: "telegram_bot_token", value: "1:AAxyz" } });
+    expect(JSON.stringify(kv)).not.toContain("1:AAxyz");
+  });
+
+  test("settings row with a multi-word token name is masked in audit_log", async () => {
+    await admin.from("settings").insert({ workspace_id: ws, key: "meta_access_token", value: "EAAB_LIVE_SECRET" });
+    const { data: logs } = await svc.from("audit_log").select("*").eq("workspace_id", ws).eq("table_name", "settings");
+    expect(logs!.length).toBeGreaterThan(0);
+    expect(JSON.stringify(logs)).not.toContain("EAAB_LIVE_SECRET");
+  });
 });
