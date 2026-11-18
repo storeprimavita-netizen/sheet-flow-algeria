@@ -13,13 +13,16 @@ export function formatCurrency(
   return ltr(`${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`);
 }
 
-/** Whole US dollars, comma-grouped, isolated for RTL: `$1,234`. */
-export function formatUsd(value: number | string | null | undefined): string {
+/** US dollars, comma-grouped, isolated for RTL: `$1,234` (whole) or `$2.20` with `{ decimals: 2 }`. */
+export function formatUsd(value: number | string | null | undefined, opts: { decimals?: number } = {}): string {
   if (value === null || value === undefined || value === "") return "—";
   const raw = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(raw)) return "—";
-  const n = Math.round(raw) || 0;
-  return ltr(`${n < 0 ? "−" : ""}$${Math.abs(n).toLocaleString("en-US")}`);
+  const decimals = opts.decimals ?? 0;
+  const f = 10 ** decimals;
+  const n = Math.round(raw * f) / f || 0;
+  const body = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return ltr(`${n < 0 ? "−" : ""}$${body}`);
 }
 
 /** Wrap in Unicode LTR isolates (LRI…PDI) so a number keeps its order inside
