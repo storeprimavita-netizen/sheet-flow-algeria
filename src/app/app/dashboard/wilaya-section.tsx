@@ -27,6 +27,24 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
   const t = useTranslations();
   const router = useRouter();
   const [hovered, setHovered] = React.useState<number | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [moreEnd, setMoreEnd] = React.useState(false);
+  const measure = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // abs(): scrollLeft is negative in RTL
+    const more = Math.abs(el.scrollLeft) + el.clientWidth < el.scrollWidth - 1;
+    setMoreEnd((m) => (m === more ? m : more));
+  }, []);
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, [measure, rows.length]);
   const wilayaHref = (code: number) => ordersQs(filters, { wilaya_code: String(code) });
 
   if (!rows.length) {
@@ -40,8 +58,10 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
 
   return (
     <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 lg:grid-cols-[1fr_auto]">
-      <div className="min-w-0 overflow-x-auto">
+      <div className="min-w-0">
         <h2 className="mb-3 text-sm font-semibold">{t("dashboard.wilaya.title")}</h2>
+        <div className="relative">
+        <div ref={scrollRef} onScroll={measure} className="overflow-x-auto">
         <table className={cn(tableClass, "min-w-[34rem]")}>
           <thead>
             <tr>
@@ -63,7 +83,7 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
               >
                 <td>
                   <Link href={wilayaHref(w.code)} className="whitespace-nowrap hover:underline">
-                    {w.name ? <><bdi dir="ltr">{w.code}</bdi><span aria-hidden> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{w.code}</bdi>}
+                    {w.name ? <><bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{w.code}</bdi>}
                   </Link>
                 </td>
                 <td className="num">{w.totalOrders}</td>
@@ -85,6 +105,16 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
             ))}
           </tbody>
         </table>
+        </div>
+        <div
+          aria-hidden
+          data-scroll-fade
+          className={cn(
+            "pointer-events-none absolute inset-y-0 end-0 w-10 bg-linear-to-l from-surface to-transparent transition-opacity rtl:bg-linear-to-r",
+            moreEnd ? "opacity-100" : "opacity-0",
+          )}
+        />
+        </div>
       </div>
 
       <div className="flex flex-col items-center gap-2 lg:w-[280px]">
@@ -98,7 +128,7 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
           noDataLabel={t("dashboard.wilaya.noData")}
           names={names}
         />
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="grid grid-cols-3 justify-items-start gap-x-3 gap-y-1 text-xs sm:flex sm:flex-wrap sm:items-center sm:justify-center text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" /><bdi dir="ltr">&lt;40%</bdi></span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-orange" /><bdi dir="ltr">40–55%</bdi></span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-warning" /><bdi dir="ltr">55–70%</bdi></span>

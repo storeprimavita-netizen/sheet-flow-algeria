@@ -17,6 +17,14 @@ export type WilayaMapDatum = {
   stopShippingAuto: boolean;
 };
 
+/** Tooltip text: name (datum → names map → code), then rate and volume, or the no-data label. */
+export function wilayaTitle(wd: WilayaMapDatum, noDataLabel: string, names?: Record<number, string>): string {
+  const name = wd.name ?? names?.[wd.code] ?? wd.code;
+  return wd.totalOrders > 0
+    ? `${name} — ${wd.deliveryRate !== null ? `${wd.deliveryRate}%` : "—"} (${wd.totalOrders})`
+    : `${name} — ${noDataLabel}`;
+}
+
 /** 4-5 step token scale, low → danger, high → success; below the min-orders
  * threshold (same confirmed-orders denominator the stop-shipping-auto flag
  * uses) renders neutral, never a false extreme. */
@@ -122,11 +130,7 @@ export function AlgeriaMap({
           };
           const isHovered = hovered === code;
           const stopFlag = wd.stopShippingManual || wd.stopShippingAuto;
-          const titleText = `${wd.name ?? names?.[code] ?? wd.code}${
-            wd.totalOrders > 0
-              ? ` — ${wd.deliveryRate !== null ? `${wd.deliveryRate}%` : "—"} (${wd.totalOrders})`
-              : ` — ${noDataLabel}`
-          }`;
+          const titleText = wilayaTitle(wd, noDataLabel, names);
           return (
             <path
               key={code}
