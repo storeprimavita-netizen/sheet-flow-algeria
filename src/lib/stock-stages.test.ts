@@ -463,4 +463,30 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect((await moves(a)).length).toBe(n);
     expect(await held(a)).toBe(0);
   });
+
+  test("product_stock_stages refuses insert/update/delete", async () => {
+    const p = await product();
+    for (const c of [adminUser, svc]) {
+      expect((await c.from("product_stock_stages").insert({ product_id: p, workspace_id: ws })).error).not.toBeNull();
+      expect((await c.from("product_stock_stages").update({ in_stock: 5 }).eq("product_id", p)).error).not.toBeNull();
+      expect((await c.from("product_stock_stages").delete().eq("product_id", p)).error).not.toBeNull();
+    }
+  });
+
+  test("stock log created_by spoof refused", async () => {
+    const p = await product();
+    const me = (await adminUser.auth.getUser()).data.user!.id;
+    const other = (await confAgent.auth.getUser()).data.user!.id;
+    const row = { workspace_id: ws, product_id: p, delta: 1, reason: "correction" as const };
+    expect((await adminUser.from("stock_movements").insert({ ...row, created_by: other })).error).not.toBeNull();
+    expect((await adminUser.from("stock_movements").insert({ ...row, created_by: me })).error).toBeNull();
+    expect((await adminUser.from("stock_movements").insert(row)).error).toBeNull();
+  });
+
+  test("all security definer functions have search_path with pg_temp", async () => {
+    const bad = psql(`select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prosecdef
+        and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%pg_temp%')`).trim();
+    expect(bad).toBe("");
+  });
 });

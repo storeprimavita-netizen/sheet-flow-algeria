@@ -282,3 +282,33 @@ begin
   return v_b;
 end; $$;
 
+
+-- ---------------------------------------------------------------------------
+-- 4) every public security definer function pins search_path with pg_temp last
+-- ---------------------------------------------------------------------------
+do $$
+declare r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef
+      and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%pg_temp%')
+  loop
+    execute format('alter function %s set search_path = public, pg_temp', r.sig);
+  end loop;
+end; $$;
+
+-- ---------------------------------------------------------------------------
+-- 5) stock log: created_by cannot be spoofed on insert
+-- ---------------------------------------------------------------------------
+drop policy if exists stock_movements_ins on public.stock_movements;
+create policy stock_movements_ins on public.stock_movements for insert to authenticated
+  with check (workspace_id = (select public.current_workspace_id()) and (select public.is_admin())
+              and reason in ('purchase', 'correction') and order_id is null
+              and (created_by is null or created_by = (select auth.uid())));
+
+-- ---------------------------------------------------------------------------
+-- 6) the stage view is read-only for every API role
+-- ---------------------------------------------------------------------------
+revoke insert, update, delete, truncate on public.product_stock_stages from anon, authenticated, service_role;
