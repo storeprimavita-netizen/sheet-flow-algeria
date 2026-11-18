@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { deleteWorkspaces } from "@/lib/test-cleanup";
+
 /** Live STORE-1 checks (D54): options, values, variants, stock per size, count by size. */
 const URL = process.env.LOCAL_SUPABASE_URL;
 const ANON_KEY =
@@ -98,7 +100,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     for (const t of ["product_option_values", "product_options", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
       await svc.from(t).delete().in("workspace_id", wss);
     }
-    expect((await svc.from("workspaces").delete().in("id", wss)).error).toBeNull();
+    expect((await deleteWorkspaces(svc, wss)).error).toBeNull();
     for (const id of users) await svc.auth.admin.deleteUser(id);
   });
 

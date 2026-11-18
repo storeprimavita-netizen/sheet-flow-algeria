@@ -2,6 +2,8 @@ import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { deleteWorkspaces } from "@/lib/test-cleanup";
+
 import type { Kpi } from "@/lib/kpi";
 
 /**
@@ -95,7 +97,7 @@ describe.skipIf(!URL)("KPI contract (live DB, 00031)", () => {
     for (const t of ["options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
       await svc.from(t).delete().in("workspace_id", wss);
     }
-    expect((await svc.from("workspaces").delete().in("id", wss)).error).toBeNull();
+    expect((await deleteWorkspaces(svc, wss)).error).toBeNull();
     for (const id of users) await svc.auth.admin.deleteUser(id);
   });
 
