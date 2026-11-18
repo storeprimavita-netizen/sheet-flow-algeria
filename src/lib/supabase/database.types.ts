@@ -1127,6 +1127,82 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"store_pages": {
+                  Row: {
+                    "blocks": NonNullable<Json>,"created_at": string,"id": string,"kind": string,"product_id": string | null,"published_at": string | null,"seo": NonNullable<Json>,"slug": string,"status": string,"store_id": string,"title": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocks"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"kind"?: string,"product_id"?: string | null,"published_at"?: string | null,"seo"?: NonNullable<Json>,"slug": string,"status"?: string,"store_id": string,"title": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "blocks"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"kind"?: string,"product_id"?: string | null,"published_at"?: string | null,"seo"?: NonNullable<Json>,"slug"?: string,"status"?: string,"store_id"?: string,"title"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "store_pages_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_store_id_workspace_id_fkey"
+      columns: ["store_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "stores"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "store_pages_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"stores": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"settings": NonNullable<Json>,"slug": string,"status": string,"theme": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"settings"?: NonNullable<Json>,"slug": string,"status"?: string,"theme"?: string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"settings"?: NonNullable<Json>,"slug"?: string,"status"?: string,"theme"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stores_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tasks": {
                   Row: {
                     "created_at": string,"created_by": string | null,"due_date": string | null,"id": string,"meeting_id": string | null,"owner": string | null,"priority": Database["public"]['Enums']["task_priority"],"product_id": string | null,"status": Database["public"]['Enums']["task_status"],"title": string,"updated_at": string,"workspace_id": string
