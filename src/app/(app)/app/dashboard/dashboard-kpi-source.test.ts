@@ -5,9 +5,9 @@ import { describe, expect, test } from "vitest";
 /** P1-2 guard: the dashboard shows SQL figures (kpi_lines) and never re-derives a formula. */
 const files = [
   path.resolve(__dirname, "page.tsx"),
-  ...readdirSync(path.resolve(__dirname, "../../../components/dashboard"))
+  ...readdirSync(path.resolve(__dirname, "../../../../components/dashboard"))
     .filter((f) => /^(band|needs-action-band|money-band|order-journey|stock-strip|product-scorecard|usd-first)\.tsx$/.test(f))
-    .map((f) => path.resolve(__dirname, "../../../components/dashboard", f)),
+    .map((f) => path.resolve(__dirname, "../../../../components/dashboard", f)),
 ];
 
 describe("dashboard reads SQL figures only", () => {
@@ -22,7 +22,7 @@ describe("dashboard reads SQL figures only", () => {
     expect(readFileSync(files[0], "utf8")).toContain('rpc("dashboard_stats"');
   });
 
-  const comp = (n: string) => readFileSync(path.resolve(__dirname, "../../../components/dashboard", n), "utf8");
+  const comp = (n: string) => readFileSync(path.resolve(__dirname, "../../../../components/dashboard", n), "utf8");
   test("bands render the fields the spec lists", () => {
     const stock = comp("stock-strip.tsx");
     for (const k of ["inStock", "reserved", "onRoad", "delivered", "lowItems"]) expect(stock).toContain(`"${k}"`);
