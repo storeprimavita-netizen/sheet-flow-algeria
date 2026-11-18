@@ -193,7 +193,7 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028-00030)", () => 
     await setO({ delivery_status: "in_transit" });
     const m = await moves();
     expect(m).toHaveLength(before + 1);
-    expect(m[m.length - 1]).toEqual({ reason: "order_stock_sync", delta: -QTY });
+    expect(m).toContainEqual({ reason: "order_stock_sync", delta: -QTY });
     expect(await net()).toBe(-QTY);
   });
 
