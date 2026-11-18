@@ -73,7 +73,7 @@ describe("diffRows", () => {
     expect(JSON.stringify(c)).not.toContain("whsec_");
     expect(c).toHaveLength(1);
     expect(c[0].from.redacted && c[0].to.redacted).toBe(true);
-    expect(c[0].from.text).toMatch(/^\[redacted · [0-9a-f]{8}\]$/);
+    expect(c[0].from.fingerprint).toMatch(/^[0-9a-f]{8}$/);
   });
 });
 

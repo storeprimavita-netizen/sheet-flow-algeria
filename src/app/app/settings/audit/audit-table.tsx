@@ -16,11 +16,17 @@ export type AuditRow = {
   changes: DiffChange[];
 };
 
-function Value({ v, label }: { v: DiffValue; label: string }) {
+function Value({ v, label, pill }: { v: DiffValue; label: string; pill: string }) {
   if (!v.redacted) return <>{v.text}</>;
   return (
-    <span tabIndex={0} title={label} aria-label={`${v.text}. ${label}`} className="rounded border border-border bg-secondary px-1 font-mono">
-      {v.text}
+    <span
+      role="note"
+      tabIndex={0}
+      title={label}
+      aria-label={`${pill} ${v.fingerprint}. ${label}`}
+      className="rounded border border-border bg-secondary px-1"
+    >
+      {pill} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
     </span>
   );
 }
@@ -34,14 +40,15 @@ export function AuditTable({ rows }: { rows: AuditRow[] }) {
     { id: "action", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
     { id: "actor", header: t("fields.agent"), cell: (r) => r.actor_name },
     { id: "changes", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : (
-        <span className="text-xs text-muted-foreground">
-          {r.changes.map((c, i) => (
-            <bdi key={c.key} dir="ltr" className="inline-block">
-              {i > 0 && "; "}
-              {c.key}: <Value v={c.from} label={t("audit.redacted")} /> → <Value v={c.to} label={t("audit.redacted")} />
-            </bdi>
+        <ul className="space-y-1 text-xs text-muted-foreground">
+          {r.changes.map((c) => (
+            <li key={c.key} className="text-start">
+              <bdi dir="ltr" className="inline-block">
+                {c.key}: <Value v={c.from} label={t("audit.redacted")} pill={t("audit.redactedPill")} /> → <Value v={c.to} label={t("audit.redacted")} pill={t("audit.redactedPill")} />
+              </bdi>
+            </li>
           ))}
-        </span>
+        </ul>
       ) },
   ];
 
