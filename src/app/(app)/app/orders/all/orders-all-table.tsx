@@ -72,6 +72,8 @@ export function OrdersAllTable({
   showMoney,
   agents,
   actorNames,
+  query,
+  clearQueryHref,
 }: {
   rows: AllRow[];
   total: number;
@@ -79,6 +81,8 @@ export function OrdersAllTable({
   showMoney: boolean;
   agents: { id: string; name: string; role: string }[];
   actorNames: Record<string, string>;
+  query: string;
+  clearQueryHref: string;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -237,15 +241,27 @@ export function OrdersAllTable({
       total={total}
       pageSize={pageSize}
       selectable
-      empty={{
-        title: t("orders.none"),
-        description: t("orders.emptyHint"),
-        action: (
-          <ButtonLink href="/app/orders/new" size="sm">
-            {t("orders.new")}
-          </ButtonLink>
-        ),
-      }}
+      empty={
+        query
+          ? {
+              title: t("orders.noMatch", { q: query }),
+              description: t("orders.noMatchHint"),
+              action: (
+                <ButtonLink href={clearQueryHref} size="sm">
+                  {t("orders.clearSearch")}
+                </ButtonLink>
+              ),
+            }
+          : {
+              title: t("orders.none"),
+              description: t("orders.emptyHint"),
+              action: (
+                <ButtonLink href="/app/orders/new" size="sm">
+                  {t("orders.new")}
+                </ButtonLink>
+              ),
+            }
+      }
       bulkActions={(keys, clear) => (
         <>
           <DropdownMenu>

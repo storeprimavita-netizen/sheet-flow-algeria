@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { PlusCircle, Package, Building2, Megaphone, Users } from "lucide-react";
+import { PlusCircle, Package, Building2, Megaphone, Users, Hash } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
 import {
@@ -117,8 +117,19 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           ) : null}
           {query.trim() ? (
             <CommandGroup heading={t("cmd.search")}>
+              {role === "admin" ? (
+                <CommandItem
+                  value={`orders:${query}`}
+                  forceMount
+                  onSelect={() => go(`/app/orders/all?q=${encodeURIComponent(query.trim())}`)}
+                >
+                  <Hash />
+                  {t("cmd.searchOrders", { q: query.trim() })}
+                </CommandItem>
+              ) : null}
               <CommandItem
                 value={`customers:${query}`}
+                forceMount
                 onSelect={() => go(`/app/contacts?q=${encodeURIComponent(query.trim())}`)}
               >
                 <Users />

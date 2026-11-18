@@ -10,6 +10,8 @@ import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
+import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
+import { Empty } from "@/components/empty";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
@@ -66,6 +68,14 @@ export default async function AllOrdersPage({
   const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
   if (agentId)
     query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
+  const q = get("q").trim().slice(0, 80);
+  const seq = q ? parseOrderSeqQuery(q) : null;
+  if (seq !== null) query = query.eq("order_seq", seq);
+  else if (q) {
+    const text = sanitizeOrderTextQuery(q);
+    if (text)
+      query = query.or(`customer_name.ilike.%${text}%,customer_phone.ilike.%${text}%,order_number.ilike.%${text}%`);
+  }
   if (get("from")) query = query.gte("placed_at", get("from"));
   if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
 
@@ -73,9 +83,28 @@ export default async function AllOrdersPage({
   const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
 
   const from = (page - 1) * PAGE_SIZE;
-  const { data: orders, count } = await query
+  const { data: orders, count, error: ordersError } = await query
     .order(sortCol, { ascending })
     .range(from, from + PAGE_SIZE - 1);
+
+  if (ordersError) {
+    console.error("orders/all", ordersError.message);
+    const retry = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t("orders.title")} subtitle={t("orders.subtitle")} />
+        <OrderTabs active="all" />
+        <Empty>
+          <p className="font-medium text-foreground">{t("orders.loadError")}</p>
+          <div className="mt-4 flex justify-center">
+            <ButtonLink href={`/app/orders/all?${retry.toString()}`} size="sm">
+              {t("orders.retry")}
+            </ButtonLink>
+          </div>
+        </Empty>
+      </div>
+    );
+  }
 
   // status history for the orders on this page → the detail-sheet timeline
   const orderIds = (orders ?? []).map((o) => o.id);
@@ -144,6 +173,8 @@ export default async function AllOrdersPage({
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
   const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
   const isAdmin = await isCurrentUserAdmin();
+  const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
+  const clearQueryHref = `/app/orders/all${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -162,6 +193,8 @@ export default async function AllOrdersPage({
         showMoney={isAdmin}
         agents={agents}
         actorNames={actorNames}
+        query={q}
+        clearQueryHref={clearQueryHref}
       />
     </div>
   );

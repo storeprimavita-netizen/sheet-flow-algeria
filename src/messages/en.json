@@ -59,6 +59,7 @@
     "newProduct": "New product",
     "newSupplier": "New supplier",
     "addAdSpend": "Add ad spend",
+    "searchOrders": "Find order \"{q}\"",
     "searchCustomers": "Search customers for \"{q}\""
   },
   "shortcuts": {
@@ -382,6 +383,12 @@
     "setConfirmation": "Set confirmation",
     "assign": "Assign",
     "export": "Export",
+    "search": "Search",
+    "noMatch": "No order matches \"{q}\"",
+    "noMatchHint": "Try an order number like #0042, a customer name or a phone.",
+    "clearSearch": "Clear search",
+    "loadError": "Could not load orders.",
+    "retry": "Retry",
     "platformRef": "Platform ref",
     "orderLabel": "Order {number}",
     "openFull": "Open full page",

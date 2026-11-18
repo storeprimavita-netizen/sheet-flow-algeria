@@ -59,6 +59,7 @@
     "newProduct": "منتج جديد",
     "newSupplier": "مورد جديد",
     "addAdSpend": "إضافة مصروف إعلان",
+    "searchOrders": "البحث عن الطلب \"{q}\"",
     "searchCustomers": "ابحث عن العملاء عن \"{q}\""
   },
   "shortcuts": {
@@ -382,6 +383,12 @@
     "setConfirmation": "تعيين التأكيد",
     "assign": "إسناد",
     "export": "تصدير",
+    "search": "بحث",
+    "noMatch": "لا يوجد طلب مطابق لـ \"{q}\"",
+    "noMatchHint": "جرّب رقم طلب مثل #0042 أو اسم زبون أو رقم هاتف.",
+    "clearSearch": "مسح البحث",
+    "loadError": "تعذّر تحميل الطلبات.",
+    "retry": "إعادة المحاولة",
     "platformRef": "مرجع المنصة",
     "orderLabel": "الطلب {number}",
     "openFull": "فتح الصفحة الكاملة",
