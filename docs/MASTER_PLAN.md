@@ -66,7 +66,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | P1-1-F | Follow-up (D40, review-4): drill-down order list filters by UTC day — use Algiers days (D46); `pnl_by_product` cost grows with products × orders — set-based rewrite; review-4 lows | STATS | H | – | M | stats | P1-1 | todo |
 | P1-2 | Dashboard v2 (STATS spec §Dashboard v2, D45): needs-action band, money band USD-first, order journey, profit waterfall, stock strip, product scorecard; move the rest to Statistics/Team/Money | STATS | L | ui | – | stats | P1-1 | done |
 | P1-2-F | Follow-up (review-2 lows): dashboard polish items + rendered tests for the bands | STATS | L | ui | – | stats | P1-2 | todo |
-| TEST-1 | Live test isolation: every live suite creates and cleans its own workspace/orders (cash.test uses up seed orders, so a second gate run fails without `db-reset.sh`); gate must pass twice in a row without a reset | – | L | – | – | shell | – | claimed:claude |
+| TEST-1 | Live test isolation: every live suite creates and cleans its own workspace/orders (cash.test uses up seed orders, so a second gate run fails without `db-reset.sh`); gate must pass twice in a row without a reset | – | L | – | – | shell | – | done |
 | CONF-1 | Saved views (table) for confirmation/shipping/all, tabs, URL state, seeded shared views | CONF | H | ui | M | orders | NAV-3 | todo |
 | CONF-2 | Kanban layout for views (drag = transition RPC, keyboard equivalent) | CONF | L | ui | – | orders | CONF-1 | todo |
 | CONF-3 | Customer score hover card | CONF | L | ui | – | orders | CONF-1 | todo |

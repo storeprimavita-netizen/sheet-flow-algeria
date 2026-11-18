@@ -230,3 +230,15 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: screenshots docs/design/audit/P1-2/ (r2-*); not captured: EN skeleton dark, no-rate state.
 - Owner: none.
 - Next: none in this row.
+
+## TEST-1 — live test isolation
+- Done: cash.test builds its own workspaces/product/orders and removes them; kpi.test and stock-stages.test afterAll now delete audited-table rows before the workspace (the cascade audit insert hit the audit_log FK and the delete failed silently, leaking ~1100 orders per run).
+- Verify: db-reset, then gate --fast x3: GATE OK, 265 tests, counts orders/cash/customers 60/20/26 constant; workspaces 1 -> 2 after the first run only (rls.test keeps "RLS Test WS2" by design, reused by name).
+- Owner: none.
+
+## TEST-1 — DONE (live test isolation)
+- Done: cash.test builds and removes its own data; kpi/stock-stages delete audited rows before their workspace; rls.test unchanged (WS2 persists by design).
+- Verify: scripts/gate.sh on v3-TEST-1 this run: GATE OK, 265 tests incl. live RLS suite. Row-count check and the second consecutive run were not re-run in this step.
+- Evidence: gate lines tsc, tests, i18n parity, color lint, build, protected paths, secret scan all PASS.
+- Owner: none.
+- Next: none in this row.

@@ -24,38 +24,40 @@ describe.skipIf(!URL)("cash_collections (00026)", () => {
   let ws2: string;
   let orderId: string;
   let otherId: string;
-  const created: string[] = [];
+  let productId: string;
 
   beforeAll(async () => {
     admin = createClient(URL!, SERVICE_KEY, { auth: { persistSession: false } });
-    // Deterministic: only orders that have no cash row yet.
-    const { data: used } = await admin.from("cash_collections").select("order_id").not("order_id", "is", null);
-    const taken = new Set((used ?? []).map((r) => r.order_id));
-    const { data: all } = await admin.from("orders").select("id, workspace_id").limit(500);
-    const free = (all ?? []).filter((r) => !taken.has(r.id));
-    ws1 = free[0].workspace_id;
-    const sameWs = free.filter((r) => r.workspace_id === ws1);
-    if (sameWs.length < 2) throw new Error("cash.test needs 2 orders without cash in one workspace");
-    orderId = sameWs[0].id;
-    otherId = sameWs[1].id;
-    const { data: w } = await admin.from("workspaces").insert({ name: "cash-test-ws2" }).select("id").single();
-    ws2 = w!.id;
+    // Own data: workspaces, product and orders are created here and removed in afterAll.
+    const mk = async (table: "workspaces" | "products" | "orders", row: Record<string, unknown>) => {
+      const { data, error } = await admin.from(table).insert(row as never).select("id").single();
+      if (error) throw new Error(`cash.test setup ${table}: ${error.message}`);
+      return (data as { id: string }).id;
+    };
+    ws1 = await mk("workspaces", { name: `cash-test-ws1-${crypto.randomUUID()}` });
+    ws2 = await mk("workspaces", { name: `cash-test-ws2-${crypto.randomUUID()}` });
+    productId = await mk("products", { workspace_id: ws1, name: `cash-test-${crypto.randomUUID()}` });
+    orderId = await mk("orders", { workspace_id: ws1, product_id: productId, quantity: 1 });
+    otherId = await mk("orders", { workspace_id: ws1, product_id: productId, quantity: 1 });
   });
   afterAll(async () => {
-    if (created.length) await admin.from("cash_collections").delete().in("id", created);
-    await admin.from("workspaces").delete().eq("id", ws2);
+    if (!admin || !ws1) return;
+    // the stock log is add-only: delete orders, then the product (movements follow by cascade)
+    await admin.from("cash_collections").delete().in("workspace_id", [ws1, ws2]);
+    await admin.from("orders").delete().eq("workspace_id", ws1);
+    await admin.from("products").delete().eq("id", productId);
+    expect((await admin.from("workspaces").delete().eq("id", ws1)).error).toBeNull();
+    expect((await admin.from("workspaces").delete().eq("id", ws2)).error).toBeNull();
   });
 
   test("second insert for the same order_id -> 23505; NULL order_id rows stay allowed", async () => {
     const row = { workspace_id: ws1, order_id: orderId, amount_dzd: 1 };
     const a = await admin.from("cash_collections").insert(row).select("id").single();
     expect(a.error).toBeNull();
-    created.push(a.data!.id);
     expect((await admin.from("cash_collections").insert(row)).error?.code).toBe("23505");
     for (let i = 0; i < 2; i++) {
       const n = await admin.from("cash_collections").insert({ workspace_id: ws1, amount_dzd: 1 }).select("id").single();
       expect(n.error).toBeNull();
-      created.push(n.data!.id);
     }
   });
 
