@@ -108,7 +108,7 @@ export default async function DashboardPage({
   const finance = (path: string) =>
     `/app/finance${path ? `/${path}` : ""}${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`;
   const moneyHrefs = {
-    finance: finance(""),
+    finance: finance("overview"),
     revenue: ordersQs(filters, { delivery_status: "delivered" }),
     returns: ordersQs(filters, { delivery_status: "returned" }),
     ads: finance("ad-spend"),

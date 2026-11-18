@@ -34,6 +34,7 @@ describe("dashboard reads SQL figures only", () => {
   });
   test("empty period shows no false signals", () => {
     expect(comp("money-band.tsx")).toContain("if (before === 0) return null");
+    expect(comp("money-band.tsx")).toContain("Math.abs(pct) < 0.05");
     expect(comp("pnl-waterfall.tsx")).toContain("s.value !== 0");
   });
 });

@@ -38,7 +38,8 @@ export async function MoneyBand({
   const delta = (curr: number | null | undefined, before: number | null | undefined) => {
     if (curr == null || before == null) return null;
     if (before === 0) return null; // nothing to compare with (also 0 vs 0: no signal)
-    return ((curr - before) / Math.abs(before)) * 100;
+    const pct = ((curr - before) / Math.abs(before)) * 100;
+    return Math.abs(pct) < 0.05 ? null : pct; // an unchanged figure shows no arrow
   };
   const roas = kpiRoas(kpi);
   const rateLabel = (rate: string, date: string) => t("rateLabel", { rate, date });
@@ -106,7 +107,7 @@ export async function MoneyBand({
               hint={t("roasHint")}
               href={hrefs.ads}
             />
-            <KpiTile className="md:col-span-2" icon={Banknote} label={t("cashWithZr")} value="—" sub={t("cashWithZrSub")} hint={t("cashWithZrHint")} />
+            <KpiTile className="col-span-2" icon={Banknote} label={t("cashWithZr")} value="—" sub={t("cashWithZrSub")} hint={t("cashWithZrHint")} />
           </div>
         </div>
       </Band>
