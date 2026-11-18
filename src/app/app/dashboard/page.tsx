@@ -41,7 +41,10 @@ export default async function DashboardPage({
 
   // Only period + product filter the dashboard; other params are ignored.
   const filters: DashboardFilters = { from: get("from") || undefined, to: get("to") || undefined, product: get("product") || undefined };
-  const retryHref = `/app/dashboard${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`.replace(/\?$/, "");
+
+  const products0 = await supabase.from("products").select("id, name").order("name");
+  // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
+  if (filters.product && !(products0.data ?? []).some((p) => p.id === filters.product)) filters.product = undefined;
   const rpcParams = { p_from: filters.from, p_to: filters.to, p_product: filters.product ? [filters.product] : undefined };
 
   const stuckBefore = new Date(Date.now() - STUCK_DAYS * 86400000).toISOString();
@@ -57,8 +60,9 @@ export default async function DashboardPage({
         })()
       : null;
 
+
   const [products, stats, prevStats, eurRate, toConfirm, toShip, toRetry, stuck, stock, productPnls] = await Promise.all([
-    supabase.from("products").select("id, name").order("name"),
+    Promise.resolve(products0),
     supabase.rpc("dashboard_stats", rpcParams),
     prevParams ? supabase.rpc("dashboard_stats", prevParams) : Promise.resolve(null),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
@@ -66,7 +70,10 @@ export default async function DashboardPage({
     supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),
     supabase.from("orders").select("id", count).in("confirmation_status", [...RETRY_CONFIRMATION]),
     supabase.from("orders").select("id", count).in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
-    supabase.from("product_stock_v").select("product_id, in_stock, reserved, low"),
+    (() => {
+      const q = supabase.from("product_stock_v").select("product_id, in_stock, reserved, on_road, delivered, low");
+      return filters.product ? q.eq("product_id", filters.product) : q;
+    })(),
     supabase.rpc("pnl_by_product", { p_from: filters.from, p_to: filters.to }),
   ]);
 
@@ -84,22 +91,24 @@ export default async function DashboardPage({
     stock.error || products.error
       ? null
       : (stock.data ?? [])
-          .map((s) => ({ productId: s.product_id, name: nameById.get(s.product_id) ?? "—", inStock: s.in_stock, reserved: s.reserved ?? 0, low: s.low ?? false }))
+          .map((s) => ({ productId: s.product_id, name: nameById.get(s.product_id) ?? "—", inStock: s.in_stock, reserved: s.reserved ?? 0, onRoad: s.on_road ?? 0, delivered: s.delivered ?? 0, low: s.low ?? false }))
           .sort((a, b) => Number(b.low) - Number(a.low) || a.inStock - b.inStock);
 
+  const inStockById = new Map((stock.data ?? []).map((s) => [s.product_id, s.in_stock]));
   const kpiByProduct = new Map((productPnls.data ?? []).map((r) => [r.product_id, asKpi(r.kpi)]));
   const scorecard: ScorecardRow[] | null =
     !statsJson || productPnls.error
       ? null
       : (statsJson.per_product ?? []).map((p) => {
           const pk = kpiByProduct.get(p.product_id) ?? null;
-          return { productId: p.product_id, name: p.name, deliveryRate: p.delivery_rate, kpi: pk, netProfit: pk?.net_profit ?? null };
+          return { productId: p.product_id, name: p.name, deliveryRate: p.delivery_rate, kpi: pk, netProfit: pk?.net_profit ?? null, inStock: inStockById.get(p.product_id) ?? null };
         });
 
   const productOpts: Opt[] = (products.data ?? []).map((p) => ({ value: p.id, label: p.name }));
   const finance = (path: string) =>
-    `/app/finance/${path}${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`;
+    `/app/finance${path ? `/${path}` : ""}${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`;
   const moneyHrefs = {
+    finance: finance(""),
     revenue: ordersQs(filters, { delivery_status: "delivered" }),
     returns: ordersQs(filters, { delivery_status: "returned" }),
     ads: finance("ad-spend"),
@@ -121,18 +130,18 @@ export default async function DashboardPage({
       {/* Desktop order 1..6; mobile order 1,2,3,5,4,6 (stock before the waterfall). */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-12">
-          <NeedsActionBand counts={needs} retryHref={retryHref} />
-        </div>
-        <div className="lg:col-span-12">
           <DashboardFilterBar products={productOpts} />
         </div>
         <div className="lg:col-span-12">
-          <MoneyBand kpi={kpi} prev={prevKpi} retryHref={retryHref} hrefs={moneyHrefs} />
+          <NeedsActionBand counts={needs} />
+        </div>
+        <div className="lg:col-span-12">
+          <MoneyBand kpi={kpi} prev={prevKpi} hrefs={moneyHrefs} />
         </div>
         <div className="lg:col-span-5">
           <OrderJourney
             kpi={kpi}
-            retryHref={retryHref}
+           
             hrefs={{
               received: ordersQs(filters),
               confirmed: ordersQs(filters, { confirmation_status: "confirmed" }),
@@ -142,13 +151,13 @@ export default async function DashboardPage({
           />
         </div>
         <div className="max-lg:order-5 lg:col-span-7">
-          <WaterfallBand kpi={kpi} retryHref={retryHref} hrefs={moneyHrefs} />
+          <WaterfallBand kpi={kpi} hrefs={moneyHrefs} />
         </div>
         <div className="max-lg:order-4 lg:col-span-12">
-          <StockStrip rows={stockRows} retryHref={retryHref} />
+          <StockStrip rows={stockRows} />
         </div>
         <div className="max-lg:order-6 lg:col-span-12">
-          <ProductScorecard rows={scorecard} retryHref={retryHref} />
+          <ProductScorecard rows={scorecard} hasProducts={productOpts.length > 0} />
         </div>
       </div>
     </div>

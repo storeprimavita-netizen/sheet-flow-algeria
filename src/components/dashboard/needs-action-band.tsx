@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { PhoneCall, RotateCcw, TimerOff, Truck } from "lucide-react";
 
-import { STUCK_DAYS } from "@/lib/statuses";
+import { RETRY_CONFIRMATION, STUCK_DAYS } from "@/lib/statuses";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { Band, BandError } from "./band";
 
@@ -11,12 +11,12 @@ export type NeedsActionCounts = { toConfirm: number; toShip: number; toRetry: nu
  * Band 1 — what needs a human right now. Fixed (ignores the period filter).
  * Standalone on purpose: the agent home (NAV-5) reuses it.
  */
-export async function NeedsActionBand({ counts, retryHref }: { counts: NeedsActionCounts | null; retryHref: string }) {
+export async function NeedsActionBand({ counts }: { counts: NeedsActionCounts | null }) {
   const t = await getTranslations("dashboard.v2.needsAction");
   return (
-    <Band id="band-needs-action" title={t("title")}>
+    <Band id="band-needs-action" title={t("title")} note={t("notFiltered")}>
       {!counts ? (
-        <BandError retryHref={retryHref} />
+        <BandError />
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiTile icon={PhoneCall} label={t("toConfirm")} value={String(counts.toConfirm)} hint={t("toConfirmHint")} href="/app/orders/confirmation" />
@@ -26,7 +26,7 @@ export async function NeedsActionBand({ counts, retryHref }: { counts: NeedsActi
             label={t("toRetry")}
             value={String(counts.toRetry)}
             hint={t("toRetryHint")}
-            href="/app/orders/all?confirmation_status=no_answer"
+            href={`/app/orders/all?confirmation_status=${RETRY_CONFIRMATION.join(",")}`}
           />
           <KpiTile
             icon={TimerOff}

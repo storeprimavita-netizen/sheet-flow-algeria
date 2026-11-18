@@ -64,7 +64,8 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
   const chips: { key: string; label: string }[] = [];
   for (const s of selects) {
     const v = get(s.key);
-    if (v) chips.push({ key: s.key, label: `${s.label}: ${s.opts.find((o) => o.value === v)?.label ?? v}` });
+    const label = s.opts.find((o) => o.value === v)?.label;
+    if (v && label) chips.push({ key: s.key, label: `${s.label}: ${label}` }); // unknown ids show no chip
   }
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
@@ -76,8 +77,8 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
   }
 
   return (
-    <div className="card-surface sticky top-0 z-10 space-y-3 rounded-xl p-4 backdrop-blur">
-      <div className="grid grid-cols-2 gap-3 sm:max-w-xl">
+    <div className="card-surface sticky top-0 z-10 w-full space-y-3 rounded-xl p-3 backdrop-blur sm:w-fit">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[16rem_14rem]">
         <label className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
           <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />

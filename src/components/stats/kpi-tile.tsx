@@ -96,14 +96,14 @@ export function KpiTile({
   ) : null;
 
   return href ? (
-    <div className={cn(base, "p-0")}>
-      <Link href={href} className="block rounded-xl p-4 transition-colors hover:bg-surface-raised/40">
+    <div className={cn(base, "p-0", hero && "flex")}>
+      <Link href={href} className={cn("block rounded-xl p-4 transition-colors hover:bg-surface-raised/40", hero && "flex flex-1 flex-col justify-center")}>
         {inner}
       </Link>
       {hintIcon}
     </div>
   ) : (
-    <div className={base}>
+    <div className={cn(base, hero && "flex flex-col justify-center")}>
       {inner}
       {hintIcon}
     </div>

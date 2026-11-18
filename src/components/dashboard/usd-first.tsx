@@ -23,7 +23,7 @@ export function UsdFirst({
   date?: string | null;
   /** "Rate {rate} DA per $ ({date})" — already translated */
   rateLabel: (rate: string, date: string) => string;
-  /** "Set a USD rate" */
+  /** "Set a USD rate"; empty string hides it (the caller shows it once) */
   noRateHint: string;
   className?: string;
 }) {
@@ -31,7 +31,7 @@ export function UsdFirst({
     return (
       <span className={cn("flex flex-col", className)}>
         <span className="num whitespace-nowrap">{formatCurrency(dzd)}</span>
-        <span className="block text-xs font-normal text-muted-foreground">{noRateHint}</span>
+        {noRateHint ? <span className="block text-xs font-normal text-muted-foreground">{noRateHint}</span> : null}
       </span>
     );
   }

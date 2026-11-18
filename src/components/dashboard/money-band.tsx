@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Banknote, Coins, Megaphone, Target, Wallet } from "lucide-react";
 
@@ -10,7 +11,7 @@ import { buildSteps, WaterfallRows } from "./pnl-waterfall";
 import { UsdFirst } from "./usd-first";
 import { Band, BandError } from "./band";
 
-export type MoneyHrefs = { revenue: string; returns: string; ads: string; expenses: string; cogs: string; fixed: string };
+export type MoneyHrefs = { finance: string; revenue: string; returns: string; ads: string; expenses: string; cogs: string; fixed: string };
 
 /**
  * Band 2 (tiles); `WaterfallBand` is band 4. Every figure is read from `kpi` (SQL kpi_lines, D45);
@@ -21,24 +22,22 @@ export async function MoneyBand({
   kpi,
   prev,
   hrefs,
-  retryHref,
 }: {
   kpi: Kpi | null;
   prev: Kpi | null;
-  hrefs: Pick<MoneyHrefs, "revenue" | "ads">;
-  retryHref: string;
+  hrefs: Pick<MoneyHrefs, "revenue" | "ads" | "finance">;
 }) {
   const t = await getTranslations("dashboard.v2.money");
   if (!kpi) {
     return (
       <Band id="band-money" title={t("title")}>
-        <BandError retryHref={retryHref} />
+        <BandError />
       </Band>
     );
   }
   const delta = (curr: number | null | undefined, before: number | null | undefined) => {
     if (curr == null || before == null) return null;
-    if (before === 0) return curr === 0 ? 0 : null;
+    if (before === 0) return null; // nothing to compare with (also 0 vs 0: no signal)
     return ((curr - before) / Math.abs(before)) * 100;
   };
   const roas = kpiRoas(kpi);
@@ -48,6 +47,11 @@ export async function MoneyBand({
 
   return (
       <Band id="band-money" title={t("title")}>
+        {kpi.usd_rate == null ? (
+          <Link href="/app/settings?section=exchange-rates" className="mb-1 inline-block text-xs font-medium text-primary hover:underline">
+            {noRate}
+          </Link>
+        ) : null}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
           <KpiTile
             hero
@@ -57,8 +61,9 @@ export async function MoneyBand({
             value={formatCurrency(net)}
             tone={net == null ? undefined : net >= 0 ? "success" : "danger"}
             delta={delta(net, prev?.net_profit)}
+            sub={prev?.net_profit != null ? t("profitPrev", { amount: formatCurrency(prev.net_profit) }) : t("profitSub", { revenue: formatCurrency(kpi.waterfall?.revenue) })}
             hint={t("profitHint")}
-            href={hrefs.revenue}
+            href={hrefs.finance}
           />
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:col-span-8">
             <KpiTile
@@ -72,7 +77,7 @@ export async function MoneyBand({
               icon={Megaphone}
               label={t("adSpend")}
               value={
-                <UsdFirst usd={kpi.ad_spend_usd} dzd={kpi.ad_spend_dzd} rate={kpi.usd_rate} date={kpi.usd_rate_date} rateLabel={rateLabel} noRateHint={noRate} />
+                <UsdFirst usd={kpi.ad_spend_usd} dzd={kpi.ad_spend_dzd} rate={kpi.usd_rate} date={kpi.usd_rate_date} rateLabel={rateLabel} noRateHint="" />
               }
               hint={t("adSpendHint")}
               href={hrefs.ads}
@@ -87,10 +92,11 @@ export async function MoneyBand({
                   rate={kpi.usd_rate}
                   date={kpi.usd_rate_date}
                   rateLabel={rateLabel}
-                  noRateHint={noRate}
+                  noRateHint=""
                 />
               }
               hint={t("costPerDeliveredHint")}
+              href={hrefs.finance}
             />
             <KpiTile
               icon={Megaphone}
@@ -100,27 +106,27 @@ export async function MoneyBand({
               hint={t("roasHint")}
               href={hrefs.ads}
             />
-            <KpiTile icon={Banknote} label={t("cashWithZr")} value="—" sub={t("cashWithZrSub")} hint={t("cashWithZrHint")} />
+            <KpiTile className="md:col-span-2" icon={Banknote} label={t("cashWithZr")} value="—" sub={t("cashWithZrSub")} hint={t("cashWithZrHint")} />
           </div>
         </div>
       </Band>
   );
 }
 
-export async function WaterfallBand({ kpi, hrefs, retryHref }: { kpi: Kpi | null; hrefs: MoneyHrefs; retryHref: string }) {
+export async function WaterfallBand({ kpi, hrefs }: { kpi: Kpi | null; hrefs: MoneyHrefs }) {
   const t = await getTranslations("dashboard.v2.money");
   const net = kpi?.net_profit;
   if (!kpi) {
     return (
       <Band id="band-waterfall" title={t("waterfallTitle")}>
-        <BandError retryHref={retryHref} />
+        <BandError />
       </Band>
     );
   }
   return (
       <Band id="band-waterfall" title={t("waterfallTitle")}>
-        <div className="card-surface rounded-xl p-5">
-          {kpi.waterfall && net != null ? (
+        <div className="card-surface flex flex-1 flex-col justify-center rounded-xl p-5">
+          {kpi.waterfall && net != null && Object.values(kpi.waterfall).some((v) => v !== 0) ? (
             <WaterfallRows
               steps={buildSteps(
                 kpi.waterfall.revenue,

@@ -727,7 +727,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "subtitle": "Filtered overview of orders, spend, and delivery performance.",
+    "subtitle": "Orders, money, stock and products at a glance.",
     "kpi": {
       "revenue": "Revenue",
       "netProfit": "Net profit",
@@ -796,7 +796,8 @@
         "toRetryHint": "Customer did not answer or phone is closed: call again.",
         "stuck": "Stuck parcels",
         "stuckSub": "No update for {days}+ days",
-        "stuckHint": "At the courier (deposited, in transit, out for delivery, stop desk) with no update for several days."
+        "stuckHint": "At the courier (deposited, in transit, out for delivery, stop desk) with no update for several days.",
+        "notFiltered": "not filtered by period or product"
       },
       "money": {
         "title": "Money",
@@ -824,7 +825,9 @@
           "ads": "Ad spend",
           "expensesFixed": "Expenses + fixed",
           "net": "Net profit"
-        }
+        },
+        "profitSub": "On {revenue} revenue",
+        "profitPrev": "Previous period {amount}"
       },
       "journey": {
         "title": "Order journey",
@@ -835,7 +838,8 @@
         "collected": "Collected by ZR",
         "collectedHint": "Coming with ZR sync",
         "paidOut": "Paid out",
-        "paidOutHint": "Coming with the money module"
+        "paidOutHint": "Coming with the money module",
+        "vsConfirmed": "of confirmed"
       },
       "stock": {
         "title": "Stock",
@@ -844,7 +848,13 @@
         "low": "Low",
         "inStock": "In stock",
         "reserved": "Reserved",
-        "viewAll": "View all {n} products"
+        "viewAll": "View all {n} products",
+        "onRoad": "On road",
+        "onRoadHint": "Units shipped and not yet delivered.",
+        "delivered": "Delivered",
+        "reservedHint": "Units held by confirmed orders not yet shipped.",
+        "lowItems": "Low-stock items",
+        "lowItemsHint": "Products at or under their low-stock threshold."
       },
       "scorecard": {
         "title": "Products",
@@ -853,7 +863,9 @@
         "deliveryRate": "Delivery rate",
         "costPerDelivered": "Cost per delivered",
         "roas": "ROAS",
-        "profit": "Net profit"
+        "profit": "Net profit",
+        "stock": "In stock",
+        "noPeriod": "No data for this period."
       }
     }
   },

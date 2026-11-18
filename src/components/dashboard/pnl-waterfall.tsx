@@ -85,7 +85,7 @@ export function WaterfallRows({ steps }: { steps: WaterfallStep[] }) {
                   s.kind === "cost" && "bg-muted-foreground/35",
                   s.kind === "net" && (s.value >= 0 ? "bg-success" : "bg-danger"),
                 )}
-                style={{ insetInlineStart: pos(s.from), width: `max(2px, calc(${pos(s.to)} - ${pos(s.from)}))` }}
+                style={{ insetInlineStart: pos(s.from), width: `max(6px, calc(${pos(s.to)} - ${pos(s.from)}))` }}
               />
             </div>
             <span
@@ -95,7 +95,7 @@ export function WaterfallRows({ steps }: { steps: WaterfallStep[] }) {
                 s.kind === "cost" && "text-muted-foreground",
               )}
             >
-              {s.kind === "cost" ? `−${formatCurrency(-s.value)}` : formatCurrency(s.value)}
+              {s.kind === "cost" && s.value !== 0 ? `−${formatCurrency(-s.value)}` : formatCurrency(s.value)}
             </span>
           </div>
         );

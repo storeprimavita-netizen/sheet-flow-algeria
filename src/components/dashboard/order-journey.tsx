@@ -11,18 +11,16 @@ import { Band, BandError } from "./band";
 export async function OrderJourney({
   kpi,
   hrefs,
-  retryHref,
 }: {
   kpi: Kpi | null;
   hrefs: { received: string; confirmed: string; onRoad: string; delivered: string };
-  retryHref: string;
 }) {
   const t = await getTranslations("dashboard.v2.journey");
   return (
     <Band id="band-journey" title={t("title")}>
-      <div className="card-surface space-y-4 rounded-xl p-5">
+      <div className="card-surface flex-1 space-y-4 rounded-xl p-5">
         {!kpi ? (
-          <BandError retryHref={retryHref} />
+          <BandError />
         ) : (
           <>
             <Funnel
@@ -30,7 +28,7 @@ export async function OrderJourney({
                 { label: t("received"), count: kpi.counts.received, href: hrefs.received },
                 { label: t("confirmed"), count: kpi.counts.confirmed, href: hrefs.confirmed },
                 { label: t("onRoad"), count: kpi.counts.on_road_orders, href: hrefs.onRoad, dropFrom: -1 },
-                { label: t("delivered"), count: kpi.counts.delivered, href: hrefs.delivered, dropFrom: 1 },
+                { label: t("delivered"), count: kpi.counts.delivered, href: hrefs.delivered, dropFrom: 1, dropNote: t("vsConfirmed") },
               ]}
             />
             <dl className="space-y-1 border-t border-border pt-3 text-sm">
