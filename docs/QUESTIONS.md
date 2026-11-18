@@ -8,6 +8,31 @@ owner may overturn").
 
 ## Open
 
+### Q-12 · STORE-1 · 2026-11-18 · answered-by-default
+A customer exchanges size M for size L. When does the M count as back in your
+stock? **Applied by default (D54):** you change the size on the order to L. One
+L leaves stock and the M counts as back at once, although it is still on its
+way back to you. The total for the product stays right (one piece out, as
+today). If that M never arrives or cannot be sold again, add a correction line
+on the product's stock page. The other option: the M stays out of stock until
+you add it back by hand once it is on your shelf. It is never counted too
+early, but it is one manual step on every exchange. Say so if you want it.
+Nothing is blocked.
+
+### Q-11 · STORE-1 · 2026-11-18 · answered-by-default
+Products get a stock number per size and colour. Today the app only knows the
+total per product (for example 144 pieces of a dress, not how many S, M and L).
+How should the sizes start? **Applied by default (D54):** nothing is guessed.
+The 144 stay on the product as "not assigned to a size" and each size starts
+uncounted. On the product's stock page you type what is on the shelf (S 40,
+M 50, L 54) and the pieces move to the sizes; the total does not change. Until
+you count, orders still ship and the store still sells: a size that sold
+before being counted shows a minus number and "count needed". When you buy new
+stock you choose the size it goes to. The other options: split the total
+evenly between the sizes (numbers that look real but are wrong), or stop
+selling a product until it is counted. Say so if you prefer one. Nothing is
+blocked.
+
 ### Q-10 · PRICE-2 · 2026-11-18 · answered-by-default
 In a product's price calculator you can type a "final price" to see what you
 would earn at that price. When that price loses money, should saving it ask
