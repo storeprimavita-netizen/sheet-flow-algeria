@@ -327,8 +327,15 @@ export function DataTable<T>({
                           "border-b border-border transition-colors",
                           rowH,
                           renderSheet && "cursor-pointer",
-                          isSel ? "bg-primary/5" : "hover:bg-surface-raised",
-                          focus === i && "bg-surface-raised",
+                          // --row-bg is the single source for the row and its frozen cell
+                          "bg-(--row-bg)",
+                          isSel
+                            ? "[--row-bg:color-mix(in_oklab,var(--primary)_5%,var(--surface))] hover:[--row-bg:color-mix(in_oklab,var(--primary)_10%,var(--surface))]"
+                            : "[--row-bg:var(--surface)] hover:[--row-bg:var(--surface-raised)]",
+                          focus === i &&
+                            (isSel
+                              ? "[--row-bg:color-mix(in_oklab,var(--primary)_10%,var(--surface))]"
+                              : "[--row-bg:var(--surface-raised)]"),
                           focus === i && tableFocused && "ring-2 ring-inset ring-ring",
                         )}
                       >
@@ -349,7 +356,8 @@ export function DataTable<T>({
                               colStart(c),
                               c.width,
                               c.numeric && "num",
-                              c.sticky && "sticky start-0 z-10 bg-surface",
+                              c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors",
+                              c.sticky && focus === i && tableFocused && "ring-2 ring-inset ring-ring",
                             )}
                           >
                             {c.cell(row)}
