@@ -164,3 +164,10 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Verify: brief review-0 + code reviews 5–7 on the restarted build; review-7 has no high finding. Open medium moved to P0-8-F.
 - Evidence: full scripts/gate.sh GATE OK, 200 tests with the live RLS suite, after db-reset.
 - Owner: production db push of 00028–00029 is owner-only (O-2); Q-3 read-only count on real data before it.
+
+## P0-8-F — DONE (merged under the coordinator's /ship run)
+- Done: swap replacement cancelled at confirmation releases stock only before pickup; DB swap guard; ZR skip; review-7 lows (see brief and review-1..3).
+- Verify: review-3 VERDICT: PASS (highest-numbered review); no high finding open.
+- Evidence: scripts/gate.sh GATE OK on v3-P0-8-F (209 tests incl. live RLS suite, tsc, i18n parity, color lint, build, protected paths, secret scan).
+- Owner: production db push of new migrations is owner-only.
+- Next: none in this row; continue with the next todo task in MASTER_PLAN.
