@@ -68,7 +68,7 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
   const columns: Column<DelivRow>[] = [
     {
       id: "order_seq",
-      header: t("orders.title"),
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <span className="flex items-center gap-2">

@@ -391,6 +391,7 @@
     "retry": "Retry",
     "platformRef": "Platform ref",
     "orderLabel": "Order {number}",
+    "numberHeader": "Order #",
     "openFull": "Open full page",
     "previousOrders": "Previous orders",
     "noPrevious": "No previous orders from this customer.",

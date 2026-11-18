@@ -44,10 +44,13 @@ begin
                             from public.orders group by 1) s where s.c <> s.m or s.mn <> 1) then
     raise exception 'order_seq backfill has gaps';
   end if;
-  if exists (select 1 from public.orders a join public.orders b
-             on a.workspace_id = b.workspace_id and a.order_seq < b.order_seq
-             and (coalesce(a.placed_at, a.created_at), a.created_at, a.id)
-               > (coalesce(b.placed_at, b.created_at), b.created_at, b.id)) then
+  if exists (
+    select 1 from (
+      select (coalesce(placed_at, created_at), created_at, id) as k,
+             lag((coalesce(placed_at, created_at), created_at, id))
+               over (partition by workspace_id order by order_seq) as pk
+      from public.orders) x
+    where x.pk is not null and x.pk > x.k) then
     raise exception 'order_seq backfill order is wrong';
   end if;
 end; $$;
@@ -68,8 +71,10 @@ returns trigger language plpgsql security definer set search_path = public, pg_t
 begin
   update public.order_counters set next_seq = next_seq + 1
    where workspace_id = new.workspace_id returning next_seq - 1 into new.order_seq;
-  if new.order_seq is null then
-    insert into public.order_counters (workspace_id, next_seq) values (new.workspace_id, 2)
+  if new.order_seq is null and exists (select 1 from public.workspaces where id = new.workspace_id) then
+    -- counter row missing: re-seed from the existing orders, never restart at 1
+    insert into public.order_counters (workspace_id, next_seq)
+    select new.workspace_id, coalesce(max(order_seq), 0) + 2 from public.orders where workspace_id = new.workspace_id
     on conflict (workspace_id) do update set next_seq = public.order_counters.next_seq + 1
     returning next_seq - 1 into new.order_seq;
   end if;

@@ -45,7 +45,7 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
   const columns: Column<ConfRow>[] = [
     {
       id: "order_seq",
-      header: t("orders.title"),
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <span className="flex items-center gap-1.5 whitespace-nowrap">

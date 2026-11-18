@@ -122,7 +122,7 @@ export function OrdersAllTable({
   const columns: Column<AllRow>[] = [
     {
       id: "order_seq",
-      header: t("orders.title"),
+      header: t("orders.numberHeader"),
       sortable: true,
       sticky: true,
       width: "min-w-[9rem]",

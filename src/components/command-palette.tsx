@@ -116,7 +116,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
             </CommandGroup>
           ) : null}
           {query.trim() ? (
-            <CommandGroup heading={t("cmd.search")}>
+            <CommandGroup heading={t("cmd.search")} forceMount>
               {role === "admin" ? (
                 <CommandItem
                   value={`orders:${query}`}

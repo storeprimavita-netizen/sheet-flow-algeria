@@ -70,8 +70,13 @@ export default async function AllOrdersPage({
     query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
   const q = get("q").trim().slice(0, 80);
   const seq = q ? parseOrderSeqQuery(q) : null;
-  if (seq !== null) query = query.eq("order_seq", seq);
-  else if (q) {
+  if (seq !== null) {
+    const digits = q.replace(/\D/g, "");
+    // 5+ digits may be a partial phone number as well as a running number.
+    query = digits.length >= 5
+      ? query.or(`order_seq.eq.${seq},customer_phone.ilike.%${digits}%`)
+      : query.eq("order_seq", seq);
+  } else if (q) {
     const text = sanitizeOrderTextQuery(q);
     if (text)
       query = query.or(`customer_name.ilike.%${text}%,customer_phone.ilike.%${text}%,order_number.ilike.%${text}%`);

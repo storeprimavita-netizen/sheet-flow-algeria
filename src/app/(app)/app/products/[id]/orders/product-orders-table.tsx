@@ -27,7 +27,7 @@ export function ProductOrdersTable({ rows }: { rows: ProductOrderRow[] }) {
   const columns: Column<ProductOrderRow>[] = [
     {
       id: "order_seq",
-      header: t("orders.title"),
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <Link href={`/app/orders/${r.id}`} className="num font-medium hover:underline">

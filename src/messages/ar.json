@@ -391,6 +391,7 @@
     "retry": "إعادة المحاولة",
     "platformRef": "مرجع المنصة",
     "orderLabel": "الطلب {number}",
+    "numberHeader": "رقم الطلب",
     "openFull": "فتح الصفحة الكاملة",
     "previousOrders": "الطلبات السابقة",
     "noPrevious": "لا توجد طلبات سابقة لهذا العميل.",
