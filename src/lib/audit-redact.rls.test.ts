@@ -36,9 +36,18 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
   });
   afterAll(async () => {
     if (!svc) return;
-    await svc.from("integration_configs").delete().eq("workspace_id", ws);
-    await svc.from("workspaces").delete().eq("id", ws);
-    await svc.auth.admin.deleteUser(userId);
+    const steps = [
+      await svc.from("integration_configs").delete().eq("workspace_id", ws),
+      await svc.from("settings").delete().eq("workspace_id", ws),
+      await svc.from("audit_log").delete().eq("workspace_id", ws),
+    ];
+    steps.forEach((r) => { if (r.error) throw r.error; });
+    // Deleting audited children fires the audit trigger again; clear audit rows after the last audited delete.
+    const w = await svc.from("workspaces").delete().eq("id", ws);
+    if (w.error) throw w.error;
+    await svc.from("audit_log").delete().eq("workspace_id", ws);
+    const u = await svc.auth.admin.deleteUser(userId);
+    if (u.error) throw u.error;
   });
 
   test("secret is redacted in audit_log but intact in the table", async () => {
@@ -121,15 +130,28 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(del_row).toBeDefined();
   });
 
-  test("backfill expression scrubs a raw row and is a no-op on clean ones", async () => {
+  test("backfill UPDATE scrubs raw rows and leaves clean rows untouched", async () => {
     const mk = (n: string) => ({ workspace_id: ws, table_name: "x_backfill", row_id: crypto.randomUUID(), action: "INSERT", new_row: { name: n, XAPIKey: "RAW_" + n } });
-    const raw = await svc.from("audit_log").insert(mk("a")).select("id, new_row").single();
+    const raw = await svc.from("audit_log").insert(mk("a")).select("id").single();
     expect(raw.error).toBeNull();
-    const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id").single();
+    const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id, new_row").single();
     expect(clean.error).toBeNull();
-    const { data } = await svc.rpc("audit_redact", { j: raw.data!.new_row });
-    expect(JSON.stringify(data)).not.toContain("RAW_");
-    const { data: same } = await svc.rpc("audit_redact", { j: { name: "b" } });
-    expect(same).toEqual({ name: "b" });
+    const ids = [raw.data!.id, clean.data!.id];
+    // Same rule as the backfill in 00036/00037 (rewrite only rows that change), limited to this test's rows.
+    const { data: rows } = await svc.from("audit_log").select("id, old_row, new_row").in("id", ids);
+    for (const r of rows!) {
+      const { data: nr } = await svc.rpc("audit_redact", { j: r.new_row });
+      if (JSON.stringify(nr) !== JSON.stringify(r.new_row)) {
+        const up = await svc.from("audit_log").update({ new_row: nr }).eq("id", r.id);
+        expect(up.error).toBeNull();
+      }
+    }
+    const { data: after } = await svc.from("audit_log").select("id, new_row").in("id", ids);
+    const byId = new Map(after!.map((r) => [r.id, r.new_row]));
+    expect(JSON.stringify(byId.get(raw.data!.id))).not.toContain("RAW_");
+    expect(byId.get(raw.data!.id)).toMatchObject({ name: "a" });
+    expect(byId.get(clean.data!.id)).toEqual({ name: "b" });
+    const cleanup = await svc.from("audit_log").delete().in("id", ids);
+    expect(cleanup.error).toBeNull();
   });
 });

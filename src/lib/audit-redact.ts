@@ -2,10 +2,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 // Mirrors public.audit_redact() (00036_audit_redact_acronyms.sql, D49). Keep both in sync.
+// Run-together forms (apikey, secretkey, accesstoken, authtoken, privatekey, clientsecret, webhooksecret, bottoken) are listed explicitly (D49).
 // A name is secret if either normalisation is secret and not allow-listed:
 //  a) trim spaces, split acronyms (XAPIKey) and camelCase, separators to "_", lowercase, trim "_";
 //  b) case-only (lowercase, separators to "_", trim "_") which catches sEcReT.
-const SECRET_KEY = /(^|_)(keys?|tokens?|secrets?|password|passwd|pwd|passphrase|credentials?|authorization|signature|apikeys?)$/;
+const SECRET_KEY = /(^|_)(keys?|tokens?|secrets?|password|passwd|pwd|passphrase|credentials?|authorization|signature|apikeys?|secretkey|accesstoken|authtoken|privatekey|clientsecret|webhooksecret|bottoken)$/;
 const ALLOW_KEY = /^(keys?|idempotency_key|sort_key|cache_key|(color|design|theme)_tokens?)$/;
 const sep = (k: string) => k.replace(/[-. :]/g, "_");
 const trimUnderscore = (k: string) => k.replace(/^_+|_+$/g, "");
@@ -20,11 +21,11 @@ const MASKED = /^\[redacted:[0-9a-f]{8}\]$/;
 const fingerprint = (s: string) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, 8);
 const mask = (s: string) => `[redacted:${fingerprint(s)}]`;
 
-/** Text of a value as Postgres jsonb prints it (keys by length then bytes, ": " and ", "). */
+/** Text of a value as Postgres jsonb prints it (keys by UTF-8 byte length then bytes, ": " and ", "). */
 export function jsonbText(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(jsonbText).join(", ")}]`;
   if (v && typeof v === "object") {
-    const keys = Object.keys(v).sort((a, b) => a.length - b.length || Buffer.compare(Buffer.from(a), Buffer.from(b)));
+    const keys = Object.keys(v).sort((a, b) => Buffer.byteLength(a) - Buffer.byteLength(b) || Buffer.compare(Buffer.from(a), Buffer.from(b)));
     return `{${keys.map((k) => `${JSON.stringify(k)}: ${jsonbText((v as Record<string, unknown>)[k])}`).join(", ")}}`;
   }
   return JSON.stringify(v);
