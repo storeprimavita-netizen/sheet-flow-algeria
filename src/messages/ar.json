@@ -555,7 +555,7 @@
       "order_confirmed": "تأكيد الطلب",
       "order_reverted": "إلغاء التأكيد",
       "order_returned": "إرجاع الطلب",
-      "order_return_undone": "إلغاء الإرجاع"
+      "order_stock_sync": "تسوية المخزون"
     },
     "unitsOnHand": "الوحدات المتوفرة",
     "stockValue": "قيمة المخزون",

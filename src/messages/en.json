@@ -555,7 +555,7 @@
       "order_confirmed": "Order confirmed",
       "order_reverted": "Order reverted",
       "order_returned": "Order returned",
-      "order_return_undone": "Return undone"
+      "order_stock_sync": "Stock reconciled"
     },
     "unitsOnHand": "Units on hand",
     "stockValue": "Stock value",

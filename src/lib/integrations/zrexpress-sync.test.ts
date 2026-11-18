@@ -119,14 +119,14 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await stock()).toBe(1); // D25: two returned transitions net one restock
   });
 
-  test("returned -> admin sets delivered -> same-timestamp apply leaves delivered, stock once", async () => {
+  test("returned -> admin sets delivered -> same-timestamp apply leaves delivered, stock re-deducted once (D25)", async () => {
     await setMap(MAP);
     await reset();
     await rpc("Retour", T(10));
     await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
     await rpc("Retour", T(10));
     expect(await order()).toBe("delivered");
-    expect(await stock()).toBe(1);
+    expect(await stock()).toBe(0);
   });
 
   test("shopify/lightfunnels redelivery of the same external_id is not blocked by the zr index", async () => {
@@ -162,7 +162,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await order()).toBe("delivered");
     await applyZRParcelState(admin as never, ws, { id: parcel, live: true, state: { name: "retour" }, stateAt: T(10) });
     expect(await order()).toBe("delivered");
-    expect(await stock()).toBe(1);
+    expect(await stock()).toBe(0);
   });
 
   test("tie with a different state is ignored for non-live (webhook) callers", async () => {

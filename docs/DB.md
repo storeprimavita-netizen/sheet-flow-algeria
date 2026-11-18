@@ -55,7 +55,7 @@ Finally regenerate types:
 | `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
 | `accounts` | 00017 | spending budget accounts (name, currency, opening_balance, low_balance_threshold); `account_topups` for deposits; balance derived via `account_balances` view | admin only |
 | `account_topups` | 00017 | append-only deposits (account_id, amount, occurred_on, note) | admin only |
-| `stock_movements` | 00003, 00018, 00028 | trigger maintains `products.stock`; reasons purchase/correction/order_confirmed/order_reverted/order_returned/order_return_undone (legacy: delivered/returned) | admin only |
+| `stock_movements` | 00003, 00018, 00028 | trigger maintains `products.stock`; reasons purchase/correction/order_confirmed/order_reverted/order_returned/order_stock_sync (legacy: delivered/returned) | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
 | `orders` | 00004, 00014 | see SPEC §3; unique (workspace, source, external_id); optional `cancellation_reason_option_id` (FK → `options`, set when confirmation/delivery status goes cancelled/returned) | admin all; conf agent: `confirmation_status <> 'confirmed'`; delivery agent: confirmed only |
@@ -79,7 +79,7 @@ Finally regenerate types:
 3. `orders_flag_duplicate` — BEFORE INSERT: same normalized phone + product
    within `settings.duplicate_window` hours ⇒ `is_duplicate_suspect = true`,
    `duplicate_of` set.
-4. `orders_stock_effects` — confirmed ⇒ stock −qty (`order_confirmed`); leave-confirmed pre-delivery ⇒ +qty (`order_reverted`); returned ⇒ +qty (`order_returned`) via `stock_movements`. Leaving `returned` ⇒ −qty (`order_return_undone`), only while returns outnumber undos for that order (00028).
+4. `orders_stock_effects` (00028, D25) — AFTER UPDATE reconciles stock held by the order: target = −qty while `confirmed` and delivery not `returned`/`cancelled`, else 0; current = net of the order's movements for the product (reasons order_confirmed/order_returned/order_reverted/order_stock_sync; legacy `delivered`/`returned` rows are ignored); one movement of target − current is inserted when they differ (reason order_confirmed on deduct, order_returned/order_reverted on restock, order_stock_sync on qty/product change). Idempotent. Changing the product releases the old product first.
 
 ## Views (00006, all `security_invoker` — caller's RLS applies)
 
