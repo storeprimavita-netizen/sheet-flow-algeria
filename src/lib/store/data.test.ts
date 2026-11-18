@@ -53,6 +53,34 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(JSON.stringify(dto)).not.toMatch(/SECRET|workspace_id|cost|"id"/);
   });
 
+  test("variant stock change shows; uncounted product keeps every size in stock (D54.4)", async () => {
+    const { store, product } = await setup();
+    const o = (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name: "Size" }).select("id").single()).data!.id;
+    const mk = async (label: string) => {
+      const v = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id: o, label }).select("id").single()).data!.id;
+      const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id, sku: `S-${label}` }).select("id").single()).data!.id;
+      await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
+      return x;
+    };
+    const m = await mk("M");
+    await mk("L");
+    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
+    const move = async (delta: number, variantId?: string) => {
+      const { error } = await svc.from("stock_movements").insert({ workspace_id: ws, product_id: product.id, variant_id: variantId ?? null, delta, reason: "purchase" });
+      expect(error).toBeNull();
+    };
+    // 10 pieces on the product, none counted per size: nothing is out
+    await move(10);
+    expect(await stock()).toEqual([["M", true], ["L", true]]);
+    // M counted at 10 (moved from not assigned: the product total stays 10): nothing unassigned left, L is out
+    await move(-10);
+    await move(10, m);
+    expect(await stock()).toEqual([["M", true], ["L", false]]);
+    // M sells out
+    await move(-10, m);
+    expect(await stock()).toEqual([["M", false], ["L", false]]);
+  });
+
   test("unpublished page 404", async () => {
     const { store } = await setup({ page: { status: "draft" } });
     expect(await loadPublicProductPage(svc, store.slug, "abaya")).toBeNull();

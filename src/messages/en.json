@@ -1341,5 +1341,10 @@
       },
       "loading": "Loading store"
     }
+  },
+  "notFoundPage": {
+    "title": "Page not found",
+    "body": "This page doesn't exist, or you don't have access to it.",
+    "back": "Back to the dashboard"
   }
 }

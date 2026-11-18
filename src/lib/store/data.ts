@@ -63,7 +63,7 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
 
   const { data: product, error: productErr } = await db
     .from("products")
-    .select("id, workspace_id, name, sale_price, images, is_active")
+    .select("id, workspace_id, name, sale_price, images, is_active, stock")
     .eq("id", page.product_id)
     .eq("is_active", true)
     .not("sale_price", "is", null)
@@ -76,7 +76,7 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
 
 type StoreRow = Pick<Database["public"]["Tables"]["stores"]["Row"], "id" | "workspace_id" | "slug" | "name" | "theme" | "settings">;
 type PageRow = Pick<Database["public"]["Tables"]["store_pages"]["Row"], "slug" | "title" | "blocks" | "seo">;
-type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "images">;
+type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "images" | "stock">;
 
 /** Shared by the public page and the admin preview: the same DTO either way, so a preview shows what a visitor will see. */
 export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow & { id?: string }, product: ProductRow): Promise<PublicProductPage> {
@@ -86,7 +86,7 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
   const set = settings.success ? settings.data : {};
 
   const [variants, related] = await Promise.all([
-    loadVariants(db, product.id),
+    loadVariants(db, product.id, product.stock),
     loadRelated(db, store.id, store.workspace_id, blocks.success ? blocks.data : [], page.id),
   ]);
 
@@ -114,24 +114,26 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
   };
 }
 
-async function loadVariants(db: Db, productId: string): Promise<PublicVariant[]> {
+/** D54.4: a size is out only when its own count plus the product's not-assigned pieces are used up. */
+async function loadVariants(db: Db, productId: string, productStock: number): Promise<PublicVariant[]> {
   const [opts, vals, vars, joins] = await Promise.all([
     db.from("product_options").select("id, position").eq("product_id", productId),
     db.from("product_option_values").select("id, label").eq("product_id", productId),
-    db.from("product_variants").select("id, stock").eq("product_id", productId).eq("is_active", true),
+    db.from("product_variants").select("id, stock, is_active").eq("product_id", productId),
     db.from("product_variant_values").select("variant_id, option_id, value_id").eq("product_id", productId),
   ]);
   const failed = [opts, vals, vars, joins].find((r) => r.error);
   if (failed?.error) throw new Error(`variants lookup failed: ${failed.error.message}`);
   const pos = new Map((opts.data ?? []).map((o) => [o.id, o.position]));
   const label = new Map((vals.data ?? []).map((v) => [v.id, v.label]));
-  return (vars.data ?? []).flatMap((v) => {
+  const unassigned = productStock - (vars.data ?? []).reduce((n, v) => n + v.stock, 0);
+  return (vars.data ?? []).filter((v) => v.is_active).flatMap((v) => {
     const parts = (joins.data ?? [])
       .filter((j) => j.variant_id === v.id)
       .sort((a, b) => (pos.get(a.option_id) ?? 0) - (pos.get(b.option_id) ?? 0))
       .map((j) => label.get(j.value_id))
       .filter((l): l is string => !!l);
-    return parts.length ? [{ label: parts.join(" / "), inStock: v.stock > 0 }] : [];
+    return parts.length ? [{ label: parts.join(" / "), inStock: v.stock + unassigned > 0 }] : [];
   });
 }
 

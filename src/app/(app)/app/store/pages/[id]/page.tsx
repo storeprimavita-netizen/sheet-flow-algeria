@@ -8,9 +8,10 @@ import { z } from "zod";
 
 import { Crumbs } from "../../_components/crumbs";
 import { PageEditor } from "../../_components/page-editor";
-import { getStore } from "../../_lib/data";
+import { getStore, requireStoreAdmin } from "../../_lib/data";
 
 export default async function StorePageEditor({ params }: { params: Promise<{ id: string }> }) {
+  await requireStoreAdmin();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const t = await getTranslations("store.admin");

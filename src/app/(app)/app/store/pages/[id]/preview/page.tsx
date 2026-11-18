@@ -9,11 +9,13 @@ import { createClient } from "@/lib/supabase/server";
 import "@/components/store/store.css";
 
 import { Crumbs } from "../../../_components/crumbs";
+import { requireStoreAdmin } from "../../../_lib/data";
 
 // Draft preview: admin layout, session client, RLS decides. Never cached, never reachable from /s.
 export const dynamic = "force-dynamic";
 
 export default async function StorePagePreview({ params }: { params: Promise<{ id: string }> }) {
+  await requireStoreAdmin();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const t = await getTranslations("store.admin");
@@ -23,7 +25,7 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
   if (!page || !page.product_id) notFound();
   const [{ data: store }, { data: product }] = await Promise.all([
     supabase.from("stores").select("id, workspace_id, slug, name, theme, settings").eq("id", page.store_id).maybeSingle(),
-    supabase.from("products").select("id, name, sale_price, images").eq("id", page.product_id).maybeSingle(),
+    supabase.from("products").select("id, name, sale_price, images, stock").eq("id", page.product_id).maybeSingle(),
   ]);
   if (!store || !product) notFound();
   const dto = await assembleProductPage(supabase, store, page, product);
