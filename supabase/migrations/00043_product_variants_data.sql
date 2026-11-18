@@ -8,7 +8,7 @@ begin
   for p in select id, workspace_id, variants from public.products where jsonb_typeof(variants) = 'array' loop
     v_opt := null;
     for e in select value from jsonb_array_elements(p.variants) loop
-      continue when jsonb_typeof(e) <> 'object' or jsonb_typeof(e -> 'label') <> 'string';
+      continue when jsonb_typeof(e) is distinct from 'object' or jsonb_typeof(e -> 'label') is distinct from 'string';
       v_label := btrim(e ->> 'label');
       continue when v_label = '';
       continue when exists (select 1 from public.product_option_values x
