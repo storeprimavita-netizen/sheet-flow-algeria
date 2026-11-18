@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { fxRateFor } from "@/lib/fx";
+import { isHttps } from "@/lib/store/url";
 import { countBySizeSchema, uuid, variantConfigSchema } from "@/lib/variants";
 import {
   PRODUCT_STATUSES,
@@ -19,6 +20,12 @@ import {
 export type UpdateResult = { ok: true } | { ok: false; error: string };
 
 const lines = (text: string) => text.split("\n").map((l) => l.trim()).filter(Boolean);
+/** Image URLs are shown on the public store: https only. */
+const imageLines = (text: string) => {
+  const urls = lines(text);
+  if (urls.some((u) => !isHttps(u))) throw new Error("Image links must start with https://");
+  return urls;
+};
 
 const optionalNumber = z.preprocess((v) => {
   const s = String(v ?? "").trim();
@@ -71,7 +78,7 @@ export async function saveProduct(id: string | null, formData: FormData) {
     sale_price: input.sale_price,
     notes: input.notes,
     is_active: formData.get("is_active") === "on",
-    images: lines(String(formData.get("images") ?? "")),
+    images: imageLines(String(formData.get("images") ?? "")),
   };
 
   let productId = id;
