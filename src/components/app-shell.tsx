@@ -51,6 +51,11 @@ export function AppShell({
     setClosedGroups(parseClosedGroups(localStorage.getItem(GROUPS_KEY)));
   }, []);
 
+  // Keep the active page visible when the nav itself scrolls (short screens, Settings at the end).
+  useEffect(() => {
+    document.querySelector("aside nav [aria-current='page']")?.scrollIntoView({ block: "nearest" });
+  }, [pathname, collapsed]);
+
   function toggleGroup(key: string, nextClosed: boolean) {
     setClosedGroups((g) => {
       const next = { ...g, [key]: nextClosed };
@@ -96,6 +101,7 @@ export function AppShell({
         href={item.href}
         onClick={() => setOpen(false)}
         aria-label={collapsed ? label : undefined}
+        aria-current={active ? "page" : undefined}
         className={cn(
           "group relative flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
           collapsed ? "justify-center px-2" : "px-3",
