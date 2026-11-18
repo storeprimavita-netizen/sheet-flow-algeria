@@ -8,6 +8,16 @@ owner may overturn").
 
 ## Open
 
+### Q-8 · PRICE-1 · 2026-11-18 · answered-by-default
+In the calculator you can ask for a profit as a percentage instead of a fixed
+amount ("cost + 60–70%"). A percentage of what? **Applied by default (D51):**
+of the product's own cost per piece. Example on benz at 65%: product cost 1,813
+→ profit 1,179 per piece → suggested price 5,200 (ads, returns and fees are
+still fully covered on top). The other reading, 65% of the total cost per piece
+(product + ads + returns + fees = 3,885), gives profit 2,525 and a suggested
+price of 6,600. Say so if you meant the total cost. The default stays the fixed
+profit (1,500 DZD → 5,500), unchanged. Nothing is blocked.
+
 ### Q-7 · P0-8 · 2026-11-18 · answered-by-default
 When you delete an order, should its pieces go back into stock? **Applied by
 default (D41):** only if the piece never left the warehouse (not yet handed to
