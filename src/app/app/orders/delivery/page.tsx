@@ -5,6 +5,7 @@ import { isCurrentUserAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_DELIVERY } from "@/lib/statuses";
+import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { DeliveryView, type DelivRow } from "./delivery-view";
 
@@ -22,13 +23,14 @@ export default async function DeliveryQueuePage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
+      "id, order_number, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, swapped_to_order_id, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
     )
     .eq("confirmation_status", "confirmed")
     .order("created_at", { ascending: true });
   if (!showAll) query = query.in("delivery_status", ACTIONABLE_DELIVERY);
   const { data: orders } = await query;
 
+  const swaps = await swapTargets(supabase, orders ?? []);
   const rows: DelivRow[] = (orders ?? []).map((o) => ({
     id: o.id,
     order_number: o.order_number,
@@ -45,6 +47,7 @@ export default async function DeliveryQueuePage({
     delivery_type: o.delivery_type,
     delivery_status: o.delivery_status,
     commune: o.commune,
+    swapped_to: swaps.get(o.id) ?? null,
     placed_at: o.placed_at,
   }));
 

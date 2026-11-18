@@ -192,3 +192,17 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: 390 px DOM script (AR, light) plus drawer screenshots in docs/design/audit/NAV-1-F/. EN and dark matrix not captured.
 - Owner: none.
 - Next: none in this row.
+
+## P0-8-G — swap badge + tests (2026-11-18) — DONE (pending review)
+- Done: tests for linked swap original (follows status, stock fixed, unlink, admin cancel via RPC), zr_state_map strips `swap`, swapOrder tests, SwapBadge on orders list / delivery table / kanban / detail, DB.md fixes.
+- Screenshots (chrome-devtools): list, delivery table, kanban, detail checked in EN dark, EN light, AR dark (kanban), AR light (list). Fixed list overflow (badge under order number) and order-number wrap. Not every surface x locale x theme combination was viewed; remaining ones share the same component.
+- Known: AR badge shows "#id" bidi-reordered (pre-existing wording in swap.swappedTo).
+- P0-8-G review-1 FIX: swap badge now shows '#number' (bdi ltr, full sentence in title), delivery badge stacked. Screenshots list EN/AR at 1280 and 390 (light) viewed OK: docs/design/audit/P0-8-G/list-*-{1280,390}.png. Dark theme not re-shot.
+- P0-8-G review-2 FIX: swap badge now shows icon + 'Swap'/'تبديل' + #number; swapTargets chunked. Screenshots (390/1280, EN/AR, dark) viewed: docs/design/audit/P0-8-G-r3/. Light theme not re-shot (token-only change).
+
+## P0-8-G — ship (done)
+- Done: linked swap original follows carrier with stock fixed at 0; swap badge on list/delivery/kanban/detail; swapOrder action tests (double submit, non-uuid); MASTER_PLAN row set to done.
+- Verify: review-3 VERDICT: PASS (highest-numbered); scripts/gate.sh GATE OK on v3-P0-8-G (226 tests incl. live RLS suite).
+- Evidence: screenshots in docs/design/audit/P0-8-G/ and docs/design/audit/P0-8-G-r3/. Light theme for the badge not re-shot after review-2 (token-only change).
+- Owner: none.
+- Next: none in this row.

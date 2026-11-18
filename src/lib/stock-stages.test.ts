@@ -180,7 +180,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect((await moves(o)).length).toBe(n);
   });
 
-  test("swap: original holds nothing, replacement on road, apply path writes no movement, unlink restores", async () => {
+  test("linked swap original follows status changes without moving stock", async () => {
     const p = await product();
     const a = await order(p, { delivery_status: "delivered", quantity: 1 });
     expect(await stock(p)).toBe(-1);
@@ -191,10 +191,13 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await stock(p)).toBe(-1);
     expect(await stages(p)).toMatchObject({ reserved: 0, on_road: 1, delivered: 0 });
     const n = (await moves(a)).length;
-    await status(a, "delivered"); // what apply_zr_state does to a swapped original
     await status(a, "returning");
+    await status(a, "delivered"); // what apply_zr_state does to a swapped original
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("delivered");
     expect((await moves(a)).length).toBe(n);
+    expect(await held(a)).toBe(0);
     expect(await stock(p)).toBe(-1);
+    await status(a, "returning");
     // deleting B unlinks A (FK) and releases B's piece; A reconciles by its status (returning = on carrier)
     expect((await svc.from("orders").delete().eq("id", b as string)).error).toBeNull();
     expect(await held(a)).toBe(1);
@@ -475,7 +478,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect((await adminUser.rpc("transition_order_status", { p_order_id: again, p_delivery_status: "swap" })).error).not.toBeNull();
   });
 
-  test("swapped original moved by apply_zr_state", async () => {
+  test("apply_zr_state updates a linked original, stock unchanged", async () => {
     const p = await product();
     const a = await order(p, { delivery_status: "returning", quantity: 1 });
     expect((await swap(a)).error).toBeNull();
@@ -489,8 +492,34 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     });
     expect(r.error).toBeNull();
     expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("delivered");
+    expect((await svc.from("zr_shipments").select("order_id").eq("order_id", a)).data).toHaveLength(1);
     expect((await moves(a)).length).toBe(n);
     expect(await held(a)).toBe(0);
+  });
+
+  test("deleting the replacement returns the original to the normal rule", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await status(a, "delivered"); // carrier moves the linked original on from `swap`
+    expect(await held(a)).toBe(0);
+    expect((await svc.from("orders").delete().eq("id", b as string)).error).toBeNull();
+    expect((await svc.from("orders").select("swapped_to_order_id").eq("id", a).single()).data!.swapped_to_order_id).toBeNull();
+    expect(await held(a)).toBe(1); // delivered is on the carrier again: normal target
+    expect(await stock(p)).toBe(-1);
+  });
+
+  test("admin cancel of in-transit replacement via transition_order_status", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    const bid = b as string;
+    expect((await adminUser.rpc("transition_order_status", { p_order_id: bid, p_delivery_status: "in_transit" })).error).toBeNull();
+    expect(await held(bid)).toBe(1);
+    expect((await adminUser.rpc("transition_order_status", { p_order_id: bid, p_delivery_status: "cancelled" })).error).toBeNull();
+    expect(await held(bid)).toBe(0);
+    expect(await held(a)).toBe(0); // still linked: original holds nothing
+    expect(await stock(p)).toBe(0);
   });
 
   test("product_stock_stages refuses insert/update/delete", async () => {

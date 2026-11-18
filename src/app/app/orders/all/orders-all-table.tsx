@@ -28,6 +28,8 @@ import type { StatusToken } from "@/lib/statuses";
 import { CONFIRMATION_STATUSES } from "@/lib/enums";
 import { bulkTransition, bulkAssignAgents } from "../actions";
 import { OrderTimeline, type TimelineEvent } from "../order-timeline";
+import { SwapBadge } from "@/components/swap-badge";
+import type { SwapTo } from "../_lib/swap-links";
 import { StatusCell } from "../status-cell";
 
 export type AllRow = {
@@ -48,6 +50,7 @@ export type AllRow = {
   agent_name: string | null;
   is_duplicate_suspect: boolean;
   duplicate_of: string | null;
+  swapped_to: SwapTo | null;
   commune: string | null;
   address: string | null;
   tags: { id: string; label: string; token: StatusToken }[];
@@ -116,9 +119,10 @@ export function OrdersAllTable({
       header: t("orders.title"),
       sortable: true,
       sticky: true,
-      width: "max-w-[9rem]",
+      width: "min-w-[9rem]",
       cell: (r) => (
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex min-w-0 flex-col items-start gap-1">
+          <span className="flex min-w-0 items-center gap-1.5">
           <Link
             href={`/app/orders/${r.id}`}
             className="num truncate font-medium hover:underline"
@@ -138,6 +142,8 @@ export function OrdersAllTable({
               </Chip>
             </Link>
           ) : null}
+          </span>
+          {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}
         </span>
       ),
     },

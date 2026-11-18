@@ -391,6 +391,7 @@
       "commune": "Commune",
       "address": "Address",
       "submit": "Create swap order",
+      "badge": "Swap",
       "swappedTo": "Swapped to order #{number}",
       "swappedFrom": "Swapped from order #{number}",
       "confirm": "Swap this order? A new order will be created for the new customer with the same product."
