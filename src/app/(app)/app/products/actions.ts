@@ -7,6 +7,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { fxRateFor } from "@/lib/fx";
+import { invalidateStorePublic } from "@/lib/store/invalidate";
 import { isHttps } from "@/lib/store/url";
 import { countBySizeSchema, uuid, variantConfigSchema } from "@/lib/variants";
 import {
@@ -102,6 +103,7 @@ export async function saveProduct(id: string | null, formData: FormData) {
   if (costError) throw new Error(costError.message);
 
   revalidatePath("/app/products");
+  invalidateStorePublic(); // name, price, images, is_active show on the public page
   if (!id) redirect(`/app/products/${productId}`);
   revalidatePath(`/app/products/${productId}`);
 }
@@ -205,6 +207,7 @@ export async function addStockMovement(productId: string, formData: FormData) {
     .from("stock_movements")
     .insert({ workspace_id: workspaceId, product_id: productId, ...input });
   if (error) throw new Error(error.message);
+  invalidateStorePublic();
   revalidatePath(`/app/products/${productId}/stock`);
   revalidatePath("/app/stock");
   revalidatePath("/app/products");
@@ -240,6 +243,7 @@ export async function saveVariantConfig(productId: string, raw: unknown): Promis
   const { error } = await supabase.rpc("save_variant_config", { p_product: pid.data, p_config: parsed.data });
   if (error) return variantFailure(error);
 
+  invalidateStorePublic();
   revalidatePath(`/app/products/${pid.data}`);
   revalidatePath(`/app/products/${pid.data}/stock`);
   revalidatePath("/app/stock");
@@ -255,6 +259,7 @@ export async function countBySize(productId: string, raw: unknown): Promise<{ ok
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("stock_count_variants", { p_product: pid.data, p_counts: counts.data });
   if (error) return { ok: false, error: error.message };
+  invalidateStorePublic();
   revalidatePath(`/app/products/${pid.data}/stock`);
   revalidatePath("/app/stock");
   revalidatePath("/app/products");
