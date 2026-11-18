@@ -40,8 +40,6 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
   let orderId: string;
   let productId: string;
   let parcel: string;
-  let prevCfg: { config: unknown; secret: string | null; is_active: boolean } | null;
-  let prevMap: unknown;
   const MAP = { map: { livre: "delivered", "en transit": "in_transit", retour: "returned" } };
 
   const rpc = (state: string | null, at: string | null, extra: Record<string, unknown> = {}) =>
@@ -73,9 +71,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     ws = (await admin.from("workspaces").insert({ name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id; // own workspace: isolated from workspace-wide sums in other suites
     productId = (await admin.from("products").insert({ workspace_id: ws, name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
     orderId = (await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: 1 }).select("id").single()).data!.id;
-    prevCfg = (await admin.from("integration_configs").select("config, secret, is_active").eq("workspace_id", ws).eq("provider", "zrexpress").maybeSingle()).data;
     await admin.from("integration_configs").upsert({ workspace_id: ws, provider: "zrexpress", config: {}, secret: SECRET, is_active: true });
-    prevMap = (await admin.from("settings").select("value").eq("workspace_id", ws).eq("key", "zr_state_map").maybeSingle()).data?.value;
   });
   afterAll(async () => {
     if (!admin) return;
@@ -84,11 +80,10 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await admin.from("orders").delete().eq("id", orderId);
     await admin.from("stock_movements").delete().eq("product_id", productId);
     await admin.from("products").delete().eq("id", productId);
-    await admin.from("workspaces").delete().eq("id", ws);
     await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
-    if (prevCfg) await admin.from("integration_configs").update(prevCfg as never).eq("workspace_id", ws).eq("provider", "zrexpress");
-    else await admin.from("integration_configs").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
-    if (prevMap !== undefined) await setMap(prevMap);
+    await admin.from("integration_configs").delete().eq("workspace_id", ws);
+    await admin.from("settings").delete().eq("workspace_id", ws);
+    expect((await admin.from("workspaces").delete().eq("id", ws)).error).toBeNull();
   });
 
   async function hook(body: unknown, id = `msg_${crypto.randomUUID()}`) {

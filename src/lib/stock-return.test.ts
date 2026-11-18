@@ -13,7 +13,7 @@ const QTY = 3;
 
 // P0-8 / D25: stock held by an order is reconciled to its target after every update.
 // Each run uses its OWN throwaway product and order (live stack).
-describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
+describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028/00029)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let productId: string;
@@ -136,5 +136,62 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
     await setO({ delivery_status: "in_transit" }, adminUser);
     expect(await net()).toBe(-QTY);
     expect(await stockOf()).toBe(start - QTY);
+  });
+  test("changing product while confirmed moves the stock between products; A -> B -> A nets -qty", async () => {
+    const { data: p2 } = await admin.from("products").insert({ workspace_id: ws, name: `stock-test-${crypto.randomUUID()}` }).select("id").single();
+    const stockP = async (id: string) => (await admin.from("products").select("stock").eq("id", id).single()).data!.stock as number;
+    try {
+      await setO(confirmed);
+      await admin.from("orders").update({ product_id: p2!.id }).eq("id", orderId);
+      expect(await stockOf()).toBe(start);
+      expect(await stockP(p2!.id)).toBe(-QTY);
+      await admin.from("orders").update({ product_id: productId }).eq("id", orderId);
+      expect(await stockOf()).toBe(start - QTY);
+      expect(await stockP(p2!.id)).toBe(0);
+    } finally {
+      await admin.from("orders").update({ product_id: productId }).eq("id", orderId);
+      await admin.from("stock_movements").delete().eq("product_id", p2!.id);
+      await admin.from("products").delete().eq("id", p2!.id);
+    }
+  });
+
+  test("swap (D29): new order holds stock at creation, original releases, net -qty once", async () => {
+    await setO(confirmed);
+    await setO({ delivery_status: "delivered" });
+    const { data: b } = await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: QTY, ...confirmed }).select("id").single();
+    expect(await stockOf()).toBe(start - 2 * QTY); // B holds from creation, A not yet released
+    await setO({ delivery_status: "swap" });
+    expect(await stockOf()).toBe(start - QTY);
+    await admin.from("orders").update({ delivery_status: "in_transit" }).eq("id", b!.id);
+    expect(await stockOf()).toBe(start - QTY);
+    await admin.from("stock_movements").delete().eq("order_id", b!.id);
+    await admin.from("orders").delete().eq("id", b!.id);
+  });
+
+  test("exchange keeps stock held", async () => {
+    await setO(confirmed);
+    await setO({ delivery_status: "exchange" });
+    expect(await net()).toBe(-QTY);
+  });
+
+  test("legacy delivered row: no-op edit writes nothing; later return restocks", async () => {
+    await admin.from("stock_movements").insert({ workspace_id: ws, product_id: productId, order_id: orderId, delta: -QTY, reason: "delivered" });
+    await admin.from("orders").update({ confirmation_status: "confirmed", delivery_status: "delivered" }).eq("id", orderId);
+    expect(await net()).toBe(-QTY);
+    await admin.from("orders").update({ notes: "x" }).eq("id", orderId);
+    expect(await net()).toBe(-QTY);
+    await setO({ delivery_status: "returned" });
+    expect(await net()).toBe(0);
+  });
+
+  test("reconciling row has the right reason and created_by", async () => {
+    await setO(confirmed);
+    await setO({ delivery_status: "returned" });
+    const adminUser = createClient(URL!, ANON_KEY, opts);
+    await adminUser.auth.signInWithPassword({ email, password: SEED_PASSWORD });
+    await setO({ delivery_status: "in_transit" }, adminUser);
+    const { data } = await admin.from("stock_movements").select("reason, created_by").eq("order_id", orderId).order("created_at");
+    expect(data!.map((m) => m.reason)).toEqual(["order_confirmed", "order_returned", "order_confirmed"]);
+    expect(data![2].created_by).toBe(userId);
   });
 });
