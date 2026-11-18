@@ -9,7 +9,7 @@ import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EnumSelect } from "@/components/fields/enum-select";
-import { saveAccount } from "@/app/app/finance/accounts/actions";
+import { saveAccount } from "@/app/(app)/app/finance/accounts/actions";
 import { CURRENCY_CODES } from "@/lib/enums";
 
 type AccountRow = {

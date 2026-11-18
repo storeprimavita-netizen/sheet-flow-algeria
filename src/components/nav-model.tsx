@@ -20,6 +20,9 @@ import {
   KanbanSquare,
   Gauge,
   ScrollText,
+  Store,
+  FileText,
+  SlidersHorizontal,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -55,8 +58,7 @@ export const HOME: NavLeaf = {
   adminOnly: true,
 };
 
-// Only routes that exist today. The Store group is empty until STORE-* ships;
-// empty groups are not rendered.
+// Only routes that exist today; empty groups are not rendered.
 export const GROUPS: NavGroup[] = [
   {
     key: "groupSell",
@@ -75,7 +77,14 @@ export const GROUPS: NavGroup[] = [
       { key: "pricing", oldKey: "planner", href: "/app/products/planner", icon: Calculator, adminOnly: true },
     ],
   },
-  { key: "groupStore", items: [] },
+  {
+    key: "groupStore",
+    items: [
+      { key: "storeHub", href: "/app/store", icon: Store, adminOnly: true },
+      { key: "storePages", href: "/app/store/pages", icon: FileText, adminOnly: true },
+      { key: "storeSettings", href: "/app/store/settings", icon: SlidersHorizontal, adminOnly: true },
+    ],
+  },
   {
     key: "groupMoney",
     items: [

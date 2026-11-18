@@ -75,7 +75,7 @@ describe("nav model", () => {
 describe("nav model (round 4)", () => {
   it("every nav href maps to an existing page.tsx", () => {
     for (const l of navLeaves("admin")) {
-      const file = path.join(process.cwd(), "src/app", l.href, "page.tsx");
+      const file = path.join(process.cwd(), "src/app/(app)", l.href, "page.tsx");
       expect(existsSync(file), l.href).toBe(true);
     }
   });

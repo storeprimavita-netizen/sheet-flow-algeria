@@ -1,0 +1,103 @@
+/* Public store styles. Own bundle: never imports the app's globals.css or components/ui.
+   Tokens live in theme.css (identical to the luxe-modesty-store-theme skill). */
+@import "./theme.css";
+
+/* Reset, scoped to .store-root (zero specificity) so the admin preview inside the app is never affected. */
+html { -webkit-text-size-adjust: 100%; }
+:where(.store-root), :where(.store-root) *, :where(.store-root) *::before, :where(.store-root) *::after { box-sizing: border-box; }
+:where(.store-root) img { display: block; max-inline-size: 100%; height: auto; }
+:where(.store-root) a { color: inherit; }
+:where(.store-root) :is(h1, h2, h3, p, ul, figure) { margin: 0; padding: 0; }
+:where(.store-root) ul { list-style: none; }
+:where(.store-root) button { font: inherit; }
+body.store-root { margin: 0; }
+.store-root h1, .store-root h2, .store-root h3 { font-family: var(--font-heading-ar); font-weight: 600; line-height: 1.35; }
+.store-root bdi, .store-root .ltr { unicode-bidi: isolate; }
+.store-price { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--brand); }
+
+.store-skip {
+  position: absolute; inset-inline-start: var(--space-4); inset-block-start: -100px; z-index: 50;
+  background: var(--surface-200); color: var(--brand); padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm); border: 1px solid var(--line-strong); min-block-size: var(--tap);
+  display: inline-flex; align-items: center;
+}
+.store-skip:focus { inset-block-start: var(--space-2); }
+
+.store-wrap { inline-size: 100%; max-inline-size: 1120px; margin-inline: auto; padding-inline: var(--gutter); }
+
+.store-announce { background: var(--wine); color: var(--on-brand); font-size: 14px; text-align: center; padding: var(--space-2) var(--gutter); }
+
+.store-header { position: sticky; inset-block-start: 0; z-index: 20; background: var(--surface-100); border-block-end: 1px solid var(--line); }
+.store-header .store-wrap { display: flex; align-items: center; min-block-size: 64px; }
+.store-brand { font-family: var(--font-latin); font-size: 22px; color: var(--brand); text-decoration: none; display: inline-flex; align-items: center; min-block-size: var(--tap); }
+
+.store-main { flex: 1; padding-block: var(--space-6) var(--space-12); }
+
+.store-crumbs { font-size: var(--text-small); color: var(--ink-muted); margin-block-end: var(--space-4); }
+.store-crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.store-crumbs li + li::before { content: "/"; margin-inline-end: var(--space-2); color: var(--line-strong); }
+.store-crumbs a { text-decoration: none; display: inline-flex; align-items: center; min-block-size: var(--tap); }
+.store-crumbs [aria-current] { color: var(--ink); overflow-wrap: anywhere; }
+
+.store-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+@media (min-width: 860px) { .store-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-12); } }
+
+.store-gallery { display: flex; gap: var(--space-3); overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+.store-gallery > * { flex: 0 0 100%; scroll-snap-align: center; }
+.store-photo { aspect-ratio: 4 / 5; inline-size: 100%; object-fit: cover; border-radius: var(--radius-md); background: var(--blush); }
+.store-photo-empty {
+  aspect-ratio: 4 / 5; inline-size: 100%; border-radius: var(--radius-md); display: grid; place-items: center;
+  color: var(--ink-muted); background: radial-gradient(circle at 50% 40%, var(--blush), var(--surface-300));
+}
+
+.store-buy { display: flex; flex-direction: column; gap: var(--space-4); min-inline-size: 0; }
+.store-title { font-size: var(--text-title); overflow-wrap: anywhere; }
+.store-rule { inline-size: var(--rule-gold); block-size: 1px; background: var(--gold); border: 0; margin: 0; }
+.store-price-row { font-size: var(--text-price); line-height: 1.2; }
+
+.store-sizes { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.store-size {
+  min-block-size: var(--tap); min-inline-size: var(--tap); padding-inline: var(--space-4); display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface-200);
+}
+.store-size[data-out="true"] { color: var(--ink-muted); text-decoration: line-through; border-style: dashed; }
+.store-label { font-weight: 500; font-size: var(--text-small); color: var(--ink-muted); }
+
+.store-blocks { display: flex; flex-direction: column; gap: var(--space-4); max-inline-size: 70ch; margin-block-start: var(--space-12); }
+.store-blocks h2 { font-size: var(--text-section); }
+.store-blocks ul { list-style: disc; padding-inline-start: var(--space-6); display: grid; gap: var(--space-2); }
+.store-blocks p { white-space: pre-line; }
+.store-blocks img { border-radius: var(--radius-md); }
+
+.store-related { margin-block-start: var(--space-12); }
+.store-related h2 { font-size: var(--text-section); margin-block-end: var(--space-4); }
+.store-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+@media (min-width: 860px) { .store-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.store-card { background: var(--surface-200); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); text-decoration: none; display: flex; flex-direction: column; gap: var(--space-2); min-inline-size: 0; }
+.store-card span { overflow-wrap: anywhere; }
+
+.store-footer { background: var(--wine); color: var(--on-brand); padding-block: var(--space-8); font-size: var(--text-small); }
+.store-footer a { display: inline-flex; align-items: center; min-block-size: var(--tap); }
+.store-footer .store-wrap { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); align-items: center; justify-content: space-between; }
+.store-footer-brand { font-family: var(--font-latin); font-size: 20px; }
+.store-footer-hair { block-size: 1px; background: var(--gold); border: 0; margin-block: var(--space-4); inline-size: 100%; }
+
+.store-whatsapp {
+  position: fixed; inset-inline-end: var(--space-4); inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom));
+  inline-size: 56px; block-size: 56px; border-radius: 50%; background: var(--brand-fill); color: var(--on-brand);
+  display: grid; place-items: center; box-shadow: var(--shadow-soft); z-index: 30;
+}
+.store-whatsapp:hover { background: var(--brand-fill-hover); }
+
+.store-message { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-4); padding-block: var(--space-16); }
+.store-message h1 { font-size: var(--text-title); }
+.store-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-block-size: var(--tap); padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-pill); background: var(--brand-fill); color: var(--on-brand); font-weight: 700; text-decoration: none; border: 0; cursor: pointer;
+}
+.store-btn:hover { background: var(--brand-fill-hover); }
+
+.store-skeleton { background: linear-gradient(90deg, var(--surface-300), var(--blush), var(--surface-300)); background-size: 200% 100%; animation: store-shimmer 1.4s linear infinite; border-radius: var(--radius-md); }
+@keyframes store-shimmer { to { background-position: -200% 0; } }
+
+.store-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

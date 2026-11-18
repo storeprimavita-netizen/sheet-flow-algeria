@@ -9,7 +9,7 @@ import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/fields/date-field";
-import { saveTopup } from "@/app/app/finance/accounts/actions";
+import { saveTopup } from "@/app/(app)/app/finance/accounts/actions";
 
 export function TopupForm({ accountId, onDone }: { accountId: string; onDone?: () => void }) {
   const t = useTranslations();

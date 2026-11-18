@@ -48,7 +48,7 @@ describe("ALGERIA_OUTLINE", () => {
 
 describe("wilaya legend bidi", () => {
   // No component test setup (jsdom/RTL) in this repo, so assert on source.
-  const src = readFileSync("src/app/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
   it("wraps every range label in bdi dir=ltr", () => {
     for (const label of ["&lt;40%", "40–55%", "55–70%", "70–85%", "85%+"]) {
       expect(src).toContain(`<bdi dir="ltr">${label}</bdi>`);
@@ -73,7 +73,7 @@ describe("wilayaTitle", () => {
 });
 
 describe("wilaya table label structure", () => {
-  const src = readFileSync("src/app/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
   it("renders ltr code, readable separator, name in bdi", () => {
     expect(src).toContain('<bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi>');
     expect(src).not.toContain("<span aria-hidden> · </span>");
