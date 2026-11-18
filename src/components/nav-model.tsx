@@ -13,6 +13,7 @@ import {
   HandCoins,
   Landmark,
   Users,
+  UserCog,
   Building2,
   BookText,
   CalendarClock,
@@ -101,9 +102,9 @@ export const GROUPS: NavGroup[] = [
     pinned: "bottom",
     defaultClosed: true,
     items: [
-      { key: "usersRoles", oldKey: "users", href: "/app/settings/users", icon: Users, adminOnly: true },
-      { key: "audit", href: "/app/settings/audit", icon: ScrollText, adminOnly: true },
       { key: "settingsOverview", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
+      { key: "usersRoles", oldKey: "users", href: "/app/settings/users", icon: UserCog, adminOnly: true },
+      { key: "audit", href: "/app/settings/audit", icon: ScrollText, adminOnly: true },
     ],
   },
 ];

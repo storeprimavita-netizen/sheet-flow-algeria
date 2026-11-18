@@ -149,8 +149,10 @@ export function AppShell({
           <span className="truncate">{t(`nav.${group.key}`)}</span>
           {!isOpen && total > 0 ? <Counter n={total} /> : null}
           <ChevronDown
+            aria-hidden
             className={cn(
               "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
+              hasActive && "invisible",
               !(!isOpen && total > 0) && "ms-auto",
               !isOpen && "-rotate-90 rtl:rotate-90",
             )}
@@ -166,17 +168,15 @@ export function AppShell({
   }
 
   const nav = (
-    <>
-      <nav className="flex-1 space-y-3 overflow-y-auto p-3">
-        {home ? <Leaf item={home} /> : null}
-        {mainGroups.map((g) => <Group key={g.key} group={g} />)}
-      </nav>
+    <nav className="flex-1 space-y-3 overflow-y-auto p-3">
+      {home ? <Leaf item={home} /> : null}
+      {mainGroups.map((g) => <Group key={g.key} group={g} />)}
       {bottomGroups.length ? (
-        <div className="space-y-3 border-t border-border p-3">
+        <div className="space-y-3 border-t border-border pt-3">
           {bottomGroups.map((g) => <Group key={g.key} group={g} />)}
         </div>
       ) : null}
-    </>
+    </nav>
   );
 
   const brand = (

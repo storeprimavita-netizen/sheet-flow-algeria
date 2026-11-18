@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
 import { GROUPS, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
@@ -67,5 +69,38 @@ describe("nav model", () => {
   });
   it("settings group starts collapsed", () => {
     expect(GROUPS.find((g) => g.key === "groupSettings")?.defaultClosed).toBe(true);
+  });
+});
+
+describe("nav model (round 4)", () => {
+  it("every nav href maps to an existing page.tsx", () => {
+    for (const l of navLeaves("admin")) {
+      const file = path.join(process.cwd(), "src/app", l.href, "page.tsx");
+      expect(existsSync(file), l.href).toBe(true);
+    }
+  });
+  it("agents get exactly one Sell group", () => {
+    for (const role of ["confirmation_agent", "delivery_agent"] as const) {
+      const { groups } = visibleNav(role);
+      expect(groups.map((g) => g.key)).toEqual(["groupSell"]);
+      expect(groups[0].items).toHaveLength(1);
+    }
+  });
+  it("palette keywords: Delivery and Shipping hit one item, Cash finds Courier cash", () => {
+    const kw = (key: string) => {
+      const l = navLeaves("admin").find((x) => x.key === key)!;
+      return [en.nav[l.key as keyof typeof en.nav], ...(l.oldKey ? [en.navOld[l.oldKey as keyof typeof en.navOld]] : [])];
+    };
+    const find = (q: string) =>
+      navLeaves("admin").filter((l) => kw(l.key).some((k) => k.toLowerCase().includes(q.toLowerCase())));
+    expect(find("Delivery").map((l) => l.key)).toEqual(["shipping"]);
+    expect(find("Shipping").map((l) => l.key)).toEqual(["shipping"]);
+    expect(find("Cash").map((l) => l.key)).toContain("courierCash");
+  });
+  it("settings: overview first, distinct icons", () => {
+    const items = GROUPS.find((g) => g.key === "groupSettings")!.items;
+    expect(items[0].key).toBe("settingsOverview");
+    const icons = navLeaves("admin").map((l) => l.icon);
+    expect(new Set(icons).size).toBe(icons.length);
   });
 });
