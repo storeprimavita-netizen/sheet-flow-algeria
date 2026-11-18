@@ -199,3 +199,10 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Known: AR badge shows "#id" bidi-reordered (pre-existing wording in swap.swappedTo).
 - P0-8-G review-1 FIX: swap badge now shows '#number' (bdi ltr, full sentence in title), delivery badge stacked. Screenshots list EN/AR at 1280 and 390 (light) viewed OK: docs/design/audit/P0-8-G/list-*-{1280,390}.png. Dark theme not re-shot.
 - P0-8-G review-2 FIX: swap badge now shows icon + 'Swap'/'تبديل' + #number; swapTargets chunked. Screenshots (390/1280, EN/AR, dark) viewed: docs/design/audit/P0-8-G-r3/. Light theme not re-shot (token-only change).
+
+## P0-8-G — ship (done)
+- Done: linked swap original follows carrier with stock fixed at 0; swap badge on list/delivery/kanban/detail; swapOrder action tests (double submit, non-uuid); MASTER_PLAN row set to done.
+- Verify: review-3 VERDICT: PASS (highest-numbered); scripts/gate.sh GATE OK on v3-P0-8-G (226 tests incl. live RLS suite).
+- Evidence: screenshots in docs/design/audit/P0-8-G/ and docs/design/audit/P0-8-G-r3/. Light theme for the badge not re-shot after review-2 (token-only change).
+- Owner: none.
+- Next: none in this row.
