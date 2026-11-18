@@ -29,7 +29,7 @@ export function UsdFirst({
 }) {
   if (rate == null || usd == null) {
     return (
-      <span className={cn("block", className)}>
+      <span className={cn("flex flex-col", className)}>
         <span className="num whitespace-nowrap">{formatCurrency(dzd)}</span>
         <span className="block text-xs font-normal text-muted-foreground">{noRateHint}</span>
       </span>
@@ -38,7 +38,7 @@ export function UsdFirst({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn("block cursor-help", className)}>
+        <span className={cn("flex flex-col cursor-help", className)}>
           <span className="num whitespace-nowrap">{formatUsd(usd)}</span>
           <span className="num block whitespace-nowrap text-sm font-normal text-muted-foreground">{formatCurrency(dzd)}</span>
         </span>

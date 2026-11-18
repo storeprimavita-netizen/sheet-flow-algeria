@@ -29,8 +29,8 @@ export async function OrderJourney({
               stages={[
                 { label: t("received"), count: kpi.counts.received, href: hrefs.received },
                 { label: t("confirmed"), count: kpi.counts.confirmed, href: hrefs.confirmed },
-                { label: t("onRoad"), count: kpi.counts.on_road_orders, href: hrefs.onRoad },
-                { label: t("delivered"), count: kpi.counts.delivered, href: hrefs.delivered },
+                { label: t("onRoad"), count: kpi.counts.on_road_orders, href: hrefs.onRoad, dropFrom: -1 },
+                { label: t("delivered"), count: kpi.counts.delivered, href: hrefs.delivered, dropFrom: 1 },
               ]}
             />
             <dl className="space-y-1 border-t border-border pt-3 text-sm">

@@ -822,7 +822,7 @@
           "cogs": "Product cost",
           "returns": "Return fees",
           "ads": "Ad spend",
-          "expensesFixed": "Expenses and fixed fees",
+          "expensesFixed": "Expenses + fixed",
           "net": "Net profit"
         }
       },

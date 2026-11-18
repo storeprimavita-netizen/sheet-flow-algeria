@@ -55,7 +55,7 @@ export async function ProductScorecard({ rows, retryHref }: { rows: ScorecardRow
                     </td>
                     <td className="text-end">
                       <UsdFirst
-                        className="text-end"
+                        className="items-end"
                         usd={r.kpi?.cost_per_delivered_usd}
                         dzd={r.kpi?.cost_per_delivered_dzd}
                         rate={r.kpi?.usd_rate}

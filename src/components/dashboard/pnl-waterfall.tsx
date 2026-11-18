@@ -67,7 +67,7 @@ export function WaterfallRows({ steps }: { steps: WaterfallStep[] }) {
         return (
           <div
             key={s.key}
-            className={cn("grid grid-cols-[7.5rem_1fr_auto] items-center gap-3", s.kind === "net" && "border-t border-border pt-2")}
+            className={cn("grid grid-cols-[6.5rem_1fr_auto] sm:grid-cols-[8.5rem_1fr_auto] items-center gap-3", s.kind === "net" && "border-t border-border pt-2")}
           >
             {href ? (
               <Link href={href} className="truncate hover:underline">
