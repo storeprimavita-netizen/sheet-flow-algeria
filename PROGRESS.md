@@ -117,3 +117,11 @@ the bottom. Format:
 - Skills added: `modern-web-guidance` (Google Chrome; owner's user plugin + copy for Antigravity), `supabase`, `supabase-postgres-best-practices`, `shadcn` (owner-installed). `migrate-radix-to-base` came with shadcn — not to be used.
 - Not verified: the loop has not yet run a task end to end; chrome-devtools MCP was added but not exercised; Antigravity untested.
 - Next: `scripts/night-run.sh` → `/auto` picks P0-8, then the first eligible rows.
+
+## Run report — /auto 8 (2026-11-17 → 11-18) — STOPPED: three tasks in a row blocked
+- Shipped: none. Nothing merged into `v3` except briefs, review files and plan status.
+- P0-8 `blocked` (branch `v3-P0-8` pushed, gate OK, review-1 ESCALATE). Owner decides: when a returned order goes to `cancelled`, is the restock taken back off? Then fix: reopening a returned order deducts stock twice; the two live test files share one order (flaky).
+- CARRIER-0 `blocked` at brief review (review-0 ESCALATE, no code). Owner provides: official names + codes for wilayas 59–69 and their starting delivery fees (0 DZD = the business pays delivery). Also noted: the map plots wilayas 49–58 in the wrong places.
+- NAV-1 `blocked` (branch `v3-NAV-1` pushed, gate OK 143 tests, reviews 1–3 without PASS). No decision needed — one medium left: opening Settings squeezes the sidebar at 720 px height and hides Money. Light theme, agent roles and ⌘K still need a browser check. Owner: set NAV-1 back to `todo` to allow another round.
+- Stack note: `v3-P0-8` left migration 00028 in the local DB and broke an RLS test on the next branch; fixed with `supabase db reset` + reseed. Reset again when switching away from a branch that carries an unmerged migration.
+- Next `/auto`: PRICE-1 (no deps), then P1-1, NOTIF-1. NAV-2…5, CONF-*, STORE-*, P1-7 stay skipped until NAV-1 / P0-8 / CARRIER-0 are unblocked.

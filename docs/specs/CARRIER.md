@@ -52,10 +52,11 @@ carrier per wilaya" before any automatic scoring.
 
 ## Also
 
-- Wilaya reference: the store copy says 69 wilayas, the `wilayas` table has
-  58. CARRIER-0 reconciles it against the carrier territory trees (ZR sync is
-  the source) and updates `wilayas` + `wilaya_fees` seeding. Never hard-code
-  the count.
+- Wilaya reference: **58 wilayas** (D26), same codes and names as the owner's
+  price sheet. The store shows the count of wilayas that have a delivery
+  price, from data. CARRIER-0 only fixes the misnumbered map centroids 49–58.
+- Delivery fees (D27): owner's sheet format, editable in the app, replaceable
+  by CSV upload; no price = shipping off; home-only = no stop-desk.
 - Stop-desk picker: desks per wilaya from the carrier, shown in the order
   sheet and the store form.
 - Labels: carrier label URL on the order; bulk print list.

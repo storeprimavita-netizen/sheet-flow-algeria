@@ -62,3 +62,4 @@ kimi*
 # loop v3: parallel worktrees + owner drop folder (source material, superseded by skills/specs)
 /.worktrees/
 /THEME+CALCULATOR/
+/prices/
