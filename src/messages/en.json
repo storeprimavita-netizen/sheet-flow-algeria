@@ -1000,8 +1000,8 @@
       "label": "Profit target",
       "profit": "Profit / piece (DA)",
       "markup": "Markup % of product cost",
-      "defaultProfit": "Default: {value} DA",
-      "defaultMarkup": "Default: {value}%",
+      "defaultProfit": "Default: {value}",
+      "defaultMarkup": "Default: {value}",
       "settingsHint": "Applied to each product's cost.",
       "live": "Target profit / piece: {value}",
       "needsValue": "Enter a target value, or the prices stay empty."

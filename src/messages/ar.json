@@ -1000,8 +1000,8 @@
       "label": "هدف الربح",
       "profit": "الربح / القطعة (دج)",
       "markup": "هامش % من تكلفة المنتج",
-      "defaultProfit": "الافتراضي: {value} دج",
-      "defaultMarkup": "الافتراضي: {value}%",
+      "defaultProfit": "الافتراضي: {value}",
+      "defaultMarkup": "الافتراضي: {value}",
       "settingsHint": "يُطبَّق على تكلفة كل منتج.",
       "live": "الربح المستهدف / القطعة: {value}",
       "needsValue": "أدخل قيمة الهدف وإلا تبقى الأسعار فارغة."

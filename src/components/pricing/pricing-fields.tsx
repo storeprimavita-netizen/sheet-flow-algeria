@@ -21,6 +21,7 @@ import {
   type FormErrors,
   type PricingForm,
 } from "@/lib/pricing-form";
+import { ltr } from "@/lib/format";
 import type { PricingSettings, Rounding } from "@/lib/pricing-v2";
 import { MAX_MARKUP } from "@/lib/pricing-v2";
 
@@ -89,7 +90,7 @@ export function PricingFieldGroups({
               const err = errors[f.key];
               const label = t(`fields.${f.key}`);
               const dflt = defaultFor(f, defaults);
-              const dfltText = f.pct ? `${dflt}%` : `${dflt}`;
+              const dfltText = ltr(f.pct ? `${dflt}%` : `${dflt}`);
               const value = form.values[f.key];
               const overridden = override && value !== null;
               const set = (v: number | null) => update((cur) => ({ ...cur, values: { ...cur.values, [f.key]: v } }));
@@ -181,8 +182,8 @@ export function TargetEditor({
   const dfltText =
     override && sameMode && dv !== null
       ? form.targetMode === "markup"
-        ? t("target.defaultMarkup", { value: toPercent(dv) })
-        : t("target.defaultProfit", { value: dv })
+        ? t("target.defaultMarkup", { value: ltr(`${toPercent(dv)}%`) })
+        : t("target.defaultProfit", { value: ltr(String(dv)) })
       : undefined;
   const overridden = override && overridesFromForm(form, defaults).target !== undefined;
   const id = `${idPrefix}-target`;
@@ -246,7 +247,7 @@ export function TargetEditor({
                 </button>
               ))}
             </div>
-            <div className="w-40">
+            <div className="w-44">
               {form.targetMode === "markup" ? (
                 <PercentField
                   key={valueKey}

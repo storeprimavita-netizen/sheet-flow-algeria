@@ -279,3 +279,5 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Dropped: the old Real column (`realInputsForProduct`) is gone from the tab until PRICE-3. BENZ `/products/planner` untouched.
 - Screenshots: dark, EN, ~430px only (Settings + product tab). Light, AR and desktop NOT checked.
 - Note: `node_modules/server-only` stub created locally so seed-dev.ts runs (not committed).
+
+PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned even if equal to default, target mode needs a value, quantity validated, action tests added, units in i18n, anon revoked (00040), placeholder clipping fixed (shorter placeholder, ltr isolates). Screenshots (chrome-devtools, 500px min viewport, product Pricing tab): dark EN, light EN, dark AR checked; light AR and desktop width not captured.
