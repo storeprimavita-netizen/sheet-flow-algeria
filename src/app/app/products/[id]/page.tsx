@@ -5,6 +5,7 @@ import { Gem, Megaphone, PackageCheck, Boxes, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
+import { asKpi, kpiPct, kpiRoas } from "@/lib/kpi";
 import { DeleteButton } from "@/components/delete-button";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { ProductForm } from "../product-form";
@@ -18,10 +19,11 @@ export default async function ProductDetailsPage({
   const t = await getTranslations();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: cost }, { data: pnlRaw }] = await Promise.all([
+  const [{ data: product }, { data: cost }, { data: pnlRaw }, { data: kpiRaw }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("product_costs").select("*").eq("product_id", id).maybeSingle(),
     supabase.rpc("pnl_summary", { p_product: id }),
+    supabase.rpc("kpi_summary", { p_product: id }),
   ]);
 
   if (!product) notFound();
@@ -29,6 +31,9 @@ export default async function ProductDetailsPage({
   // Read-mode overview (all-time, one money model) above the edit form.
   const pnl = asPnl(pnlRaw);
   const m = pnl ? pnlMetrics(pnl) : null;
+  const kpi = asKpi(kpiRaw);
+  const roas = kpiRoas(kpi);
+  const delivRate = kpiPct(kpi?.delivery);
   const unitCost = cost?.sourcing_cost_dzd ?? null;
   const lowStock = product.stock <= product.low_stock_threshold;
   const base = `/app/products/${id}`;
@@ -46,11 +51,11 @@ export default async function ProductDetailsPage({
             hint={t("dashboard.hint.netProfit")}
             href={`${base}/statistics`}
           />
-          <KpiTile icon={Megaphone} label={t("dashboard.kpi2.roas")} value={m?.roas != null ? `${m.roas.toFixed(2)}×` : "—"} hint={t("dashboard.hint.roas")} href={`${base}/expenses`} />
+          <KpiTile icon={Megaphone} label={t("dashboard.kpi2.roas")} value={roas != null ? `${roas.toFixed(2)}×` : "—"} hint={t("dashboard.hint.roas")} href={`${base}/expenses`} />
           <KpiTile
             icon={PackageCheck}
             label={t("dashboard.kpi.deliveryRate")}
-            value={m?.delivery_rate != null ? `${m.delivery_rate}%` : "—"}
+            value={delivRate != null ? `${delivRate}%` : "—"}
             sub={
               m?.breakeven_delivery_pct != null
                 ? m.breakeven_delivery_pct > 100

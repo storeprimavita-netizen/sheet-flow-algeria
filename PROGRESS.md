@@ -206,3 +206,9 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: screenshots in docs/design/audit/P0-8-G/ and docs/design/audit/P0-8-G-r3/. Light theme for the badge not re-shot after review-2 (token-only change).
 - Owner: none.
 - Next: none in this row.
+
+## P1-1 — DONE (KPI contract; merged under D40)
+- Done: 00031 kpi_order_set / kpi_lines / kpi_summary / product_stock_v, 00032 swaps only from returning/returned; dashboard, finance overview, product pages read the contract; D46–D48.
+- Verify: brief review-0 + code reviews 1–4; review-4 no high finding, two medium moved to P1-1-F.
+- Evidence: full scripts/gate.sh GATE OK, 251 tests with the live RLS suite, after db-reset.
+- Owner: production db push of 00031–00032 is owner-only (O-2).

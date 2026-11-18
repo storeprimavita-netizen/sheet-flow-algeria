@@ -412,7 +412,7 @@ export async function createOrder(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
-// Swap: admin creates a new order for customer B from a returned/exchanged
+// Swap: admin creates a new order for customer B from a returning/returned
 // order A (same product/qty, item never re-enters warehouse). One RPC transaction.
 // ---------------------------------------------------------------------------
 const swapOrderSchema = z.object({

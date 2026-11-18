@@ -28,6 +28,7 @@ import { getProfile, getUser } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
 import { formatCurrency, formatDate, formatDuration, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics, type PnlLines } from "@/lib/pricing";
+import { asKpi, kpiPct, kpiRoas, type Kpi } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
@@ -54,6 +55,7 @@ import { DashboardExportButtons, type OrderExportRow } from "./export-button";
 
 type DashboardStats = {
   is_admin: boolean;
+  kpi: Kpi;
   stage_counts: Record<"received" | "confirmed" | "shipped" | "delivered" | "cancelled" | "returned", number>;
   funnel: { stage: string; count: number }[];
   kpis: {
@@ -193,15 +195,17 @@ export default async function DashboardPage({
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
 
   // ⚡ Today strip + 🚨 alerts — fixed (ignore the filter bar): what needs action now.
-  const isoDay = (d: Date) => d.toLocaleDateString("en-CA");
-  const todayIso = isoDay(new Date());
-  const yesterdayIso = isoDay(new Date(Date.now() - 86400000));
+  // D46: days are Africa/Algiers calendar days (UTC+1, no DST), same as the SQL range predicate.
+  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Algiers" });
+  const yesterdayIso = isoDaysAgo(todayIso, 1);
+  const algiersStart = (day: string) => `${day}T00:00:00+01:00`;
+  const algiersEnd = (day: string) => `${day}T23:59:59.999+01:00`;
   const stuckBefore = new Date(Date.now() - STUCK_DAYS * 86400000).toISOString();
   const count = { count: "exact" as const, head: true };
   const [ordersToday, ordersYesterday, toConfirm, toShip, stuck, { data: allTimeRaw }, { data: stockRows }, { data: balances }, { data: productPnls }] =
     await Promise.all([
-      supabase.from("orders").select("id", count).gte("placed_at", todayIso),
-      supabase.from("orders").select("id", count).gte("placed_at", yesterdayIso).lt("placed_at", todayIso),
+      supabase.from("orders").select("id", count).is("excluded_reason", null).gte("placed_at", algiersStart(todayIso)),
+      supabase.from("orders").select("id", count).is("excluded_reason", null).gte("placed_at", algiersStart(yesterdayIso)).lte("placed_at", algiersEnd(yesterdayIso)),
       supabase.from("orders").select("id", count).in("confirmation_status", ACTIONABLE_CONFIRMATION),
       supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),
       supabase.from("orders").select("id", count).in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
@@ -214,6 +218,7 @@ export default async function DashboardPage({
   const lowStock = (stockRows ?? []).filter((p) => p.stock <= p.low_stock_threshold).sort((a, b) => a.stock - b.stock);
   const lowBalances = (balances ?? []).filter((b) => (b.balance ?? 0) < (b.low_balance_threshold ?? 0));
   const pnlByProduct = new Map((productPnls ?? []).map((r) => [r.product_id, asPnl(r.pnl)]));
+  const kpiByProduct = new Map((productPnls ?? []).map((r) => [r.product_id, asKpi(r.kpi)]));
 
   // delta-vs-previous-period only makes sense for a bounded range — an
   // unfiltered "all time" view has no natural "previous" to compare against.
@@ -235,9 +240,10 @@ export default async function DashboardPage({
     .select(
       "order_number, placed_at, quantity, sale_price, confirmation_status, delivery_status, product:products(name), customer:customers(name), wilaya:wilayas(name)",
     )
+    .is("excluded_reason", null)
     .limit(5000);
-  if (filters.from) orderQuery = orderQuery.gte("placed_at", filters.from);
-  if (filters.to) orderQuery = orderQuery.lte("placed_at", `${filters.to}T23:59:59`);
+  if (filters.from) orderQuery = orderQuery.gte("placed_at", algiersStart(filters.from));
+  if (filters.to) orderQuery = orderQuery.lte("placed_at", algiersEnd(filters.to));
   if (filters.product) orderQuery = orderQuery.eq("product_id", filters.product);
   if (filters.wilaya) orderQuery = orderQuery.eq("wilaya_code", Number(filters.wilaya));
   if (filters.source) orderQuery = orderQuery.eq("source", filters.source as Enums<"order_source">);
@@ -292,6 +298,17 @@ export default async function DashboardPage({
   const pnl = stats.pnl;
   const m = pnl ? pnlMetrics(pnl) : null;
   const prevM = prevStats?.pnl ? pnlMetrics(prevStats.pnl) : null;
+  // rates, ROAS and cost per delivered come from SQL kpi_lines (never derived here)
+  const kpi = asKpi(stats.kpi);
+  const prevKpi = asKpi(prevStats?.kpi);
+  const confRate = kpiPct(kpi?.confirmation);
+  const delivRate = kpiPct(kpi?.delivery);
+  const retRate = kpiPct(kpi?.return);
+  const prevConfRate = kpiPct(prevKpi?.confirmation);
+  const prevDelivRate = kpiPct(prevKpi?.delivery);
+  const prevRetRate = kpiPct(prevKpi?.return);
+  const roas = kpiRoas(kpi);
+  const prevRoas = kpiRoas(prevKpi);
   const netProfit = pnl?.net_profit ?? 0;
   const productsForForm = (products ?? []).map((p) => ({ id: p.id, name: p.name }));
   const pct = (v: number | null | undefined) => (v == null ? "—" : `${v}%`);
@@ -307,12 +324,12 @@ export default async function DashboardPage({
   // 🚨 alerts: each is an icon + sentence + link (never color alone).
   const losingWilayas = stats.per_wilaya.filter((w) => w.stop_shipping_auto && !w.stop_shipping_manual);
   const alerts: { key: string; icon: typeof AlertTriangle; text: string; href: string }[] = [
-    ...(m && be != null && m.delivery_rate != null && m.delivery_rate < be
+    ...(m && be != null && delivRate != null && delivRate < be
       ? [
           {
             key: "be",
             icon: TrendingDown,
-            text: be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.alerts.belowBreakEven", { rate: formatPercent(m.delivery_rate), be: formatPercent(be) }),
+            text: be > 100 ? t("dashboard.kpi2.breakEvenUnreachable") : t("dashboard.alerts.belowBreakEven", { rate: formatPercent(delivRate), be: formatPercent(be) }),
             href: ordersQs(filters, { delivery_status: "returned" }),
           },
         ]
@@ -428,16 +445,16 @@ export default async function DashboardPage({
           <KpiTile
             icon={Megaphone}
             label={t("dashboard.kpi2.roas")}
-            value={ratio(m?.roas)}
-            delta={pctDelta(m?.roas, prevM?.roas)}
+            value={ratio(roas)}
+            delta={pctDelta(roas, prevRoas)}
             hint={t("dashboard.hint.roas")}
             href={finance("ad-spend")}
           />
           <KpiTile
             icon={Target}
             label={t("dashboard.kpi2.costPerDelivered")}
-            value={formatCurrency(m?.cost_per_delivered)}
-            delta={pctDelta(m?.cost_per_delivered, prevM?.cost_per_delivered)}
+            value={formatCurrency(kpi?.cost_per_delivered_dzd)}
+            delta={pctDelta(kpi?.cost_per_delivered_dzd, prevKpi?.cost_per_delivered_dzd)}
             goodWhen="down"
             hint={t("dashboard.hint.costPerDelivered")}
           />
@@ -451,17 +468,17 @@ export default async function DashboardPage({
           <KpiTile
             icon={PhoneCall}
             label={t("dashboard.kpi.confirmationRate")}
-            value={pct(m?.confirmation_rate)}
-            delta={pctDelta(m?.confirmation_rate, prevM?.confirmation_rate)}
+            value={pct(confRate)}
+            delta={pctDelta(confRate, prevConfRate)}
             hint={t("dashboard.hint.confirmationRate")}
             href={ordersQs(filters, { confirmation_status: "confirmed" })}
           />
           <KpiTile
             icon={PackageCheck}
             label={t("dashboard.kpi.deliveryRate")}
-            value={pct(m?.delivery_rate)}
-            tone={be != null && m?.delivery_rate != null && m.delivery_rate < be ? "danger" : undefined}
-            delta={pctDelta(m?.delivery_rate, prevM?.delivery_rate)}
+            value={pct(delivRate)}
+            tone={be != null && delivRate != null && delivRate < be ? "danger" : undefined}
+            delta={pctDelta(delivRate, prevDelivRate)}
             sub={breakEvenSub}
             hint={t("dashboard.hint.deliveryRate")}
             href={ordersQs(filters, { delivery_status: "delivered" })}
@@ -469,8 +486,8 @@ export default async function DashboardPage({
           <KpiTile
             icon={Undo2}
             label={t("dashboard.kpi2.returnRate")}
-            value={pct(m?.return_rate)}
-            delta={pctDelta(m?.return_rate, prevM?.return_rate)}
+            value={pct(retRate)}
+            delta={pctDelta(retRate, prevRetRate)}
             goodWhen="down"
             hint={t("dashboard.hint.returnRate")}
             href={ordersQs(filters, { delivery_status: "returned" })}
@@ -701,7 +718,7 @@ export default async function DashboardPage({
                 <tbody>
                   {stats.per_product.map((p) => {
                     const pp = pnlByProduct.get(p.product_id);
-                    const pm = pp ? pnlMetrics(pp) : null;
+                    const pk = kpiByProduct.get(p.product_id);
                     return (
                       <tr key={p.product_id}>
                         <td>
@@ -713,7 +730,7 @@ export default async function DashboardPage({
                           <RateCell pct={p.delivery_rate ?? 0} label={pct(p.delivery_rate)} />
                         </td>
                         <td className="num whitespace-nowrap text-end">{formatCurrency(p.revenue_dzd)}</td>
-                        <td className="num whitespace-nowrap text-end">{ratio(pm?.roas)}</td>
+                        <td className="num whitespace-nowrap text-end">{ratio(kpiRoas(pk))}</td>
                         <td className={`num whitespace-nowrap text-end ${(pp?.net_profit ?? 0) >= 0 ? "text-success" : "text-danger"}`}>
                           {formatCurrency(pp?.net_profit)}
                         </td>
