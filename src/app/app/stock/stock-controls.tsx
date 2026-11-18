@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import { addStockMovement, setLowStockThreshold } from "../products/actions";
 
 /** One "Adjust" button per row → dialog with Δ / reason / note (was 4 inline controls per row). */
-export function StockAdjustDialog({ productId, name }: { productId: string; name: string }) {
+export function StockAdjustDialog({ productId, name, sizes = [] }: { productId: string; name: string; sizes?: { id: string; label: string }[] }) {
   const t = useTranslations();
   const [open, setOpen] = React.useState(false);
   return (
@@ -46,6 +46,18 @@ export function StockAdjustDialog({ productId, name }: { productId: string; name
               options={MANUAL_STOCK_REASONS.map((r) => ({ value: r, label: t(`stock.reasons.${r}`) }))}
             />
           </Field>
+          {sizes.length ? (
+            <Field label={t("stock.variantPicker")}>
+              <EnumSelect
+                name="variant_id"
+                defaultValue="__none"
+                options={[
+                  { value: "__none", label: t("stock.sizeNone") },
+                  ...sizes.map((v) => ({ value: v.id, label: <bdi>{v.label}</bdi> })),
+                ]}
+              />
+            </Field>
+          ) : null}
           <Field label={t("stock.note")} hint={t("common.optional")} htmlFor={`note-${productId}`}>
             <Input id={`note-${productId}`} name="note" />
           </Field>

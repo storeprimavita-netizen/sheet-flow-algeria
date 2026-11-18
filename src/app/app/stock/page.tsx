@@ -10,6 +10,7 @@ import { Chip } from "@/components/ui/chip";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { tableClass } from "@/components/field";
 import { StatusPill } from "@/components/status-pill";
+import { loadProductVariants } from "@/lib/catalog/variants-data";
 import { StockAdjustDialog, ThresholdInput } from "./stock-controls";
 
 export default async function StockHubPage() {
@@ -24,6 +25,7 @@ export default async function StockHubPage() {
 
   const { data: stageRows } = await supabase.from("product_stock_stages").select("product_id, reserved, on_road, delivered");
   const { data: needRows } = await supabase.from("product_variant_stock_v").select("product_id").eq("count_needed", true);
+  const variantsByProduct = await loadProductVariants(supabase);
   const countNeeded = new Set((needRows ?? []).map((r) => r.product_id));
   const stagesById = new Map((stageRows ?? []).map((r) => [r.product_id, r]));
 
@@ -100,7 +102,11 @@ export default async function StockHubPage() {
                       <td className="num whitespace-nowrap text-end">{formatCurrency(p.value)}</td>
                       <td>
                         <div className="flex items-center justify-end gap-3">
-                          <StockAdjustDialog productId={p.id} name={p.name} />
+                          <StockAdjustDialog
+                            productId={p.id}
+                            name={p.name}
+                            sizes={(variantsByProduct.get(p.id)?.variants ?? []).filter((v) => v.isActive).map((v) => ({ id: v.id, label: v.label }))}
+                          />
                           <Link href={`/app/products/${p.id}/stock`} className="whitespace-nowrap py-2 text-xs text-muted-foreground hover:underline">
                             {t("stock.history")}
                           </Link>

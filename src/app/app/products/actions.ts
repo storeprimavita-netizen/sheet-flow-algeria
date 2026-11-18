@@ -237,7 +237,12 @@ export async function saveVariantConfig(productId: string, raw: unknown): Promis
   const { data: oldOptions } = await supabase.from("product_options").select("id").eq("product_id", pid.data);
   const { data: oldValues } = await supabase.from("product_option_values").select("id").eq("product_id", pid.data);
   const { data: oldVariantValues } = await supabase.from("product_variant_values").select("variant_id").eq("product_id", pid.data);
+  const { data: oldVariants } = await supabase.from("product_variants").select("id").eq("product_id", pid.data);
+  const oldVariantIds = new Set((oldVariants ?? []).map((v) => v.id));
   const hasValues = new Set((oldVariantValues ?? []).map((r) => r.variant_id));
+  // no new option once a size exists (existing sizes would lack a value for it); the UI hides it, this enforces it
+  const oldOptionIds = new Set((oldOptions ?? []).map((o) => o.id));
+  if (hasValues.size && options.some((o) => !oldOptionIds.has(o.id))) return { ok: false, code: "invalid", error: "options are locked once sizes exist" };
 
   // 1) options, then values, then variants (parents first); deletes come last
   const optRes = await supabase.from("product_options").upsert(options.map((o, i) => ({ id: o.id, ...ws, name: o.name, position: i })));
@@ -255,7 +260,12 @@ export async function saveVariantConfig(productId: string, raw: unknown): Promis
       .flatMap((v) => options.map((o) => ({ variant_id: v.id, option_id: o.id, value_id: v.values[o.id], ...ws })));
     if (joinRows.length) {
       const joinRes = await supabase.from("product_variant_values").insert(joinRows);
-      if (joinRes.error) return variantFailure(joinRes.error);
+      if (joinRes.error) {
+        // not one transaction: take back the sizes this call just created so none is left without values
+        const created = variants.filter((v) => !hasValues.has(v.id) && !oldVariantIds.has(v.id)).map((v) => v.id);
+        if (created.length) await supabase.from("product_variants").delete().in("id", created);
+        return variantFailure(joinRes.error);
+      }
     }
   }
 

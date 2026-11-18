@@ -111,7 +111,7 @@ export default async function ProductStockPage({
 
       <CountBySize
         productId={id}
-        rows={variants.filter((v) => v.isActive).map((v) => ({ id: v.id, label: v.label, stock: v.stock }))}
+        rows={variants.filter((v) => v.isActive || v.stock !== 0).map((v) => ({ id: v.id, label: v.isActive ? v.label : t("orders.sizeInactive", { label: v.label }), stock: v.stock }))}
         notAssigned={notAssigned}
       />
 
@@ -136,7 +136,7 @@ export default async function ProductStockPage({
               defaultValue={NONE}
               options={[
                 { value: NONE, label: t("stock.sizeNone") },
-                ...variants.filter((v) => v.isActive).map((v) => ({ value: v.id, label: <bdi>{v.label}</bdi> })),
+                ...variants.filter((v) => v.isActive || v.stock !== 0).map((v) => ({ value: v.id, label: <bdi>{v.isActive ? v.label : t("orders.sizeInactive", { label: v.label })}</bdi> })),
               ]}
             />
           </Field>

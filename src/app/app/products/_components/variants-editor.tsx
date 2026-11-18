@@ -3,11 +3,12 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, Plus, Power, PowerOff, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, Power, PowerOff, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { tableClass } from "@/components/field";
 import { missingCombos, variantLabel, type VariantOption } from "@/lib/variants";
 import { saveVariantConfig, type VariantResult } from "../actions";
@@ -42,6 +43,18 @@ export function VariantsEditor({
   );
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<VariantResult | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = React.useState<number | null>(null);
+  const [focusKey, setFocusKey] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!focusKey) return;
+    document.querySelector<HTMLElement>(`[data-fk="${focusKey}"]`)?.focus();
+    setFocusKey(null);
+  }, [focusKey]);
+
+  const toggleActive = (i: number) => {
+    setResult(null);
+    setVariants((vs) => vs.map((x, k) => (k === i ? { ...x, isActive: !x.isActive } : x)));
+  };
 
   // option structure is fixed once a size exists (its value rows are immutable); values stay editable
   const locked = variants.some((v) => v.saved);
@@ -129,24 +142,26 @@ export function VariantsEditor({
               {o.values.map((v, j) => (
                 <li key={v.id} className="flex items-center gap-0.5 rounded-md border border-border ps-1">
                   <Input
-                    aria-label={t("valueLabel")}
+                    data-fk={v.id}
+                    aria-label={t("valueNumbered", { n: j + 1, option: o.name || t("optionName") })}
                     value={v.label}
                     maxLength={60}
                     dir="auto"
                     className="h-8 w-24 border-0 shadow-none"
                     onChange={(e) => setValue(i, j, e.target.value)}
                   />
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-7" aria-label={t("moveValueEarlier", { label: v.label })} disabled={j === 0} onClick={() => setOption(i, { values: move(o.values, j, -1) })}>
-                    <ArrowUp className="rtl:-scale-x-100" />
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueEarlier", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })} disabled={j === 0} onClick={() => setOption(i, { values: move(o.values, j, -1) })}>
+                    <ChevronLeft className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-7" aria-label={t("moveValueLater", { label: v.label })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
-                    <ArrowDown />
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueLater", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
+                    <ChevronRight className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-8 w-7" aria-label={t("removeValue", { label: v.label })}
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("removeValue", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })}
                     disabled={variants.some((x) => x.saved && x.values[o.id] === v.id)}
                     onClick={() => {
                       setVariants(variants.filter((x) => x.values[o.id] !== v.id));
                       setOption(i, { values: o.values.filter((_, k) => k !== j) });
+                      setFocusKey(`add-${o.id}`);
                     }}
                   >
                     <X />
@@ -154,9 +169,9 @@ export function VariantsEditor({
                 </li>
               ))}
               <li>
-                <Button type="button" variant="outline" size="sm" aria-label={t("addValue", { name: o.name })} onClick={() => setOption(i, { values: [...o.values, { id: newId(), label: "" }] })}>
+                <Button type="button" variant="outline" size="sm" data-fk={`add-${o.id}`} aria-label={t("addValue", { name: o.name })} onClick={() => { const id = newId(); setOption(i, { values: [...o.values, { id, label: "" }] }); setFocusKey(id); }}>
                   <Plus />
-                  {t("valueLabel")}
+                  {t("addValueShort")}
                 </Button>
               </li>
             </ul>
@@ -176,7 +191,7 @@ export function VariantsEditor({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">{t("sizes")}</h3>
-            <Button type="button" variant="outline" size="sm" onClick={addMissing}>
+            <Button type="button" variant="outline" size="sm" data-fk="add-missing" onClick={addMissing}>
               <Plus />
               {t("addMissing")}
             </Button>
@@ -221,16 +236,13 @@ export function VariantsEditor({
                               variant="ghost"
                               size="sm"
                               aria-label={v.isActive ? t("deactivate", { label }) : t("reactivate", { label })}
-                              onClick={() => {
-                                if (v.isActive && !window.confirm(t("deactivateConfirm", { label }))) return;
-                                dirty();
-                                setVariants(variants.map((x, k) => (k === i ? { ...x, isActive: !x.isActive } : x)));
-                              }}
+                              title={v.isActive ? t("deactivate", { label }) : t("reactivate", { label })}
+                              onClick={() => (v.isActive ? setConfirmDeactivate(i) : toggleActive(i))}
                             >
                               {v.isActive ? <PowerOff /> : <Power />}
                             </Button>
                           ) : (
-                            <Button type="button" variant="ghost" size="sm" aria-label={t("removeNew", { label })} onClick={() => { dirty(); setVariants(variants.filter((_, k) => k !== i)); }}>
+                            <Button type="button" variant="ghost" size="sm" aria-label={t("removeNew", { label })} title={t("removeNew", { label })} onClick={() => { dirty(); setVariants(variants.filter((_, k) => k !== i)); setFocusKey("add-missing"); }}>
                               <Trash2 />
                             </Button>
                           )}
@@ -255,6 +267,29 @@ export function VariantsEditor({
           </p>
         ) : null}
       </div>
+      <Dialog open={confirmDeactivate !== null} onOpenChange={(o) => !o && setConfirmDeactivate(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>
+            {t("deactivate", { label: confirmDeactivate !== null && variants[confirmDeactivate] ? variantLabel(options, variants[confirmDeactivate].values) : "" })}
+          </DialogTitle>
+          <DialogDescription>{t("deactivateConfirmBody")}</DialogDescription>
+          <div className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{t("cancel")}</Button>
+            </DialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (confirmDeactivate !== null) toggleActive(confirmDeactivate);
+                setConfirmDeactivate(null);
+              }}
+            >
+              {t("confirmDeactivate")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

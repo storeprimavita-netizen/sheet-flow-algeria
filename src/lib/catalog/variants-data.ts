@@ -27,7 +27,8 @@ export async function loadProductVariants(supabase: Db, productIds?: string[]): 
   const optQ = supabase
     .from("product_options")
     .select("id, product_id, name, position, values:product_option_values(id, label, position)")
-    .order("position");
+    .order("position")
+    .order("position", { referencedTable: "product_option_values" });
   const varQ = supabase
     .from("product_variants")
     .select("id, product_id, sku, is_active, stock, created_at, vv:product_variant_values(option_id, value_id)")
@@ -61,6 +62,16 @@ export async function loadProductVariants(supabase: Db, productIds?: string[]): 
       stock: v.stock,
       values,
       label: variantLabel(e.options, values),
+    });
+  }
+  // stable size order: by value position, option by option (created_at ties on migrated rows)
+  for (const e of out.values()) {
+    const rank = (v: VariantDTO) => e.options.map((o) => o.values.findIndex((x) => x.id === v.values[o.id]));
+    e.variants.sort((a, b) => {
+      const ra = rank(a);
+      const rb = rank(b);
+      for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i];
+      return 0;
     });
   }
   return out;

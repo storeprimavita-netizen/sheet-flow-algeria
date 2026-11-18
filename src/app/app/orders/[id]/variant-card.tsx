@@ -41,7 +41,7 @@ export function VariantCard({
     const res = await changeOrderVariant(orderId, value);
     setBusy(false);
     if (!res.ok) {
-      setMsg({ ok: false, text: t("orders.sizeFailed", { reason: res.error }) });
+      setMsg({ ok: false, text: t("orders.sizeFailed", { reason: /inactive/i.test(res.error) ? t("variants.inactiveVariant") : res.error }) });
       return;
     }
     setMsg({ ok: true, text: t("orders.sizeSaved") });

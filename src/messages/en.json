@@ -1170,6 +1170,11 @@
     "invalid": "Check the form: every option needs a name and at least one value, and every size one value per option.",
     "failed": "Could not save: {reason}",
     "inactiveVariant": "This size is inactive and cannot be chosen.",
-    "stockHint": "Count changes only through the stock page."
+    "stockHint": "Count changes only through the stock page.",
+    "valueNumbered": "Value {n} of {option}",
+    "addValueShort": "Add value",
+    "deactivateConfirmBody": "It is hidden from new orders. Existing orders keep it.",
+    "cancel": "Cancel",
+    "confirmDeactivate": "Deactivate"
   }
 }
