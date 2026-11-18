@@ -273,3 +273,9 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: scripts/gate.sh GATE OK, 377 tests with the live RLS suite.
 - Owner: none.
 - Next: PRICE-2 (pricing settings UI, per-product overrides).
+
+## PRICE-2 — pricing settings + product overrides + Pricing tab (2026-11-18) — BUILT (awaiting /verify)
+- Done: `product_pricing` (00039, composite FK, admin RLS, audited), Settings -> Pricing section (save/reset), product Pricing tab on `pricing-v2.ts` with overrides/ads/final price/save.
+- Dropped: the old Real column (`realInputsForProduct`) is gone from the tab until PRICE-3. BENZ `/products/planner` untouched.
+- Screenshots: dark, EN, ~430px only (Settings + product tab). Light, AR and desktop NOT checked.
+- Note: `node_modules/server-only` stub created locally so seed-dev.ts runs (not committed).
