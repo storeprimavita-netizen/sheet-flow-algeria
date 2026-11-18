@@ -139,6 +139,13 @@ async function setPublished(pageId: string, publish: boolean): Promise<StoreResu
   const id = uuid.safeParse(pageId);
   if (!id.success) return fail("invalid");
   const supabase = await createClient();
+  if (publish) {
+    // the UI disables Publish, but a direct call must not publish a page that would answer 404
+    const { data: pg } = await supabase.from("store_pages").select("product_id").eq("id", id.data).eq("workspace_id", workspaceId).maybeSingle();
+    if (!pg?.product_id) return fail("needs_product");
+    const { data: pr } = await supabase.from("products").select("is_active, sale_price").eq("id", pg.product_id).maybeSingle();
+    if (!pr?.is_active || pr.sale_price === null) return fail("needs_product");
+  }
   const { data, error } = await supabase
     .from("store_pages")
     .update({ status: publish ? "published" : "draft", published_at: publish ? new Date().toISOString() : null })

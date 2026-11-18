@@ -185,6 +185,7 @@ export async function refreshZRShipmentStatus(orderId: string): Promise<UpdateRe
     .eq("order_id", orderId);
   if (error) return { ok: false, error: error.message };
 
+  markStorePublicStale();
   revalidatePath(`/app/orders/${orderId}`);
   return { ok: true };
 }
@@ -210,6 +211,7 @@ export async function updateConfirmationStatus(orderId: string, formData: FormDa
     p_confirmation_comment: input.comment ?? undefined,
   });
   if (error) throw new Error(error.message);
+  markStorePublicStale();
   revalidatePath("/app/orders/confirmation");
   revalidatePath(`/app/orders/${orderId}`);
 }
@@ -411,6 +413,7 @@ export async function createOrder(formData: FormData) {
     .single();
   if (error) throw new Error(error.message);
 
+  markStorePublicStale();
   revalidatePath("/app/orders/all");
   redirect(`/app/orders/${data.id}`);
 }
@@ -436,6 +439,7 @@ export async function changeOrderVariant(orderId: string, variantId: string): Pr
   if (!data?.length) return { ok: false, error: "order not found" };
   revalidatePath(`/app/orders/${parsed.data.orderId}`);
   revalidatePath("/app/orders");
+  markStorePublicStale();
   revalidatePath("/app/stock");
   return { ok: true };
 }

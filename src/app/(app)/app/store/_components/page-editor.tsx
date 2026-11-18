@@ -48,6 +48,7 @@ export function PageEditor({ page, store, products }: Props) {
   const [live, setLive] = useState("");
   const nextId = useRef(page.blocks.length);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const publishBtn = useRef<HTMLButtonElement>(null);
   const focusRef = useRef<{ id: string; dir: "up" | "down" } | null>(null);
 
   const dirty = useMemo(() => snapshot(title, slug, rows, seo) !== saved, [title, slug, rows, seo, saved]);
@@ -160,7 +161,7 @@ export function PageEditor({ page, store, products }: Props) {
             </ButtonLink>
           )}
           <span title={publishReason ?? undefined}>
-            <Button type="button" variant={published ? "outline" : "default"} size="sm" disabled={pending || (!published && publishReason !== null)} onClick={published ? () => setConfirmOpen(true) : togglePublish}>
+            <Button ref={publishBtn} type="button" variant={published ? "outline" : "default"} size="sm" disabled={pending || (!published && publishReason !== null)} onClick={published ? () => setConfirmOpen(true) : togglePublish}>
               {published ? t("unpublish") : t("publish")}
             </Button>
           </span>
@@ -186,8 +187,9 @@ export function PageEditor({ page, store, products }: Props) {
             <Input id="pe-slug" value={slug} dir="ltr" maxLength={40} autoCapitalize="none" spellCheck={false} onChange={(e) => setSlug(e.target.value)} />
           </Field>
         </div>
-        <Field label={t("product")}>
-          <div className="flex flex-wrap items-center gap-2">
+        <div>
+          <p className="text-xs font-medium text-muted-foreground">{t("product")}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Combobox
               className="min-w-64"
               ariaLabel={t("product")}
@@ -200,14 +202,13 @@ export function PageEditor({ page, store, products }: Props) {
               disabled={pending}
             />
             {page.productId ? (
-              <span title={published ? t("errNeedsProduct") : undefined}>
-                <Button type="button" variant="ghost" size="sm" disabled={pending || published} onClick={() => link(null)}>
-                  {t("unlink")}
-                </Button>
-              </span>
+              <Button type="button" variant="ghost" size="sm" disabled={pending || published} onClick={() => link(null)}>
+                {t("unlink")}
+              </Button>
             ) : null}
+            {page.productId && published ? <span className="text-xs text-muted-foreground">{t("errNeedsProduct")}</span> : null}
           </div>
-        </Field>
+        </div>
       </section>
 
       <section className="space-y-3">
@@ -233,12 +234,12 @@ export function PageEditor({ page, store, products }: Props) {
                 </div>
               </div>
               {r.block.type === "heading" ? (
-                <Field label={t("fieldText")} htmlFor={`b-${r.id}`}>
+                <Field label={`${t("fieldText")} · ${typeLabel(r.block)} ${i + 1}`} htmlFor={`b-${r.id}`}>
                   <Input id={`b-${r.id}`} value={r.block.text} maxLength={120} onChange={(e) => update(r.id, { type: "heading", text: e.target.value })} />
                 </Field>
               ) : null}
               {r.block.type === "text" ? (
-                <Field label={t("fieldText")} htmlFor={`b-${r.id}`}>
+                <Field label={`${t("fieldText")} · ${typeLabel(r.block)} ${i + 1}`} htmlFor={`b-${r.id}`}>
                   <Textarea id={`b-${r.id}`} rows={4} value={r.block.text} maxLength={2000} onChange={(e) => update(r.id, { type: "text", text: e.target.value })} />
                 </Field>
               ) : null}
@@ -292,7 +293,13 @@ export function PageEditor({ page, store, products }: Props) {
         </div>
       </section>
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(e) => {
+            // controlled dialog has no trigger: give focus back to the Unpublish button ourselves
+            e.preventDefault();
+            publishBtn.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t("unpublishTitle")}</DialogTitle>
             <DialogDescription>{t("unpublishBody")}</DialogDescription>
