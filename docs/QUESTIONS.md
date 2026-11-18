@@ -8,6 +8,15 @@ owner may overturn").
 
 ## Open
 
+### Q-7 · P0-8 · 2026-11-18 · answered-by-default
+When you delete an order, should its pieces go back into stock? **Applied by
+default (D41):** only if the piece never left the warehouse (not yet handed to
+the carrier, cancelled, or already returned), or if the order was the new order
+of a swap (the piece goes back to the first order). A deleted order that was
+delivered or is still with the carrier keeps its pieces out of stock; if that
+parcel comes back, add a correction line on the product's stock page. Say so if
+you want every deleted order to put its pieces back. Nothing is blocked.
+
 ### Q-6 · P0-8 · 2026-11-18 · answered-by-default
 Between confirmation and handing the parcel to the carrier, the piece is still
 in your warehouse. **Applied by default (D34):** it stays *in stock* but is
