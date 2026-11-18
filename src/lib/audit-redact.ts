@@ -1,13 +1,13 @@
 import "server-only";
 import { createHash } from "node:crypto";
 
-// Mirrors public.audit_redact() (00033_audit_redact.sql): second layer for rows
+// Mirrors public.audit_redact() (00035_audit_redact_d49.sql, D49): second layer for rows
 // written before the backfill or by other paths. Keep both in sync.
-// Keys are normalised (camelCase and '-' to snake_case, lowercase) and masked when
-// they END in a secret word as a whole snake segment; ALLOW keeps safe names.
-const SECRET_KEY = /(^|_)(secrets?|tokens?|password|passwd|pwd|credentials?|authorization|signature|apikeys?|api_keys?|access_keys?|private_keys?)$/;
-const ALLOW_KEY = /^(color|design|theme)_tokens?$/;
-const normKey = (k: string) => k.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/-/g, "_").toLowerCase();
+// Keys are normalised (camelCase and '-' '.' ' ' ':' to snake_case, lowercase) and masked when
+// their last segment is key/token/secret/password/...; ALLOW keeps safe names.
+const SECRET_KEY = /(^|_)(keys?|tokens?|secrets?|password|passwd|pwd|passphrase|credentials?|authorization|signature|apikeys?)$/;
+const ALLOW_KEY = /^(keys?|idempotency_key|sort_key|cache_key|(color|design|theme)_tokens?)$/;
+const normKey = (k: string) => k.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[-. :]/g, "_").toLowerCase();
 const isSecretKey = (k: string) => {
   const n = normKey(k);
   return SECRET_KEY.test(n) && !ALLOW_KEY.test(n);

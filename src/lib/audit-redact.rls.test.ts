@@ -72,6 +72,16 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(JSON.stringify(kv)).not.toContain("1:AAxyz");
   });
 
+  test("D49 fail-closed names and allow-list through the live function", async () => {
+    const names = ["secret_key", "client_key", "webhook_key", "XApiKey", "telegram.token", "passphrase"];
+    const j = Object.fromEntries(names.map((n) => [n, "PLAIN_" + n]));
+    const { data } = await svc.rpc("audit_redact", { j: { ...j, idempotency_key: "i1", sort_key: 2, cache_key: "c", color_token: "rose" } });
+    expect(JSON.stringify(data)).not.toContain("PLAIN_");
+    expect(data).toMatchObject({ idempotency_key: "i1", sort_key: 2, cache_key: "c", color_token: "rose" });
+    const { data: kv } = await svc.rpc("audit_redact", { j: { key: "telegram.token", value: "S1" } });
+    expect(JSON.stringify(kv)).not.toContain("S1");
+  });
+
   test("settings row with a multi-word token name is masked in audit_log", async () => {
     await admin.from("settings").insert({ workspace_id: ws, key: "meta_access_token", value: "EAAB_LIVE_SECRET" });
     const { data: logs } = await svc.from("audit_log").select("*").eq("workspace_id", ws).eq("table_name", "settings");

@@ -75,3 +75,18 @@ describe("diffRows", () => {
     expect(c[0].from.text).toMatch(/^\[redacted · [0-9a-f]{8}\]$/);
   });
 });
+
+describe("auditRedact D49 fail-closed", () => {
+  test.each(["secret_key", "client_key", "webhook_key", "signing_key", "XApiKey", "telegram.token", "passphrase"])("masks %s", (k) => {
+    const s = JSON.stringify(auditRedact({ [k]: "PLAINVAL" }));
+    expect(s).not.toContain("PLAINVAL");
+    expect(s).toContain("[redacted:");
+  });
+  test("kv row with dotted name is masked", () => {
+    expect(JSON.stringify(auditRedact({ key: "telegram.token", value: "S1" }))).not.toContain("S1");
+  });
+  test("allow-list stays visible", () => {
+    const o = { key: "store_name", keys: ["a"], idempotency_key: "i1", sort_key: 3, cache_key: "c", color_token: "rose", monkey: "x" };
+    expect(auditRedact(o)).toEqual(o);
+  });
+});
