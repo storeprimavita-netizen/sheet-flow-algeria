@@ -413,9 +413,7 @@ export async function createOrder(formData: FormData) {
 
 // ---------------------------------------------------------------------------
 // Swap: admin creates a new order for customer B from a returned/exchanged
-// order A (same product/qty, item never re-enters warehouse).
-// ponytail: sequential calls — if A update fails after B insert, B is just a
-// normal confirmed order (acceptable at this volume). Upgrade: definer RPC.
+// order A (same product/qty, item never re-enters warehouse). One RPC transaction.
 // ---------------------------------------------------------------------------
 const swapOrderSchema = z.object({
   customer_name: z.string().trim().min(1),
@@ -427,6 +425,7 @@ const swapOrderSchema = z.object({
 
 export async function swapOrder(orderId: string, formData: FormData) {
   const { workspaceId } = await adminProfile();
+  const id = z.string().uuid().parse(orderId);
   const input = swapOrderSchema.parse({
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone"),
@@ -436,13 +435,20 @@ export async function swapOrder(orderId: string, formData: FormData) {
   });
 
   const supabase = await createClient();
-  const { data: orderA } = await supabase
-    .from("orders")
-    .select("product_id, variant, quantity, sale_price, delivery_fee, delivery_type")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!orderA) throw new Error("Order not found.");
 
+  // One transaction (D30): new order B + A to 'swap' + link, or nothing.
+  const { data: newOrderId, error: swapErr } = await supabase.rpc("swap_order", {
+    p_order_id: id,
+    p_customer_id: null as unknown as string,
+    p_customer_name: input.customer_name,
+    p_customer_phone: input.customer_phone,
+    p_wilaya_code: input.wilaya_code,
+    p_commune: input.commune ?? "",
+    p_address: input.address ?? "",
+  });
+  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
+
+  // only after the swap succeeded: link the customer record to the new order
   const customerId = await upsertCustomerFromOrder(supabase, {
     workspaceId,
     name: input.customer_name,
@@ -451,45 +457,16 @@ export async function swapOrder(orderId: string, formData: FormData) {
     commune: input.commune,
     address: input.address,
   });
-
-  const { data: orderB, error: insertErr } = await supabase
-    .from("orders")
-    .insert({
-      workspace_id: workspaceId,
-      source: "manual",
-      product_id: orderA.product_id,
-      variant: orderA.variant,
-      quantity: orderA.quantity,
-      sale_price: orderA.sale_price,
-      delivery_fee: orderA.delivery_fee,
-      delivery_type: orderA.delivery_type,
-      customer_id: customerId,
-      customer_name: input.customer_name,
-      customer_phone: input.customer_phone,
-      wilaya_code: input.wilaya_code,
-      commune: input.commune,
-      address: input.address,
-      confirmation_status: "confirmed",
-      delivery_status: "wait_for_deposit",
-      placed_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  if (insertErr) throw new Error(insertErr.message);
-
-  // A → swap status + link to B (admin, so o_upd + guard_order_fields pass)
-  const { error: rpcErr } = await supabase.rpc("transition_order_status", {
-    p_order_id: orderId,
-    p_delivery_status: "swap",
-  });
-  if (rpcErr) throw new Error(rpcErr.message);
-
-  const { error: linkErr } = await supabase
-    .from("orders")
-    .update({ swapped_to_order_id: orderB.id })
-    .eq("id", orderId);
-  if (linkErr) throw new Error(linkErr.message);
+  if (customerId) {
+    // a double submit returns the existing replacement: never re-point a customer already set
+    const { error: custErr } = await supabase
+      .from("orders")
+      .update({ customer_id: customerId })
+      .eq("id", newOrderId)
+      .is("customer_id", null);
+    if (custErr) throw new Error(custErr.message);
+  }
 
   revalidatePath("/app/orders");
-  redirect(`/app/orders/${orderB.id}`);
+  redirect(`/app/orders/${newOrderId}`);
 }

@@ -158,3 +158,9 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Verify: reviews ended without PASS; no high finding open. Open medium/low moved to follow-up row NAV-1-F.
 - Evidence: full scripts/gate.sh GATE OK on the branch with v3 merged in (154 tests).
 - Open: Escape does not close the 390 px drawer; closed drawer still tabbable; ⌘K matches internal page keys (review-6).
+
+## P0-8 — DONE (three-stage stock D34, add-only log D35; merged under D40)
+- Done: migrations 00028 (stages, reconcile, swap guard D42, add-only stock log, delete rule D41) + 00029 (reconcile existing orders); stock pages; 26+ stock tests.
+- Verify: brief review-0 + code reviews 5–7 on the restarted build; review-7 has no high finding. Open medium moved to P0-8-F.
+- Evidence: full scripts/gate.sh GATE OK, 200 tests with the live RLS suite, after db-reset.
+- Owner: production db push of 00028–00029 is owner-only (O-2); Q-3 read-only count on real data before it.

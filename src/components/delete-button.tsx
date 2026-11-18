@@ -32,7 +32,7 @@ export function DeleteButton({
     const { error } = await supabase.from(table).delete().eq("id", id);
     setBusy(false);
     if (error) {
-      window.alert(error.message);
+      window.alert(error.code === "23503" ? t("common.deleteInUse") : error.message);
       return;
     }
     router.push(redirectTo);
