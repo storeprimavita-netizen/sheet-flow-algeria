@@ -457,7 +457,15 @@ export async function swapOrder(orderId: string, formData: FormData) {
     commune: input.commune,
     address: input.address,
   });
-  if (customerId) await supabase.from("orders").update({ customer_id: customerId }).eq("id", newOrderId);
+  if (customerId) {
+    // a double submit returns the existing replacement: never re-point a customer already set
+    const { error: custErr } = await supabase
+      .from("orders")
+      .update({ customer_id: customerId })
+      .eq("id", newOrderId)
+      .is("customer_id", null);
+    if (custErr) throw new Error(custErr.message);
+  }
 
   revalidatePath("/app/orders");
   redirect(`/app/orders/${newOrderId}`);

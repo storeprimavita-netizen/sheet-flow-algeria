@@ -274,7 +274,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const a = await order(p, { delivery_status: "in_transit" });
     const other = await order(null, {}, ws2);
     const { error } = await adminUser.from("orders").update({ swapped_to_order_id: other }).eq("id", a);
-    expect(error?.message).toMatch(/same workspace/);
+    expect(error?.message).toMatch(/swap link is written only by swap_order/); // D42 refuses before the workspace check
     expect((await svc.from("orders").update({ swapped_to_order_id: other }).eq("id", a)).error).not.toBeNull();
   });
 
@@ -318,5 +318,92 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const before = await count();
     psql(readFileSync("supabase/migrations/00029_stock_reconcile_existing.sql", "utf8"));
     expect(await count()).toBe(before);
+  });
+
+  test("only swap_order writes the link (D42): insert linked, direct link, re-point all refused", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    const other = await order(p, { delivery_status: "in_transit", quantity: 1 });
+    const fresh = await order(p, { delivery_status: "wait_for_deposit", quantity: 1 });
+    const refuse = /swap link is written only by swap_order/;
+    // inserted already linked
+    for (const c of [svc, adminUser]) {
+      const { error } = await c.from("orders").insert({ workspace_id: ws, product_id: p, quantity: 1, swapped_to_order_id: fresh });
+      expect(error?.message).toMatch(refuse);
+    }
+    // direct link from empty, a second original on the same replacement, re-point, clear
+    for (const c of [svc, adminUser]) {
+      expect((await c.from("orders").update({ swapped_to_order_id: fresh }).eq("id", other)).error?.message).toMatch(refuse);
+      expect((await c.from("orders").update({ swapped_to_order_id: b as string }).eq("id", other)).error?.message).toMatch(refuse);
+      expect((await c.from("orders").update({ swapped_to_order_id: fresh }).eq("id", a)).error?.message).toMatch(refuse);
+      expect((await c.from("orders").update({ swapped_to_order_id: null }).eq("id", a)).error?.message).toMatch(refuse);
+    }
+    expect((await svc.from("orders").select("swapped_to_order_id").eq("id", a).single()).data!.swapped_to_order_id).toBe(b);
+    expect(await held(other)).toBe(1);
+    expect(await held(fresh)).toBe(0);
+  });
+
+  test("swap from a delivered order logs the link, not a return (review-6 #4)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    expect((await moves(a)).map((m) => m.reason)).toEqual(["order_shipped", "order_swapped"]);
+    expect((await moves(b as string)).map((m) => m.reason)).toEqual(["order_swapped"]);
+  });
+
+  test("swap succeeds from returning and from exchange", async () => {
+    for (const st of ["returning", "exchange"]) {
+      const p = await product();
+      const a = await order(p, { delivery_status: st, quantity: 1 });
+      const { data: b, error } = await swap(a);
+      expect(error).toBeNull();
+      expect(await held(a)).toBe(0);
+      expect(await held(b as string)).toBe(1);
+      expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("swap");
+    }
+  });
+
+  test("deleting a replacement: before pickup releases, on road or delivered keeps the piece out (D42)", async () => {
+    for (const [st, expected] of [["wait_for_deposit", 0], ["in_transit", -1], ["delivered", -1], ["cancelled", 0]] as const) {
+      const p = await product();
+      const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+      const { data: b } = await swap(a);
+      if (st !== "wait_for_deposit") await status(b as string, st);
+      expect((await svc.from("orders").delete().eq("id", b as string)).error).toBeNull();
+      // A is a swap original again (status swap, link cleared): holds nothing
+      expect(await held(a)).toBe(0);
+      expect(await stock(p)).toBe(expected);
+    }
+  });
+
+  test("swap_order across workspaces is refused both ways", async () => {
+    const admin2 = await userIn(ws2, "admin");
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", quantity: 1 });
+    expect((await swap(a, null, admin2)).error?.message).toMatch(/order not found/);
+    const o2 = await order(null, { delivery_status: "returned" }, ws2);
+    expect((await swap(o2)).error?.message).toMatch(/order not found/);
+  });
+
+  test("D30 on UPDATE: changing product_id to another workspace's product is refused", async () => {
+    const p = await product();
+    const p2 = await product(ws2);
+    const o = await order(p, { delivery_status: "in_transit" });
+    expect((await svc.from("orders").update({ product_id: p2 }).eq("id", o)).error?.message).toMatch(/workspace/);
+    expect(await stock(p)).toBe(-2);
+  });
+
+  test("first run of 00029 fixes a stale order, second run writes nothing", async () => {
+    const p = await product();
+    const o = await order(p, { delivery_status: "in_transit" }); // -2
+    await svc.from("stock_movements").insert({ workspace_id: ws, product_id: p, delta: 2, reason: "order_reverted", order_id: o });
+    expect(await stock(p)).toBe(0);
+    const sql = readFileSync("supabase/migrations/00029_stock_reconcile_existing.sql", "utf8");
+    psql(sql);
+    expect(await stock(p)).toBe(-2);
+    const n = (await moves(o)).length;
+    psql(sql);
+    expect((await moves(o)).length).toBe(n);
   });
 });

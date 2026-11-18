@@ -153,24 +153,50 @@ begin
   return new;
 end; $$;
 
+-- D42: only swap_order writes a swap link: from empty, never re-pointed, never on insert, by anyone.
+-- The one other change is the FK clearing it when the replacement is deleted.
+create or replace function public.orders_swap_link_guard()
+returns trigger
+language plpgsql set search_path = public, pg_temp as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.swapped_to_order_id is not null then
+      raise exception 'swap link is written only by swap_order';
+    end if;
+    return new;
+  end if;
+  if new.swapped_to_order_id is not distinct from old.swapped_to_order_id then return new; end if;
+  if old.swapped_to_order_id is null and new.swapped_to_order_id is not null
+     and coalesce(current_setting('mnw.swap_link', true), '') = '1' then
+    return new;
+  end if;
+  if old.swapped_to_order_id is not null and new.swapped_to_order_id is null
+     and not exists (select 1 from public.orders where id = old.swapped_to_order_id) then
+    return new;   -- replacement deleted (FK set null)
+  end if;
+  raise exception 'swap link is written only by swap_order';
+end; $$;
+
+drop trigger if exists orders_swap_link_guard on public.orders;
+create trigger orders_swap_link_guard
+  before insert or update of swapped_to_order_id on public.orders
+  for each row execute function public.orders_swap_link_guard();
+
 drop trigger if exists orders_stock_effects on public.orders;
 create trigger orders_stock_effects
   after insert or update of delivery_status, quantity, product_id, swapped_to_order_id on public.orders
   for each row execute function public.order_stock_effects();
 
 -- D41: deleting an order gives back only pieces that never left the warehouse: stage before pickup,
--- cancelled or returned (this also clears an old-rule reservation), or a swap replacement (its piece goes back
--- to the original, which follows its own status again). On road or delivered keeps its pieces out (D34);
--- the admin adds a correction line in the log (D35). Skipped when the product or workspace goes away (cascade).
+-- cancelled or returned (this also clears an old-rule reservation). A swap replacement follows the same rule
+-- (D42). On road or delivered keeps its pieces out (D34); the admin adds a correction line in the log (D35). Skipped when the product or workspace goes away (cascade).
 create or replace function public.order_stock_release()
 returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   r record;
-  v_repl boolean;
 begin
-  v_repl := exists (select 1 from public.orders x where x.swapped_to_order_id = old.id and x.workspace_id = old.workspace_id);
-  if v_repl or public.order_stock_target(old.delivery_status, old.quantity, false, false) >= 0 then
+  if public.order_stock_target(old.delivery_status, old.quantity, false, false) >= 0 then
     for r in select product_id, sum(delta)::integer as held from public.stock_movements
              where order_id = old.id and reason = any(public.stock_order_reasons())
              group by product_id having sum(delta) <> 0 loop
@@ -299,9 +325,11 @@ begin
       'confirmed', 'wait_for_deposit', now())
   returning id into v_b;
 
-  perform public.transition_order_status(p_order_id, null, 'swap');
-  -- the link trigger reconciles A (-> 0) and B (replacement, on road)
+  -- link first (reconciles A -> 0 and B as a replacement on road), then A goes to 'swap' (D42)
+  perform set_config('mnw.swap_link', '1', true);
   update public.orders set swapped_to_order_id = v_b where id = p_order_id;
+  perform set_config('mnw.swap_link', '', true);
+  perform public.transition_order_status(p_order_id, null, 'swap');
   return v_b;
 end; $$;
 revoke all on function public.swap_order(uuid, uuid, text, text, smallint, text, text) from public, anon;
