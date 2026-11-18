@@ -275,7 +275,7 @@ describe("review 3 fixes", () => {
     expect(applyRounding(40, "nearest100")).toBeNull();
   });
   it("share 100% is valid", () => {
-    expect(r2(mid(benz, { ...S, share: 1 }).lines.platformMonthly)).toBe(328.66);
+    expect(r2(mid(benz, { ...S, share: 1 }).lines.platformMonthly)).toBe(328.67); // 328.666 (D52 writes 328.66, truncated)
   });
   it("value-only target override gives empty price, both directions", () => {
     const a = computeAll({ target: { mode: "markup", value: 0.65 } }, { ...benz, finalPrice: null, overrides: { target: { value: 2000 } } }).medium;
