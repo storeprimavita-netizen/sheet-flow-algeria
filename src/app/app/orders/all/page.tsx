@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
+import { CONFIRMATION_STATUS } from "@/lib/statuses";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -48,8 +49,13 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
-  if (get("confirmation_status"))
-    query = query.eq("confirmation_status", get("confirmation_status") as Enums<"confirmation_status">);
+  if (get("confirmation_status")) {
+    // one status, or a comma list (dashboard "To retry" = no_answer,closed_phone); unknown values are ignored
+    const statuses = get("confirmation_status")
+      .split(",")
+      .filter((x) => x in CONFIRMATION_STATUS) as Enums<"confirmation_status">[];
+    if (statuses.length) query = query.in("confirmation_status", statuses);
+  }
   if (get("delivery_status"))
     query = query.eq("delivery_status", get("delivery_status") as Enums<"delivery_status">);
   if (get("product_id")) query = query.eq("product_id", get("product_id"));

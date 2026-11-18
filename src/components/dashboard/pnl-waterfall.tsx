@@ -9,6 +9,21 @@ export type WaterfallLabels = Record<
   string
 >;
 
+export type WaterfallStep = { key: string; label: string; from: number; to: number; value: number; kind: "rev" | "cost" | "net"; href?: string };
+
+/** Running-total steps from revenue through signed-negative costs to net. */
+export function buildSteps(revenue: number, costs: { key: string; label: string; value: number; href?: string }[], net: number, labels: { revenue: string; net: string }, hrefs?: { revenue?: string }): WaterfallStep[] {
+  const steps: WaterfallStep[] = [{ key: "revenue", label: labels.revenue, from: 0, to: revenue, value: revenue, kind: "rev", href: hrefs?.revenue }];
+  let running = revenue;
+  for (const c of costs) {
+    // c.value is a positive cost amount
+    steps.push({ key: c.key, label: c.label, from: running - c.value, to: running, value: -c.value, kind: "cost", href: c.href });
+    running -= c.value;
+  }
+  steps.push({ key: "net", label: labels.net, from: Math.min(0, net), to: Math.max(0, net), value: net, kind: "net" });
+  return steps;
+}
+
 /**
  * Revenue → each cost line → net, as a horizontal running-total waterfall.
  * Revenue wears the accent, costs are neutral floating segments, net is
@@ -24,23 +39,16 @@ export function PnlWaterfall({
   labels: WaterfallLabels;
   hrefs: Partial<Record<keyof WaterfallLabels, string>>;
 }) {
-  const costs: [keyof WaterfallLabels, number][] = [
-    ["cogs", pnl.cogs],
-    ["returns", pnl.return_fees],
-    ["ads", pnl.ad_spend],
-    ["expenses", pnl.expenses],
-    ["fixed", pnl.fixed_fees],
-  ];
+  const costs = (["cogs", "returns", "ads", "expenses", "fixed"] as const).map((key) => ({
+    key,
+    label: labels[key],
+    value: { cogs: pnl.cogs, returns: pnl.return_fees, ads: pnl.ad_spend, expenses: pnl.expenses, fixed: pnl.fixed_fees }[key],
+    href: hrefs[key],
+  }));
+  return <WaterfallRows steps={buildSteps(pnl.revenue, costs, pnl.net_profit, labels, hrefs)} />;
+}
 
-  type Step = { key: keyof WaterfallLabels; from: number; to: number; value: number; kind: "rev" | "cost" | "net" };
-  const steps: Step[] = [{ key: "revenue", from: 0, to: pnl.revenue, value: pnl.revenue, kind: "rev" }];
-  let running = pnl.revenue;
-  for (const [key, c] of costs) {
-    steps.push({ key, from: running - c, to: running, value: -c, kind: "cost" });
-    running -= c;
-  }
-  steps.push({ key: "net", from: Math.min(0, pnl.net_profit), to: Math.max(0, pnl.net_profit), value: pnl.net_profit, kind: "net" });
-
+export function WaterfallRows({ steps }: { steps: WaterfallStep[] }) {
   const lo = Math.min(0, ...steps.map((s) => s.from));
   const hi = Math.max(0, ...steps.map((s) => s.to));
   const span = hi - lo || 1;
@@ -50,16 +58,16 @@ export function PnlWaterfall({
   return (
     <div className="space-y-1.5">
       {steps.map((s) => {
-        const href = hrefs[s.key];
+        const href = s.href;
         const label = (
           <span className={cn("truncate text-sm", s.kind === "net" ? "font-semibold" : "text-muted-foreground")}>
-            {labels[s.key]}
+            {s.label}
           </span>
         );
         return (
           <div
             key={s.key}
-            className={cn("grid grid-cols-[7.5rem_1fr_auto] items-center gap-3", s.kind === "net" && "border-t border-border pt-2")}
+            className={cn("grid grid-cols-[6.5rem_1fr_auto] sm:grid-cols-[8.5rem_1fr_auto] items-center gap-3", s.kind === "net" && "border-t border-border pt-2")}
           >
             {href ? (
               <Link href={href} className="truncate hover:underline">
@@ -77,7 +85,7 @@ export function PnlWaterfall({
                   s.kind === "cost" && "bg-muted-foreground/35",
                   s.kind === "net" && (s.value >= 0 ? "bg-success" : "bg-danger"),
                 )}
-                style={{ insetInlineStart: pos(s.from), width: `max(2px, calc(${pos(s.to)} - ${pos(s.from)}))` }}
+                style={{ insetInlineStart: pos(s.from), width: `max(6px, calc(${pos(s.to)} - ${pos(s.from)}))` }}
               />
             </div>
             <span
@@ -87,7 +95,7 @@ export function PnlWaterfall({
                 s.kind === "cost" && "text-muted-foreground",
               )}
             >
-              {s.kind === "cost" ? `−${formatCurrency(-s.value)}` : formatCurrency(s.value)}
+              {s.kind === "cost" && s.value !== 0 ? `−${formatCurrency(-s.value)}` : formatCurrency(s.value)}
             </span>
           </div>
         );

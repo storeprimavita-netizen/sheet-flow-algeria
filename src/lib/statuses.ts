@@ -284,3 +284,9 @@ export const ACTIONABLE_DELIVERY = Object.values(DELIVERY_STATUS)
   | "returning"
   | "exchange"
 )[];
+
+/** "Stuck" parcel rule (dashboard needs-action band): at the courier with no update for STUCK_DAYS. */
+export const STUCK_DAYS = 5;
+export const AT_COURIER = ["bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting"] as const;
+/** Retry queue (D40): customer did not pick up. The confirmation queue's waiting status is its own tile. */
+export const RETRY_CONFIRMATION = ["no_answer", "closed_phone"] as const;
