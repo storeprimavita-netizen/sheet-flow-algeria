@@ -312,3 +312,17 @@ create policy stock_movements_ins on public.stock_movements for insert to authen
 -- 6) the stage view is read-only for every API role
 -- ---------------------------------------------------------------------------
 revoke insert, update, delete, truncate on public.product_stock_stages from anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 7) one-time pass: replacements already cancelled at confirmation release their piece (adds log lines only)
+-- ---------------------------------------------------------------------------
+do $$
+declare r record;
+begin
+  for r in select o.id from public.orders o
+           where o.confirmation_status = 'cancelled' and o.product_id is not null
+             and exists (select 1 from public.orders x where x.swapped_to_order_id = o.id and x.workspace_id = o.workspace_id)
+  loop
+    perform public.stock_reconcile_order(r.id, null, 'order_stock_sync', null);
+  end loop;
+end; $$;
