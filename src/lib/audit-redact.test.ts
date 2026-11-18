@@ -108,4 +108,8 @@ describe("auditRedact SEC-1-F acronyms and odd case", () => {
     expect(JSON.stringify(auditRedact(o))).not.toContain("DEEPVAL");
     expect(JSON.stringify(auditRedact(o))).toContain("[redacted:");
   });
+  test("JSON null is kept past the depth cap", () => {
+    expect(auditRedact({ a: null }, MAX_DEPTH)).toEqual({ a: null });
+    expect(auditRedact(null, MAX_DEPTH + 1)).toBeNull();
+  });
 });

@@ -14,3 +14,23 @@ export const PARITY_CASES: unknown[] = [
   { secret: [] },
   { secret: { q: "a\"b\\c\n" } },
 ];
+
+/** Wrap `leaf` in `levels` single-key objects, so the leaf sits at depth `levels`. */
+const nest = (levels: number, leaf: unknown): unknown => {
+  let o = leaf;
+  for (let i = 0; i < levels; i++) o = { n: o };
+  return o;
+};
+// Depth cap boundary (64 kept, 65 masked); JSON null is kept at every depth.
+PARITY_CASES.push(
+  nest(64, null),
+  nest(65, null),
+  nest(64, { a: null }),
+  nest(64, { secret: null }),
+  nest(63, { secret: null }),
+  nest(64, { secret: "S" }),
+  nest(64, { a: "plain" }),
+  nest(65, "plain"),
+  nest(64, [1, null, "x"]),
+  nest(63, [{ secret: "S" }, null]),
+);
