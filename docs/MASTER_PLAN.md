@@ -40,12 +40,14 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | ZR-0, ZR-2 | ZR API audit; ZR status sync | CARRIER | H | sec | – | – | – | done |
 | P0-8 | Stock in three stages (D34): in stock / reserved / on road / delivered; returned comes back; swapped holds nothing; stock log add-only (D35). Rework the reconcile target on branch `v3-P0-8` (00028–00030 there): rewrite the brief for D34/D35, keep D30 guard, `swap_order` safe on double submit | CARRIER | H | – | M | orders | O-1 | todo |
 | CARRIER-0 | Wilayas stay 58 (D26). Fix the dashboard map: centroids 49–58 in `src/lib/geo/algeria-wilayas.ts` are misnumbered vs the seed (review-0 finding 2) and some names are garbled; webhook wilaya name match prefers the longest name. No migration **Next:** code correct (review-3); only open item: Arabic legend still reversed in the 390 px map screenshot, retake or fix, then one review.. | CARRIER | L | ui | – | orders | O-1 | done |
+| CARRIER-0-F | Follow-up (D40): Arabic map legend reversed in the 390 px screenshot — fix or retake (review-3) | CARRIER | L | ui | – | orders | CARRIER-0 | todo |
 
 ## Wave 1 — clarity (owner's main complaint)
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names. Branch `v3-NAV-1` exists: fix review-3 (Settings must not squeeze the scrolling nav; distinct icon for Users & roles; no dead chevron), then review light theme, 390 px drawer, icon rail and an agent login **Next:** review-6 open: Escape does not close the 390 px drawer, closed drawer is still tabbable, ⌘K matches internal page keys; then one review.. | NAV | L | ui | – | shell | O-1 | done |
+| NAV-1-F | Follow-up (D40): Escape closes the 390 px drawer; closed drawer not tabbable (`inert`); ⌘K must not match internal page keys (review-6) | NAV | L | ui | – | shell | NAV-1 | todo |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | todo |
 | NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | todo |
 | NAV-4 | Emoji in option labels and saved views; label overrides for system statuses | NAV | L | ui | M | shell | NAV-1 | todo |
