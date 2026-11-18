@@ -2,10 +2,11 @@
 
 import * as React from "react";
 
+/** Empty (or ".") -> null ("inherit"); malformed text ("1.2.3") -> NaN so callers can flag it, never null. */
 export function parseNumberInput(text: string): number | null {
   if (text === "" || text === ".") return null;
   const n = Number(text);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? n : Number.NaN;
 }
 
 /**

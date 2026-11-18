@@ -1050,7 +1050,7 @@
       "adWorst": "Ad cost per order, worst (USD)",
       "adDerived": "Default: medium x multiplier",
       "finalPrice": "Final price (DA)",
-      "finalPriceHint": "Leave empty to use the medium recommended price. The placeholder is the product's sale price.",
+      "finalPriceHint": "Empty = the recommended price shown. Current store price: {sale}.",
       "advanced": "Advanced overrides",
       "advancedCount": "{count} overridden",
       "advancedNone": "none",
@@ -1067,7 +1067,9 @@
       "errorTitle": "The pricing could not load",
       "belowBreakEven": "Below break-even in {scenarios}: at the final price this product loses money.",
       "table": "Pricing results by scenario",
-      "quantityInvalid": "Enter a whole number from 0 to 1,000,000."
+      "quantityInvalid": "Enter a whole number from 0 to 1,000,000.",
+      "adInvalid": "Enter an amount from 0 with at most 2 decimals.",
+      "priceInvalid": "Enter an amount above 0 with at most 2 decimals."
     },
     "rows": {
       "groupAds": "Ads",

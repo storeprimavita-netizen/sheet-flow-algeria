@@ -124,6 +124,7 @@ describe("strict schemas (fractions)", () => {
   });
   it("overrides schema is sparse and strict", () => {
     expect(pricingOverridesSchema.safeParse({}).success).toBe(true);
+    expect(pricingOverridesSchema.safeParse({ target: { mode: "markup", value: null } }).success).toBe(false);
     expect(pricingOverridesSchema.safeParse({ share: 0.5, target: { mode: "markup", value: 0.65 } }).success).toBe(true);
     expect(pricingOverridesSchema.safeParse({ target: { value: 2000 } }).success).toBe(false);
     expect(pricingOverridesSchema.safeParse({ bogus: 1 }).success).toBe(false);

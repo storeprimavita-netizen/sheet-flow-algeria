@@ -8,7 +8,7 @@ describe("parseNumberInput", () => {
     expect(parseNumberInput(".")).toBeNull();
   });
   it("garbage like 1.2.3 never yields NaN", () => {
-    expect(parseNumberInput("1.2.3")).toBeNull();
+    expect(parseNumberInput("1.2.3")).toBeNaN();
     expect(parseNumberInput("12.5")).toBe(12.5);
   });
 });

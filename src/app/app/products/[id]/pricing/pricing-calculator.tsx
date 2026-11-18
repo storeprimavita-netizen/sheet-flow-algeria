@@ -13,7 +13,7 @@ import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/field";
 import { NumberField } from "@/components/fields/number-field";
 import { PricingFieldGroups, TargetEditor } from "@/components/pricing/pricing-fields";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatInt } from "@/lib/format";
 import {
   MAX_AD_USD,
   MAX_FINAL_PRICE,
@@ -45,10 +45,13 @@ type Draft = {
   finalPrice: number | null;
 };
 
-const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD);
+const centsOk = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
+const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD && centsOk(v));
 export const MAX_QUANTITY = 1_000_000;
 const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
-const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE);
+const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE && centsOk(v));
+/** Quantity only drives the table; it is never saved, so it stays out of dirty/save checks. */
+const saveSnapshot = (d: Draft) => JSON.stringify({ ...d, quantity: null });
 
 export function PricingCalculator({
   productId,
@@ -74,15 +77,17 @@ export function PricingCalculator({
     adWorst: saved.adWorst,
     finalPrice: saved.finalPrice,
   }));
-  const [baseline, setBaseline] = React.useState(() => JSON.stringify(draft));
+  const [baseline, setBaseline] = React.useState(() => saveSnapshot(draft));
   const [pending, startTransition] = React.useTransition();
 
   const errors = formErrors(draft.form, false, defaults.target.mode);
   const priceErr = !priceOk(draft.finalPrice);
   const qtyErr = !qtyOk(draft.quantity);
   const adErr = { best: !adOk(draft.adBest), medium: !adOk(draft.adMedium), worst: !adOk(draft.adWorst) };
-  const valid = Object.keys(errors).length === 0 && !priceErr && !qtyErr && !adErr.best && !adErr.medium && !adErr.worst;
-  const dirty = JSON.stringify(draft) !== baseline;
+  const saveValid = Object.keys(errors).length === 0 && !priceErr && !adErr.best && !adErr.medium && !adErr.worst;
+  const valid = saveValid && !qtyErr;
+  const dirty = saveSnapshot(draft) !== baseline;
+  const dzd = t("unit.dzd");
 
   const overrides = React.useMemo(() => overridesFromForm(draft.form, defaults), [draft.form, defaults]);
 
@@ -118,7 +123,7 @@ export function PricingCalculator({
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
   function save() {
-    if (!valid) return;
+    if (!saveValid) return;
     startTransition(async () => {
       const res = await saveProductPricing({
         productId,
@@ -129,17 +134,18 @@ export function PricingCalculator({
         finalPrice: draft.finalPrice,
       });
       if (res.ok) {
-        setBaseline(JSON.stringify(draft));
+        setBaseline(saveSnapshot(draft));
         toast.success(t("product.saved"));
       } else toast.error(t("product.saveFailed"));
     });
   }
 
   const liveProfit = t("target.live", {
-    value: results.medium.targetProfit === null ? "—" : formatCurrency(results.medium.targetProfit),
+    value: errors.target || results.medium.targetProfit === null ? "—" : formatCurrency(results.medium.targetProfit, dzd),
   });
   const overrideCount = countOverrides(overrides);
   const qty = draft.quantity ?? 0;
+  const recommended = results.medium.recommendedPrice;
   const adField = (key: "adBest" | "adMedium" | "adWorst", label: string, hint?: string) => (
     <Field label={label} htmlFor={`pp-${key}`}>
       <NumberField
@@ -148,8 +154,14 @@ export function PricingCalculator({
         defaultValue={draft[key]}
         placeholder={hint}
         invalid={adErr[key.slice(2).toLowerCase() as "best" | "medium" | "worst"]}
+        describedBy={adErr[key.slice(2).toLowerCase() as "best" | "medium" | "worst"] ? `pp-${key}-err` : undefined}
         onChange={(v) => set(key, v)}
       />
+      {adErr[key.slice(2).toLowerCase() as "best" | "medium" | "worst"] ? (
+        <p id={`pp-${key}-err`} className="mt-1 text-xs text-destructive">
+          {t("product.adInvalid")}
+        </p>
+      ) : null}
     </Field>
   );
 
@@ -176,25 +188,28 @@ export function PricingCalculator({
           {hasCost ? (
             <div className="text-sm">
               <div className="text-xs text-muted-foreground">
-                {t("product.stockCost", { value: total === null ? "—" : formatCurrency(total) })}
+                {t("product.stockCost", { value: qtyErr || total === null ? "—" : formatCurrency(total, dzd) })}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("product.stockCostHint", { perPiece: formatCurrency(perPieceCost), quantity: qty })}
-              </p>
+              {qtyErr ? null : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("product.stockCostHint", { perPiece: formatCurrency(perPieceCost, dzd), quantity: qty })}
+                </p>
+              )}
             </div>
           ) : null}
           <Field label={t("product.finalPrice")} htmlFor="pp-final">
             <NumberField
               id="pp-final"
-              unit={t("unit.dzd")}
+              unit={dzd}
               defaultValue={draft.finalPrice}
-              placeholder={salePrice === null ? undefined : String(salePrice)}
+              placeholder={recommended === null ? undefined : formatInt(recommended)}
               invalid={priceErr}
               describedBy="pp-final-hint"
               onChange={(v) => set("finalPrice", v)}
             />
             <p id="pp-final-hint" className="mt-1 text-xs text-muted-foreground">
-              {t("product.finalPriceHint")}
+              {priceErr ? <span className="text-destructive">{t("product.priceInvalid")} </span> : null}
+              {t("product.finalPriceHint", { sale: salePrice === null ? "—" : formatCurrency(salePrice, dzd) })}
             </p>
           </Field>
           {adField("adMedium", t("product.adMedium"))}
@@ -240,17 +255,17 @@ export function PricingCalculator({
         </details>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" onClick={save} disabled={!valid || pending || !dirty}>
+          <Button type="button" onClick={save} disabled={!saveValid || pending || !dirty}>
             {pending ? t("product.saving") : t("product.save")}
           </Button>
           <span className="text-xs text-muted-foreground" aria-live="polite">
-            {!valid ? <span className="text-destructive">{t("product.invalid")}</span> : dirty ? t("product.unsaved") : null}
+            {!saveValid ? <span className="text-destructive">{t("product.invalid")}</span> : dirty ? t("product.unsaved") : null}
           </span>
         </div>
       </section>
 
       {hasCost ? (
-        <PricingResults results={results} />
+        <PricingResults results={results} unit={dzd} />
       ) : (
         <Empty className="space-y-3">
           <p className="font-medium text-foreground">{t("product.emptyTitle")}</p>

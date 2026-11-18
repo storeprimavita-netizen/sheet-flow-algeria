@@ -16,6 +16,8 @@ describe("PercentField helpers", () => {
     expect(parsePercentInput("", true)).toBeNull();
     expect(parsePercentInput("", false)).toBe(0);
     expect(parsePercentInput("12.5", true)).toBe(12.5);
+    expect(parsePercentInput("5.5.5", true)).toBeNaN();
+    expect(blurChange("5.5.5", 100, 2, true)).toBeNull();
     expect(normalizePercent("", 100, 1)).toBe("");
   });
   it("blur reports the clamped/rounded value, not the typed one", () => {

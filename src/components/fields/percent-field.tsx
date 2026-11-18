@@ -2,9 +2,11 @@
 
 import * as React from "react";
 
-/** Parse typed text: `nullable` empty -> null, otherwise empty -> 0. */
+/** Parse typed text: `nullable` empty -> null, otherwise empty -> 0. Nullable malformed text ("5.5.5") -> NaN (invalid), never 0. */
 export function parsePercentInput(text: string, nullable: boolean): number | null {
-  return text === "" && nullable ? null : Number(text) || 0;
+  if (text === "" && nullable) return null;
+  if (nullable && text !== "" && !Number.isFinite(Number(text))) return Number.NaN;
+  return Number(text) || 0;
 }
 
 /** Blur normalisation: clamp to 0..max, round to `decimals`. Empty stays empty. */
@@ -22,6 +24,7 @@ export function blurChange(
   decimals: number,
   nullable: boolean,
 ): { text: string; value: number | null } | null {
+  if (nullable && text !== "" && !Number.isFinite(Number(text))) return null; // stays visibly invalid
   const normalized = normalizePercent(text, max, decimals);
   return normalized === text ? null : { text: normalized, value: parsePercentInput(normalized, nullable) };
 }

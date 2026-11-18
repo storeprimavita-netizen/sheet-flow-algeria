@@ -303,8 +303,8 @@ export const pricingOverridesSchema = z
     adMultiplier: group(["best", "worst"], "adMultiplier", true).optional(),
     target: z
       .discriminatedUnion("mode", [
-        z.object({ mode: z.literal("profit"), value: z.number().refine((v) => targetValueValid("profit", v)).nullable() }),
-        z.object({ mode: z.literal("markup"), value: z.number().refine((v) => targetValueValid("markup", v)).nullable() }),
+        z.object({ mode: z.literal("profit"), value: z.number().refine((v) => targetValueValid("profit", v)) }),
+        z.object({ mode: z.literal("markup"), value: z.number().refine((v) => targetValueValid("markup", v)) }),
       ])
       .optional(),
     rounding: roundingSchema.optional(),

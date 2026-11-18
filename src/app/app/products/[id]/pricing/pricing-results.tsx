@@ -54,10 +54,10 @@ const GROUPS: { id: string; rows: Row[] }[] = [
   },
 ];
 
-function format(v: number, fmt: Fmt): string {
+function format(v: number, fmt: Fmt, unit: string): string {
   switch (fmt) {
     case "da":
-      return formatCurrency(v);
+      return formatCurrency(v, unit);
     case "usd":
       return formatUsd(v, { decimals: 2 });
     case "pct":
@@ -67,7 +67,7 @@ function format(v: number, fmt: Fmt): string {
   }
 }
 
-export function PricingResults({ results }: { results: Record<ScenarioName, ScenarioResult> }) {
+export function PricingResults({ results, unit }: { results: Record<ScenarioName, ScenarioResult>; unit: string }) {
   const t = useTranslations("pricingV2");
   const losing = SCENARIOS.filter((s) => (results[s].profitPerPiece ?? 0) < 0);
   const anyImpossible = SCENARIOS.some((s) =>
@@ -76,7 +76,12 @@ export function PricingResults({ results }: { results: Record<ScenarioName, Scen
 
   return (
     <div className="space-y-2">
-      <div className="card-surface overflow-x-auto rounded-xl">
+      <div
+        className="card-surface overflow-x-auto rounded-xl focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        tabIndex={0}
+        role="region"
+        aria-label={t("product.table")}
+      >
         <table className="w-full min-w-[34rem] border-separate border-spacing-0 text-sm">
           <caption className="sr-only">{t("product.table")}</caption>
           <thead>
@@ -119,7 +124,7 @@ export function PricingResults({ results }: { results: Record<ScenarioName, Scen
                     return (
                       <td key={s} className="px-3 py-2 text-end">
                         <PricingCell state={state} missingLabel={t("missing")} impossibleLabel={t("notPossible")}>
-                          {v === null ? null : format(v, row.fmt)}
+                          {v === null ? null : format(v, row.fmt, unit)}
                         </PricingCell>
                       </td>
                     );
