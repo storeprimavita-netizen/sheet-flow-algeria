@@ -291,3 +291,10 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 
 ## STORE-1 build notes
 - Screenshots: chrome-devtools MCP used for stock page and product page, dark, EN, ~390px only. Not done: light theme, AR, 1280px, order form, old-order, inactive, error views, keyboard walk.
+
+## STORE-1 — DONE (merged under D40)
+- Done: 00041–00048 product options, values and sizes (`product_variants`), `products.variants` migrated, stock per size with "not assigned" and "Count by size" (D54), options and sizes saved in one database transaction (D55); options editor, per-size stock page, order size picker.
+- Verify: brief reviews 0–1, build reviews 2–4 (qa-reviewer + ui-reviewer, app run, keyboard checked EN + AR); review-4 ESCALATE with no high finding; its one medium (gate flaky on a test-cleanup deadlock) fixed test-only under D56; lows moved to STORE-1-F.
+- Evidence: full scripts/gate.sh GATE OK, 473 tests with the live RLS suite; four `--fast` runs in a row OK after the D56 retry.
+- Owner: production db push of 00041–00048 is owner-only (O-2). Every product with sizes shows "Count needed" until its sizes are counted once (D54).
+- Next: STORE-2.
