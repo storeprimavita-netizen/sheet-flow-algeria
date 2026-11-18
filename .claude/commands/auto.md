@@ -24,7 +24,9 @@ You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id 
 
 **When no eligible task is left but questions are open:** send one PushNotification ("N questions waiting — …"), then ask the owner with AskUserQuestion (up to 4 questions at a time, recommended option first) and wait. On answers: record each as a DECISIONS row, update `docs/QUESTIONS.md`, set the tasks back to `todo`, and continue the run. If AskUserQuestion is not available (headless run), end the run with the report instead.
 
-**Hard stops end the run immediately:** a push that keeps failing, a secret-scan hit, anything that would touch `main`, a remote `db push` or production deploy being required, the local stack going down mid-run, or three tasks in a row blocked for technical reasons (questions do not count). Never work around a stop condition in `.claude/loop.md`.
+**Hard stops end the run immediately:** a push that keeps failing, a secret-scan hit, anything that would touch `main`, a remote `db push` or production deploy being required, or the local stack going down and `scripts/dev-up.sh` failing to bring it back. Never work around a stop condition in `.claude/loop.md`.
+
+**Three tasks in a row parked for technical reasons** is not a hard stop: end this batch with its report and `RUN-END: more` if other tasks are still eligible (a fresh session starts the next batch), or `RUN-END: nothing-eligible` if not.
 
 Parallel option: when the next two or three eligible tasks have different lanes and none has a migration (`M`), you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
 

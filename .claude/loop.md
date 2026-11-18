@@ -85,8 +85,9 @@ gate failure twice · a merge conflict at ship · database work while the gate
 reports "RLS suite SKIPPED" (D24) · a `ui` task when the app cannot run.
 
 The run ends on: a push that keeps failing · a secret-scan hit · anything
-touching `main` · the local stack going down · three tasks in a row parked for
-technical reasons · no eligible task and no way to ask the owner.
+touching `main` · the local stack going down and not coming back · no eligible
+task and no way to ask the owner. Three tasks in a row parked for technical
+reasons ends the batch, not the night: `scripts/night-run.sh` starts a fresh one.
 
 Local database: `scripts/db-reset.sh` before building a task with a migration
 and after leaving a branch whose migration was not merged.
