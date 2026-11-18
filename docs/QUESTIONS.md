@@ -35,6 +35,29 @@ these older orders on the real data is still wanted (it changes nothing). If you
 already corrected stock by hand for some of them, say so — those would otherwise
 be adjusted a second time when their status next changes.
 
+### Q-4 · P0-8 · 2026-11-18 · answered-by-default
+You swap an order to a new customer, and later the carrier sends an update for
+the first parcel ("returned to sender", "delivered"…). Today the first order's
+status follows the carrier, and that took the piece off stock a second time.
+**Applied by default (D31):** the status still follows the carrier, but stock no
+longer moves — the piece stays counted once, on the new customer's order. So a
+swapped order whose parcel comes back shows as returned and counts as a return,
+with its return fee, exactly as today. The other option: a swapped order keeps
+showing "swap" and ignores later carrier updates. That changes what counts as a
+return in your numbers, so it is yours to choose. One case to know: if the
+carrier says the first customer did receive the parcel after you swapped it, two
+pieces are out but one is counted — correct it on the product's stock page.
+Nothing is blocked.
+
+### Q-5 · P0-8 · 2026-11-18 · answered-by-default
+The database lets an admin edit or delete a line of a product's stock log (no
+screen in the app does it). The stock number does not follow such an edit, and
+the order's stock can then be adjusted again later. **Applied by default:**
+nothing changed — admins keep that right. Recommended: make the stock log
+add-only, like the finance ledger (a mistake is fixed by adding a correcting
+line). It removes a right from admins, so it waits for your yes. Nothing is
+blocked.
+
 ## Answered
 
 - **2026-11-18 · P0-8** — "A returned order later marked cancelled: does the
