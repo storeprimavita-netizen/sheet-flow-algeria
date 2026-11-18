@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SettingSwitch } from "@/components/fields/setting-switch";
 import { StatusPill } from "@/components/status-pill";
 import { allStatuses } from "@/lib/statuses";
+import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 import { saveZRStateMap, setZRAutoPush, syncZRFees } from "./actions";
 
 const NONE = "__none";
@@ -97,7 +98,7 @@ export function ZRAutomation({
                   <SelectItem value={NONE}>
                     <span className="text-muted-foreground">{t("notMapped")}</span>
                   </SelectItem>
-                  {allStatuses("delivery").map((s) => (
+                  {allStatuses("delivery").filter((s) => (MANUAL_DELIVERY_STATUSES as readonly string[]).includes(s.key)).map((s) => (
                     <SelectItem key={s.key} value={s.key}>
                       <StatusPill kind="delivery" status={s.key} size="sm" />
                     </SelectItem>

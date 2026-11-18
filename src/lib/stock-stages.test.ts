@@ -134,7 +134,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await stock(p)).toBe(10);
   });
 
-  test.each(STATUSES)("trigger target equals the view bucket: %s", async (st) => {
+  test.each(STATUSES.filter((x) => x !== "swap"))("trigger target equals the view bucket: %s", async (st) => {
     const p = await product();
     const o = await order(p, { delivery_status: st }); // inserted already in that status
     const s = await stages(p);
@@ -405,5 +405,131 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const n = (await moves(o)).length;
     psql(sql);
     expect((await moves(o)).length).toBe(n);
+  });
+
+  test("cancelled replacement releases its piece and shows on_road 0", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+    expect(await stock(p)).toBe(-1);
+    const { error } = await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string);
+    expect(error).toBeNull();
+    expect(await held(b as string)).toBe(0);
+    expect(await stock(p)).toBe(0);
+    expect(await stages(p)).toMatchObject({ reserved: 0, on_road: 0, delivered: 0 });
+  });
+
+  test("non-replacement on-road order cancelled at confirmation keeps its stock (review-1 #1)", async () => {
+    const p = await product();
+    const o = await order(p, { delivery_status: "in_transit", quantity: 1 });
+    expect(await stock(p)).toBe(-1);
+    expect((await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", o)).error).toBeNull();
+    expect(await held(o)).toBe(1);
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+  });
+
+  test("swap status refused for admin PATCH, insert and carrier map entry (review-1 #2-3)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", quantity: 1 });
+    const refuse = /swap is set only by swap_order/;
+    expect((await adminUser.from("orders").update({ delivery_status: "swap" }).eq("id", a)).error?.message).toMatch(refuse);
+    for (const c of [svc, adminUser]) {
+      expect((await c.from("orders").insert({ workspace_id: ws, product_id: p, quantity: 1, delivery_status: "swap" })).error?.message).toMatch(refuse);
+    }
+    expect((await svc.from("orders").update({ delivery_status: "swap" }).eq("id", a)).error?.message).toMatch(refuse);
+    // carrier map entry x -> swap: sync does not fail and does not apply it
+    const parcel = crypto.randomUUID();
+    expect((await svc.from("zr_shipments").insert({ order_id: a, workspace_id: ws, parcel_id: parcel })).error).toBeNull();
+    await svc.from("settings").upsert({ workspace_id: ws, key: "zr_state_map", value: { map: { x: "swap" } } }, { onConflict: "workspace_id,key" });
+    const r = await svc.rpc("apply_zr_state", { p_ws: ws, p_parcel: parcel, p_state: "X", p_slug: null, p_situation: null, p_is_return: null, p_occurred: new Date().toISOString() });
+    expect(r.error).toBeNull();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("returned");
+    await svc.from("settings").delete().eq("workspace_id", ws).eq("key", "zr_state_map");
+  });
+
+  test("un-cancelling a replacement re-reserves it", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string);
+    await svc.from("orders").update({ confirmation_status: "confirmed" }).eq("id", b as string);
+    expect(await held(b as string)).toBe(1);
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+  });
+
+  test("manual swap status refused for admin; swap_order still succeeds", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", quantity: 1 });
+    const manual = await adminUser.rpc("transition_order_status", { p_order_id: a, p_delivery_status: "swap" });
+    expect(manual.error?.message).toMatch(/only by swap_order/);
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("returned");
+    const { data: b, error } = await swap(a);
+    expect(error).toBeNull();
+    expect(b).toBeTruthy();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("swap");
+    // the flag does not leak: a later manual swap is still refused
+    const again = await order(p, { delivery_status: "returned", quantity: 1 });
+    expect((await adminUser.rpc("transition_order_status", { p_order_id: again, p_delivery_status: "swap" })).error).not.toBeNull();
+  });
+
+  test("swapped original moved by apply_zr_state", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
+    expect((await swap(a)).error).toBeNull();
+    const ship = await svc.from("zr_shipments").insert({ order_id: a, workspace_id: ws, parcel_id: crypto.randomUUID() });
+    expect(ship.error).toBeNull();
+    const n = (await moves(a)).length;
+    const r = await svc.rpc("apply_zr_state", {
+      p_ws: ws, p_parcel: (await svc.from("zr_shipments").select("parcel_id").eq("order_id", a).single()).data!.parcel_id,
+      p_state: "livre", p_slug: "livre", p_situation: null as unknown as string, p_is_return: null as unknown as boolean,
+      p_occurred: new Date().toISOString(),
+    });
+    expect(r.error).toBeNull();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("delivered");
+    expect((await moves(a)).length).toBe(n);
+    expect(await held(a)).toBe(0);
+  });
+
+  test("product_stock_stages refuses insert/update/delete", async () => {
+    const p = await product();
+    for (const c of [adminUser, svc]) {
+      expect((await c.from("product_stock_stages").insert({ product_id: p, workspace_id: ws })).error).not.toBeNull();
+      expect((await c.from("product_stock_stages").update({ in_stock: 5 }).eq("product_id", p)).error).not.toBeNull();
+      expect((await c.from("product_stock_stages").delete().eq("product_id", p)).error).not.toBeNull();
+    }
+  });
+
+  test("stock log created_by spoof refused", async () => {
+    const p = await product();
+    const me = (await adminUser.auth.getUser()).data.user!.id;
+    const other = (await confAgent.auth.getUser()).data.user!.id;
+    const row = { workspace_id: ws, product_id: p, delta: 1, reason: "correction" as const };
+    expect((await adminUser.from("stock_movements").insert({ ...row, created_by: other })).error).not.toBeNull();
+    expect((await adminUser.from("stock_movements").insert({ ...row, created_by: me })).error).toBeNull();
+    const ins = await adminUser.from("stock_movements").insert(row).select("created_by").single();
+    expect(ins.error).toBeNull();
+    expect(ins.data!.created_by).toBe(me);
+  });
+
+  test("shipped replacement cancelled at confirmation keeps its piece out, also after delivered (review-2 #1)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await status(b as string, "in_transit");
+    expect((await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string)).error).toBeNull();
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+    await status(b as string, "delivered");
+    expect(await stock(p)).toBe(-1);
+  });
+
+  test("all security definer functions have search_path with pg_temp", async () => {
+    const bad = psql(`select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prosecdef
+        and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%pg_temp%')`).trim();
+    expect(bad).toBe("");
   });
 });

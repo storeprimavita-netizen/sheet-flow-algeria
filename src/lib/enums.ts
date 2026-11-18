@@ -33,6 +33,21 @@ export const DELIVERY_STATUSES = [
   "swap",
 ] as const;
 
+/** `swap` is set only by the swap_order function (D43): never a manual or carrier-mapped choice. */
+export const MANUAL_DELIVERY_STATUSES = [
+  "wait_for_deposit",
+  "bureau_deposited",
+  "in_transit",
+  "out_for_delivery",
+  "stop_desk_waiting",
+  "delivered",
+  "cancelled",
+  "delayed",
+  "returning",
+  "returned",
+  "exchange",
+] as const satisfies readonly (typeof DELIVERY_STATUSES)[number][];
+
 export const SUPPLIER_TYPES = [
   "shooting_studio",
   "atelier_couture",

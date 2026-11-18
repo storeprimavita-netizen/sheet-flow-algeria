@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
-import { DELIVERY_STATUSES } from "@/lib/enums";
+import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 
 /** Schemas for `settings.value` per key (docs/DB.md §settings keys). */
 export const SETTINGS_SCHEMAS = {
@@ -23,7 +23,7 @@ export const SETTINGS_SCHEMAS = {
   }),
   /** ZR state name (lower-cased, trimmed) → our delivery_status. ZR states are
    * per-tenant, so this is user-edited (Settings → ZR Express). */
-  zr_state_map: z.object({ map: z.record(z.string(), z.enum(DELIVERY_STATUSES)) }),
+  zr_state_map: z.object({ map: z.record(z.string(), z.enum(MANUAL_DELIVERY_STATUSES)) }),
   /** push a parcel to ZR automatically when an order is confirmed */
   zr_auto_push: z.object({ enabled: z.boolean() }),
 } as const;

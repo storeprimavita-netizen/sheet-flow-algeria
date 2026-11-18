@@ -7,7 +7,7 @@ import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/status-pill";
 import { StatusSelect } from "@/components/status-select";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { DELIVERY_STATUSES } from "@/lib/enums";
+import { DELIVERY_STATUSES, MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 import { useAdvanceDelivery } from "./delivery-table";
 import type { DelivRow } from "./delivery-view";
 
@@ -36,7 +36,7 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
-      {DELIVERY_STATUSES.map((status) => {
+      {DELIVERY_STATUSES.filter((s) => (MANUAL_DELIVERY_STATUSES as readonly string[]).includes(s) || items.some((r) => r.delivery_status === s)).map((status) => {
         const col = items.filter((r) => r.delivery_status === status);
         return (
           <div
