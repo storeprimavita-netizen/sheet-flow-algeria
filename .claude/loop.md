@@ -17,7 +17,8 @@ on the pushed branch. Antigravity's mirror of this file: `docs/ANTIGRAVITY.md`.
 | 4 | Gate | `scripts/gate.sh` | script | ≤ 16 lines | **the script decides**; FAIL → back to 3, no reviewer is spawned |
 | 5 | Review | `/verify <id>` | routed (below) | `docs/briefs/<id>.review-<n>.md` | first line `VERDICT: PASS\|FIX\|ESCALATE` |
 | 6 | Ship | `/ship <id>` | haiku | PROGRESS block, plan tick, merge into `v3`, push | – |
-| ∞ | Run the loop | `/auto [n\|id]` | coordinator | – | repeats 1–6 until a stop condition |
+| ? | Decide | `/decide <id> <question>` | session model (Fable) | DECISIONS row or `docs/QUESTIONS.md` entry | first line `DECIDED:` or `ASK:` |
+| ∞ | Run the loop | `/auto [n\|id]` | coordinator | run report in PROGRESS.md | repeats 1–6; questions are decided or parked, never stop the run |
 
 ## Review routing (risk × surface, set in the brief)
 
@@ -31,7 +32,7 @@ on the pushed branch. Antigravity's mirror of this file: `docs/ANTIGRAVITY.md`.
 `risk: high` = RLS / auth / migration / money / webhook / carrier / public form /
 tracking tokens / MCP. Reviewers get the brief and the diff, never the builder's
 summary. A reviewer that did not try to break it has not reviewed it.
-**Max 3 review rounds**, then `ESCALATE` to the owner with the open findings.
+**Max 3 review rounds** (up to 5 while findings keep shrinking), then the task is parked with the open findings.
 
 ## State (all committed, so both agents see it)
 
@@ -63,15 +64,32 @@ summary. A reviewer that did not try to break it has not reviewed it.
   build time from the latest file in `supabase/migrations/`.
 - Claude and Antigravity never work the same task; the claim on `v3` is the lock.
 
-## Stop conditions (`/auto` halts and reports; never works around them)
+## Questions and stops (D28)
 
-Owner input or credential missing · destructive DB change · remote `db push` ·
-merge into `main` · production deploy · new paid service · new npm dependency not
-named in the spec · real parcels, real customer messages, real ad-platform events ·
-a decision that is not in DECISIONS.md · 3 review rounds without PASS · gate
-failing twice on the same cause · the plan's next task is `blocked` · a risk-H
-task that touches the database while the gate reports "RLS suite SKIPPED" (D24) ·
-a `ui` task when the app cannot be run for screenshots.
+A question does not stop the loop. `/decide <id> <question>` (session model,
+Fable) either **decides** it — a DECISIONS row marked "Decided by Claude — owner
+may overturn" — or **asks**: the question goes to `docs/QUESTIONS.md` and to the
+owner's phone (PushNotification), the task is parked as `blocked:Q-<n>`, and the
+run picks the next eligible task. When nothing else can run, the session asks
+the owner (AskUserQuestion) and waits.
+
+Claude never decides, and no agent ever does without the owner: credentials ·
+what a customer is charged · how profit is computed · what a role may see or do
+· deleting or rewriting data · destructive DB change · remote `db push` · merge
+into `main` · production deploy · a new paid service or an npm dependency not
+named in the spec · real parcels, customer messages or ad-platform events.
+
+A task is parked (not the run) on: an open question · review rounds exhausted
+(3, or up to 5 while findings keep shrinking and need no decision) · the same
+gate failure twice · a merge conflict at ship · database work while the gate
+reports "RLS suite SKIPPED" (D24) · a `ui` task when the app cannot run.
+
+The run ends on: a push that keeps failing · a secret-scan hit · anything
+touching `main` · the local stack going down · three tasks in a row parked for
+technical reasons · no eligible task and no way to ask the owner.
+
+Local database: `scripts/db-reset.sh` before building a task with a migration
+and after leaving a branch whose migration was not merged.
 
 ## Enforced vs advisory
 

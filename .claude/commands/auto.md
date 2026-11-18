@@ -1,25 +1,31 @@
 ---
-description: Run the loop automatically — Pick → Brief → Build → Gate → Review → Ship, repeated for N tasks or one id, until the plan runs dry or a hard stop
+description: Run the loop automatically — Pick → Brief → Build → Gate → Review → Ship, repeated for N tasks or one id; questions are decided or sent to the owner without stopping other work
 argument-hint: "[number of tasks | task id]  (default 1)"
 ---
 You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id (run that one), or a number N (ship up to N tasks in plan order), default 1. You do not read code or write code yourself; you call the stage commands with the Skill tool, read only the first line or the ≤ 150-word return of each, and decide the next stage.
 
-Before the first task: run `scripts/dev-up.sh` once and note which parts are up. If Supabase is down, only tasks that do not touch the database may run (D24); if the app is down, no `ui` task may run.
+**Start of run.** `git checkout v3 && git pull --rebase`. Run `scripts/dev-up.sh` and note which parts are up: Supabase down → only tasks that do not touch the database may run (D24); app down → no `ui` task. Read `docs/QUESTIONS.md`: for every question the owner has answered (in the file or in this conversation), record it as a DECISIONS row, move it to "Answered", and set its task back to `todo`.
 
-Pick: the first `todo` row in docs/MASTER_PLAN.md, top to bottom, whose deps are all `done` and whose owner inputs are all `closed`. Rows waiting on an open owner input or on a `blocked` task are skipped, not stopped on.
+**Pick.** The first `todo` row in docs/MASTER_PLAN.md, top to bottom, whose deps are all `done` and whose owner inputs are all `closed`. Rows waiting on an open owner input, an open question or a `blocked` task are skipped, not stopped on.
 
-For each task:
+**For each task:**
 1. `analyse [id]` → brief exists, task claimed.
 2. If the brief says `risk: high` and its design is non-obvious (new table design, permission change, money formula, public endpoint): `verify docs/briefs/<id>.md`. On FIX, run `analyse <id>` again with the review file named.
-3. `execute <id>`. If the gate is not OK after its return, run `execute <id>` once more.
-4. If the brief says risk high or names a surface: `verify <id>`. PASS → 5. FIX → `execute <id>` (it reads the review file) then `verify <id>` again.
+3. If the task has a migration (`M`): `scripts/db-reset.sh` first, so the local database matches `v3`. Then `execute <id>`. If the gate is not OK after its return, run `execute <id>` once more.
+4. If the brief says risk high or names a surface: `verify <id>`. PASS → 5. FIX → `execute <id>` (it reads the review file) then `verify <id>` again. Up to 3 rounds; a 4th and 5th are allowed only while each round has fewer high/medium findings than the one before and none of them needs a decision.
 5. `ship <id>`.
 6. Next task.
 
-**A task that cannot finish does not end the run.** When one task hits a task-level stop — its brief needs a new owner decision, ESCALATE, a third review without PASS, the same gate failure twice, a merge conflict at ship — set its plan status to `blocked:<short reason>` on `v3` (`scripts/step.sh "<id>: blocked — <reason>"`), leave its branch pushed and unmerged, and pick the next eligible task. Tasks that depend on it are skipped.
+**When a task raises a question** (the brief or a review says the owner must decide, ESCALATE, a new DECISIONS row is needed): do not stop. Run `decide <id> <question or file>`.
+- `DECIDED:` → continue the same task from the stage that raised it (`analyse <id>` if the brief must change, else `execute <id>`).
+- `ASK:` → send the question to the owner's phone with the PushNotification tool (load it with ToolSearch if it is deferred; one line, under 200 characters, question + recommended answer). Set the task to `blocked:Q-<n>` on `v3` (`scripts/step.sh`), leave its branch pushed, and **pick the next eligible task** — other work never waits for an answer.
 
-**Hard stops end the run immediately:** a push that keeps failing, a secret-scan hit, anything that would touch `main`, a remote `db push` or production deploy being required, the local stack going down mid-run, three tasks in a row ending `blocked`, or no eligible task left. Never work around a stop condition in `.claude/loop.md`.
+**When a task fails for a technical reason** (same gate failure twice, review rounds exhausted, merge conflict at ship): set it to `blocked:<short reason>`, leave its branch pushed and unmerged, and pick the next eligible task. If that branch carries a migration, run `scripts/db-reset.sh` on `v3` before the next task.
 
-Parallel option: when the next two or three eligible tasks have different lanes and at most one has a migration (`M`), you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
+**When no eligible task is left but questions are open:** send one PushNotification ("N questions waiting — …"), then ask the owner with AskUserQuestion (up to 4 questions at a time, recommended option first) and wait. On answers: record each as a DECISIONS row, update `docs/QUESTIONS.md`, set the tasks back to `todo`, and continue the run. If AskUserQuestion is not available (headless run), end the run with the report instead.
 
-When you stop or finish, append a "Run report" block to PROGRESS.md (≤ 10 lines, committed with `scripts/step.sh`) and reply with the same: tasks shipped (id + merge commit), tasks left `blocked` and exactly what the owner must decide or provide for each, why the run ended, and what the next `/auto` will pick up.
+**Hard stops end the run immediately:** a push that keeps failing, a secret-scan hit, anything that would touch `main`, a remote `db push` or production deploy being required, the local stack going down mid-run, or three tasks in a row blocked for technical reasons (questions do not count). Never work around a stop condition in `.claude/loop.md`.
+
+Parallel option: when the next two or three eligible tasks have different lanes and none has a migration (`M`), you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
+
+**End of run.** Append a "Run report" block to PROGRESS.md (≤ 10 lines, committed with `scripts/step.sh`) and reply with the same: tasks shipped (id + merge commit), decisions Claude took (D-numbers, one line each — the owner may overturn them), questions still open, tasks left blocked and why, and what the next `/auto` will pick up. Send one PushNotification with the one-line result.

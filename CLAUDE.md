@@ -8,8 +8,9 @@ reads the same rules. This file only holds what is specific to Claude Code.
 ## Session protocol
 
 Loop v3 in `.claude/loop.md`. Commands: `/bootstrap` (orient), `/analyse`,
-`/verify`, `/execute`, `/ship`, and `/auto [n|id]` to run the whole loop until a
-stop condition. Cheap models for routine work, opus for high-risk review.
+`/verify`, `/execute`, `/ship`, `/decide` (answers a task's question or sends it
+to the owner), and `/auto [n|id]` to run the whole loop; questions never stop
+it (`docs/QUESTIONS.md`). Cheap models for routine work, opus for high-risk review.
 Reviewers: `qa-reviewer` (risk high / security), `ui-reviewer` (surface ui).
 
 Skills: `karpathy-guidelines` + `mnw-codebase-hygiene` before code,
