@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 
 import { Chip } from "@/components/ui/chip";
+import { SwapBadge } from "@/components/swap-badge";
 import { StatusPill } from "@/components/status-pill";
 import { StatusSelect } from "@/components/status-select";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -67,6 +68,7 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
                     <span className="num font-medium">{r.order_number ?? r.id.slice(0, 8)}</span>
                     <span className="num text-xs text-muted-foreground">{formatCurrency(r.delivery_fee ?? 0)}</span>
                   </div>
+                  {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}
                   <div className="truncate text-muted-foreground">{r.customer_name ?? "—"}</div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="truncate">{r.product_name ?? "—"}</span>

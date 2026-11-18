@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { LayoutGrid, Table2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import type { SwapTo } from "../_lib/swap-links";
 import { DeliveryTable } from "./delivery-table";
 import { DeliveryKanban } from "./delivery-kanban";
 
@@ -24,6 +25,7 @@ export type DelivRow = {
   delivery_status: string;
   commune: string | null;
   placed_at: string | null;
+  swapped_to: SwapTo | null;
 };
 
 /** Delivery queue: dense table by default, kanban as a URL-persisted toggle. */

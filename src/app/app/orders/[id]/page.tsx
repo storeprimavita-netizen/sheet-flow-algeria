@@ -15,6 +15,7 @@ import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
 import { ZRShipmentCard } from "./zr-shipment-card";
 import { OrderTaxonomyCard } from "./order-taxonomy-card";
+import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
@@ -84,6 +85,15 @@ export default async function OrderDetailPage({
     swappedFrom: { id: string; orderNumber: string | null } | null;
     wilayas: { code: number; name: string }[];
   } = { swappedTo: null, swappedFrom: null, wilayas: [] };
+  // the forward swap link is visible to every role (badge); the rest of the swap data is admin-only
+  if (order.swapped_to_order_id) {
+    const { data: b } = await supabase
+      .from("orders")
+      .select("id, order_number")
+      .eq("id", order.swapped_to_order_id)
+      .maybeSingle();
+    if (b) swapData.swappedTo = { id: b.id, orderNumber: b.order_number };
+  }
   // agents can't see the ZR card but still need to know the order was pushed (locks cancel-reason)
   const { data: zrExists } = await supabase.from("zr_shipments").select("order_id").eq("order_id", order.id).maybeSingle();
   if (isAdmin) {
@@ -110,14 +120,6 @@ export default async function OrderDetailPage({
     }
 
     // swap data: forward link (A→B) + reverse link (B←A) + wilaya list
-    if (order.swapped_to_order_id) {
-      const { data: b } = await supabase
-        .from("orders")
-        .select("id, order_number")
-        .eq("id", order.swapped_to_order_id)
-        .maybeSingle();
-      if (b) swapData.swappedTo = { id: b.id, orderNumber: b.order_number };
-    }
     const { data: swappedFrom } = await supabase
       .from("orders")
       .select("id, order_number")
@@ -150,6 +152,12 @@ export default async function OrderDetailPage({
           <DeleteButton table="orders" id={order.id} redirectTo="/app/orders" />
         ) : null}
       </PageHeader>
+
+      {swapData.swappedTo ? (
+        <div>
+          <SwapBadge to={swapData.swappedTo} />
+        </div>
+      ) : null}
 
       <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>

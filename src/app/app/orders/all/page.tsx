@@ -6,6 +6,7 @@ import type { Enums } from "@/lib/supabase/database.types";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
+import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
@@ -43,7 +44,7 @@ export default async function AllOrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
+      "id, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
       { count: "exact" },
     );
 
@@ -103,6 +104,7 @@ export default async function AllOrdersPage({
   const actorIds = [...new Set((events ?? []).map((e) => e.actor).filter((a): a is string => !!a))];
   const actorNames = Object.fromEntries(actorIds.map((id) => [id, nameByUser.get(id) ?? id.slice(0, 8)]));
 
+  const swaps = await swapTargets(supabase, orders ?? []);
   const rows: AllRow[] = (orders ?? []).map((o) => ({
     id: o.id,
     order_number: o.order_number,
@@ -124,6 +126,7 @@ export default async function AllOrdersPage({
       null,
     is_duplicate_suspect: o.is_duplicate_suspect ?? false,
     duplicate_of: o.duplicate_of,
+    swapped_to: swaps.get(o.id) ?? null,
     commune: o.commune,
     address: o.address,
     tags: tagsByOrder.get(o.id) ?? [],

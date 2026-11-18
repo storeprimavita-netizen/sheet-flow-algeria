@@ -9,6 +9,7 @@ import { ChevronRight, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/button-link";
+import { SwapBadge } from "@/components/swap-badge";
 import { StatusPill } from "@/components/status-pill";
 import { PhoneLinks } from "@/components/phone-links";
 import { StatusSelect } from "@/components/status-select";
@@ -74,6 +75,7 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
           <Link href={`/app/orders/${r.id}`} onClick={(e) => e.stopPropagation()} className="num font-medium hover:underline">
             {r.order_number ?? r.id.slice(0, 8)}
           </Link>
+          {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}
         </span>
       ),
     },
