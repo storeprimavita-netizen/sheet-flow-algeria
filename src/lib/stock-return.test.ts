@@ -19,6 +19,8 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
   let productId: string;
   let orderId: string;
   let start: number;
+  let userId: string;
+  let email: string;
 
   type Mv = { reason: string; delta: number };
   const opts = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -33,7 +35,13 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
 
   beforeAll(async () => {
     admin = createClient(URL!, SERVICE_KEY, opts);
-    ws = (await admin.from("workspaces").select("id").limit(1).single()).data!.id;
+    // own workspace: other suites compute workspace-wide sums and must not see these rows
+    ws = (await admin.from("workspaces").insert({ name: `stock-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
+    const created = await admin.auth.admin.createUser({ email: `stock-${crypto.randomUUID()}@seed.mnw`, password: SEED_PASSWORD, email_confirm: true });
+    expect(created.error).toBeNull();
+    userId = created.data.user!.id;
+    email = created.data.user!.email!;
+    await admin.from("profiles").upsert({ user_id: userId, workspace_id: ws, role: "admin", is_active: true }, { onConflict: "user_id" });
     const { data: p, error } = await admin.from("products").insert({ workspace_id: ws, name: `stock-test-${crypto.randomUUID()}` }).select("id").single();
     expect(error).toBeNull();
     productId = p!.id;
@@ -51,6 +59,9 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
     await admin.from("stock_movements").delete().eq("product_id", productId);
     await admin.from("orders").delete().eq("product_id", productId);
     await admin.from("products").delete().eq("id", productId);
+    await admin.from("profiles").delete().eq("user_id", userId);
+    await admin.auth.admin.deleteUser(userId);
+    await admin.from("workspaces").delete().eq("id", ws);
   });
 
   test("returned net 0 for a confirmed order, then delivered nets -qty", async () => {
@@ -120,7 +131,7 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028)", () => {
     await setO(confirmed);
     await setO({ delivery_status: "returned" });
     const adminUser = createClient(URL!, ANON_KEY, opts);
-    const { error } = await adminUser.auth.signInWithPassword({ email: "admin@seed.mnw", password: SEED_PASSWORD });
+    const { error } = await adminUser.auth.signInWithPassword({ email, password: SEED_PASSWORD });
     expect(error).toBeNull();
     await setO({ delivery_status: "in_transit" }, adminUser);
     expect(await net()).toBe(-QTY);

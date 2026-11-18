@@ -70,7 +70,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = URL;
     process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
     admin = createClient(URL!, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    ws = (await admin.from("workspaces").select("id").limit(1).single()).data!.id;
+    ws = (await admin.from("workspaces").insert({ name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id; // own workspace: isolated from workspace-wide sums in other suites
     productId = (await admin.from("products").insert({ workspace_id: ws, name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
     orderId = (await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: 1 }).select("id").single()).data!.id;
     prevCfg = (await admin.from("integration_configs").select("config, secret, is_active").eq("workspace_id", ws).eq("provider", "zrexpress").maybeSingle()).data;
@@ -84,6 +84,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await admin.from("orders").delete().eq("id", orderId);
     await admin.from("stock_movements").delete().eq("product_id", productId);
     await admin.from("products").delete().eq("id", productId);
+    await admin.from("workspaces").delete().eq("id", ws);
     await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
     if (prevCfg) await admin.from("integration_configs").update(prevCfg as never).eq("workspace_id", ws).eq("provider", "zrexpress");
     else await admin.from("integration_configs").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
