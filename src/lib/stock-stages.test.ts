@@ -134,7 +134,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await stock(p)).toBe(10);
   });
 
-  test.each(STATUSES)("trigger target equals the view bucket: %s", async (st) => {
+  test.each(STATUSES.filter((x) => x !== "swap"))("trigger target equals the view bucket: %s", async (st) => {
     const p = await product();
     const o = await order(p, { delivery_status: st }); // inserted already in that status
     const s = await stages(p);
@@ -418,6 +418,35 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await held(b as string)).toBe(0);
     expect(await stock(p)).toBe(0);
     expect(await stages(p)).toMatchObject({ reserved: 0, on_road: 0, delivered: 0 });
+  });
+
+  test("non-replacement on-road order cancelled at confirmation keeps its stock (review-1 #1)", async () => {
+    const p = await product();
+    const o = await order(p, { delivery_status: "in_transit", quantity: 1 });
+    expect(await stock(p)).toBe(-1);
+    expect((await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", o)).error).toBeNull();
+    expect(await held(o)).toBe(1);
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+  });
+
+  test("swap status refused for admin PATCH, insert and carrier map entry (review-1 #2-3)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", quantity: 1 });
+    const refuse = /swap is set only by swap_order/;
+    expect((await adminUser.from("orders").update({ delivery_status: "swap" }).eq("id", a)).error?.message).toMatch(refuse);
+    for (const c of [svc, adminUser]) {
+      expect((await c.from("orders").insert({ workspace_id: ws, product_id: p, quantity: 1, delivery_status: "swap" })).error?.message).toMatch(refuse);
+    }
+    expect((await svc.from("orders").update({ delivery_status: "swap" }).eq("id", a)).error?.message).toMatch(refuse);
+    // carrier map entry x -> swap: sync does not fail and does not apply it
+    const parcel = crypto.randomUUID();
+    expect((await svc.from("zr_shipments").insert({ order_id: a, workspace_id: ws, parcel_id: parcel })).error).toBeNull();
+    await svc.from("settings").upsert({ workspace_id: ws, key: "zr_state_map", value: { map: { x: "swap" } } }, { onConflict: "workspace_id,key" });
+    const r = await svc.rpc("apply_zr_state", { p_ws: ws, p_parcel: parcel, p_state: "X", p_slug: null, p_situation: null, p_is_return: null, p_occurred: new Date().toISOString() });
+    expect(r.error).toBeNull();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("returned");
+    await svc.from("settings").delete().eq("workspace_id", ws).eq("key", "zr_state_map");
   });
 
   test("un-cancelling a replacement re-reserves it", async () => {
