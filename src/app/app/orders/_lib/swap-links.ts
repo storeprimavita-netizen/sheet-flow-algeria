@@ -12,8 +12,12 @@ export async function swapTargets(
   const ids = [...new Set(rows.map((r) => r.swapped_to_order_id).filter((v): v is string => !!v))];
   const out = new Map<string, SwapTo>();
   if (!ids.length) return out;
-  const { data } = await supabase.from("orders").select("id, order_number").in("id", ids);
-  const byId = new Map((data ?? []).map((b) => [b.id, { id: b.id, orderNumber: b.order_number }]));
+  const byId = new Map<string, SwapTo>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase.from("orders").select("id, order_number").in("id", ids.slice(i, i + 100));
+    if (error) console.error("swapTargets", error.message);
+    for (const b of data ?? []) byId.set(b.id, { id: b.id, orderNumber: b.order_number });
+  }
   for (const r of rows) {
     const b = r.swapped_to_order_id ? byId.get(r.swapped_to_order_id) : undefined;
     if (b) out.set(r.id, b);
