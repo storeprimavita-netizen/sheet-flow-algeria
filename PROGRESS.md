@@ -132,3 +132,6 @@ NAV-1 round 5: added `groupCounterTotal` (collapsed-header sum, tested; no rende
 
 ## NAV-1 round 5 (review-4 FIX, D32)
 Settings = one pinned row above the user block (rail: single gear); nav Counter/Leaf/Group hoisted to module scope (focus kept after toggle, verified in browser); phone rows/headers min-h-11 (measured 44px at true 390); palette value=group+label+href, group as keyword and right-side hint, "Ctrl K" off Mac; tests added. Screenshots docs/design/audit/NAV-1/r7-*.png: 1280 EN dark, 1280 AR light, 390 AR dark drawer, rail EN light, confirmation agent EN dark. Not screenshotted: interactive cmdk typing, tooltip hover, delivery agent. Review-4 #6 deferred to NAV-2 per D32.
+
+## NAV-1 round 6 (D33)
+Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObserver + scroll); active group title is a plain label; palette search no longer matches hrefs; collapsed group counter announced ("Sell, 26 pending", en+ar); no role = no brand link. Screenshots (chrome-devtools) in docs/design/audit/NAV-1/r8-*: admin 1280x720 dark (fade bottom 1 -> 0 after scroll), AR light, icon rail, 390 px drawer, confirmation agent (no fade, no group buttons). Delivery agent not separately screenshotted (same code path).
