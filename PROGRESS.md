@@ -212,3 +212,9 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Verify: brief review-0 + code reviews 1–4; review-4 no high finding, two medium moved to P1-1-F.
 - Evidence: full scripts/gate.sh GATE OK, 251 tests with the live RLS suite, after db-reset.
 - Owner: production db push of 00031–00032 is owner-only (O-2).
+
+## P1-2 — built (Dashboard v2, awaiting review)
+- Done: six bands (needs action, money, journey, waterfall, stock, product scorecard) from dashboard_stats().kpi, product_stock_v, pnl_by_product; USD-first ad spend and cost per delivered; filters cut to period + product; loading skeleton; en/ar `dashboard.v2.*`.
+- Removed from dashboard: wilaya table/map, status breakdowns, per-agent, category spending, tasks, meeting, TimeChart, export (moves: Statistics STATS-2/3, Team, Money, NAV-5). Deleted export-button, time-chart, status-breakdown-bars, category-bars. Kept wilaya-section.tsx (algeria-map.test.ts reads it; STATS-2 owns it). Kept dashboard.wilaya/statusBreakdown/myTasks/meeting i18n keys for those pages.
+- Screens: chrome-devtools, EN dark 1280, AR light 1440 and 390, EN dark 390 viewed; fixed negative journey drop-offs and RTL USD/DZD alignment. Not captured: no-rate, empty workspace, period+product states.
+- Evidence: full gate GATE OK after db-reset, 262 tests.
