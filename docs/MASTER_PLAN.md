@@ -32,6 +32,31 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | A-1 | Approve the `mcp-handler` dependency; enable Supabase OAuth server (beta) for AI-2 | AI-1, AI-2 | open |
 | G-1 | Optional: install `graphify` on this Mac; install and sign in to `agy` (Antigravity CLI) | Antigravity runs | open |
 
+## Owner priority (2026-11-18) — build these first, in this order
+
+Owner, after trying the app: no store management, no product page, the calculator is
+still the old one, filters are missing. These rows were moved up from waves 2–5; the
+pick rule is unchanged (first eligible `todo`, top to bottom).
+
+| ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
+|---|---|---|---|---|---|---|---|---|
+| PRICE-1 | `pricing-v2.ts` engine + tests (reconstructed formulas as defaults; every formula parameter is a setting, D38) | PRICE | H | – | – | catalog | – | todo |
+| PRICE-2 | Pricing settings + per-product overrides + Pricing tab; markup % and rounding rules | PRICE | H | ui | M | catalog | PRICE-1 | todo |
+| STORE-1 | Options, values, `product_variants`; migrate `products.variants`; per-variant stock | STORE | H | – | M | store | P0-8 | todo |
+| STORE-2 | `stores`, `store_pages`, theme tokens, public product page (read path, cached) | STORE | H | ui,sec | M | store | STORE-1 | todo |
+| STORE-3 | Pricing modes, offers, form fields editor + public form rendering | STORE | H | ui | M | store | STORE-2 | todo |
+| P1-7 | Delivery prices (D27): import the owner's sheet format (wilaya × home/stop-desk, Arabic labels) into `wilaya_fees`; fees editable in Settings → Delivery fees; upload a new CSV to replace them (preview of changes before applying); wilaya without a price = shipping off; home-only wilaya = no stop-desk; commune list from the same file; COD amount pushed = sale·qty + fee (D14) | CARRIER | H | ui | M | orders | P0-8, C-2 | todo |
+| STORE-4 | Order submit endpoint (server pricing, idempotency, rate limit, bot guard) + thank-you page | STORE | H | ui,sec | M | store | STORE-3, P1-7 | todo |
+| CONF-1 | Saved views (table) for confirmation/shipping/all, tabs, URL state, seeded shared views | CONF | H | ui | M | orders | NAV-1 | todo |
+| CONF-2 | Kanban layout for views (drag = transition RPC, keyboard equivalent) | CONF | L | ui | – | orders | CONF-1 | todo |
+| CONF-3 | Customer score hover card | CONF | L | ui | – | orders | CONF-1 | todo |
+| STATS-2 | Wilaya confirmation/delivery table + commune drill-down | STATS | L | ui | – | stats | P1-1 | todo |
+| STATS-3 | Seasons + unified filter bar | STATS | L | ui | M | stats | STATS-2 | todo |
+| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | todo |
+| PRICE-4 | Portfolio view + CSV; retire BENZ screens | PRICE | L | ui | – | catalog | PRICE-3 | todo |
+| STORE-5 | Discount codes + abandoned checkouts | STORE | H | ui,sec | M | store | STORE-4 | todo |
+| STORE-7 | Reviews + size guide blocks | STORE | L | ui | M | store | STORE-2 | todo |
+
 ## Wave 0 — carried over (launch hardening)
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
@@ -69,9 +94,6 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | P1-2 | Dashboard v2 (STATS spec §Dashboard v2, D45): needs-action band, money band USD-first, order journey, profit waterfall, stock strip, product scorecard; move the rest to Statistics/Team/Money | STATS | L | ui | – | stats | P1-1 | done |
 | P1-2-F | Follow-up (review-2 lows): dashboard polish items + rendered tests for the bands | STATS | L | ui | – | stats | P1-2 | todo |
 | TEST-1 | Live test isolation: every live suite creates and cleans its own workspace/orders (cash.test uses up seed orders, so a second gate run fails without `db-reset.sh`); gate must pass twice in a row without a reset | – | L | – | – | shell | – | done |
-| CONF-1 | Saved views (table) for confirmation/shipping/all, tabs, URL state, seeded shared views | CONF | H | ui | M | orders | NAV-3 | todo |
-| CONF-2 | Kanban layout for views (drag = transition RPC, keyboard equivalent) | CONF | L | ui | – | orders | CONF-1 | todo |
-| CONF-3 | Customer score hover card | CONF | L | ui | – | orders | CONF-1 | todo |
 | CONF-4 | Attempt timeline, callback time, "callbacks due" view | CONF | H | ui | M | orders | CONF-1 | todo |
 | CONF-5 | Auto-cancel job + phone blocklist / auto-hold | CONF | H | sec | M | orders | CONF-4 | todo |
 | MONEY-1 | Three-account ledger (D39): `kind` zr|dzd|usdt, USDT currency, append-only `account_entries`, "mark ZR payout taken" moves ZR → DZD, constraints, RLS, audit; map old accounts by D39 | MONEY | H | – | M | money | O-1 | todo |
@@ -86,10 +108,6 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
-| PRICE-1 | `pricing-v2.ts` engine + tests (reconstructed formulas as defaults; every formula parameter is a setting, D38) | PRICE | H | – | – | catalog | – | todo |
-| PRICE-2 | Pricing settings + per-product overrides + Pricing tab; markup % and rounding rules | PRICE | H | ui | M | catalog | PRICE-1 | todo |
-| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | todo |
-| PRICE-4 | Portfolio view + CSV; retire BENZ screens | PRICE | L | ui | – | catalog | PRICE-3 | todo |
 | RES-1 | `research_products` + RLS + board/table + quick add | RES | H | ui | M | catalog | NAV-3 | todo |
 | RES-2 | Research detail with embedded calculator | RES | L | ui | – | catalog | RES-1, PRICE-2 | todo |
 
@@ -97,13 +115,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
-| STORE-1 | Options, values, `product_variants`; migrate `products.variants`; per-variant stock | STORE | H | – | M | store | P0-8 | todo |
-| STORE-2 | `stores`, `store_pages`, theme tokens, public product page (read path, cached) | STORE | H | ui,sec | M | store | STORE-1 | todo |
-| STORE-3 | Pricing modes, offers, form fields editor + public form rendering | STORE | H | ui | M | store | STORE-2 | todo |
-| STORE-4 | Order submit endpoint (server pricing, idempotency, rate limit, bot guard) + thank-you page | STORE | H | ui,sec | M | store | STORE-3, P1-7 | todo |
-| STORE-5 | Discount codes + abandoned checkouts | STORE | H | ui,sec | M | store | STORE-4 | todo |
 | STORE-6 | Collection/home page, policies, custom domain | STORE | H | ui,sec | M | store | STORE-4, S-1 | todo |
-| STORE-7 | Reviews + size guide blocks | STORE | L | ui | M | store | STORE-2 | todo |
 | RES-3 | Validate-with-stock + promote to product + draft page | RES | H | ui | – | catalog | RES-2, STORE-2 | todo |
 | CONF-6 | Apply an offer during the confirmation call | CONF | H | ui | – | orders | STORE-3 | todo |
 
@@ -116,14 +128,11 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | TRACK-3 | Lifecycle events: confirmed / delivered / returned | TRACK | H | sec | – | track | TRACK-2 | todo |
 | TRACK-4 | TikTok Events API sender | TRACK | H | sec | – | track | TRACK-2 | todo |
 | TRACK-5 | Events screen + match hints + resend | TRACK | L | ui | – | track | TRACK-2 | todo |
-| P1-7 | Delivery prices (D27): import the owner's sheet format (wilaya × home/stop-desk, Arabic labels) into `wilaya_fees`; fees editable in Settings → Delivery fees; upload a new CSV to replace them (preview of changes before applying); wilaya without a price = shipping off; home-only wilaya = no stop-desk; commune list from the same file; COD amount pushed = sale·qty + fee (D14) | CARRIER | H | ui | M | orders | P0-8, C-2 | todo |
 | SWAP-1 | Swap fee per delivery company (Settings, like the return fee); swapped original = no sale, swap fee = delivery cost in P&L (D36) | CARRIER | H | ui | M | orders | P0-8 | todo |
 | SWAP-2 | Swap suggestion on confirmation: returning parcel with same product/size/colour → admin notification → Approve swap or Create new order (D37) | CARRIER | H | ui | M | orders | SWAP-1, NOTIF-1, STORE-1 | todo |
 | ZR-3 | "Your ZR history for this phone" in the confirmation sheet | CARRIER | H | ui | – | orders | C-1 | todo |
 | ZR-4 | ZR payments ledger → Money → Courier cash | CARRIER | H | ui | M | money | C-1, MONEY-1 | todo |
 | STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | todo |
-| STATS-2 | Wilaya confirmation/delivery table + commune drill-down | STATS | L | ui | – | stats | P1-1 | todo |
-| STATS-3 | Seasons + unified filter bar | STATS | L | ui | M | stats | STATS-2 | todo |
 | STATS-4 | Time / attempt / product × wilaya cuts | STATS | L | ui | – | stats | STATS-3 | todo |
 | CARRIER-1 | Carrier interface + `shipments` (extract from ZR when carrier #2 starts) | CARRIER | H | sec | M | orders | P1-7 | todo |
 | CARRIER-2 | Yalidine adapter | CARRIER | H | sec | – | orders | CARRIER-1, C-1 | todo |
