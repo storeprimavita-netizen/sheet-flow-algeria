@@ -1,53 +1,46 @@
-# CARRIER-0 — wilaya reconciliation (58 → 69)
-risk: high · surface: none · lane: orders
+# CARRIER-0 — wilaya map numbering + webhook name match (58 stays)
+risk: low · surface: ui · lane: orders
 
-Goal: `wilayas` covers every wilaya the carriers serve (69, codes 1–69) and every workspace has a `wilaya_fees` row for each, without losing existing fees or orders.
+Supersedes the old 58 → 69 brief (D26: wilayas stay 58, no migration, no A1 list, no fee backfill).
+Goal: the dashboard map plots every wilaya under the right code and name, and a webhook wilaya name resolves to the most specific wilaya.
 
 ## Definition of done
-- `select count(*) from wilayas` = 69; codes 59–69 present, codes 1–58 unchanged (orders/fees FKs intact).
-- Every existing workspace has 69 `wilaya_fees` rows (new rows 0/0, `stop_shipping=false`); old values untouched.
-- `seed_workspace()` seeds 69 rows for new workspaces (reads from `wilayas`, no hard-coded count).
-- Authenticated agent/admin can still read `wilayas`; nobody can write it (RLS test).
-- Map, dashboard, ZR fee sync and webhook name match work with codes 59–69 (no crash, no skip).
-- gate.sh green with live RLS suite.
+- `WILAYA_CENTROIDS` codes 1–58 carry the same name as `wilayas` (seed `00007_seed.sql`), after accent/case normalisation.
+- Garbled names fixed: 12 Tébessa, 19 Sétif, 20 Saïda, 47 Ghardaïa (and the rest match the seed spelling).
+- `matchWilayaCode("Ksar El Boukhari, Médéa")`-style input returns the longest matching wilaya name, not the first loose hit.
+- No migration, no DB change, no new DECISIONS row (D26 covers it).
+- Map screenshots show 49–58 in the right places; gate.sh green.
 
 ## Findings (real code)
-- `00002_settings.sql:9`: `wilayas.code smallint check (code between 1 and 58)` — the real blocker. Constraint is unnamed (auto name `wilayas_code_check`); drop by name, add `between 1 and 69`.
-- Seed is a static insert in `00007_seed.sql` (58 rows, legacy 2019 split; 49–58 = Timimoun…El Meniaa). `seed_workspace` (latest def in 00014) already derives from `wilayas`, so it needs no change. Do not edit old migrations.
-- `wilaya_fees` rows exist per workspace only for the old 58: a backfill insert is required.
-- `src/lib/geo/algeria-wilayas.ts` has 58 centroids; `algeria-map.tsx:63` iterates centroids, so 59–69 would be missing on the map. `algeria-map.test.ts:6` asserts exactly 58 codes.
-- `settings/actions.ts` `syncZRFees` filters ZR rates by `known` codes from `wilayas`: codes 59–69 are silently skipped today; fixed by the migration. `syncZRTerritories` stores ZR's own codes in `zr_territories.code`.
-- `webhook.ts:109` matches names from the table: new names just work, but check accent/spelling normalisation.
-- `docs/DB.md:44` says "58-row": update. Store copy "69" lives in STORE spec; never hard-code a count in code.
+- `src/lib/geo/algeria-wilayas.ts:58-67`: 49–58 numbered from an older list. Seed: 49 Timimoun, 50 Bordj Badji Mokhtar, 51 Ouled Djellal, 52 Béni Abbès, 53 In Salah, 54 In Guezzam, 55 Touggourt, 56 Djanet, 57 El M'Ghair, 58 El Meniaa. Current file: 49 El M'ghair, 50 El Menia, 52 Bordj Baji Mokhtar, 53 Béni Abbès, 54 Timimoun, 57 In Salah, 58 In Guezzam (51, 55, 56 already right).
+- Fix by moving coordinates, not inventing new ones: 49 = old 54 coords, 50 = old 52, 52 = old 53, 53 = old 57, 54 = old 58, 57 = old 49, 58 = old 50.
+- Garbled names on lines for 12, 19, 20, 47 (`Tbessa`, `Se9tif`, `Saefda`, `Ghardaefa`). Other names drop accents (Medea, Ain Defla, Bechar); fine only if the test normalises, otherwise align them to the seed.
+- Only consumer of centroids: `src/components/dashboard/algeria-map.tsx:63-65` (iterates codes; no change needed).
+- `src/lib/webhook.ts:102-117` `matchWilayaCode`: exact match first, then `rows.find` takes the first loose hit from unsorted rows. Comment says "58-row": reword to "national reference". Stale "58" comment also in `src/components/fields/comboboxes.tsx:8` (leave, still true under D26).
+- `src/lib/webhook.test.ts` has no wilaya match test; `matchWilayaCode` is not exported (test through the exported mapping/handler, or export it for test).
 
 ## Files and change
-1. `supabase/migrations/00028_wilayas_69.sql` (next number after 00027):
-   - `alter table wilayas drop constraint wilayas_code_check, add constraint wilayas_code_check check (code between 1 and 69)`.
-   - `insert into wilayas ... on conflict (code) do nothing` for 59–69 (see assumption A1).
-   - `insert into wilaya_fees (workspace_id, wilaya_code) select w.id, c.code from workspaces w cross join wilayas c on conflict do nothing`.
-   - No new table: checklist N/A (reference table, RLS select-only already). Keep audit trigger on fees as is.
-2. `src/lib/geo/algeria-wilayas.ts`: add centroids 59–69 (chef-lieu lat/lon) and fix header comment (69).
-3. `src/components/dashboard/algeria-map.test.ts`: assert codes 1..69 (derive from the table of expected codes, not a magic 58 elsewhere).
-4. `src/lib/rls.test.ts`: add cases below. `docs/DB.md`: row 44 -> "static national reference (69 after CARRIER-0)".
-5. `scripts/check-wilayas.ts` (optional, small): compares `wilayas` with `zr_territories` level=wilaya (code+name) and prints diffs; run when ZR creds exist.
+1. `src/lib/geo/algeria-wilayas.ts`: renumber 49–58 as above; fix garbled names; align all names to the seed spelling.
+2. `src/lib/webhook.ts`: after the exact match, among loose hits pick the one with the longest normalised name (ties: lowest code). Export `matchWilayaCode` or a pure helper `pickWilaya(rows, name)` that takes rows (preferred: testable without a DB).
+3. `src/components/dashboard/algeria-map.test.ts`: keep the 58-code test; add the name check below.
+4. `src/lib/webhook.test.ts`: add match tests.
 
-## Steps (commit each with scripts/step.sh)
-1. Migration 00028 + `supabase db reset` locally; regen types only if the diff shows any (none expected).
-2. RLS tests.
-3. Centroids + map test.
-4. DB.md + optional check script.
-5. gate.sh.
+## Steps (each committed with scripts/step.sh)
+1. Centroid renumber + name fixes + names test.
+2. Webhook longest-match helper + tests.
+3. Run the app, screenshot dashboard map (dark + light, EN + AR), note in PROGRESS.md. gate.sh.
 
-## Acceptance tests (rls.test.ts / vitest)
-- `wilayas: 69 rows, codes 1..69 contiguous`
-- `wilayas: agent and admin can select; insert/update/delete denied`
-- `wilaya_fees: every workspace has 69 rows after migration; pre-existing non-zero fees preserved`
-- `orders: can insert with wilaya_code 69; 70 rejected`
-- `algeria-map: 69 centroids, unique, inside bounds`
+## Acceptance tests (vitest)
+- `WILAYA_CENTROIDS: names match the seed list for codes 1..58` (parse the `(n,'Name')` pairs from `supabase/migrations/00007_seed.sql`, normalise with the same function as webhook; no DB needed).
+- `WILAYA_CENTROIDS: Timimoun sits near lat 29.3 lon 0.2 under code 49; El Meniaa near 30.6, 2.9 under code 58`.
+- `pickWilaya: exact name wins`; `pickWilaya: "Médéa, Algérie" -> 26`; `pickWilaya: longest loose match wins` (e.g. "Bordj Bou Arreridj" never resolves to 16 or 34 wrongly; "Ain Defla" vs "Ain Temouchent" distinct); `pickWilaya: unknown -> null`; accent and case insensitive.
 
-## Assumptions / edge cases
-- A1 (needs check, not a new decision): codes and names 59–69 follow the 2025 reform order: 59 Aflou, 60 Barika, 61 Ksar Chellala, 62 Messaad, 63 Aïn Oussara, 64 Bou Saâda, 65 El Abiodh Sidi Cheikh, 66 El Kantara, 67 Bir El Ater, 68 Ksar El Boukhari, 69 El Aricha. This is from memory; ZR is the source (spec). Before merge, run the territory sync (needs ZR credentials: stop for the owner) or the owner confirms the list. If ZR codes differ, use ZR's.
-- Existing orders keep their wilaya_code (parents of new wilayas are not re-assigned; no data rewrite).
-- Existing customers/orders typed with the old parent wilaya stay valid.
-- Local only; remote `db push` is owner-only.
-- No new DECISIONS row needed.
+## Screens to screenshot (browser MCP)
+- Dashboard with the wilaya map: dark and light, EN and AR. Check southern cells (49–58: Timimoun, In Salah, In Guezzam, Béni Abbès, Bordj Badji Mokhtar) hold the right orders by hovering/tooltips if present.
+
+## Edge cases and assumptions
+- Confirmed: `wilayas` seed has 58 rows, codes 1–58; unchanged. Orders/fees untouched.
+- Voronoi cells shift for the southern wilayas only; no layout change otherwise.
+- Normalisation: reuse `normalizeText` from `webhook.ts` (export it if needed) rather than a second implementation.
+- Short input like "Alger" must not loosely match inside another name incorrectly; keep the existing `includes` both ways, just choose the longest name.
+- Nothing needs an owner answer.

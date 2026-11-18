@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { visibleNav } from "@/components/nav-model";
+import { visibleNav, type NavLeaf } from "@/components/nav-model";
 
 /**
  * ⌘K palette: navigate anywhere (role-filtered), run quick actions, and search
@@ -53,13 +53,13 @@ export function CommandPalette({ role, children }: { role: Role | null; children
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const sections = visibleNav(role);
-  // Leaf destinations only — a section href duplicates one of its children.
-  const navItems = sections.flatMap((s) =>
-    s.children?.length
-      ? s.children.map((c) => ({ key: c.key, href: c.href, Icon: c.icon }))
-      : [{ key: s.key, href: s.href, Icon: s.icon }],
-  );
+  const { home, groups } = visibleNav(role);
+  const navItems: { leaf: NavLeaf; groupKey?: string }[] = [
+    ...(home ? [{ leaf: home }] : []),
+    ...groups.flatMap((g) => g.items.map((leaf) => ({ leaf, groupKey: g.key }))),
+  ];
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  const kbdHint = isMac ? "⌘K" : "Ctrl K";
 
   function go(href: string) {
     setOpen(false);
@@ -88,12 +88,22 @@ export function CommandPalette({ role, children }: { role: Role | null; children
         <CommandList>
           <CommandEmpty>{t("cmd.empty")}</CommandEmpty>
           <CommandGroup heading={t("cmd.navigate")}>
-            {navItems.map((n) => (
-              <CommandItem key={n.href} value={t(`nav.${n.key}`)} onSelect={() => go(n.href)}>
-                <n.Icon />
-                {t(`nav.${n.key}`)}
-              </CommandItem>
-            ))}
+            {navItems.map(({ leaf: n, groupKey }) => {
+              const label = t(`nav.${n.key}`);
+              const group = groupKey ? t(`nav.${groupKey}`) : "";
+              return (
+                <CommandItem
+                  key={n.href}
+                  value={`${group} ${label} ${n.key}`}
+                  keywords={[...(n.oldKey ? [t(`navOld.${n.oldKey}`)] : [])]}
+                  onSelect={() => go(n.href)}
+                >
+                  <n.icon />
+                  {label}
+                  {group ? <span className="ms-auto text-xs text-muted-foreground">{group}</span> : null}
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
           {actions.length ? (
             <CommandGroup heading={t("cmd.actions")}>
@@ -127,7 +137,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.palette")}</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">⌘K</kbd>
+              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">{kbdHint}</kbd>
             </li>
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.help")}</span>

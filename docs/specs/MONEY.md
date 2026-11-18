@@ -1,4 +1,4 @@
-# MONEY — two accounts, DZD and USDT
+# MONEY — three accounts, ZR, DZD and USDT (D39 replaces the two-account rule below where they differ)
 
 Owner: "I want to track our finance with DZD and USDT, two accounts, no more;
 users input the logs manually." (D19)

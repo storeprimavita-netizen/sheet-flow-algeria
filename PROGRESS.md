@@ -125,3 +125,36 @@ the bottom. Format:
 - NAV-1 `blocked` (branch `v3-NAV-1` pushed, gate OK 143 tests, reviews 1–3 without PASS). No decision needed — one medium left: opening Settings squeezes the sidebar at 720 px height and hides Money. Light theme, agent roles and ⌘K still need a browser check. Owner: set NAV-1 back to `todo` to allow another round.
 - Stack note: `v3-P0-8` left migration 00028 in the local DB and broke an RLS test on the next branch; fixed with `supabase db reset` + reseed. Reset again when switching away from a branch that carries an unmerged migration.
 - Next `/auto`: PRICE-1 (no deps), then P1-1, NOTIF-1. NAV-2…5, CONF-*, STORE-*, P1-7 stay skipped until NAV-1 / P0-8 / CARRIER-0 are unblocked.
+
+## CARRIER-0 — wilaya map numbering + webhook name match (D26, 58 stays) — built on v3-CARRIER-0
+- Done: `WILAYA_CENTROIDS` 49–58 renumbered to the seed (coordinates moved, none invented), all names aligned to seed spelling (fixes Tébessa, Sétif, Saïda, Ghardaïa). New `pickWilaya(rows, name)` in `webhook.ts`: exact, else longest whole-word match, ties lowest code ("Médéa, Algérie" no longer hits Alger). Tests: names vs seed, southern coords, 8 pickWilaya cases. No migration, no DB change.
+- Screenshots: taken in dark/light x EN/AR plus a 390 px view (`docs/design/audit/CARRIER-0/map-{dark,light}-{en,ar}.png`, `map-light-ar-390.png`). Local test: 7 orders each in wilayas 49, 53, 58 (restored afterwards). Timimoun, In Salah and El Meniaa plot in the right relative places (Timimoun west of El Meniaa, In Salah south of both), colours correct in both themes, map not mirrored in RTL, no overflow at 390 px. Fixed: legend text `<40%` showed as `40%>` in Arabic (wrapped in `<bdi dir="ltr">`). Known, not fixed: wilaya names stay Latin in AR (D-aliases follow-up).
+- Gate: only failure is the live `rls.test.ts` D9/D10 test, which also fails on untouched v3 (stale local DB state, see the run report above).
+NAV-1 round 4: Settings moved inside scrolling nav (Money no longer clipped at 1280x720), UserCog + overview first, chevron hidden on active group, 4 new nav tests. Screenshots (chrome-devtools): AR dark admin, EN light 390 px drawer, EN light rail, AR dark agent (docs/design/audit/NAV-1/r4-*). Not checked: interactive keyboard focus walk, single-gear rail (optional, skipped).
+
+NAV-1 round 5: added `groupCounterTotal` (collapsed-header sum, tested; no render test, AppShell needs next-intl/router mocks), rail shows one gear for Settings (brief step 7 "optional" — done). Browser walk (chrome-devtools): admin EN light 1280x720 ⌘K "Delivery" -> Shipping, "Cash" -> Courier cash; keyboard Tab walk shows native focus outline on links and group headers (focus-visible); AR dark Settings page + rail. Found and fixed: with Settings at the end of the scrolling nav the active item/gear was off-screen at 720 px; active link now has aria-current and is scrolled into view. Shots: docs/design/audit/NAV-1/r5-*. Not checked: AR light, EN dark, 390 px after this change.
+
+## NAV-1 round 5 (review-4 FIX, D32)
+Settings = one pinned row above the user block (rail: single gear); nav Counter/Leaf/Group hoisted to module scope (focus kept after toggle, verified in browser); phone rows/headers min-h-11 (measured 44px at true 390); palette value=group+label+href, group as keyword and right-side hint, "Ctrl K" off Mac; tests added. Screenshots docs/design/audit/NAV-1/r7-*.png: 1280 EN dark, 1280 AR light, 390 AR dark drawer, rail EN light, confirmation agent EN dark. Not screenshotted: interactive cmdk typing, tooltip hover, delivery agent. Review-4 #6 deferred to NAV-2 per D32.
+
+## NAV-1 round 6 (D33)
+Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObserver + scroll); active group title is a plain label; palette search no longer matches hrefs; collapsed group counter announced ("Sell, 26 pending", en+ar); no role = no brand link. Screenshots (chrome-devtools) in docs/design/audit/NAV-1/r8-*: admin 1280x720 dark (fade bottom 1 -> 0 after scroll), AR light, icon rail, 390 px drawer, confirmation agent (no fade, no group buttons). Delivery agent not separately screenshotted (same code path).
+## Run report — /auto 8 (2026-11-18) — STOPPED: three tasks in a row blocked for technical reasons
+- Shipped: none. `v3` gained only briefs, review files, decisions D29–D33, questions Q-3–Q-5 and plan status.
+- Decided by Claude (owner may overturn): D29 swapped order holds no stock, its replacement holds it from creation, exchange keeps stock, old orders not recounted · D30 stock moves only inside one workspace (trigger guard now, composite key in STORE-1) · D31 an order linked to its swap replacement never takes stock back, carrier status still followed · D32 Settings is one pinned row above the user block · D33 sidebar list fades at its edge when items are hidden.
+- Questions: none waiting. Q-3, Q-4, Q-5 (P0-8) are applied by default in `docs/QUESTIONS.md`; Q-5 recommends making the stock log add-only and waits for a yes.
+- P0-8 `blocked` (branch `v3-P0-8`, migrations 00028–00030, reviews 2–4 this run, no PASS). Left: apply D31, make `swap_order` safe on double submit, one review.
+- CARRIER-0 `blocked` (branch `v3-CARRIER-0`, gate OK 143 tests, code judged correct in review-3). Left: Arabic legend still reversed in the 390 px map screenshot — retake or fix, one review.
+- NAV-1 `blocked` (branch `v3-NAV-1`, gate OK 154 tests by the builder, reviews 4–6 this run, D32/D33 work). Left: Escape does not close the 390 px drawer, closed drawer is tabbable, ⌘K matches internal page keys, one review.
+- Each task is close but each review round found new medium findings; rounds were counted per attempt (3 per run after the owner reset a task to `todo`). To continue any of them, set its row back to `todo`.
+- Loop notes: (1) the live test suite is not isolated — the gate fails 1–3 tests on a used local DB and passes after `scripts/db-reset.sh`; (2) `db-reset.sh` seeding fails on some first runs and works on retry; (3) `execute` does not merge `v3` into an existing task branch, so it read stale briefs until the coordinator merged; (4) `decide` writes D-rows on the task branch — the coordinator copied them to `v3`.
+- Next `/auto`: P1-1 (KPI contract), then NOTIF-1, PRICE-1. NAV-2…5, CONF-*, STORE-*, P1-7 stay skipped until NAV-1 / P0-8 / CARRIER-0 are unblocked.
+
+## CARRIER-0 — DONE (merged under D40, owner asked to merge)
+- Verify: reviews ended without PASS; no high finding open. Open medium/low moved to follow-up row CARRIER-0-F.
+- Evidence: full scripts/gate.sh GATE OK on the branch with v3 merged in (143 tests).
+- Open: Arabic legend in the 390 px map screenshot reported reversed (review-3).
+## NAV-1 — DONE (merged under D40, owner asked to merge)
+- Verify: reviews ended without PASS; no high finding open. Open medium/low moved to follow-up row NAV-1-F.
+- Evidence: full scripts/gate.sh GATE OK on the branch with v3 merged in (154 tests).
+- Open: Escape does not close the 390 px drawer; closed drawer still tabbable; ⌘K matches internal page keys (review-6).

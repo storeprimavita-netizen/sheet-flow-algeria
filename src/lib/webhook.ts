@@ -99,21 +99,49 @@ async function resolveWorkspace(
   return { configured: rows.length > 0, match: hit ? { workspaceId: hit.workspace_id, secret: hit.secret } : null };
 }
 
-/** Exact match on the 58-row national reference, substring fallback, else null. */
+/** Fold accents, case and every apostrophe/punctuation run into single spaces. */
+function wilayaWords(s: string): string {
+  return normalizeText(s).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+/**
+ * Pick a wilaya code from the national reference: exact normalised name
+ * first, else the longest wilaya name that appears as whole words in the
+ * input (so "Ksar El Boukhari, Médéa" never lands on a shorter, looser hit).
+ * In a multi-wilaya string the longest name wins; ties: lowest code. Partial
+ * input ("Bordj") only resolves when exactly one wilaya name contains it
+ * (4+ letters); ambiguous or short input returns null rather than guess a fee.
+ */
+export function pickWilaya(rows: { code: number; name: string }[], name: string | null | undefined): number | null {
+  if (!name) return null;
+  const target = wilayaWords(name);
+  if (!target) return null;
+  const words = ` ${target} `;
+  let best: { code: number; len: number } | null = null;
+  const partial: number[] = [];
+  for (const w of rows) {
+    const n = wilayaWords(w.name);
+    if (n === target) return w.code;
+    if (!n) continue;
+    if (words.includes(` ${n} `)) {
+      if (!best || n.length > best.len || (n.length === best.len && w.code < best.code)) {
+        best = { code: w.code, len: n.length };
+      }
+    } else if (target.length >= 4 && ` ${n} `.includes(words)) {
+      partial.push(w.code);
+    }
+  }
+  if (best) return best.code;
+  return partial.length === 1 ? partial[0] : null;
+}
+
 async function matchWilayaCode(
   supabase: SupabaseClient<Database>,
   name: string | null | undefined,
 ): Promise<number | null> {
   if (!name) return null;
-  const target = normalizeText(name);
   const { data } = await supabase.from("wilayas").select("code, name");
-  const rows = data ?? [];
-  const exact = rows.find((w) => normalizeText(w.name) === target);
-  if (exact) return exact.code;
-  const fuzzy = rows.find(
-    (w) => target.includes(normalizeText(w.name)) || normalizeText(w.name).includes(target),
-  );
-  return fuzzy?.code ?? null;
+  return pickWilaya(data ?? [], name);
 }
 
 /**
