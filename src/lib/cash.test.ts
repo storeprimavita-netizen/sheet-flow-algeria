@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { recordCashCollection } from "@/app/app/orders/cash/actions";
+import { recordCashCollection } from "@/app/(app)/app/orders/cash/actions";
 
 /** Live P0-5 checks (cash_collections uniqueness / tenancy / audit). Needs the local stack. */
 const URL = process.env.LOCAL_SUPABASE_URL;

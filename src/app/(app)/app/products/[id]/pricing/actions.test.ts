@@ -34,7 +34,7 @@ vi.mock("@/lib/integrations/zrexpress", () => ({
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 
 import { DEFAULT_PRICING_SETTINGS as DEFAULTS_P } from "@/lib/pricing-v2";
-import { resetPricingDefaults, savePricingDefaults } from "@/app/app/settings/actions";
+import { resetPricingDefaults, savePricingDefaults } from "@/app/(app)/app/settings/actions";
 import { saveProductPricing } from "./actions";
 
 const PID = "11111111-1111-4111-8111-111111111111";

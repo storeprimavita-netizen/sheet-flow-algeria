@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/field";
 import { RoleSelect } from "@/components/fields/role-select";
-import { inviteUser } from "@/app/app/settings/users/actions";
+import { inviteUser } from "@/app/(app)/app/settings/users/actions";
 
 export function InviteForm() {
   const t = useTranslations();

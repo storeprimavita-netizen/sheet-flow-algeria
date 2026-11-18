@@ -1177,5 +1177,31 @@
     "deactivateConfirmBody": "It is hidden from new orders. Existing orders keep it.",
     "cancel": "Cancel",
     "confirmDeactivate": "Deactivate"
+  },
+  "store": {
+    "skip": "Skip to content",
+    "homeLabel": "Home page",
+    "breadcrumbHome": "Home",
+    "whatsappAria": "Contact us on WhatsApp",
+    "instagram": "Instagram",
+    "contact": "Contact us",
+    "currency": "DZD",
+    "sizes": "Sizes",
+    "inStock": "In stock",
+    "outOfStock": "Out of stock",
+    "related": "You may also like",
+    "noPhoto": "No photo",
+    "galleryAlt": "Photo {n} of {total}",
+    "defaultTitle": "Store",
+    "notFound": {
+      "title": "Page not found",
+      "body": "The link may be wrong or the product is no longer available."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "body": "The page could not load. Please try again shortly.",
+      "retry": "Try again"
+    },
+    "loading": "Loading"
   }
 }

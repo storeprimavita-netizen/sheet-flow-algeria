@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireAdminProfile } from "@/lib/rbac";
 import { createClient } from "@/lib/supabase/server";
 
-import type { UpdateResult } from "@/app/app/products/actions";
+import type { UpdateResult } from "@/app/(app)/app/products/actions";
 
 import { CURRENCY_CODES } from "@/lib/enums";
 

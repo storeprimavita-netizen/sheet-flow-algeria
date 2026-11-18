@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { RoleSelect } from "@/components/fields/role-select";
-import { updateUser } from "@/app/app/settings/users/actions";
+import { updateUser } from "@/app/(app)/app/settings/users/actions";
 
 type Profile = { user_id: string; display_name: string | null; duty: string | null; role: Role; is_active: boolean };
 

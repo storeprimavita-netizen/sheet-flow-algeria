@@ -1,0 +1,146 @@
+/*
+ * Luxe Modesty storefront tokens (v2). Values are the owner-approved palette
+ * from original-v1.md — do not adjust them by eye; change them here only.
+ *
+ * Scoped to .store-root so nothing collides with the back-office tokens in
+ * src/app/globals.css. Light is the store default. Dark applies when the
+ * visitor's system asks for it, or when data-theme="dark" is set on the root;
+ * data-theme="light" forces light.
+ *
+ * A second store = a second block like this one under another selector
+ * (e.g. .store-root[data-store="other"]) with the same token names.
+ */
+
+.store-root {
+  /* surfaces */
+  --surface-100: #FAF6F0; /* ivory — page background */
+  --surface-200: #FFFFFF; /* cards, form, inputs */
+  --surface-300: #EFE4D6; /* sand — section bands */
+  --blush: #F3E3E1;       /* soft highlight areas, saving badge */
+
+  /* text */
+  --ink: #2B1519;         /* body text */
+  --ink-muted: #6E5A57;   /* secondary text, old prices */
+
+  /* brand */
+  --brand: #5D1728;            /* burgundy — heading accents, prices, links */
+  --brand-fill: #5D1728;       /* primary buttons, selected size */
+  --brand-fill-hover: #3D0F1B; /* wine */
+  --on-brand: #FFFFFF;         /* text on brand fill */
+  --wine: #3D0F1B;             /* announcement bar, footer */
+  --rose: #8C3A4C;             /* "عرض محدود" / sale badges */
+
+  /* gold — decoration only; --gold-text when it must be read */
+  --gold: #A88350;
+  --gold-text: #7D5F33;
+
+  /* lines */
+  --line: #E6D8CA;        /* dividers, card borders */
+  --line-strong: #8F7A74; /* input and chip borders */
+
+  /* feedback */
+  --success: #2F6B4F;     /* valid code, confirmed */
+  --danger: #B3471D;      /* errors — orange-red so it never reads as the brand */
+
+  /* shape */
+  --radius-sm: 4px;       /* inputs, badges */
+  --radius-md: 10px;      /* cards, photos, form */
+  --radius-pill: 999px;   /* buttons, chips, size pills */
+  --shadow-soft: 0 6px 24px rgba(93, 23, 40, 0.08); /* order form, floating elements only */
+  --rule-gold: 72px;      /* width of the 1px rule under section titles */
+
+  /* spacing (4px base) */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+  --gutter: 16px;         /* minimum side gutter */
+  --tap: 44px;            /* minimum tap target */
+
+  /* type — the font variables are set by next/font on the store layout */
+  --font-body: var(--font-tajawal), system-ui, sans-serif;
+  --font-heading-ar: var(--font-el-messiri), var(--font-tajawal), serif;
+  --font-latin: var(--font-marcellus), Georgia, serif;
+  --font-slogan: var(--font-aref-ruqaa), var(--font-el-messiri), serif;
+  --text-title: clamp(30px, 6vw, 40px);
+  --text-section: clamp(26px, 4.5vw, 32px);
+  --text-price: 34px;
+  --text-body: 16px;
+  --text-small: 13.5px;
+  --leading-ar: 1.7;
+
+  --focus-ring: 2px solid var(--brand);
+  --focus-offset: 2px;
+
+  color: var(--ink);
+  background: var(--surface-100);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-ar);
+  color-scheme: light;
+}
+
+/* Dark palette — one definition, applied by two selectors below. */
+@media (prefers-color-scheme: dark) {
+  .store-root:not([data-theme="light"]) {
+    --surface-100: #1C1013;
+    --surface-200: #29181C;
+    --surface-300: #33201F;
+    --blush: #4B2C31;
+    --ink: #F5ECE6;
+    --ink-muted: #C2AEAA;
+    --brand: #E3A3AE;
+    --brand-fill: #7A2338;
+    --brand-fill-hover: #8C2C43;
+    --on-brand: #F5ECE6;
+    --wine: #3D0F1B;
+    --rose: #A34A5E;
+    --gold: #D4B07A;
+    --gold-text: #D4B07A;
+    --line: #4A3034;
+    --line-strong: #8A6F72;
+    --success: #7CC4A0;
+    --danger: #F0946B;
+    --shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+.store-root[data-theme="dark"] {
+  --surface-100: #1C1013;
+  --surface-200: #29181C;
+  --surface-300: #33201F;
+  --blush: #4B2C31;
+  --ink: #F5ECE6;
+  --ink-muted: #C2AEAA;
+  --brand: #E3A3AE;
+  --brand-fill: #7A2338;
+  --brand-fill-hover: #8C2C43;
+  --on-brand: #F5ECE6;
+  --wine: #3D0F1B;
+  --rose: #A34A5E;
+  --gold: #D4B07A;
+  --gold-text: #D4B07A;
+  --line: #4A3034;
+  --line-strong: #8A6F72;
+  --success: #7CC4A0;
+  --danger: #F0946B;
+  --shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+/* Latin fragments inside Arabic text: brand name, phone, email, @handle, codes. */
+.store-root .ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.store-root :focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-root * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

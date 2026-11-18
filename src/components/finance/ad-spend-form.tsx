@@ -14,7 +14,7 @@ import { DateField } from "@/components/fields/date-field";
 import { EnumSelect } from "@/components/fields/enum-select";
 import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
 import { ProductCombobox } from "@/components/fields/comboboxes";
-import { upsertAdSpend } from "@/app/app/products/actions";
+import { upsertAdSpend } from "@/app/(app)/app/products/actions";
 
 type AdSpendRow = Tables<"ad_spend_daily">;
 type CurrencyCode = (typeof CURRENCY_CODES)[number];

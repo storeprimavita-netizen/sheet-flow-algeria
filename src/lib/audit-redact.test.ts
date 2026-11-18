@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { auditRedact, MAX_DEPTH } from "./audit-redact";
 import { MASKED_NAMES, VISIBLE_NAMES } from "./audit-redact.cases";
-import { diffRows } from "@/app/app/settings/audit/_lib/diff";
+import { diffRows } from "@/app/(app)/app/settings/audit/_lib/diff";
 
 const r = (v: unknown) => auditRedact(v) as Record<string, unknown>;
 
