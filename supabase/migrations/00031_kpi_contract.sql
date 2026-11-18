@@ -58,8 +58,9 @@ language sql immutable set search_path = public as $$
     'matured', p_den >= 10 and p_unresolved::numeric <= 0.2 * (p_den + p_unresolved));
 $$;
 
-create or replace function public.kpi_rates(p_order_ids uuid[])
-returns jsonb
+create or replace function public.kpi_rates(
+  p_order_ids uuid[], p_from date default null, p_to date default null
+) returns jsonb
 language sql stable security invoker set search_path = public as $$
   with s as (
     select o.confirmation_status, o.delivery_status, o.placed_at,
@@ -89,19 +90,35 @@ language sql stable security invoker set search_path = public as $$
            count(*) filter (where delivery_status = 'returned')::int as returned,
            count(*) filter (where after_pickup)::int as after_pickup,
            count(*) filter (where in_flight)::int as in_flight,
-           count(*) filter (where unresolved)::int as unresolved
+           count(*) filter (where unresolved)::int as unresolved,
+           count(*) filter (where not repl and confirmation_status = 'confirmed'
+                              and delivery_status = 'delivered')::int as delivered_own
       from s
+  ), w as (
+    -- D47: a swapped original is one returned parcel in the delivery and return
+    -- rates (never a sale, never a return fee). Found through its replacement
+    -- (in the set), dated by its own placed_at, same eligibility as the set.
+    select count(*)::int as swapped
+      from public.orders o
+     where o.workspace_id = public.current_workspace_id()
+       and o.swapped_to_order_id = any (p_order_ids)
+       and o.excluded_reason is null
+       and not (o.is_duplicate_suspect and o.confirmation_status <> 'confirmed')
+       and (p_from is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date >= p_from)
+       and (p_to   is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date <= p_to)
   )
   select jsonb_build_object(
     'confirmation', public.kpi_metric(confirmed, decided, conf_open)
                     || jsonb_build_object('of_received',
                          case when received = 0 then null else confirmed::numeric / received end),
-    'delivery', public.kpi_metric(delivered, delivered + returned + after_pickup, unresolved),
-    'return',   public.kpi_metric(returned,  delivered + returned + after_pickup, unresolved),
+    'delivery', public.kpi_metric(delivered, delivered + returned + swapped + after_pickup, unresolved),
+    'return',   public.kpi_metric(returned + swapped, delivered + returned + swapped + after_pickup, unresolved),
+    -- one set (own orders + swapped originals): delivered share of confirmed, <= 1
+    'delivered_of_confirmed', public.kpi_metric(delivered_own, confirmed + swapped, unresolved),
     'counts', jsonb_build_object(
       'received', received, 'confirmed', confirmed, 'delivered', delivered,
-      'returned', returned, 'in_flight', in_flight))
-  from a;
+      'returned', returned, 'swapped', swapped, 'in_flight', in_flight))
+  from a, w;
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -131,7 +148,7 @@ begin
     then array(select k.id from public.kpi_order_set(p_from, p_to, p_product) k)
     else array(select i from unnest(p_order_ids) i
                 where i in (select k.id from public.kpi_order_set(null, null, null) k)) end;
-  v_out := public.kpi_rates(v_ids);
+  v_out := public.kpi_rates(v_ids, p_from, p_to);
 
   -- on_road ignores eligibility and dates: same rule as product_stock_stages
   select count(*)::int, coalesce(sum(o.quantity), 0)::int into v_road_orders, v_road_units
@@ -195,11 +212,11 @@ language sql stable security invoker set search_path = public as $$
 $$;
 
 revoke execute on function public.kpi_metric(int, int, int) from public, anon;
-revoke execute on function public.kpi_rates(uuid[]) from public, anon;
+revoke execute on function public.kpi_rates(uuid[], date, date) from public, anon;
 revoke execute on function public.kpi_lines(uuid[], date, date, uuid[], boolean) from public, anon;
 revoke execute on function public.kpi_summary(date, date, uuid) from public, anon;
 grant execute on function public.kpi_metric(int, int, int) to authenticated;
-grant execute on function public.kpi_rates(uuid[]) to authenticated;
+grant execute on function public.kpi_rates(uuid[], date, date) to authenticated;
 grant execute on function public.kpi_lines(uuid[], date, date, uuid[], boolean) to authenticated;
 grant execute on function public.kpi_summary(date, date, uuid) to authenticated;
 
@@ -470,7 +487,7 @@ begin
         where o.id = any (v_order_ids)
         group by o.wilaya_code, wl.name
       ) g
-      cross join lateral public.kpi_rates(g.ids) k
+      cross join lateral public.kpi_rates(g.ids, p_from, p_to) k
       left join public.wilaya_fees wf
         on wf.workspace_id = v_ws and wf.wilaya_code = g.wilaya_code
     ) w;
@@ -498,9 +515,9 @@ begin
              count(*) filter (where o.confirmation_status = 'confirmed') as orders_confirmed,
              count(*) filter (where o.delivery_status = 'delivered')     as orders_delivered,
              count(*) filter (where o.delivery_status = 'returned')      as orders_returned,
-             round(100 * (public.kpi_rates(array_agg(o.id))->'confirmation'->>'value')::numeric, 1)
+             round(100 * (public.kpi_rates(array_agg(o.id), p_from, p_to)->'confirmation'->>'value')::numeric, 1)
                as confirmation_rate,
-             round(100 * (public.kpi_rates(array_agg(o.id))->'delivery'->>'value')::numeric, 1)
+             round(100 * (public.kpi_rates(array_agg(o.id), p_from, p_to)->'delivery'->>'value')::numeric, 1)
                as delivery_rate,
              coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered'), 0)
                as revenue_dzd

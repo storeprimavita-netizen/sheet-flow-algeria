@@ -124,21 +124,38 @@ describe.skipIf(!URL)("KPI contract (live DB, 00031)", () => {
     expect(d.kpis.confirmation_rate).toBeCloseTo(100 * k.confirmation.value!, 1);
   });
 
-  test("a linked original later delivered is not double-counted; the replacement is out of confirmation, in delivery", async () => {
+  test("a swapped original is one returned parcel in the rates (D47); money and received stay clean", async () => {
     const p = await product();
     const a = await order(p, { delivery_status: "returned" });
     const { data: b, error } = await swap(a);
     expect(error).toBeNull();
-    await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", a);
+    await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", a); // later carrier "delivered": ignored
     const before = await kpi(p);
     expect(before.counts.received).toBe(0);
     expect(before.confirmation.den).toBe(0);
-    expect(before.counts.delivered).toBe(0); // original excluded by its link, replacement still on its way
+    expect(before.counts.delivered).toBe(0);
+    expect(before.counts.swapped).toBe(1);
+    expect(before.return).toMatchObject({ num: 1, den: 1 });
+    expect(before.delivery).toMatchObject({ num: 0, den: 1 });
     await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", b as string);
     const after = await kpi(p);
     expect(after.counts.delivered).toBe(1);
-    expect(after.delivery).toMatchObject({ num: 1, den: 1 });
+    expect(after.counts.returned).toBe(0); // physical returns unchanged: no return fee
+    expect(after.delivery).toMatchObject({ num: 1, den: 2 });
+    expect(after.return).toMatchObject({ num: 1, den: 2 });
     expect(after.counts.received).toBe(0);
+    // delivered_of_confirmed never passes 100% with a swap
+    expect(after.delivered_of_confirmed.value).toBeLessThanOrEqual(1);
+    expect(after.pnl!.return_fees).toBe(0);
+  });
+
+  test("Real-scenario lead count is counted in SQL, not capped at 1000 rows", async () => {
+    const p = await product();
+    const rows = Array.from({ length: 1005 }, () => ({
+      workspace_id: ws, product_id: p, quantity: 1, sale_price: 1000, placed_at: NOON, confirmation_status: "confirmed",
+    }));
+    for (let i = 0; i < rows.length; i += 500) expect((await svc.from("orders").insert(rows.slice(i, i + 500))).error).toBeNull();
+    expect((await kpi(p, DAY, DAY)).counts.received).toBe(1005);
   });
 
   test("delivery-cancelled with no shipment stays out of the denominator; with a shipment it is in", async () => {

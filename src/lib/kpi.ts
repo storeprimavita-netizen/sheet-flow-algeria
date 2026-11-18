@@ -20,11 +20,15 @@ export type Kpi = {
   confirmation: KpiMetric;
   delivery: KpiMetric;
   return: KpiMetric;
+  /** delivered / (confirmed + swapped originals), one order set, never above 1 */
+  delivered_of_confirmed: KpiMetric;
   counts: {
     received: number;
     confirmed: number;
     delivered: number;
     returned: number;
+    /** swapped originals, counted as returned parcels in the rates (D47) */
+    swapped: number;
     in_flight: number;
     on_road_orders: number;
     on_road_units: number;

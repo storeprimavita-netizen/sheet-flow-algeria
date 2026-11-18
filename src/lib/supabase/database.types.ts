@@ -1150,7 +1150,7 @@ isOneToOne: false
             }[]
                            },
 "kpi_rates":
-{ Args: { "p_order_ids": (string)[] }; Returns: Json
+{ Args: { "p_from"?: string,"p_order_ids": (string)[],"p_to"?: string }; Returns: Json
                            },
 "kpi_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
