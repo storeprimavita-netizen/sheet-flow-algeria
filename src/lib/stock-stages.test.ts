@@ -270,7 +270,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
   });
 
   test("00029 reconcile is idempotent: a second run writes nothing", async () => {
-    const count = async () => (await svc.from("stock_movements").select("id", { count: "exact", head: true })).count;
+    const count = async () => (await svc.from("stock_movements").select("id", { count: "exact", head: true }).in("product_id", products)).count; // own products only: other suites run in parallel
     const p = await product();
     await order(p, { delivery_status: "in_transit" });
     const before = await count();
