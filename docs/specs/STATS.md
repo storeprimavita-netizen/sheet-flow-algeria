@@ -62,3 +62,27 @@ P1-1 KPI contract · STATS-1 customer score fields + reasons · STATS-2 wilaya
 confirmation/delivery table + commune drill-down · STATS-3 seasons + unified
 filter bar · STATS-4 time/attempt/product×wilaya cuts · P1-2 dashboard rebuild
 on top of these.
+
+## Dashboard v2 (owner 2026-11-18, research in docs/research/DASHBOARDS.md)
+
+Answers one question per band, top to bottom; everything drills to its orders.
+Filters: period + product only (the rest move to Statistics).
+
+1. **Needs action** — To confirm · To ship · Stuck parcels · Callbacks due. Clickable counts.
+2. **Money** — True profit (DZD) · Ad spend and **Cost per delivered in USD, big, with
+   DZD small and grey under it** (D45) · ROAS · Cash with ZR (ZR account, D39).
+3. **Order journey** (MDM-style) — Received → Confirmed → On road → Delivered →
+   Collected by ZR → Paid out to DZD; count per stage and the drop between stages.
+4. **Profit waterfall** (CODBrain-style) — Revenue → product cost → delivery + returns
+   → ads → expenses + fixed fees → true profit, one horizontal bar.
+5. **Stock strip** — In stock · Reserved · On road · Low-stock items (D34 view).
+6. **Product scorecard** — per product: delivery rate, cost per delivered (USD, DZD grey),
+   profit, stock on hand.
+
+Moved off the dashboard: wilaya table + map and status breakdowns → Statistics;
+per-agent table → Team › Performance; spending by category → Money; tasks and next
+meeting → agent home (NAV-5). Agents see band 1 only (no money).
+Mobile order: 1, 2, 3, 5, 4, 6. Rates come from `kpi_lines` (D4), never the page.
+USD figures = DZD amount ÷ latest USD row in `exchange_rates`; the rate and its date
+show in the tooltip. Needs new data: "collected by ZR" and "paid out" stages need ZR-4
+and MONEY-1; until then those two stages show "—" with a hint.
