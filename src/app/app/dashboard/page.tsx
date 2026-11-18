@@ -630,7 +630,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <WilayaSection rows={wilayaRows} minOrders={stats.stop_shipping_min_orders} filters={filters} />
+      <WilayaSection rows={wilayaRows} minOrders={stats.stop_shipping_min_orders} filters={filters} names={Object.fromEntries((wilayas ?? []).map((w) => [w.code, w.name]))} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <div className="card-surface overflow-hidden rounded-xl">

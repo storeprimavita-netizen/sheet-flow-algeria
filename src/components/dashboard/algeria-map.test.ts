@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
+import { wilayaTitle, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
 import { normalizeText } from "@/lib/utils";
 
 describe("WILAYA_CENTROIDS", () => {
@@ -42,5 +43,42 @@ describe("ALGERIA_OUTLINE", () => {
     const [first] = ALGERIA_OUTLINE;
     const last = ALGERIA_OUTLINE[ALGERIA_OUTLINE.length - 1];
     expect(last).toEqual(first);
+  });
+});
+
+describe("wilaya legend bidi", () => {
+  // No component test setup (jsdom/RTL) in this repo, so assert on source.
+  const src = readFileSync("src/app/app/dashboard/wilaya-section.tsx", "utf8");
+  it("wraps every range label in bdi dir=ltr", () => {
+    for (const label of ["&lt;40%", "40–55%", "55–70%", "70–85%", "85%+"]) {
+      expect(src).toContain(`<bdi dir="ltr">${label}</bdi>`);
+    }
+  });
+});
+
+const datum = (o: Partial<WilayaMapDatum>): WilayaMapDatum => ({
+  code: 16, name: null, totalOrders: 0, confirmedOrders: 0, deliveryRate: null,
+  stopShippingManual: false, stopShippingAuto: false, ...o,
+});
+
+describe("wilayaTitle", () => {
+  it("falls back name -> names map -> code", () => {
+    expect(wilayaTitle(datum({ name: "Alger", totalOrders: 4, deliveryRate: 50 }), "No data", { 16: "X" })).toBe("Alger — 50% (4)");
+    expect(wilayaTitle(datum({ totalOrders: 4, deliveryRate: 50 }), "No data", { 16: "Alger" })).toBe("Alger — 50% (4)");
+    expect(wilayaTitle(datum({ totalOrders: 4, deliveryRate: null }), "No data")).toBe("16 — — (4)");
+  });
+  it("uses the no-data label with zero orders", () => {
+    expect(wilayaTitle(datum({}), "No data")).toBe("16 — No data");
+  });
+});
+
+describe("wilaya table label structure", () => {
+  const src = readFileSync("src/app/app/dashboard/wilaya-section.tsx", "utf8");
+  it("renders ltr code, readable separator, name in bdi", () => {
+    expect(src).toContain('<bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi>');
+    expect(src).not.toContain("<span aria-hidden> · </span>");
+  });
+  it("has a scroll-fade hint on the table", () => {
+    expect(src).toContain("data-scroll-fade");
   });
 });
