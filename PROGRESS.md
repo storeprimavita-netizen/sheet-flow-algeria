@@ -266,3 +266,10 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Verify: reviews 1–3; review-3 no high finding and no secret leak; one medium (SQL/TS output differs exactly at depth 64) moved to SEC-1-G.
 - Evidence: full scripts/gate.sh GATE OK, 331 tests with the live RLS suite.
 - Owner: production db push of 00036–00038 is owner-only (O-2).
+
+## PRICE-1 — DONE (pricing-v2 engine + pinned tests)
+- Done: `src/lib/pricing-v2.ts` owner formulas, settings as parameters (D38), unit tests pinning every number of the benz test in `docs/specs/PRICE.md`; no DB, no UI.
+- Verify: qa-reviewer review-4 VERDICT PASS (risk high); brief rev 1 after review-0..3 fixes and D51/D52.
+- Evidence: scripts/gate.sh GATE OK, 377 tests with the live RLS suite.
+- Owner: none.
+- Next: PRICE-2 (pricing settings UI, per-product overrides).
