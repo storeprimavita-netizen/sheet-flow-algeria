@@ -38,7 +38,7 @@ end; $$;
 
 create or replace function public.audit_row()
 returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_ws uuid; v_id text;
 begin
   if tg_op = 'DELETE' then
