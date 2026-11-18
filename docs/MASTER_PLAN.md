@@ -41,7 +41,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | PRICE-1 | `pricing-v2.ts` engine: the owner's exact formulas (fixed in code), settings as parameters (D38), unit tests pinning every number of the benz test in the spec | PRICE | H | – | – | catalog | – | done |
-| PRICE-2 | Pricing settings + per-product overrides + Pricing tab; markup % and rounding rules | PRICE | H | ui | M | catalog | PRICE-1 | todo |
+| PRICE-2 | Pricing settings + per-product overrides + Pricing tab; markup % and rounding rules | PRICE | H | ui | M | catalog | PRICE-1 | claimed:claude |
 | STORE-1 | Options, values, `product_variants`; migrate `products.variants`; per-variant stock | STORE | H | – | M | store | P0-8 | todo |
 | STORE-2 | `stores`, `store_pages`, theme tokens, public product page (read path, cached) | STORE | H | ui,sec | M | store | STORE-1 | todo |
 | STORE-3 | Pricing modes, offers, form fields editor + public form rendering | STORE | H | ui | M | store | STORE-2 | todo |
