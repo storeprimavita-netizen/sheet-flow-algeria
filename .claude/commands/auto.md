@@ -1,8 +1,8 @@
 ---
 description: Run the loop automatically — Pick → Brief → Build → Gate → Review → Ship, repeated for N tasks or one id; questions are decided or sent to the owner without stopping other work
-argument-hint: "[number of tasks | task id]  (default 1)"
+argument-hint: "[number of tasks | task id | all]  (default 1)"
 ---
-You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id (run that one), or a number N (ship up to N tasks in plan order), default 1. You do not read code or write code yourself; you call the stage commands with the Skill tool, read only the first line or the ≤ 150-word return of each, and decide the next stage.
+You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id (run that one), a number N (ship up to N tasks in plan order), or `all` (keep going until no task is eligible); default 1. You do not read code or write code yourself; you call the stage commands with the Skill tool, read only the first line or the ≤ 150-word return of each, and decide the next stage.
 
 **Start of run.** `git checkout v3 && git pull --rebase`. Run `scripts/dev-up.sh` and note which parts are up: Supabase down → only tasks that do not touch the database may run (D24); app down → no `ui` task. Read `docs/QUESTIONS.md`: for every question the owner has answered (in the file or in this conversation), record it as a DECISIONS row, move it to "Answered", and set its task back to `todo`.
 
@@ -29,3 +29,5 @@ You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id 
 Parallel option: when the next two or three eligible tasks have different lanes and none has a migration (`M`), you may run their stage-3 builds at the same time in separate worktrees (`.worktrees/<id>`); ship them one at a time.
 
 **End of run.** Append a "Run report" block to PROGRESS.md (≤ 10 lines, committed with `scripts/step.sh`) and reply with the same: tasks shipped (id + merge commit), decisions Claude took (D-numbers, one line each — the owner may overturn them), questions still open, tasks left blocked and why, and what the next `/auto` will pick up. Send one PushNotification with the one-line result.
+
+The very last line of your reply is exactly one of: `RUN-END: more` (eligible tasks remain — the batch size was reached), `RUN-END: nothing-eligible` (every remaining task waits on the owner or on a parked task), or `RUN-END: hard-stop <reason>`. `scripts/night-run.sh` reads this line to decide whether to start the next batch.

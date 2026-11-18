@@ -21,7 +21,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | O-1 | This Mac: start Docker (colima) + `npx supabase start`, create `.env.local`; so the RLS suite and the app run locally | every `H` or `ui` task | closed (2026-11-17: stack up, seeded, 133/133 tests with live RLS) |
 | O-2 | Back up Supabase, `npx supabase db push` 00020–00027, regen types, rotate the tokenrouter/kimi key, delete the backup bundle (old P0-6) | production only | open |
 | O-3 | Vercel project + env vars + auth URLs + `CRON_SECRET`; re-register the ZR webhook (old P0-7) | deploy | open |
-| P-1 | Calculator formulas: the calculator's source code, or its results for the "benz" sample (the pasted math arrived blank twice) | PRICE-1 final numbers | closed (2026-11-18: formulas are settings the owner edits, D38) |
+| P-1 | Calculator formulas | PRICE-1 final numbers | closed (2026-11-18: owner pasted the exact formulas and test numbers; verified — `docs/specs/PRICE.md`) |
 | M-1 | List today's finance accounts and say which fold into DZD and which into USDT | MONEY-1 data mapping | closed (2026-11-18: three accounts ZR / DZD / USDT, default mapping in D39) |
 | C-1 | Run `scripts/zr-probe.ts` with the ZR token; Yalidine API id + token when wanted | ZR-3, ZR-4, CARRIER-2 | open |
 | C-2 | Delivery-price sheet (wilaya × home/stop-desk) | P1-7 | closed (2026-11-18: `prices/Algeria_numbered.csv`, kept local) |
@@ -40,7 +40,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
-| PRICE-1 | `pricing-v2.ts` engine + tests (reconstructed formulas as defaults; every formula parameter is a setting, D38) | PRICE | H | – | – | catalog | – | todo |
+| PRICE-1 | `pricing-v2.ts` engine: the owner's exact formulas (fixed in code), settings as parameters (D38), unit tests pinning every number of the benz test in the spec | PRICE | H | – | – | catalog | – | todo |
 | PRICE-2 | Pricing settings + per-product overrides + Pricing tab; markup % and rounding rules | PRICE | H | ui | M | catalog | PRICE-1 | todo |
 | STORE-1 | Options, values, `product_variants`; migrate `products.variants`; per-variant stock | STORE | H | – | M | store | P0-8 | todo |
 | STORE-2 | `stores`, `store_pages`, theme tokens, public product page (read path, cached) | STORE | H | ui,sec | M | store | STORE-1 | todo |

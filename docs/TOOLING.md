@@ -148,7 +148,7 @@ with the install and is only for an owner-requested migration.
 project id `mnw-erp`) → dev server. `.env.local` points at the local stack
 only. Seed: `node --import ./scripts/seed-register.mjs --env-file=.env.local
 scripts/seed-dev.ts` (the `--import` maps Next's `server-only` marker so plain
-Node can load `admin.ts`). Night run: `scripts/night-run.sh [N]`.
+Node can load `admin.ts`). Continuous run: `scripts/night-run.sh [batch]` in a plain Terminal — runs `/auto <batch>` in fresh sessions one after another, shows readable progress (`scripts/fmt-stream.py`), waits out usage limits (`scripts/run-outcome.py` reads how each batch ended) and stops only when nothing is eligible or on a hard stop.
 
 ### Where the borrowed rules came from (read 2026-11-17; nothing new vendored)
 

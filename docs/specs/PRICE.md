@@ -5,11 +5,11 @@ standalone calculator description + the request "I only set the product cost;
 good / medium / worst settings are editable; the suggested price comes out with
 the profit added (e.g. cost + 60–70%), rounded, with the 99 effect".
 
-> **OWNER INPUT P-1 — formulas.** The owner's document arrived twice with the
-> math stripped (and `THEME+CALCULATOR/SKILLCALCULATOR.md` is a copy of the
-> theme file). Everything under "Formulas" below is **reconstructed** from the
-> prose and must be confirmed before PRICE-1 ships: either the calculator's
-> source code, or the numbers its results table shows for the "benz" sample.
+> **Formulas confirmed by the owner (2026-11-18).** The owner pasted the original
+> build prompt of their calculator with the exact formulas and test numbers. The
+> section "Formulas" below is that text; a script check reproduced every test
+> number. The formulas are **fixed in code**; the numbers in "Settings" are the
+> editable part (D38). Do not change the math.
 
 ## Settings (workspace defaults; each product may override any of them)
 
@@ -31,43 +31,83 @@ Stock cost `S` (DZD, from `product_costs` / the latest purchase when it
 exists), quantity `Q`, ad cost per received order in USD (medium `a`; best and
 worst = `round2(a × multiplier)` unless typed), optional final price `F`.
 
-## Formulas (reconstructed — see P-1)
-
-With `c` = confirmation rate, `d` = delivery rate of the scenario:
+## Formulas (owner's, exact — per scenario; c = confirmation, d = delivery as fractions)
 
 ```
-sellable        U  = Q × (1 − k)
-orders needed   N  = U / (c × d)
-ad spend        USD = N × a          DZD = USD × R_b
-fee rate        f  = p × R_b / R_o          (fee billed in USD on the official value, paid at the parallel rate)
+B = parallel-market rate, O = official rate
+sellable         = quantity × (1 − dead%)
+cost_piece_dzd   = stock_cost_dzd / sellable            (stock cost is in DZD — no currency conversion)
+k (platform real %) = platform% × B / O
+orders_needed    = sellable / (c × d)
+returned_orders  = sellable / d − sellable
+ad_cost_per_delivered_usd = ad_cost / (c × d)
+TOTAL AD SPEND (USD) = orders_needed × ad_cost ;  (DZD) = that × B
 
-cost lines per delivered piece (DZD)
-  product          S / U
-  ads              a × R_b / (c × d)
-  returns          return_cost × (1 − d) / d
-  confirmation     confirmation_fee
-  packaging        packaging
-  other per order  other_per_order
-  other whole stock  W / U
-  platform monthly   M × R_b × m × s / U
-TOTAL COST  C = sum of the eight
+Cost per delivered piece (DZD) — 8 lines:
+  product            = cost_piece_dzd
+  ads                = ad_cost_per_delivered_usd × B
+  returns            = return_cost × returned_orders / sellable
+  confirmation       = confirmation fee
+  packaging          = packaging
+  other per order    = other fees per order
+  other whole stock  = other_fees_total / sellable
+  platform monthly   = monthly_fee_usd × months × share × B / sellable
+TOTAL COST = sum of the 8 lines
 
-recommended price   P = (C + target_profit) / (1 − f)        (target = profit per piece)
-                    P = C × (1 + markup) / (1 − f)           (target = markup %)
-                    then apply the rounding rule (always rounds up to the next allowed ending)
+exact price        = (TOTAL COST + target profit) / (1 − k)
+platform % fee     = exact price × k
+RECOMMENDED PRICE  = exact price rounded UP to the next 100        (default rounding rule)
 
-at final price F (default: MEDIUM recommended)
-  profit / piece  = F × (1 − f) − C      net profit = profit × U      margin = profit / F
+At final price P (empty → the MEDIUM recommended price):
+  profit per piece = P − TOTAL COST − P × k ;  net profit = profit per piece × sellable ;  margin = profit / P
 
-break-even (profit = 0, other inputs fixed)
-  min selling price  = C / (1 − f)
-  max ad cost (USD)  = (F(1 − f) − C_without_ads) × c × d / R_b     "not possible" if ≤ 0
-  min confirmation % / min delivery % = solve the same equation for c or d; "not possible" if the result is ≤ 0 or > 100%
+Break-even (profit = 0), NP = P × (1 − k):
+  min confirmation = (ad_cost × B / d) / (NP − (TOTAL COST − ads))                         "Not possible" if denominator ≤ 0 or result > 100%
+  min delivery     = (ad_cost × B / c + return_cost) / (NP − (TOTAL COST − ads − returns) + return_cost)     same rule
+  max ad cost (USD)= (NP − (TOTAL COST − ads)) × c × d / B                                 "Not possible" if ≤ 0
+  min selling price= TOTAL COST / (1 − k)
 ```
 
-Sanity check with the benz sample (S 81,600 · Q 50 · a 2.2, medium): U 45,
-N ≈ 106.5, ads ≈ 1,328, C ≈ 3,885, P ≈ 5,491 before rounding. If the owner's
-tool shows different numbers, the reconstruction is wrong — fix it, don't ship.
+Ad cost per received order: only MEDIUM is required; BEST = medium × 0.68 and
+WORST = medium × 1.23, rounded to 2 decimals, unless typed.
+
+### Pinned test (must pass exactly; unit tests in PRICE-1)
+
+Default settings, product "benz", stock **81,600 DZD**, 50 pieces, ad cost
+1.5 / 2.2 / 2.7 USD, final price 4,500:
+
+| | BEST | MEDIUM | WORST |
+|---|---|---|---|
+| Total ad spend USD | 100.39 | 234.32 | 361.18 |
+| Total ad spend DZD | 25,599 | 59,751 | 92,100 |
+| TOTAL COST per piece | 3,063 | 3,885 | 4,641 |
+| RECOMMENDED PRICE | 4,700 | 5,500 | 6,300 |
+| Profit per piece at 4,500 | 1,350 | 528 | −228 |
+| NET PROFIT | 60,769 | 23,745 | −10,274 |
+| Min confirmation | 24.3% | 46.5% | 65.3% |
+| Min delivery | 30.8% | 49.1% | 64.1% |
+| Max ad cost USD | 5.06 | 3.07 | 2.40 |
+| Min selling price | 3,123 | 3,962 | 4,733 |
+
+### Screens to keep from the owner's tool
+
+- **Settings** (once per workspace): the values in the table above, Save / Reset.
+- **Product**: name, stock cost (DZD), quantity, ad cost best/medium/worst, final
+  price; collapsed "advanced" = per-product override of any setting; results
+  update live. One results table, columns BEST (green) / MEDIUM (orange) / WORST
+  (red) through status tokens: confirmation %, delivery %, ad cost per order,
+  orders needed, total ad spend USD and DZD, the 8 cost lines, TOTAL COST,
+  + target profit, + platform % fee, RECOMMENDED PRICE (highlighted); then "At
+  your final price" (profit per piece, net profit, margin); then break-even (red
+  when the scenario is below it, green when above).
+- **Multiple products**: scenario toggle, summary cards (total stock, combined ad
+  spend, combined net profit + capital needed, blended margin), editable grid
+  with live columns and a totals row, open one product's full table.
+- Copy table and export (CSV now; Excel if asked).
+
+Additions the owner asked for in the app: target as markup % as an alternative
+to profit per piece, and other rounding rules (…900 / …990 / …99) as settings —
+the default stays "round up to the next 100" so the pinned test holds.
 
 ## Automatic part (what the standalone tool could not do)
 
