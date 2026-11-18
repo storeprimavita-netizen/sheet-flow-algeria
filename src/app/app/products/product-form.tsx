@@ -18,17 +18,6 @@ import { saveProduct } from "./actions";
 type ProductRow = Tables<"products">;
 type ProductCostRow = Tables<"product_costs">;
 
-function variantsToText(variants: unknown): string {
-  if (!Array.isArray(variants)) return "";
-  return variants
-    .map((v) => {
-      if (!v || typeof v !== "object") return String(v);
-      const { label, sku } = v as { label?: string; sku?: string };
-      return sku ? `${label ?? ""} | ${sku}` : (label ?? "");
-    })
-    .join("\n");
-}
-
 export async function ProductForm({
   product,
   cost,
@@ -93,9 +82,6 @@ export async function ProductForm({
             />
           </Field>
         </div>
-        <Field label={t("fields.variants")} htmlFor="variants" hint={t("products.variantsHint")}>
-          <Textarea id="variants" name="variants" rows={3} defaultValue={variantsToText(product?.variants)} />
-        </Field>
         <Field label={t("fields.images")} htmlFor="images" hint={t("products.imagesHint")}>
           <Textarea id="images" name="images" rows={3} defaultValue={(product?.images ?? []).join("\n")} />
         </Field>

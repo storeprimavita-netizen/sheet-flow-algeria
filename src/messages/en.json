@@ -212,6 +212,9 @@
         "exchange": "Exchange",
         "swap": "Swap"
       }
+    },
+    "stock_status": {
+      "count_needed": "Count needed"
     }
   },
   "fields": {
@@ -401,7 +404,15 @@
     "showClosed": "Show closed",
     "showActionable": "Actionable only",
     "toCollect": "To collect (COD)",
-    "tracking": "Tracking"
+    "tracking": "Tracking",
+    "assignSize": "Assign size",
+    "changeSize": "Change size",
+    "sizeInactive": "{label} (inactive)",
+    "sizeSaved": "Size updated",
+    "sizeOldHint": "Typed before sizes existed",
+    "chooseSize": "Choose a size",
+    "sizeTitle": "Size",
+    "sizeFailed": "Could not change the size: {reason}"
   },
   "expenses": {
     "title": "Expenses",
@@ -571,7 +582,8 @@
       "order_returned": "Order returned",
       "order_stock_sync": "Stock reconciled",
       "order_swapped": "Order swapped",
-      "order_shipped": "Sent to carrier"
+      "order_shipped": "Sent to carrier",
+      "stock_count": "Count by size"
     },
     "unitsOnHand": "Units on hand",
     "stockValue": "Stock value",
@@ -588,7 +600,24 @@
       "onRoad": "On the road",
       "delivered": "Delivered",
       "hint": "In stock = pieces in the warehouse. Reserved = confirmed orders waiting for deposit. On the road = with the carrier. Delivered = handed to the customer."
-    }
+    },
+    "sizesTitle": "Stock by size",
+    "notAssigned": "Not assigned to a size",
+    "notAssignedHint": "Pieces held on the product that are not on a size yet.",
+    "size": "Size",
+    "inactive": "Inactive",
+    "countTitle": "Count by size",
+    "countHint": "Type what is on the shelf for each size. Leave a size empty to keep it as it is. The product total does not change.",
+    "countSubmit": "Save count",
+    "countInput": "Count for {label}",
+    "countSaved": "{n, plural, =0 {Nothing changed} one {1 size updated} other {# sizes updated}}",
+    "countLeft": "Left in not assigned: {n}",
+    "countLeftZero": "Everything is assigned to a size.",
+    "countError": "Count failed: {reason}",
+    "countRetry": "Retry",
+    "variantPicker": "Size",
+    "sizeNone": "Not assigned to a size",
+    "loadError": "Could not load the stock page."
   },
   "reset": {
     "title": "Set a new password",
@@ -1106,5 +1135,41 @@
   "audit": {
     "redactedPill": "Redacted",
     "redacted": "Secret value hidden; the code identifies the value without revealing it"
+  },
+  "variants": {
+    "title": "Options and sizes",
+    "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",
+    "empty": "No options yet. Add an option such as Size to track stock per size.",
+    "addOption": "Add option",
+    "removeOption": "Remove option {name}",
+    "moveOptionUp": "Move option {name} up",
+    "moveOptionDown": "Move option {name} down",
+    "optionName": "Option name",
+    "valueLabel": "Value",
+    "addValue": "Add value to {name}",
+    "removeValue": "Remove value {label}",
+    "moveValueEarlier": "Move {label} earlier",
+    "moveValueLater": "Move {label} later",
+    "optionsLocked": "Options cannot be added or removed once sizes exist. You can still add or rename values.",
+    "sizes": "Sizes",
+    "noSizes": "No sizes yet. Add the missing sizes from your values.",
+    "addMissing": "Add missing sizes",
+    "size": "Size",
+    "sku": "SKU",
+    "count": "Count",
+    "inactive": "Inactive",
+    "deactivate": "Deactivate {label}",
+    "reactivate": "Reactivate {label}",
+    "deactivateConfirm": "Deactivate {label}? It is hidden from new orders. Existing orders keep it.",
+    "removeNew": "Remove unsaved size {label}",
+    "save": "Save options and sizes",
+    "saved": "Saved.",
+    "duplicateValue": "Two values of one option have the same name.",
+    "duplicateVariant": "Two sizes have the same values.",
+    "inUse": "A value or option is still used by a size and cannot be removed. Deactivate the size instead.",
+    "invalid": "Check the form: every option needs a name and at least one value, and every size one value per option.",
+    "failed": "Could not save: {reason}",
+    "inactiveVariant": "This size is inactive and cannot be chosen.",
+    "stockHint": "Count changes only through the stock page."
   }
 }
