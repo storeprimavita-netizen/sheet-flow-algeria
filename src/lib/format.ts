@@ -95,3 +95,10 @@ export function formatDuration(value: string | null | undefined): string {
   const parts = [d && `${d}d`, h && `${h}h`, (m || (!d && !h)) && `${m}m`].filter(Boolean);
   return parts.join(" ");
 }
+
+/** Per-workspace running order number (D57): `#0001`, grows past 9999, `—` when unnumbered.
+ * Plain text (CSV-safe); in the UI wrap in `<bdi dir="ltr">`. */
+export function formatOrderNo(seq: number | null | undefined): string {
+  if (seq === null || seq === undefined || !Number.isInteger(seq) || seq <= 0) return "—";
+  return `#${String(seq).padStart(4, "0")}`;
+}

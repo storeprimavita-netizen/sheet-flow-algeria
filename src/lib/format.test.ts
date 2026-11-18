@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCurrency, formatDate, formatDuration, formatUsd } from "./format";
+import { formatCurrency, formatDate, formatDuration, formatOrderNo, formatUsd } from "./format";
 
 describe("formatDuration", () => {
   it("returns — for null/undefined", () => {
@@ -51,5 +51,18 @@ describe("formatUsd", () => {
     expect(formatUsd(2.2, { decimals: 2 })).toBe("⁦$2.20⁩");
     expect(formatUsd(-2.7, { decimals: 2 })).toBe("⁦−$2.70⁩");
     expect(formatUsd(null, { decimals: 2 })).toBe("—");
+  });
+});
+
+describe("formatOrderNo", () => {
+  it("pads to 4 and grows past 9999", () => {
+    expect(formatOrderNo(1)).toBe("#0001");
+    expect(formatOrderNo(9999)).toBe("#9999");
+    expect(formatOrderNo(10000)).toBe("#10000");
+  });
+  it("shows a dash for unnumbered", () => {
+    expect(formatOrderNo(0)).toBe("—");
+    expect(formatOrderNo(-3)).toBe("—");
+    expect(formatOrderNo(null)).toBe("—");
   });
 });
