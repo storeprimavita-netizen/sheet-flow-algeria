@@ -17,7 +17,8 @@ create index orders_kpi_idx on public.orders
 -- ---------------------------------------------------------------------------
 -- 2) kpi_order_set(from, to, product): THE order set. One range predicate
 --    (Africa/Algiers calendar day). Out: excluded_reason, an unconfirmed
---    duplicate suspect, a swap original (swapped_to_order_id, never by status).
+--    duplicate suspect. A swap original is an ordinary order of the set (D48):
+--    selected by its own day, product and eligibility, never through its replacement.
 -- ---------------------------------------------------------------------------
 create or replace function public.kpi_order_set(
   p_from date default null, p_to date default null, p_product uuid[] default null
@@ -30,7 +31,6 @@ language sql stable security invoker set search_path = public as $$
      and (p_to   is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date <= p_to)
      and (p_product is null or o.product_id = any (p_product))
      and o.excluded_reason is null
-     and o.swapped_to_order_id is null
      and not (o.is_duplicate_suspect and o.confirmation_status <> 'confirmed');
 $$;
 revoke execute on function public.kpi_order_set(date, date, uuid[]) from public, anon;
@@ -45,7 +45,10 @@ grant execute on function public.kpi_order_set(date, date, uuid[]) to authentica
 --    (includes orders waiting for pickup). Constants live here; see docs/DB.md.
 --    Confirmation = confirmed / decided (confirmed, cancelled, no_answer,
 --    closed_phone); swap replacements (born confirmed) are not in it.
---    Delivery = delivered / (delivered + returned + cancelled-after-pickup);
+--    D48: a swap original is an ordinary order of the set (received, confirmed,
+--    of_received); in delivery/return it counts as one returned parcel (D47).
+--    p_from / p_to are kept for callers; the set is already range-selected.
+--    Delivery = delivered / (delivered + returned + swapped + cancelled-after-pickup);
 --    cancelled-after-pickup = delivery 'cancelled' with a zr_shipments row or a
 --    delivery-stage carrier history entry. Return = returned / same denominator.
 -- ---------------------------------------------------------------------------
@@ -64,6 +67,7 @@ create or replace function public.kpi_rates(
 language sql stable security invoker set search_path = public as $$
   with s as (
     select o.confirmation_status, o.delivery_status, o.placed_at,
+           (o.swapped_to_order_id is not null) as swapped,
            exists (select 1 from public.orders r
                     where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id) as repl,
            (o.delivery_status = 'cancelled' and (
@@ -76,8 +80,8 @@ language sql stable security invoker set search_path = public as $$
               exists (select 1 from public.orders r
                        where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id),
               o.confirmation_status) < 0 and o.delivery_status <> 'delivered') as in_flight,
-           (o.confirmation_status = 'confirmed'
-              and o.delivery_status not in ('delivered', 'returned', 'cancelled')) as unresolved
+           (o.confirmation_status = 'confirmed' and o.swapped_to_order_id is null
+              and o.delivery_status not in ('delivered', 'returned', 'cancelled', 'swap')) as unresolved
       from public.orders o
      where o.id = any (p_order_ids) and o.workspace_id = public.current_workspace_id()
   ), a as (
@@ -86,26 +90,15 @@ language sql stable security invoker set search_path = public as $$
            count(*) filter (where not repl and confirmation_status
                               in ('confirmed', 'cancelled', 'no_answer', 'closed_phone'))::int as decided,
            count(*) filter (where not repl and confirmation_status = 'wait_for_confirmation')::int as conf_open,
-           count(*) filter (where delivery_status = 'delivered')::int as delivered,
-           count(*) filter (where delivery_status = 'returned')::int as returned,
-           count(*) filter (where after_pickup)::int as after_pickup,
+           count(*) filter (where delivery_status = 'delivered' and not swapped)::int as delivered,
+           count(*) filter (where delivery_status = 'returned' and not swapped)::int as returned,
+           count(*) filter (where swapped)::int as swapped,
+           count(*) filter (where after_pickup and not swapped)::int as after_pickup,
            count(*) filter (where in_flight)::int as in_flight,
            count(*) filter (where unresolved)::int as unresolved,
            count(*) filter (where not repl and confirmation_status = 'confirmed'
-                              and delivery_status = 'delivered')::int as delivered_own
+                              and delivery_status = 'delivered' and not swapped)::int as delivered_own
       from s
-  ), w as (
-    -- D47: a swapped original is one returned parcel in the delivery and return
-    -- rates (never a sale, never a return fee). Found through its replacement
-    -- (in the set), dated by its own placed_at, same eligibility as the set.
-    select count(*)::int as swapped
-      from public.orders o
-     where o.workspace_id = public.current_workspace_id()
-       and o.swapped_to_order_id = any (p_order_ids)
-       and o.excluded_reason is null
-       and not (o.is_duplicate_suspect and o.confirmation_status <> 'confirmed')
-       and (p_from is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date >= p_from)
-       and (p_to   is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date <= p_to)
   )
   select jsonb_build_object(
     'confirmation', public.kpi_metric(confirmed, decided, conf_open)
@@ -113,12 +106,12 @@ language sql stable security invoker set search_path = public as $$
                          case when received = 0 then null else confirmed::numeric / received end),
     'delivery', public.kpi_metric(delivered, delivered + returned + swapped + after_pickup, unresolved),
     'return',   public.kpi_metric(returned + swapped, delivered + returned + swapped + after_pickup, unresolved),
-    -- one set (own orders + swapped originals): delivered share of confirmed, <= 1
-    'delivered_of_confirmed', public.kpi_metric(delivered_own, confirmed + swapped, unresolved),
+    -- one set (D48: a swapped original is in confirmed): delivered share of confirmed, <= 1
+    'delivered_of_confirmed', public.kpi_metric(delivered_own, confirmed, unresolved),
     'counts', jsonb_build_object(
       'received', received, 'confirmed', confirmed, 'delivered', delivered,
       'returned', returned, 'swapped', swapped, 'in_flight', in_flight))
-  from a, w;
+  from a;
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -266,13 +259,13 @@ begin
 
   select count(*),
          count(*) filter (where o.confirmation_status = 'confirmed'),
-         count(*) filter (where o.delivery_status = 'delivered'),
-         count(*) filter (where o.delivery_status = 'returned'),
+         count(*) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null),
+         count(*) filter (where o.delivery_status = 'returned' and o.swapped_to_order_id is null),
          count(*) filter (where o.confirmation_status = 'cancelled' or o.delivery_status = 'cancelled'),
-         coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered'), 0),
-         coalesce(sum(pc.sourcing_cost_dzd * o.quantity) filter (where o.delivery_status = 'delivered'), 0),
+         coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null), 0),
+         coalesce(sum(pc.sourcing_cost_dzd * o.quantity) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null), 0),
          coalesce(sum(o.sale_price * o.quantity) filter (
-           where o.delivery_status = 'delivered'
+           where o.delivery_status = 'delivered' and o.swapped_to_order_id is null
              and not exists (select 1 from public.cash_collections c where c.order_id = o.id)), 0)
     into v_received, v_confirmed, v_delivered, v_returned, v_cancelled, v_revenue, v_cogs, v_cash
     from public.orders o
@@ -301,7 +294,7 @@ begin
   if p_filtered or p_product is not null then
     select count(*) into v_ws_delivered from public.orders o
      where o.id in (select k.id from public.kpi_order_set(v_from, v_to, null) k)
-       and o.delivery_status = 'delivered';
+       and o.delivery_status = 'delivered' and o.swapped_to_order_id is null;
     v_share := case when v_ws_delivered = 0 then 0 else v_delivered::numeric / v_ws_delivered end;
   else
     v_share := 1;
@@ -513,13 +506,13 @@ begin
       select o.product_id, pd.name,
              count(*) as orders_received,
              count(*) filter (where o.confirmation_status = 'confirmed') as orders_confirmed,
-             count(*) filter (where o.delivery_status = 'delivered')     as orders_delivered,
-             count(*) filter (where o.delivery_status = 'returned')      as orders_returned,
+             count(*) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null)     as orders_delivered,
+             count(*) filter (where o.delivery_status = 'returned' and o.swapped_to_order_id is null)      as orders_returned,
              round(100 * (public.kpi_rates(array_agg(o.id), p_from, p_to)->'confirmation'->>'value')::numeric, 1)
                as confirmation_rate,
              round(100 * (public.kpi_rates(array_agg(o.id), p_from, p_to)->'delivery'->>'value')::numeric, 1)
                as delivery_rate,
-             coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered'), 0)
+             coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null), 0)
                as revenue_dzd
       from public.orders o
       join public.products pd on pd.id = o.product_id
@@ -549,10 +542,10 @@ begin
       select (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date as day,
              count(*) as orders_received,
              count(*) filter (where o.confirmation_status = 'confirmed') as orders_confirmed,
-             count(*) filter (where o.delivery_status = 'delivered') as orders_delivered,
-             coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered'), 0) as revenue_dzd,
-             coalesce(sum(pc.sourcing_cost_dzd * o.quantity) filter (where o.delivery_status = 'delivered'), 0) as sourcing_dzd,
-             count(*) filter (where o.delivery_status = 'returned') as returned
+             count(*) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null) as orders_delivered,
+             coalesce(sum(o.sale_price * o.quantity) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null), 0) as revenue_dzd,
+             coalesce(sum(pc.sourcing_cost_dzd * o.quantity) filter (where o.delivery_status = 'delivered' and o.swapped_to_order_id is null), 0) as sourcing_dzd,
+             count(*) filter (where o.delivery_status = 'returned' and o.swapped_to_order_id is null) as returned
       from public.orders o
       left join public.product_costs pc on pc.product_id = o.product_id
       where o.id = any (v_order_ids)
@@ -655,7 +648,7 @@ select p.id, p.workspace_id, p.name, p.status, p.stock,
        round(100 * (k.r->'confirmation'->>'value')::numeric, 1) as confirmation_rate,
        round(100 * (k.r->'delivery'->>'value')::numeric, 1)     as delivery_rate,
        (select sum(o.sale_price * o.quantity) from public.orders o
-         where o.id = any (g.ids) and o.delivery_status = 'delivered') as revenue_dzd,
+         where o.id = any (g.ids) and o.delivery_status = 'delivered' and o.swapped_to_order_id is null) as revenue_dzd,
        (select sum(e.amount_dzd) from public.expenses e where e.product_id = p.id)   as expenses_dzd,
        (select sum(a.amount_dzd) from public.ad_spend_daily a where a.product_id = p.id) as ad_spend_dzd,
        (select pc.sourcing_cost_dzd from public.product_costs pc where pc.product_id = p.id) as sourcing_cost_dzd

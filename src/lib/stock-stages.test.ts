@@ -182,7 +182,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("linked swap original follows status changes without moving stock", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     expect(await stock(p)).toBe(-1);
     const { data: b, error } = await swap(a);
     expect(error).toBeNull();
@@ -263,7 +263,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("deleting a swap original reconciles its replacement (review-5 #2)", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     await status(b as string, "wait_for_deposit"); // already; B holds -1 as a replacement
     expect(await held(b as string)).toBe(1);
@@ -325,7 +325,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("only swap_order writes the link (D42): insert linked, direct link, re-point all refused", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     const other = await order(p, { delivery_status: "in_transit", quantity: 1 });
     const fresh = await order(p, { delivery_status: "wait_for_deposit", quantity: 1 });
@@ -347,16 +347,16 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await held(fresh)).toBe(0);
   });
 
-  test("swap from a delivered order logs the link, not a return (review-6 #4)", async () => {
+  test("swap logs the link on the original and the replacement (returning)", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
-    expect((await moves(a)).map((m) => m.reason)).toEqual(["order_shipped", "order_swapped"]);
     expect((await moves(b as string)).map((m) => m.reason)).toEqual(["order_swapped"]);
+    expect(await held(a)).toBe(0);
   });
 
-  test("swap succeeds from returning and from exchange", async () => {
-    for (const st of ["returning", "exchange"]) {
+  test("swap succeeds from returning and returned", async () => {
+    for (const st of ["returning", "returned"]) {
       const p = await product();
       const a = await order(p, { delivery_status: st, quantity: 1 });
       const { data: b, error } = await swap(a);
@@ -367,10 +367,23 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     }
   });
 
+  test("swap refused from delivered and exchange (D48): nothing is created or linked", async () => {
+    for (const st of ["delivered", "exchange"]) {
+      const p = await product();
+      const a = await order(p, { delivery_status: st, quantity: 1 });
+      expect((await swap(a)).error?.message).toMatch(/swap not allowed from status/);
+      expect((await svc.from("orders").select("swapped_to_order_id, delivery_status").eq("id", a).single()).data).toMatchObject({
+        swapped_to_order_id: null, delivery_status: st,
+      });
+      const { count } = await svc.from("orders").select("id", { count: "exact", head: true }).eq("product_id", p);
+      expect(count).toBe(1);
+    }
+  });
+
   test("deleting a replacement: before pickup releases, on road or delivered keeps the piece out (D42)", async () => {
     for (const [st, expected] of [["wait_for_deposit", 0], ["in_transit", -1], ["delivered", -1], ["cancelled", 0]] as const) {
       const p = await product();
-      const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+      const a = await order(p, { delivery_status: "returning", quantity: 1 });
       const { data: b } = await swap(a);
       if (st !== "wait_for_deposit") await status(b as string, st);
       expect((await svc.from("orders").delete().eq("id", b as string)).error).toBeNull();
@@ -412,7 +425,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("cancelled replacement releases its piece and shows on_road 0", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     expect(await stages(p)).toMatchObject({ on_road: 1 });
     expect(await stock(p)).toBe(-1);
@@ -454,7 +467,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("un-cancelling a replacement re-reserves it", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string);
     await svc.from("orders").update({ confirmation_status: "confirmed" }).eq("id", b as string);
@@ -499,7 +512,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("deleting the replacement returns the original to the normal rule", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     await status(a, "delivered"); // carrier moves the linked original on from `swap`
     expect(await held(a)).toBe(0);
@@ -511,7 +524,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("admin cancel of in-transit replacement via transition_order_status", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     const bid = b as string;
     expect((await adminUser.rpc("transition_order_status", { p_order_id: bid, p_delivery_status: "in_transit" })).error).toBeNull();
@@ -545,7 +558,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
 
   test("shipped replacement cancelled at confirmation keeps its piece out, also after delivered (review-2 #1)", async () => {
     const p = await product();
-    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
     const { data: b } = await swap(a);
     await status(b as string, "in_transit");
     expect((await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string)).error).toBeNull();

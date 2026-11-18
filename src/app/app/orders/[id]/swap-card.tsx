@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 /** Order statuses from which a swap is meaningful. */
-const SWAPPABLE = new Set(["returning", "returned", "exchange", "delivered"]);
+const SWAPPABLE = new Set(["returning", "returned"]);
 
 export function SwapCard({
   orderId,

@@ -124,29 +124,65 @@ describe.skipIf(!URL)("KPI contract (live DB, 00031)", () => {
     expect(d.kpis.confirmation_rate).toBeCloseTo(100 * k.confirmation.value!, 1);
   });
 
-  test("a swapped original is one returned parcel in the rates (D47); money and received stay clean", async () => {
+  test("a swapped original is received, confirmed and one returned parcel (D47, D48); money stays clean", async () => {
     const p = await product();
     const a = await order(p, { delivery_status: "returned" });
     const { data: b, error } = await swap(a);
     expect(error).toBeNull();
     await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", a); // later carrier "delivered": ignored
     const before = await kpi(p);
-    expect(before.counts.received).toBe(0);
-    expect(before.confirmation.den).toBe(0);
-    expect(before.counts.delivered).toBe(0);
-    expect(before.counts.swapped).toBe(1);
+    expect(before.counts).toMatchObject({ received: 1, confirmed: 1, delivered: 0, returned: 0, swapped: 1 });
+    expect(before.confirmation).toMatchObject({ num: 1, den: 1 });
+    expect(before.confirmation.of_received).toBe(1);
     expect(before.return).toMatchObject({ num: 1, den: 1 });
     expect(before.delivery).toMatchObject({ num: 0, den: 1 });
+    expect(before.delivered_of_confirmed).toMatchObject({ num: 0, den: 1 });
     await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", b as string);
     const after = await kpi(p);
-    expect(after.counts.delivered).toBe(1);
-    expect(after.counts.returned).toBe(0); // physical returns unchanged: no return fee
+    expect(after.counts).toMatchObject({ received: 1, confirmed: 1, delivered: 1, returned: 0 });
     expect(after.delivery).toMatchObject({ num: 1, den: 2 });
     expect(after.return).toMatchObject({ num: 1, den: 2 });
-    expect(after.counts.received).toBe(0);
-    // delivered_of_confirmed never passes 100% with a swap
-    expect(after.delivered_of_confirmed.value).toBeLessThanOrEqual(1);
+    expect(after.delivered_of_confirmed).toMatchObject({ num: 0, den: 1 }); // one set: the refused original is in the denominator, the re-shipment is not a lead
     expect(after.pnl!.return_fees).toBe(0);
+    expect(after.pnl!.orders_delivered).toBe(1);
+  });
+
+  test("a swapped refusal never raises the delivery rate on the original's own day (D48 H1)", async () => {
+    const p = await product();
+    for (let i = 0; i < 9; i++) await order(p, { delivery_status: "delivered" });
+    const a = await order(p, { delivery_status: "returned" });
+    expect((await kpi(p, DAY, DAY)).delivery).toMatchObject({ num: 9, den: 10 });
+    expect((await swap(a)).error).toBeNull(); // the replacement is placed today, on another day
+    const day = await kpi(p, DAY, DAY);
+    expect(day.delivery).toMatchObject({ num: 9, den: 10 });
+    expect(day.delivery.value).toBeCloseTo(0.9, 6);
+    expect(day.counts).toMatchObject({ received: 10, confirmed: 10, swapped: 1 });
+    expect(day.confirmation).toMatchObject({ num: 10, den: 10 });
+    expect((await kpi(p)).delivery.value).toBeLessThanOrEqual(0.9); // all-time: the replacement is still on road
+    expect((await kpi(p, "2026-03-11", "2026-03-11")).counts.received).toBe(0); // replacement is no new lead
+    const { data } = await adminUser.rpc("dashboard_stats", { p_from: DAY, p_to: DAY, p_product: [p] });
+    expect((data as unknown as { kpis: { delivery_rate: number } }).kpis.delivery_rate).toBeCloseTo(90, 1);
+  });
+
+  test("a swapped original's failure counts under its own wilaya, not the replacement's (D48 M1)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", wilaya_code: 16 });
+    expect((await swap(a)).error).toBeNull(); // swap helper puts the replacement in wilaya 16: move it
+    const { data: rep } = await svc.from("orders").select("id").eq("product_id", p).neq("id", a).single();
+    await svc.from("orders").update({ wilaya_code: 31 }).eq("id", rep!.id);
+    const stats = async (w: number) => {
+      const { data } = await adminUser.rpc("dashboard_stats", { p_from: DAY, p_to: DAY, p_product: [p], p_wilaya: [w] });
+      return (data as unknown as { kpi: Kpi; per_wilaya: { wilaya_code: number; delivery_rate: number | null }[] });
+    };
+    const w16 = await stats(16);
+    expect(w16.kpi.counts).toMatchObject({ received: 1, swapped: 1 });
+    expect(w16.kpi.delivery).toMatchObject({ num: 0, den: 1 });
+    expect(w16.per_wilaya[0]).toMatchObject({ wilaya_code: 16, delivery_rate: 0 });
+    expect((await stats(31)).kpi.counts).toMatchObject({ received: 0, swapped: 0 }); // replacement is not a lead
+    const { data: byStatus } = await adminUser.rpc("dashboard_stats", {
+      p_from: DAY, p_to: DAY, p_product: [p], p_delivery_status: ["swap"],
+    });
+    expect((byStatus as unknown as { kpi: Kpi }).kpi.counts.swapped).toBe(1);
   });
 
   test("Real-scenario lead count is counted in SQL, not capped at 1000 rows", async () => {
