@@ -430,4 +430,37 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await stock(p)).toBe(-1);
     expect(await stages(p)).toMatchObject({ on_road: 1 });
   });
+
+  test("manual swap status refused for admin; swap_order still succeeds", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returned", quantity: 1 });
+    const manual = await adminUser.rpc("transition_order_status", { p_order_id: a, p_delivery_status: "swap" });
+    expect(manual.error?.message).toMatch(/only by swap_order/);
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("returned");
+    const { data: b, error } = await swap(a);
+    expect(error).toBeNull();
+    expect(b).toBeTruthy();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("swap");
+    // the flag does not leak: a later manual swap is still refused
+    const again = await order(p, { delivery_status: "returned", quantity: 1 });
+    expect((await adminUser.rpc("transition_order_status", { p_order_id: again, p_delivery_status: "swap" })).error).not.toBeNull();
+  });
+
+  test("swapped original moved by apply_zr_state", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "returning", quantity: 1 });
+    expect((await swap(a)).error).toBeNull();
+    const ship = await svc.from("zr_shipments").insert({ order_id: a, workspace_id: ws, parcel_id: crypto.randomUUID() });
+    expect(ship.error).toBeNull();
+    const n = (await moves(a)).length;
+    const r = await svc.rpc("apply_zr_state", {
+      p_ws: ws, p_parcel: (await svc.from("zr_shipments").select("parcel_id").eq("order_id", a).single()).data!.parcel_id,
+      p_state: "livre", p_slug: "livre", p_situation: null as unknown as string, p_is_return: null as unknown as boolean,
+      p_occurred: new Date().toISOString(),
+    });
+    expect(r.error).toBeNull();
+    expect((await svc.from("orders").select("delivery_status").eq("id", a).single()).data!.delivery_status).toBe("delivered");
+    expect((await moves(a)).length).toBe(n);
+    expect(await held(a)).toBe(0);
+  });
 });

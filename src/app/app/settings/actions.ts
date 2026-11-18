@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
-import { DELIVERY_STATUSES } from "@/lib/enums";
+import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
 import { replayEvent, lightfunnelProvider, shopifyProvider } from "@/lib/webhook";
@@ -218,7 +218,7 @@ export async function registerZRWebhook() {
 }
 
 const zrStateMapSchema = z
-  .array(z.object({ state: z.string().trim().min(1).max(100), status: z.enum(DELIVERY_STATUSES) }))
+  .array(z.object({ state: z.string().trim().min(1).max(100), status: z.enum(MANUAL_DELIVERY_STATUSES) }))
   .max(200);
 
 /** ZR state → our delivery_status. Unmapped states just mirror on the shipment. */

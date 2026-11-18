@@ -172,3 +172,113 @@ where public.is_admin()
 group by p.id, p.workspace_id, p.stock;
 revoke all on public.product_stock_stages from anon;
 grant select on public.product_stock_stages to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 3) 'swap' status only through swap_order (D43); body of 00025 + the guard + pinned search_path
+-- ---------------------------------------------------------------------------
+create or replace function public.transition_order_status(
+  p_order_id uuid,
+  p_confirmation_status confirmation_status default null,
+  p_delivery_status delivery_status default null,
+  p_confirmation_comment text default null
+)
+returns boolean
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_ws uuid;
+  v_conf confirmation_status;
+  v_deliv delivery_status;
+  v_assigned uuid;
+  v_role text := public.current_app_role();
+begin
+  select workspace_id, confirmation_status, delivery_status, assigned_confirmation_agent
+    into v_ws, v_conf, v_deliv, v_assigned
+    from public.orders where id = p_order_id
+    for update;
+  if v_ws is null or v_ws <> public.current_workspace_id() then
+    raise exception 'order not found';
+  end if;
+
+  -- D43: 'swap' is set only by swap_order (it sets this flag locally)
+  if p_delivery_status = 'swap' and coalesce(current_setting('mnw.swap_status', true), '') <> '1' then
+    raise exception 'swap is set only by swap_order';
+  end if;
+
+  if not public.is_admin() then
+    if v_role is distinct from 'confirmation_agent' or p_delivery_status is not null then
+      raise exception 'not authorized to update this order';
+    end if;
+    if not (v_conf in ('wait_for_confirmation','no_answer','closed_phone') or coalesce(v_assigned = auth.uid(), false)) then
+      raise exception 'order is not in your confirmation queue';
+    end if;
+    -- recovery (e.g. confirmed → cancelled) is fine only before the parcel exists
+    if v_deliv <> 'wait_for_deposit' or exists (select 1 from public.zr_shipments z where z.order_id = p_order_id) then
+      raise exception 'order already handed to delivery';
+    end if;
+    perform set_config('mnw.assign_self', '1', true);
+  end if;
+
+  update public.orders set
+    confirmation_status = coalesce(p_confirmation_status, confirmation_status),
+    delivery_status = coalesce(p_delivery_status, delivery_status),
+    confirmation_comment = case
+      when p_confirmation_status is not null then p_confirmation_comment
+      else confirmation_comment
+    end,
+    assigned_confirmation_agent = case
+      when not public.is_admin() and assigned_confirmation_agent is null then auth.uid()
+      else assigned_confirmation_agent
+    end
+  where id = p_order_id;
+
+  return (p_confirmation_status is not null and p_confirmation_status is distinct from v_conf)
+      or (p_delivery_status is not null and p_delivery_status is distinct from v_deliv);
+end; $$;
+
+create or replace function public.swap_order(
+  p_order_id uuid,
+  p_customer_id uuid,
+  p_customer_name text,
+  p_customer_phone text,
+  p_wilaya_code smallint,
+  p_commune text,
+  p_address text
+)
+returns uuid
+language plpgsql security invoker set search_path = public, pg_temp as $$
+declare
+  a public.orders%rowtype;
+  v_b uuid;
+begin
+  if not public.is_admin() then raise exception 'admin only'; end if;
+  select * into a from public.orders
+    where id = p_order_id and workspace_id = public.current_workspace_id() for update;
+  if not found then raise exception 'order not found'; end if;
+  if a.swapped_to_order_id is not null then return a.swapped_to_order_id; end if;  -- double submit
+  if a.product_id is null then raise exception 'order has no product'; end if;
+  if a.delivery_status not in ('returning', 'returned', 'exchange', 'delivered') then
+    raise exception 'swap not allowed from status %', a.delivery_status;
+  end if;
+  if p_customer_id is not null
+     and not exists (select 1 from public.customers where id = p_customer_id and workspace_id = a.workspace_id) then
+    raise exception 'customer must belong to the order''s workspace';
+  end if;
+
+  insert into public.orders(workspace_id, source, product_id, variant, quantity, sale_price, delivery_fee,
+      delivery_type, customer_id, customer_name, customer_phone, wilaya_code, commune, address,
+      confirmation_status, delivery_status, placed_at)
+  values (a.workspace_id, 'manual', a.product_id, a.variant, a.quantity, a.sale_price, a.delivery_fee,
+      a.delivery_type, p_customer_id, p_customer_name, p_customer_phone, p_wilaya_code, nullif(p_commune, ''), nullif(p_address, ''),
+      'confirmed', 'wait_for_deposit', now())
+  returning id into v_b;
+
+  -- link first (reconciles A -> 0 and B as a replacement on road), then A goes to 'swap' (D42)
+  perform set_config('mnw.swap_link', '1', true);
+  update public.orders set swapped_to_order_id = v_b where id = p_order_id;
+  perform set_config('mnw.swap_link', '', true);
+  perform set_config('mnw.swap_status', '1', true);
+  perform public.transition_order_status(p_order_id, null, 'swap');
+  perform set_config('mnw.swap_status', '', true);
+  return v_b;
+end; $$;
+

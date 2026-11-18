@@ -15,7 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { SETTINGS_SCHEMAS } from "@/lib/settings";
 import {
   CONFIRMATION_STATUSES,
-  DELIVERY_STATUSES,
+  MANUAL_DELIVERY_STATUSES,
   DELIVERY_TYPES,
   DELIVERY_FEE_SOURCES,
 } from "@/lib/enums";
@@ -250,7 +250,7 @@ export async function bulkTransition(
   const value =
     stage === "confirmation"
       ? z.enum(CONFIRMATION_STATUSES).parse(status)
-      : z.enum(DELIVERY_STATUSES).parse(status);
+      : z.enum(MANUAL_DELIVERY_STATUSES).parse(status);
 
   const supabase = await createClient();
   for (const id of parsedIds) {
@@ -284,7 +284,7 @@ export async function bulkAssignAgents(
 // ---------------------------------------------------------------------------
 // Delivery queue
 // ---------------------------------------------------------------------------
-const deliverySchema = z.object({ status: z.enum(DELIVERY_STATUSES) });
+const deliverySchema = z.object({ status: z.enum(MANUAL_DELIVERY_STATUSES) });
 
 export async function updateDeliveryStatus(orderId: string, formData: FormData) {
   const input = deliverySchema.parse({ status: formData.get("status") });
