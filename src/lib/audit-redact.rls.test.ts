@@ -53,6 +53,11 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     const newest = logs![0];
     expect((newest.old_row as { secret: string }).secret).not.toBe((newest.new_row as { secret: string }).secret);
 
+    // SQL/TS parity and non-string masking through the live function.
+    const { data: fx } = await svc.rpc("audit_redact", { j: { secret: "abc", color_token: "rose", tokens: { a: "zz" } } });
+    expect(fx).toMatchObject({ secret: "[redacted:ba7816bf]", color_token: "rose" });
+    expect(JSON.stringify(fx)).not.toContain("zz");
+
     const { data: cfg } = await svc.from("integration_configs").select("secret").eq("workspace_id", ws).single();
     expect(cfg!.secret).toBe(SECRET);
   });

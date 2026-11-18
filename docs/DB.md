@@ -32,7 +32,7 @@ Finally regenerate types:
 | `bootstrap_workspace(email, name)` | One-shot first workspace + admin + seed |
 | `seed_workspace(ws)` | Idempotent per-workspace defaults (58 fee rows + settings) |
 | `audit_row()` | Generic audit trigger fn → `audit_log`; old/new pass through `audit_redact()` (00033) |
-| `audit_redact(jsonb)` | Replaces values of secret-looking keys (secret/token/password/api key/authorization/signature) and `whsec_`/`sk_`/`shpss_`/`shpat_`/`Bearer ` values with `[redacted:<sha256 first 8 hex>]` |
+| `audit_redact(jsonb)` | Stable, not callable by anon/authenticated. Masks the whole value (any JSON type) of explicit secret keys (secret, token, password, api_key, authorization, signature, `<access\|refresh\|api\|auth\|bot\|webhook\|client\|private>_<token\|secret\|key>`), the `value` of `{key, value}` rows whose key ends in secret/token/password/…, and string values starting `whsec_`/`sk_`/`shpss_`/`shpat_`/`Bearer ` → `[redacted:<sha256 first 8 hex>]`. Ordinary keys (`color_token`) are untouched. 00033 backfill rewrites `audit_log` in place |
 | `transition_order_status(order_id, confirmation_status?, delivery_status?, comment?)` | Security-definer status transition (00009) — a plain agent `UPDATE` moving `confirmation_status` to `'confirmed'` fails RLS because the post-update row no longer satisfies the agent's own SELECT policy; re-checks authorization manually and bypasses that. Used by every agent-facing status change instead of `.update()`. |
 
 ## Tables (all have `workspace_id` unless noted)

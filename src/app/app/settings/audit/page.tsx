@@ -2,10 +2,10 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
-import { auditRedact, showRedacted } from "@/lib/audit-redact";
 import { PageHeader } from "@/components/page-header";
 import { SettingsTabs } from "../settings-tabs";
 import { AuditFilterBar } from "./audit-filter-bar";
+import { diffRows } from "./_lib/diff";
 import { AuditTable, type AuditRow } from "./audit-table";
 
 // Tables with an `audit_row()` trigger attached (00002_settings.sql, 00003_products.sql).
@@ -18,20 +18,6 @@ const AUDITED_TABLES = [
   "expenses",
   "product_costs",
 ] as const;
-
-function diffRows(rawOld: Record<string, unknown> | null, rawNew: Record<string, unknown> | null) {
-  const oldRow = auditRedact(rawOld) as Record<string, unknown> | null;
-  const newRow = auditRedact(rawNew) as Record<string, unknown> | null;
-  const keys = new Set([...Object.keys(oldRow ?? {}), ...Object.keys(newRow ?? {})]);
-  const changes: { key: string; from: unknown; to: unknown }[] = [];
-  for (const key of keys) {
-    if (key === "updated_at" || key === "created_at") continue;
-    const from = oldRow?.[key];
-    const to = newRow?.[key];
-    if (JSON.stringify(from) !== JSON.stringify(to)) changes.push({ key, from, to });
-  }
-  return changes;
-}
 
 export default async function AuditPage({
   searchParams,
@@ -73,12 +59,7 @@ export default async function AuditPage({
       table_name: r.table_name,
       action: r.action,
       actor_name: r.actor ? (nameById.get(r.actor) ?? r.actor) : t("orders.systemActor"),
-      changes:
-        changes.length === 0
-          ? "—"
-          : showRedacted(
-              changes.map((c) => `${c.key}: ${JSON.stringify(c.from) ?? "∅"} → ${JSON.stringify(c.to) ?? "∅"}`).join("; "),
-            ),
+      changes,
     };
   });
 
