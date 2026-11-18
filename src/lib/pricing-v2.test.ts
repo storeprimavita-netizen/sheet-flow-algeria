@@ -150,7 +150,7 @@ describe("null not NaN", () => {
   });
   it("k >= 1 gives null prices", () => {
     const r = computeScenario({ ...S, platformPct: 1 }, benz, medIn, 4500);
-    expect(r.k).toBeGreaterThanOrEqual(1);
+    expect(r.k).toBeNull();
     expect(r.exactPrice).toBeNull();
     expect(r.recommendedPrice).toBeNull();
     expect(r.breakEven.minSellingPrice).toBeNull();
