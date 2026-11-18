@@ -281,3 +281,10 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Note: `node_modules/server-only` stub created locally so seed-dev.ts runs (not committed).
 
 PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned even if equal to default, target mode needs a value, quantity validated, action tests added, units in i18n, anon revoked (00040), placeholder clipping fixed (shorter placeholder, ltr isolates). Screenshots (chrome-devtools, 500px min viewport, product Pricing tab): dark EN, light EN, dark AR checked; light AR and desktop width not captured.
+
+## PRICE-2 — DONE (merged under D40)
+- Done: 00039–00040 `product_pricing` (admin-only RLS, composite FK, audited, anon revoked); Settings → Pricing defaults; product Pricing tab on `pricing-v2.ts` with per-product overrides, ad costs, final price.
+- Verify: reviews 1–4 (qa-reviewer + ui-reviewer, app run and keyboard checked in round 4); review-4 ESCALATE with no high finding; one medium (two keyboard focus tests missing) and the lows moved to PRICE-2-F. Decisions D53 (below-break-even final price saves without a confirm).
+- Evidence: full scripts/gate.sh GATE OK, 436 tests with the live RLS suite.
+- Owner: production db push of 00039–00040 is owner-only (O-2). Screenshots at 390 px were incomplete in review-2 — worth a look on a phone.
+- Next: STORE-1.
