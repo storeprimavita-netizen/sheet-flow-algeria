@@ -1,4 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { auditRedact } from "./audit-redact";
+import { PARITY_CASES, MASKED_NAMES } from "./audit-redact.cases";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 /** Live SEC-1: a secret written to integration_configs never reaches audit_log. */
@@ -87,5 +89,47 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     const { data: logs } = await svc.from("audit_log").select("*").eq("workspace_id", ws).eq("table_name", "settings");
     expect(logs!.length).toBeGreaterThan(0);
     expect(JSON.stringify(logs)).not.toContain("EAAB_LIVE_SECRET");
+  });
+
+  test("SQL and TS redaction agree on the shared case table", async () => {
+    for (const j of PARITY_CASES) {
+      const { data, error } = await svc.rpc("audit_redact", { j });
+      expect(error).toBeNull();
+      expect(data).toEqual(auditRedact(j));
+    }
+    const names = Object.fromEntries(MASKED_NAMES.map((n) => [n, "PLAIN_" + n]));
+    const { data } = await svc.rpc("audit_redact", { j: names });
+    expect(JSON.stringify(data)).not.toContain("PLAIN_");
+  });
+
+  test("agent session cannot execute audit_redact", async () => {
+    const { error } = await admin.rpc("audit_redact", { j: { secret: "x" } });
+    expect(error).not.toBeNull();
+  });
+
+  test("ZR save path leaves no trace; old_row masked on UPDATE and DELETE", async () => {
+    const ins = await admin.from("integration_configs").insert({ workspace_id: ws, provider: "zrexpress", config: { tenant_id: "t1", api_key: "ZRKEY_LIVE" }, secret: "ZRSEC_1" });
+    expect(ins.error).toBeNull();
+    const up = await admin.from("integration_configs").update({ secret: "ZRSEC_2", config: { tenant_id: "t1", api_key: "ZRKEY_LIVE2" } }).eq("workspace_id", ws).eq("provider", "zrexpress");
+    expect(up.error).toBeNull();
+    const del = await admin.from("integration_configs").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
+    expect(del.error).toBeNull();
+    const { data: logs } = await svc.from("audit_log").select("*").eq("workspace_id", ws).eq("table_name", "integration_configs");
+    const dump = JSON.stringify(logs);
+    expect(dump).not.toMatch(/ZRKEY_LIVE|ZRSEC_/);
+    const del_row = logs!.find((l) => l.action === "DELETE" && (l.old_row as { provider?: string })?.provider === "zrexpress");
+    expect(del_row).toBeDefined();
+  });
+
+  test("backfill expression scrubs a raw row and is a no-op on clean ones", async () => {
+    const mk = (n: string) => ({ workspace_id: ws, table_name: "x_backfill", row_id: crypto.randomUUID(), action: "INSERT", new_row: { name: n, XAPIKey: "RAW_" + n } });
+    const raw = await svc.from("audit_log").insert(mk("a")).select("id, new_row").single();
+    expect(raw.error).toBeNull();
+    const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id").single();
+    expect(clean.error).toBeNull();
+    const { data } = await svc.rpc("audit_redact", { j: raw.data!.new_row });
+    expect(JSON.stringify(data)).not.toContain("RAW_");
+    const { data: same } = await svc.rpc("audit_redact", { j: { name: "b" } });
+    expect(same).toEqual({ name: "b" });
   });
 });

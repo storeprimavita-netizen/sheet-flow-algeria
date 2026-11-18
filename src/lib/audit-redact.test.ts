@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { auditRedact } from "./audit-redact";
+import { auditRedact, MAX_DEPTH } from "./audit-redact";
+import { MASKED_NAMES, VISIBLE_NAMES } from "./audit-redact.cases";
 import { diffRows } from "@/app/app/settings/audit/_lib/diff";
 
 const r = (v: unknown) => auditRedact(v) as Record<string, unknown>;
@@ -88,5 +89,23 @@ describe("auditRedact D49 fail-closed", () => {
   test("allow-list stays visible", () => {
     const o = { key: "store_name", keys: ["a"], idempotency_key: "i1", sort_key: 3, cache_key: "c", color_token: "rose", monkey: "x" };
     expect(auditRedact(o)).toEqual(o);
+  });
+});
+
+describe("auditRedact SEC-1-F acronyms and odd case", () => {
+  test.each(MASKED_NAMES)("masks %j", (k) => {
+    const s = JSON.stringify(auditRedact({ [k]: "PLAINVAL" }));
+    expect(s).not.toContain("PLAINVAL");
+    expect(s).toContain("[redacted:");
+  });
+  test("allow-list and look-alikes stay visible", () => {
+    const o = Object.fromEntries(VISIBLE_NAMES.map((n) => [n, "v"]));
+    expect(auditRedact(o)).toEqual(o);
+  });
+  test("depth cap masks the deeper subtree", () => {
+    let o: unknown = { leaf: "DEEPVAL" };
+    for (let i = 0; i < MAX_DEPTH + 2; i++) o = { n: o };
+    expect(JSON.stringify(auditRedact(o))).not.toContain("DEEPVAL");
+    expect(JSON.stringify(auditRedact(o))).toContain("[redacted:");
   });
 });
