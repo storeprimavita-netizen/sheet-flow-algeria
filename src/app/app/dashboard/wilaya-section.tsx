@@ -63,7 +63,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
               >
                 <td>
                   <Link href={wilayaHref(w.code)} className="hover:underline">
-                    {w.name ? `${w.code}-${w.name}` : w.code}
+                    {w.name ? <><bdi dir="ltr">{w.code}</bdi>-{w.name}</> : <bdi dir="ltr">{w.code}</bdi>}
                   </Link>
                 </td>
                 <td className="num">{w.totalOrders}</td>
@@ -95,6 +95,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
           onHover={setHovered}
           onSelect={(code) => router.push(wilayaHref(code))}
           label={t("dashboard.wilaya.mapLabel")}
+          noDataLabel={t("dashboard.wilaya.noData")}
         />
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" /><bdi dir="ltr">&lt;40%</bdi></span>

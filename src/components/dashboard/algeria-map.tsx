@@ -82,6 +82,7 @@ export function AlgeriaMap({
   onHover,
   onSelect,
   label,
+  noDataLabel,
 }: {
   data: WilayaMapDatum[];
   minOrders: number;
@@ -89,6 +90,7 @@ export function AlgeriaMap({
   onHover?: (code: number | null) => void;
   onSelect?: (code: number) => void;
   label: string;
+  noDataLabel: string;
 }) {
   const clipId = React.useId();
   const { outlineD, cells, viewBox } = useMapGeometry();
@@ -120,7 +122,7 @@ export function AlgeriaMap({
           const titleText = `${wd.name ?? wd.code}${
             wd.totalOrders > 0
               ? ` — ${wd.deliveryRate !== null ? `${wd.deliveryRate}%` : "—"} (${wd.totalOrders})`
-              : " — no data"
+              : ` — ${noDataLabel}`
           }`;
           return (
             <path
