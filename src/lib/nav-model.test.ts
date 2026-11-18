@@ -149,4 +149,27 @@ describe("app shell (D32, review-4)", () => {
     expect(pal).not.toMatch(/value=\{`[^`]*n\.href/);
     expect(src).not.toContain('?? "/app"');
   });
+  it("palette search value has no i18n key", () => {
+    const pal = readFileSync(path.join(process.cwd(), "src/components/command-palette.tsx"), "utf8");
+    expect(pal).not.toMatch(/value=\{`[^`]*n\.key/);
+  });
+  it("group+label unique per role", () => {
+    const nav = en.nav as Record<string, string>;
+    for (const role of ["admin", "confirmation_agent", "delivery_agent"] as const) {
+      const { home, groups } = visibleNav(role);
+      const labels = [
+        ...(home ? [nav[home.key]] : []),
+        ...groups.flatMap((g) => g.items.map((i) => `${nav[g.key]} ${nav[i.key]}`)),
+      ];
+      expect(new Set(labels).size).toBe(labels.length);
+    }
+  });
+  it("drawer closes on Escape, is inert when closed, is a labelled dialog, brand row is 44px", () => {
+    expect(src).toContain('e.key === "Escape"');
+    expect(src).toContain("inert={!open && !isDesktop}");
+    expect(src).toContain('role: "dialog"');
+    expect(src).toContain('"aria-modal": true');
+    expect(src).toContain("toggleRef.current?.focus()");
+    expect(src).toMatch(/brandClass = "[^"]*max-md:min-h-11/);
+  });
 });
