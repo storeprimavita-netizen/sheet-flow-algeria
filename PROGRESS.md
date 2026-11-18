@@ -185,3 +185,10 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 
 - NAV-1-F: drawer inert/Escape/dialog/focus-return + palette value fix. Verified at 390px (AR, app theme light) via DOM script: inert when closed, role=dialog open, focus in, Escape closes and refocuses toggle. Screenshot of open drawer viewed. EN/dark matrix not captured.
 - NAV-1-F review-1 FIX: content column inert while phone drawer open; verified at 390 (Shift+Tab never reaches header/main); screenshots en-dark and ar-dark drawer in docs/design/audit/NAV-1-F/.
+
+## NAV-1-F — done
+- Done: phone drawer Escape closes and returns focus; closed drawer and content inert while open; dialog role; palette search value fix.
+- Verify: review-2 VERDICT: PASS (highest-numbered); scripts/gate.sh GATE OK on v3-NAV-1-F (217 tests incl. live RLS suite).
+- Evidence: 390 px DOM script (AR, light) plus drawer screenshots in docs/design/audit/NAV-1-F/. EN and dark matrix not captured.
+- Owner: none.
+- Next: none in this row.
