@@ -42,7 +42,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | P0-8-F | Follow-up (D40, review-7): a swap replacement cancelled at confirmation keeps its piece off the shelf for good — decide and fix; reconcile D40 vs D42 wording on deletion and manual status changes; review-7 lows | CARRIER | H | – | M | orders | P0-8 | done |
 | P0-8-G | Follow-up (review-3 lows): decide + enforce whether a swapped original may leave `swap`; `swapOrder` action tests (double submit, non-uuid) | CARRIER | L | – | – | orders | P0-8-F | todo |
 | CARRIER-0 | Wilayas stay 58 (D26). Fix the dashboard map: centroids 49–58 in `src/lib/geo/algeria-wilayas.ts` are misnumbered vs the seed (review-0 finding 2) and some names are garbled; webhook wilaya name match prefers the longest name. No migration **Next:** code correct (review-3); only open item: Arabic legend still reversed in the 390 px map screenshot, retake or fix, then one review.. | CARRIER | L | ui | – | orders | O-1 | done |
-| CARRIER-0-F | Follow-up (D40): Arabic map legend reversed in the 390 px screenshot — fix or retake (review-3) | CARRIER | L | ui | – | orders | CARRIER-0 || claimed:claude |
+| CARRIER-0-F | Follow-up (D40): Arabic map legend reversed in the 390 px screenshot — fix or retake (review-3) | CARRIER | L | ui | – | orders | CARRIER-0 || done |
 
 ## Wave 1 — clarity (owner's main complaint)
 
