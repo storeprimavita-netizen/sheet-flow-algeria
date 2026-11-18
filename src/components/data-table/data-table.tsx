@@ -274,7 +274,7 @@ export function DataTable<T>({
                       "px-3 py-2 font-medium text-muted-foreground",
                       colStart(c),
                       c.width,
-                      c.sticky && "sticky start-0 z-20 bg-surface",
+                      c.sticky && "sticky start-0 z-20 border-e border-border bg-surface",
                     )}
                   >
                     {c.sortable ? (
@@ -356,8 +356,7 @@ export function DataTable<T>({
                               colStart(c),
                               c.width,
                               c.numeric && "num",
-                              c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors",
-                              c.sticky && focus === i && tableFocused && "ring-2 ring-inset ring-ring",
+                              c.sticky && "sticky start-0 z-10 border-e border-border bg-(--row-bg) transition-colors",
                             )}
                           >
                             {c.cell(row)}

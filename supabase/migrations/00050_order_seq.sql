@@ -8,6 +8,7 @@ create table public.order_counters (
 );
 alter table public.order_counters enable row level security;
 revoke all on public.order_counters from anon, authenticated;
+revoke insert, update, delete, truncate on public.order_counters from service_role;
 
 create or replace function public.order_counters_for_workspace()
 returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
@@ -77,6 +78,9 @@ begin
     select new.workspace_id, coalesce(max(order_seq), 0) + 2 from public.orders where workspace_id = new.workspace_id
     on conflict (workspace_id) do update set next_seq = public.order_counters.next_seq + 1
     returning next_seq - 1 into new.order_seq;
+  end if;
+  if new.order_seq is null then
+    raise exception 'unknown workspace' using errcode = '23503';
   end if;
   return new;
 end; $$;

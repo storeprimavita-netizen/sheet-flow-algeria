@@ -111,7 +111,8 @@ async function ensureUser(admin: Admin, email: string): Promise<string> {
 }
 
 async function ensureWorkspace(admin: Admin): Promise<string> {
-  const { data: existing } = await admin.from("workspaces").select("id").limit(1).maybeSingle();
+  const { data: existing, error: selErr } = await admin.from("workspaces").select("id").limit(1).maybeSingle();
+  if (selErr) throw new Error(`select workspaces: ${selErr.message}`);
   if (existing) return existing.id;
 
   const { data, error } = await admin.rpc("bootstrap_workspace", {

@@ -86,7 +86,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
         <CommandList>
-          <CommandEmpty>{t("cmd.empty")}</CommandEmpty>
+          {query.trim() ? null : <CommandEmpty>{t("cmd.empty")}</CommandEmpty>}
           <CommandGroup heading={t("cmd.navigate")}>
             {navItems.map(({ leaf: n, groupKey }) => {
               const label = t(`nav.${n.key}`);

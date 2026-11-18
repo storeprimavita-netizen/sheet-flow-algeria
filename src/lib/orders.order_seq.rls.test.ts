@@ -108,14 +108,38 @@ describe.skipIf(!URL)("orders.order_seq (live DB)", () => {
     expect(next.data?.order_seq).toBe(2);
   });
 
-  test("order_counters is closed to clients", async () => {
+  test("order_counters is closed to clients and to service_role writes", async () => {
     const ws = await newWorkspace();
     const admin = await newSession(ws, "admin");
-    expect((await admin.from("order_counters").select("*")).error).not.toBeNull();
-    expect((await admin.from("order_counters").update({ next_seq: 1 }).eq("workspace_id", ws)).error).not.toBeNull();
-    expect((await admin.from("order_counters").insert({ workspace_id: ws, next_seq: 5 })).error).not.toBeNull();
-    // admin PATCH through the parent row cannot reach the counter either
-    expect((await admin.from("workspaces").update({ next_seq: 1 } as never).eq("id", ws)).error).not.toBeNull();
+    const anon = client(ANON_KEY);
+    expect((await admin.from("order_counters").select("*")).error?.code).toBe("42501");
+    expect((await admin.from("order_counters").update({ next_seq: 1 }).eq("workspace_id", ws)).error?.code).toBe("42501");
+    expect((await admin.from("order_counters").insert({ workspace_id: ws, next_seq: 5 })).error?.code).toBe("42501");
+    expect((await anon.from("order_counters").update({ next_seq: 1 }).eq("workspace_id", ws)).error?.code).toBe("42501");
+    expect((await svc.from("order_counters").update({ next_seq: 1 }).eq("workspace_id", ws)).error?.code).toBe("42501");
     expect(await counter(ws)).toBe(1);
+  });
+
+  test("counter stays max+1 after plain inserts (fallback not reachable over REST)", async () => {
+    const ws = await newWorkspace();
+    for (let i = 0; i < 2; i++) await svc.from("orders").insert({ workspace_id: ws });
+    // the service role cannot write the counter; drop it through a cascade-free path: delete via workspace-less SQL is not available,
+    // so assert the normal path stays consistent instead of probing the fallback over REST.
+    expect(await seqs(ws)).toEqual([1, 2]);
+    expect(await counter(ws)).toBe(3);
+  });
+
+  test("ON CONFLICT DO NOTHING burns a number (documented: do not upsert orders)", async () => {
+    const ws = await newWorkspace();
+    const row = { workspace_id: ws, source: "manual", external_id: "dup-1" };
+    expect((await svc.from("orders").insert(row)).error).toBeNull();
+    await svc.from("orders").upsert(row, { onConflict: "workspace_id,source,external_id", ignoreDuplicates: true });
+    expect(await seqs(ws)).toEqual([1]);
+    expect(await counter(ws)).toBeGreaterThanOrEqual(2);
+  });
+
+  test("insert with an unknown workspace fails with the FK error", async () => {
+    const r = await svc.from("orders").insert({ workspace_id: crypto.randomUUID() });
+    expect(r.error?.code).toBe("23503");
   });
 });
