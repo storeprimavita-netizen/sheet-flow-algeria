@@ -27,7 +27,7 @@ export function KpiTile({
   className,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   tone?: "success" | "danger";
   /** signed percentage change vs the previous period */
   delta?: number | null;

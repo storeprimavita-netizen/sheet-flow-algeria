@@ -11,8 +11,7 @@ import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
-import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
-import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses";
+import type { StatusToken } from "@/lib/statuses";
 
 export type Opt = { value: string; label: string; token?: StatusToken };
 
@@ -20,12 +19,11 @@ const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" ro
 const STORAGE_KEY = "mnw:dashboardFilters";
 
 /**
- * Sticky, URL-persisted dashboard filter bar (date range · product · wilaya ·
- * source · agent · confirmation/delivery status). Remembers the last-used
+ * Sticky, URL-persisted dashboard filter bar (date range · product). Remembers the last-used
  * filters per browser (localStorage) and restores them on a bare
  * `/app/dashboard` visit — same URL-param shape `page.tsx` reads server-side.
  */
-export function DashboardFilterBar({ products, wilayas, agents }: { products: Opt[]; wilayas: Opt[]; agents: Opt[] }) {
+export function DashboardFilterBar({ products }: { products: Opt[] }) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
@@ -61,30 +59,7 @@ export function DashboardFilterBar({ products, wilayas, agents }: { products: Op
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
-  const confOpts: Opt[] = CONFIRMATION_STATUSES.map((s) => ({
-    value: s,
-    label: t(`status.confirmation_status.${s}`),
-    token: getStatus("confirmation", s)?.token,
-  }));
-  const delivOpts: Opt[] = DELIVERY_STATUSES.map((s) => ({
-    value: s,
-    label: t(`status.delivery_status.${s}`),
-    token: getStatus("delivery", s)?.token,
-  }));
-  const sourceOpts: Opt[] = ORDER_SOURCES.map((s) => ({
-    value: s,
-    label: t(`status.order_source.${s}`),
-    token: ORDER_SOURCE_TOKEN[s],
-  }));
-
-  const selects: { key: string; label: string; opts: Opt[] }[] = [
-    { key: "product", label: t("fields.product"), opts: products },
-    { key: "wilaya", label: t("fields.wilaya"), opts: wilayas },
-    { key: "source", label: t("fields.source"), opts: sourceOpts },
-    { key: "agent", label: t("fields.agent"), opts: agents },
-    { key: "confirmation_status", label: t("fields.confirmation_status"), opts: confOpts },
-    { key: "delivery_status", label: t("fields.delivery_status"), opts: delivOpts },
-  ];
+  const selects: { key: string; label: string; opts: Opt[] }[] = [{ key: "product", label: t("fields.product"), opts: products }];
 
   const chips: { key: string; label: string }[] = [];
   for (const s of selects) {
@@ -102,7 +77,7 @@ export function DashboardFilterBar({ products, wilayas, agents }: { products: Op
 
   return (
     <div className="card-surface sticky top-0 z-10 space-y-3 rounded-xl p-4 backdrop-blur">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 sm:max-w-xl">
         <label className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
           <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />

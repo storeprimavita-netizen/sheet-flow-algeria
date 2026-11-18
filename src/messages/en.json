@@ -728,29 +728,10 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Filtered overview of orders, spend, and delivery performance.",
-    "filters": {
-      "today": "Today",
-      "last7": "Last 7 days",
-      "last30": "Last 30 days"
-    },
     "kpi": {
       "revenue": "Revenue",
-      "invested": "Invested",
       "netProfit": "Net profit",
-      "confirmationRate": "Confirmation rate",
-      "deliveryRate": "Delivery rate",
-      "orders": "Orders"
-    },
-    "timeChart": {
-      "title": "Profit and spend over time"
-    },
-    "funnel": {
-      "title": "Funnel",
-      "received": "Received",
-      "confirmed": "Confirmed",
-      "shipped": "Shipped",
-      "delivered": "Delivered",
-      "dropOff": "drop-off"
+      "deliveryRate": "Delivery rate"
     },
     "wilaya": {
       "title": "Per-wilaya",
@@ -764,24 +745,8 @@
       "confirmationTitle": "Confirmation status breakdown",
       "deliveryTitle": "Delivery status breakdown"
     },
-    "byAgent": {
-      "title": "Per-agent rates",
-      "stage": "Stage",
-      "avgDecisionTime": "Avg. decision time"
-    },
-    "byProduct": {
-      "title": "Per-product rates"
-    },
     "categorySpending": {
       "title": "Spending by category"
-    },
-    "export": {
-      "title": "Export",
-      "orders": "Orders",
-      "summary": "Summary"
-    },
-    "quickActions": {
-      "title": "Quick actions"
     },
     "meeting": {
       "title": "Next meeting",
@@ -797,43 +762,16 @@
       "queue": "Your queue",
       "stats": "Your stats"
     },
-    "noData": "No data for this filter yet.",
-    "today": {
-      "title": "Today",
-      "ordersToday": "Orders today",
-      "vsYesterday": "{n} yesterday",
-      "toConfirm": "To confirm",
-      "toShip": "To ship",
-      "cashToCollect": "Cash to collect",
-      "cashSub": "Delivered, not yet received",
-      "stuck": "Stuck parcels",
-      "stuckSub": "No update for {days}+ days"
-    },
     "kpi2": {
-      "totalCosts": "Total costs",
       "roas": "ROAS",
-      "costPerDelivered": "Cost per delivered",
-      "aov": "Avg. order value",
-      "returnRate": "Return rate",
       "margin": "Margin {pct}",
       "breakEven": "Break-even {pct}",
-      "breakEvenUnreachable": "Break-even unreachable at these costs",
-      "period": "Period"
+      "breakEvenUnreachable": "Break-even unreachable at these costs"
     },
     "hint": {
       "netProfit": "Revenue − product cost − returned orders × return fee − ad spend − expenses − fixed fees (prorated per day).",
-      "revenue": "Sale price × quantity of delivered orders. The delivery fee is paid by the customer to the courier, so it is not revenue.",
-      "totalCosts": "Product cost + return fees + ad spend + expenses + fixed fees for the period.",
       "roas": "Revenue ÷ ad spend. Above 1 means ads return more than they cost.",
-      "costPerDelivered": "All costs ÷ delivered orders — what each delivered order really costs you.",
-      "aov": "Revenue ÷ delivered orders.",
-      "confirmationRate": "Confirmed orders ÷ orders received.",
-      "deliveryRate": "Delivered ÷ confirmed. Break-even = the delivery rate at which net profit is 0 with this period's costs.",
-      "returnRate": "Returned ÷ (delivered + returned).",
-      "cashToCollect": "Sale value of delivered orders with no cash collection recorded yet — money the courier owes you.",
-      "toConfirm": "Waiting for confirmation, no answer, or phone closed.",
-      "toShip": "Confirmed but not yet deposited at the courier.",
-      "stuck": "At the courier (deposited, in transit, out for delivery, stop desk) with no update for several days."
+      "deliveryRate": "Delivered ÷ confirmed. Break-even = the delivery rate at which net profit is 0 with this period's costs."
     },
     "pnl": {
       "title": "Profit & loss",
@@ -845,14 +783,78 @@
       "fixed": "Fixed fees",
       "net": "Net profit"
     },
-    "alerts": {
-      "title": "Alerts",
-      "none": "All clear — nothing needs attention.",
-      "lowStock": "{name}: {stock} left (threshold {min})",
-      "lowBalance": "{name}: balance below threshold",
-      "losingWilaya": "{name}: delivery rate {rate} — stop shipping suggested",
-      "belowBreakEven": "Delivery rate {rate} is below break-even ({be})",
-      "stuck": "{n} parcels with no update for {days}+ days"
+    "v2": {
+      "loadError": "Could not load this section.",
+      "retry": "Retry",
+      "needsAction": {
+        "title": "Needs action",
+        "toConfirm": "To confirm",
+        "toConfirmHint": "Orders waiting for a confirmation call.",
+        "toShip": "To ship",
+        "toShipHint": "Confirmed but not yet deposited at the courier.",
+        "toRetry": "To retry",
+        "toRetryHint": "Customer did not answer or phone is closed: call again.",
+        "stuck": "Stuck parcels",
+        "stuckSub": "No update for {days}+ days",
+        "stuckHint": "At the courier (deposited, in transit, out for delivery, stop desk) with no update for several days."
+      },
+      "money": {
+        "title": "Money",
+        "profit": "Net profit",
+        "profitHint": "Revenue minus product cost, return fees, ad spend, expenses and fixed fees for the period.",
+        "revenue": "Revenue",
+        "revenueHint": "Sale price x quantity of delivered orders. The delivery fee is paid to the courier by the customer, so it is not revenue.",
+        "adSpend": "Ad spend",
+        "adSpendHint": "Ad spend for the period. Paid in USD: dollars first, dinars under it.",
+        "costPerDelivered": "Cost per delivered",
+        "costPerDeliveredHint": "All costs divided by delivered orders: what each delivered order really costs you.",
+        "roas": "ROAS",
+        "roasHint": "Revenue divided by ad spend. Above 1 means ads return more than they cost.",
+        "cashWithZr": "Cash with ZR",
+        "cashWithZrSub": "Coming with the money module",
+        "cashWithZrHint": "Cash the courier holds for you. Not tracked yet.",
+        "rateLabel": "Rate {rate} DA per $ on {date}",
+        "noRate": "Set a USD rate",
+        "waterfallTitle": "Where the money goes",
+        "noData": "No data for this period yet.",
+        "wf": {
+          "revenue": "Revenue",
+          "cogs": "Product cost",
+          "returns": "Return fees",
+          "ads": "Ad spend",
+          "expensesFixed": "Expenses and fixed fees",
+          "net": "Net profit"
+        }
+      },
+      "journey": {
+        "title": "Order journey",
+        "received": "Received",
+        "confirmed": "Confirmed",
+        "onRoad": "On road",
+        "delivered": "Delivered",
+        "collected": "Collected by ZR",
+        "collectedHint": "Coming with ZR sync",
+        "paidOut": "Paid out",
+        "paidOutHint": "Coming with the money module"
+      },
+      "stock": {
+        "title": "Stock",
+        "empty": "No products yet.",
+        "add": "Add a product",
+        "low": "Low",
+        "inStock": "In stock",
+        "reserved": "Reserved",
+        "viewAll": "View all {n} products"
+      },
+      "scorecard": {
+        "title": "Products",
+        "empty": "No products yet.",
+        "product": "Product",
+        "deliveryRate": "Delivery rate",
+        "costPerDelivered": "Cost per delivered",
+        "roas": "ROAS",
+        "profit": "Net profit"
+      }
     }
   },
   "finance": {
