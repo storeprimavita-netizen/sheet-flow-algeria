@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
+import { normalizeText } from "@/lib/utils";
 
 describe("WILAYA_CENTROIDS", () => {
   it("has exactly the 58 wilaya codes, no duplicates", () => {
@@ -15,6 +17,22 @@ describe("WILAYA_CENTROIDS", () => {
       expect(lon).toBeGreaterThan(-9);
       expect(lon).toBeLessThan(13);
     }
+  });
+
+  it("names match the seed list for codes 1..58", () => {
+    const seed = readFileSync("supabase/migrations/00007_seed.sql", "utf8");
+    const pairs = [...seed.matchAll(/\((\d+),'((?:[^']|'')*)'\)/g)];
+    expect(pairs).toHaveLength(58);
+    for (const [, code, name] of pairs) {
+      expect(normalizeText(WILAYA_CENTROIDS[Number(code)].name)).toBe(normalizeText(name.replace(/''/g, "'")));
+    }
+  });
+
+  it("southern wilayas sit under the right codes", () => {
+    expect(WILAYA_CENTROIDS[49].lat).toBeCloseTo(29.3, 0);
+    expect(WILAYA_CENTROIDS[49].lon).toBeCloseTo(0.2, 0);
+    expect(WILAYA_CENTROIDS[58].lat).toBeCloseTo(30.6, 0);
+    expect(WILAYA_CENTROIDS[58].lon).toBeCloseTo(2.9, 0);
   });
 });
 
