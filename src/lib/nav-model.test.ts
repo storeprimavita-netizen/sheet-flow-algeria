@@ -167,6 +167,7 @@ describe("app shell (D32, review-4)", () => {
   it("drawer closes on Escape, is inert when closed, is a labelled dialog, brand row is 44px", () => {
     expect(src).toContain('e.key === "Escape"');
     expect(src).toContain("inert={!open && !isDesktop}");
+    expect(src).toContain("inert={open && !isDesktop}"); // page behind the modal drawer is inert
     expect(src).toContain('role: "dialog"');
     expect(src).toContain('"aria-modal": true');
     expect(src).toContain("toggleRef.current?.focus()");

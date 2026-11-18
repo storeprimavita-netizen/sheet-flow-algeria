@@ -396,7 +396,7 @@ export function AppShell({
           <div className="fixed inset-0 z-30 bg-overlay md:hidden" onClick={() => setOpen(false)} />
         )}
 
-        <div className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
+        <div inert={open && !isDesktop} className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
             <Button ref={toggleRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label={t("nav.toggleSidebar")}>
               <Menu className="h-5 w-5" />
