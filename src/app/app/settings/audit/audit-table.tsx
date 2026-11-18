@@ -21,10 +21,11 @@ function Value({ v, label, pill }: { v: DiffValue; label: string; pill: string }
   return (
     <span
       role="note"
+      dir="ltr"
       tabIndex={0}
       title={label}
       aria-label={`${pill} ${v.fingerprint}. ${label}`}
-      className="rounded border border-border bg-secondary px-1"
+      className="inline-block rounded border border-border bg-secondary px-1"
     >
       {pill} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
     </span>
