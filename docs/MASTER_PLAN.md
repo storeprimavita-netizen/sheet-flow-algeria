@@ -22,7 +22,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | O-2 | Back up Supabase, `npx supabase db push` 00020–00027, regen types, rotate the tokenrouter/kimi key, delete the backup bundle (old P0-6) | production only | open |
 | O-3 | Vercel project + env vars + auth URLs + `CRON_SECRET`; re-register the ZR webhook (old P0-7) | deploy | open |
 | P-1 | Calculator formulas: the calculator's source code, or its results for the "benz" sample (the pasted math arrived blank twice) | PRICE-1 final numbers | closed (2026-11-18: formulas are settings the owner edits, D38) |
-| M-1 | List today's finance accounts and say which fold into DZD and which into USDT | MONEY-1 data mapping | open |
+| M-1 | List today's finance accounts and say which fold into DZD and which into USDT | MONEY-1 data mapping | closed (2026-11-18: three accounts ZR / DZD / USDT, default mapping in D39) |
 | C-1 | Run `scripts/zr-probe.ts` with the ZR token; Yalidine API id + token when wanted | ZR-3, ZR-4, CARRIER-2 | open |
 | C-2 | Delivery-price sheet (wilaya × home/stop-desk) | P1-7 | closed (2026-11-18: `prices/Algeria_numbered.csv`, kept local) |
 | S-1 | Store assets: logo + WhatsApp icon files, product photos, policy texts, domain DNS for `luxemodesty.shop` | STORE-2 content, STORE-6 domain | open |
@@ -61,8 +61,8 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | CONF-3 | Customer score hover card | CONF | L | ui | – | orders | CONF-1 | todo |
 | CONF-4 | Attempt timeline, callback time, "callbacks due" view | CONF | H | ui | M | orders | CONF-1 | todo |
 | CONF-5 | Auto-cancel job + phone blocklist / auto-hold | CONF | H | sec | M | orders | CONF-4 | todo |
-| MONEY-1 | Two-account ledger: `kind`, USDT, `account_entries`, constraints, RLS, audit; map old accounts | MONEY | H | – | M | money | O-1, M-1 | todo |
-| MONEY-2 | Accounts screen: two cards, quick-add ledger, transfer | MONEY | L | ui | – | money | MONEY-1, NAV-3 | todo |
+| MONEY-1 | Three-account ledger (D39): `kind` zr|dzd|usdt, USDT currency, append-only `account_entries`, "mark ZR payout taken" moves ZR → DZD, constraints, RLS, audit; map old accounts by D39 | MONEY | H | – | M | money | O-1 | todo |
+| MONEY-2 | Accounts screen: three cards (ZR / DZD / USDT), quick-add ledger, transfer, mark ZR payout taken | MONEY | L | ui | – | money | MONEY-1, NAV-3 | todo |
 | MONEY-3 | "Paid from" on expense/ad-spend forms; statement export | MONEY | L | ui | – | money | MONEY-2 | todo |
 | NOTIF-1 | `notifications` + bell + inbox + prefs; task/meeting/order events | NOTIF | H | ui | M | team | O-1 | todo |
 | NOTIF-2 | Telegram linking, webhook, outbox worker | NOTIF | H | sec | M | team | NOTIF-1 | todo |
