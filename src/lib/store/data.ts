@@ -133,7 +133,7 @@ async function loadVariants(db: Db, productId: string, productStock: number): Pr
       .sort((a, b) => (pos.get(a.option_id) ?? 0) - (pos.get(b.option_id) ?? 0))
       .map((j) => label.get(j.value_id))
       .filter((l): l is string => !!l);
-    return parts.length ? [{ label: parts.join(" / "), inStock: v.stock + unassigned > 0 }] : [];
+    return parts.length ? [{ label: parts.join(" / "), inStock: v.stock + Math.max(0, unassigned) > 0 }] : [];
   });
 }
 

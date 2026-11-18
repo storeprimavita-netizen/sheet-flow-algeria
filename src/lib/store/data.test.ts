@@ -81,6 +81,46 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(await stock()).toEqual([["M", false], ["L", false]]);
   });
 
+  async function sizes(labels: string[]) {
+    const { store, product } = await setup();
+    const o = (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name: "Size" }).select("id").single()).data!.id;
+    const ids: Record<string, string> = {};
+    for (const label of labels) {
+      const v = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id: o, label }).select("id").single()).data!.id;
+      const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id, sku: `S-${label}` }).select("id").single()).data!.id;
+      await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
+      ids[label] = x;
+    }
+    const move = async (delta: number, variantId?: string) => {
+      const { error } = await svc.from("stock_movements").insert({ workspace_id: ws, product_id: product.id, variant_id: variantId ?? null, delta, reason: "purchase" });
+      expect(error).toBeNull();
+    };
+    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
+    return { ids, move, stock, store };
+  }
+
+  test("not assigned below zero never hides a counted size (D57a)", async () => {
+    const { ids, move, stock } = await sizes(["M", "L"]);
+    await move(10);
+    await move(-10);
+    await move(5, ids.M);
+    await move(5, ids.L);
+    await move(-8); // an old order ships after the count: not assigned = -8
+    expect(await stock()).toEqual([["M", true], ["L", true]]);
+    await move(-5, ids.M); // M sells its 5
+    expect(await stock()).toEqual([["M", false], ["L", true]]);
+  });
+
+  test("a switched-off size's pieces are not handed to active sizes (D57b)", async () => {
+    const { ids, move, stock, store } = await sizes(["M", "L"]);
+    await move(10);
+    await move(-10);
+    await move(10, ids.L);
+    await svc.from("product_variants").update({ is_active: false }).eq("id", ids.L);
+    expect(await stock()).toEqual([["M", false]]);
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => v.label)).toEqual(["M"]);
+  });
+
   test("unpublished page 404", async () => {
     const { store } = await setup({ page: { status: "draft" } });
     expect(await loadPublicProductPage(svc, store.slug, "abaya")).toBeNull();
