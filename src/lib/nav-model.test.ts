@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { GROUPS, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
+import { GROUPS, groupCounterTotal, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
@@ -102,5 +102,16 @@ describe("nav model (round 4)", () => {
     expect(items[0].key).toBe("settingsOverview");
     const icons = navLeaves("admin").map((l) => l.icon);
     expect(new Set(icons).size).toBe(icons.length);
+  });
+});
+
+describe("nav model (round 5)", () => {
+  it("collapsed header counter sums the group's counters", () => {
+    const sell = GROUPS.find((g) => g.key === "groupSell")!;
+    const team = GROUPS.find((g) => g.key === "groupTeam")!;
+    const counts = { confirmation: 3, delivery: 4, tasks: 5 };
+    expect(groupCounterTotal(sell, counts)).toBe(7);
+    expect(groupCounterTotal(team, counts)).toBe(5);
+    expect(groupCounterTotal(GROUPS.find((g) => g.key === "groupSettings")!, counts)).toBe(0);
   });
 });

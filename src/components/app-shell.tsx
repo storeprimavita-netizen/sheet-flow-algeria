@@ -23,7 +23,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { visibleNav, activeLeafHref, parseClosedGroups, type NavLeaf, type NavGroup, type CounterKey } from "@/components/nav-model";
+import { visibleNav, activeLeafHref, groupCounterTotal, parseClosedGroups, type NavLeaf, type NavGroup, type CounterKey } from "@/components/nav-model";
 
 const COLLAPSE_KEY = "mnw:sidebar-collapsed";
 const GROUPS_KEY = "mnw:nav-groups";
@@ -87,9 +87,9 @@ export function AppShell({
     );
   }
 
-  function Leaf({ item }: { item: NavLeaf }) {
+  function Leaf({ item, activeOverride }: { item: NavLeaf; activeOverride?: boolean }) {
     const Icon = item.icon;
-    const active = activeHref === item.href;
+    const active = activeOverride ?? activeHref === item.href;
     const label = t(`nav.${item.key}`);
     const link = (
       <Link
@@ -124,7 +124,15 @@ export function AppShell({
   function Group({ group }: { group: NavGroup }) {
     const hasActive = group.items.some((i) => i.href === activeHref);
     const isOpen = hasActive || !(closedGroups[group.key] ?? group.defaultClosed ?? false);
-    const total = group.items.reduce((n, c) => n + (c.counter ? counts[c.counter] ?? 0 : 0), 0);
+    const total = groupCounterTotal(group, counts);
+    if (collapsed && group.pinned === "bottom") {
+      // Rail: one gear for the whole Settings group (its first leaf is the overview).
+      return (
+        <div className="border-t border-border pt-2">
+          <Leaf item={group.items[0]} activeOverride={hasActive} />
+        </div>
+      );
+    }
     if (collapsed) {
       return (
         <div className="space-y-0.5 border-t border-border pt-2 first:border-t-0 first:pt-0">

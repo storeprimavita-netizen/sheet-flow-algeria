@@ -140,6 +140,10 @@ export function activeLeafHref(role: Role | null, pathname: string): string | un
 }
 
 /** Parse the persisted user-collapsed map; anything malformed yields {}. */
+export function groupCounterTotal(group: NavGroup, counts: Record<CounterKey, number>): number {
+  return group.items.reduce((n, c) => n + (c.counter ? counts[c.counter] ?? 0 : 0), 0);
+}
+
 export function parseClosedGroups(raw: string | null): Record<string, boolean> {
   try {
     const v: unknown = JSON.parse(raw ?? "{}");
