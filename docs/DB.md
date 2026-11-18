@@ -31,7 +31,8 @@ Finally regenerate types:
 | `current_fx_rate(ws, currency)` | Latest manual rate (DZD=1) |
 | `bootstrap_workspace(email, name)` | One-shot first workspace + admin + seed |
 | `seed_workspace(ws)` | Idempotent per-workspace defaults (58 fee rows + settings) |
-| `audit_row()` | Generic audit trigger fn → `audit_log` |
+| `audit_row()` | Generic audit trigger fn → `audit_log`; old/new pass through `audit_redact()` (00033) |
+| `audit_redact(jsonb)` | Stable, not callable by anon/authenticated. Fail closed (D49, 00035): a JSON key, or the `key` of a `{key, value}` row, is normalised (camelCase, `-`, `.`, space, `:` → `_`, lowercase) and masked when its last segment is `key(s)`, `token(s)`, `secret(s)`, `password`/`passwd`/`pwd`/`passphrase`, `credential(s)`, `authorization`, `signature` (e.g. `secret_key`, `client_key`, `webhook_key`, `telegram.token`). Allow-list: `key`/`keys`, `idempotency_key`, `sort_key`, `cache_key`, `(color\|design\|theme)_token(s)`. Masks the whole value (any JSON type) → `[redacted:<sha256 first 8 hex>]`; also string values starting `whsec_`/`sk_`/`shpss_`/`shpat_`/`Bearer `. 00035 backfill rewrites only changed `audit_log` rows |
 | `transition_order_status(order_id, confirmation_status?, delivery_status?, comment?)` | Security-definer status transition (00009) — a plain agent `UPDATE` moving `confirmation_status` to `'confirmed'` fails RLS because the post-update row no longer satisfies the agent's own SELECT policy; re-checks authorization manually and bypasses that. Used by every agent-facing status change instead of `.update()`. |
 
 ## Tables (all have `workspace_id` unless noted)

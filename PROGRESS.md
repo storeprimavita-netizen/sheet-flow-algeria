@@ -242,3 +242,16 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: gate lines tsc, tests, i18n parity, color lint, build, protected paths, secret scan all PASS.
 - Owner: none.
 - Next: none in this row.
+
+## SEC-1 — redact secrets in audit_log
+- Done: migration 00033 (`audit_redact()`, `audit_row()` wraps old/new, backfill scrub; search_path public, pg_temp); `src/lib/audit-redact.ts` second layer in the audit page; redacted values shown as `[redacted · ab12cd34]` mono chip with tooltip (`audit.redacted`, en+ar); unit + live RLS tests.
+- Verify: scripts/gate.sh GATE OK, 272 tests. Screenshots EN + AR (dark only) docs/design/audit/SEC-1-{en,ar}.png: chip readable, diff shows changed fingerprint, RTL ok. Light theme not checked.
+- Owner: none. Backfill matched 99 local rows (broad key regex, over-redaction accepted per brief).
+
+- SEC-1 review-1 FIX: explicit secret-key list (color_token etc. untouched), non-string values and settings `{key,value}` masked, redaction + display on the server (`_lib/diff.ts`, `audit-redact.ts` server-only, no browser crypto), `<bdi dir="ltr">` cells, bordered chip, `audit_redact` stable + revoked from anon/authenticated. 00033 edited in place (unmerged) and verified by local db reset; seed test secret gone. Backfill rewrites `audit_log` in place on remote (owner push). Non-object fingerprints in TS may differ from SQL (jsonb text format); primitives match. AR light / 390px screenshots not retaken.
+
+## SEC-1 — DONE (audit-log secret redaction; merged under D40)
+- Done: 00033–00035 `audit_redact` fail-closed (D49) in `audit_row()` + idempotent backfill of `audit_log`; server-side diff with redacted chip on /app/settings/audit.
+- Verify: security reviews 1–4; review-4 no high finding, two medium moved to SEC-1-F.
+- Evidence: full scripts/gate.sh GATE OK, 300 tests with the live RLS suite.
+- Owner: production db push of 00033–00035 is owner-only (O-2); the backfill rewrites audit_log rows (contents only, none deleted).
