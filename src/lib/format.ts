@@ -13,6 +13,15 @@ export function formatCurrency(
   return ltr(`${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}DA`);
 }
 
+/** Whole US dollars, comma-grouped, isolated for RTL: `$1,234`. */
+export function formatUsd(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const raw = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(raw)) return "—";
+  const n = Math.round(raw) || 0;
+  return ltr(`${n < 0 ? "−" : ""}$${Math.abs(n).toLocaleString("en-US")}`);
+}
+
 /** Wrap in Unicode LTR isolates (LRI…PDI) so a number keeps its order inside
  * Arabic text: "−349 067 DA" never becomes "DA 349 067", "-391.4%" stays put. */
 export const ltr = (s: string) => `\u2066${s}\u2069`;
