@@ -48,3 +48,11 @@ Admin on /app/dashboard and /app/orders/confirmation (expanded, one group collap
 - Counters on collapsed group header show the sum (as today).
 - No role (`null`): show nothing.
 - No new DECISIONS row needed.
+
+## Round 4 (branch v3-NAV-1 already has steps 1-4 + review fixes; only the review-3 residue remains)
+Source: `docs/briefs/NAV-1.review-3.md` on `v3-NAV-1` (merge/checkout that branch first; no product decision needed, D16 covers).
+5. app-shell.tsx: Settings must not squeeze the scrolling nav. Move the Settings block inside the scrolling `<nav>` at its end, or cap it (`max-h-[40vh] overflow-y-auto`). Verify at 1280x720 that Money is not clipped with Settings expanded.
+6. nav-model.tsx: Users & roles icon = `UserCog` (not `Users`, shared with Customers); put Settings overview first.
+7. app-shell.tsx Group: hide/dim the chevron when `hasActive` (aria-disabled header). Rail: one gear icon for Settings (optional).
+8. Tests: nav href -> existing `src/app/app/**/page.tsx`; agent `visibleNav` group structure (Sell only); palette "Delivery"/"Shipping" same item, "Cash" finds Courier cash; counter sum on collapsed header (render test if cheap).
+Final review must cover the unchecked matrix: light theme, 390 px drawer, icon rail, agent login, interactive ⌘K, keyboard focus. Screenshot AR + EN, both themes.
