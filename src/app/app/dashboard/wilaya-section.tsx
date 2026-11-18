@@ -23,7 +23,7 @@ export type WilayaRow = WilayaMapDatum & {
  * filtered to that wilaya. Map stacks below the table on narrow screens
  * (grid-cols-1 lg:grid-cols-[1fr,auto]).
  */
-export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[]; minOrders: number; filters: DashboardFilters }) {
+export function WilayaSection({ rows, minOrders, filters, names }: { rows: WilayaRow[]; minOrders: number; filters: DashboardFilters; names?: Record<number, string> }) {
   const t = useTranslations();
   const router = useRouter();
   const [hovered, setHovered] = React.useState<number | null>(null);
@@ -42,7 +42,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
     <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 lg:grid-cols-[1fr_auto]">
       <div className="min-w-0 overflow-x-auto">
         <h2 className="mb-3 text-sm font-semibold">{t("dashboard.wilaya.title")}</h2>
-        <table className={tableClass}>
+        <table className={cn(tableClass, "min-w-[34rem]")}>
           <thead>
             <tr>
               <th>{t("fields.wilaya")}</th>
@@ -63,7 +63,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
               >
                 <td>
                   <Link href={wilayaHref(w.code)} className="hover:underline">
-                    {w.name ? <><bdi dir="ltr">{w.code}</bdi>-{w.name}</> : <bdi dir="ltr">{w.code}</bdi>}
+                    {w.name ? <><bdi dir="ltr">{w.code}</bdi><span aria-hidden> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{w.code}</bdi>}
                   </Link>
                 </td>
                 <td className="num">{w.totalOrders}</td>
@@ -96,6 +96,7 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
           onSelect={(code) => router.push(wilayaHref(code))}
           label={t("dashboard.wilaya.mapLabel")}
           noDataLabel={t("dashboard.wilaya.noData")}
+          names={names}
         />
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" /><bdi dir="ltr">&lt;40%</bdi></span>
