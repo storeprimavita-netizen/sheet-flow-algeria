@@ -38,6 +38,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let orderId: string;
+  let productId: string;
   let parcel: string;
   let prevCfg: { config: unknown; secret: string | null; is_active: boolean } | null;
   let prevMap: unknown;
@@ -50,12 +51,15 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     });
   const order = async () => (await admin.from("orders").select("delivery_status").eq("id", orderId).single()).data!.delivery_status;
   const shipment = async () => (await admin.from("zr_shipments").select("*").eq("order_id", orderId).single()).data!;
-  const stock = async () => (await admin.from("stock_movements").select("id").eq("order_id", orderId).eq("reason", "order_returned")).data!.length;
+  // D25: units restocked relative to the confirmed baseline (qty 1): returned = 1, shipped/delivered = 0
+  const stock = async () =>
+    ((await admin.from("stock_movements").select("delta").eq("order_id", orderId)).data ?? []).reduce((s, m) => s + m.delta, 1);
 
   async function reset() {
-    await admin.from("stock_movements").delete().eq("order_id", orderId).eq("reason", "order_returned");
     await admin.from("zr_shipments").delete().eq("order_id", orderId);
-    await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", orderId);
+    await admin.from("orders").update({ delivery_status: "wait_for_deposit", confirmation_status: "wait_for_confirmation" }).eq("id", orderId);
+    await admin.from("stock_movements").delete().eq("order_id", orderId);
+    await admin.from("orders").update({ confirmation_status: "confirmed" }).eq("id", orderId); // holds 1 unit (-1)
     await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
     parcel = crypto.randomUUID();
     await admin.from("zr_shipments").insert({ order_id: orderId, workspace_id: ws, parcel_id: parcel });
@@ -66,17 +70,20 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = URL;
     process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
     admin = createClient(URL!, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: o } = await admin.from("orders").select("id, workspace_id").not("product_id", "is", null).eq("delivery_status", "wait_for_deposit").limit(1).single();
-    orderId = o!.id; ws = o!.workspace_id;
+    ws = (await admin.from("workspaces").select("id").limit(1).single()).data!.id;
+    productId = (await admin.from("products").insert({ workspace_id: ws, name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
+    orderId = (await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: 1 }).select("id").single()).data!.id;
     prevCfg = (await admin.from("integration_configs").select("config, secret, is_active").eq("workspace_id", ws).eq("provider", "zrexpress").maybeSingle()).data;
     await admin.from("integration_configs").upsert({ workspace_id: ws, provider: "zrexpress", config: {}, secret: SECRET, is_active: true });
     prevMap = (await admin.from("settings").select("value").eq("workspace_id", ws).eq("key", "zr_state_map").maybeSingle()).data?.value;
   });
   afterAll(async () => {
     if (!admin) return;
-    await admin.from("stock_movements").delete().eq("order_id", orderId).eq("reason", "order_returned");
     await admin.from("zr_shipments").delete().eq("order_id", orderId);
-    await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", orderId);
+    await admin.from("stock_movements").delete().eq("order_id", orderId);
+    await admin.from("orders").delete().eq("id", orderId);
+    await admin.from("stock_movements").delete().eq("product_id", productId);
+    await admin.from("products").delete().eq("id", productId);
     await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
     if (prevCfg) await admin.from("integration_configs").update(prevCfg as never).eq("workspace_id", ws).eq("provider", "zrexpress");
     else await admin.from("integration_configs").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
@@ -109,7 +116,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await order()).toBe("in_transit");
     await rpc("Retour", T(30));
     expect(await order()).toBe("returned");
-    expect(await stock()).toBe(2); // two genuine returned transitions, no extras
+    expect(await stock()).toBe(1); // D25: two returned transitions net one restock
   });
 
   test("returned -> admin sets delivered -> same-timestamp apply leaves delivered, stock once", async () => {
