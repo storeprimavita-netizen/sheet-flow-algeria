@@ -28,6 +28,123 @@ import { visibleNav, activeLeafHref, groupCounterTotal, parseClosedGroups, type 
 const COLLAPSE_KEY = "mnw:sidebar-collapsed";
 const GROUPS_KEY = "mnw:nav-groups";
 
+type NavCtx = {
+  t: ReturnType<typeof useTranslations>;
+  counts: Record<CounterKey, number>;
+  collapsed: boolean;
+  tooltipSide: "left" | "right";
+  activeHref: string | undefined;
+  onNavigate: () => void;
+};
+
+function Counter({ counter, n: given, counts }: { counter?: CounterKey; n?: number; counts: Record<CounterKey, number> }) {
+  if (!counter && given === undefined) return null;
+  const n = given ?? counts[counter!] ?? 0;
+  return (
+    <span
+      className={cn(
+        "num ms-auto rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+        n > 0 ? "bg-primary/15 text-primary" : "text-faint",
+      )}
+    >
+      {n}
+    </span>
+  );
+}
+
+function Leaf({ ctx, item, activeOverride, label: labelOverride }: { ctx: NavCtx; item: NavLeaf; activeOverride?: boolean; label?: string }) {
+  const { t, collapsed, tooltipSide, activeHref, counts } = ctx;
+  const Icon = item.icon;
+  const active = activeOverride ?? activeHref === item.href;
+  const label = labelOverride ?? t(`nav.${item.key}`);
+  const link = (
+    <Link
+      href={item.href}
+      onClick={ctx.onNavigate}
+      aria-label={collapsed ? label : undefined}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group relative flex items-center gap-3 rounded-md py-2 text-sm transition-colors max-md:min-h-11",
+        collapsed ? "justify-center px-2" : "px-3",
+        active
+          ? "bg-primary/10 font-medium text-foreground"
+          : "text-muted-foreground hover:bg-surface-raised hover:text-foreground",
+      )}
+    >
+      {active && !collapsed ? (
+        <span className="absolute start-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-e bg-primary" aria-hidden />
+      ) : null}
+      <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
+      {!collapsed && <span className="truncate">{label}</span>}
+      {!collapsed && <Counter counter={item.counter} counts={counts} />}
+    </Link>
+  );
+  if (!collapsed) return link;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <TooltipContent side={tooltipSide}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function Group({
+  ctx,
+  group,
+  closedGroups,
+  onToggle,
+}: {
+  ctx: NavCtx;
+  group: NavGroup;
+  closedGroups: Record<string, boolean>;
+  onToggle: (key: string, nextClosed: boolean) => void;
+}) {
+  const { t, counts, collapsed, activeHref } = ctx;
+  const hasActive = group.items.some((i) => i.href === activeHref);
+  const isOpen = hasActive || !(closedGroups[group.key] ?? group.defaultClosed ?? false);
+  const total = groupCounterTotal(group, counts);
+  if (collapsed) {
+    return (
+      <div className="space-y-0.5 border-t border-border pt-2 first:border-t-0 first:pt-0">
+        {group.items.map((i) => <Leaf key={i.href} ctx={ctx} item={i} />)}
+      </div>
+    );
+  }
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-disabled={hasActive}
+        onClick={() => {
+          if (!hasActive) onToggle(group.key, isOpen);
+        }}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors max-md:min-h-11",
+          hasActive ? "cursor-default" : "hover:text-foreground",
+        )}
+      >
+        <span className="truncate">{t(`nav.${group.key}`)}</span>
+        {!isOpen && total > 0 ? <Counter n={total} counts={counts} /> : null}
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
+            hasActive && "invisible",
+            !(!isOpen && total > 0) && "ms-auto",
+            !isOpen && "-rotate-90 rtl:rotate-90",
+          )}
+        />
+      </button>
+      {isOpen ? (
+        <div className="mt-0.5 space-y-0.5">
+          {group.items.map((i) => <Leaf key={i.href} ctx={ctx} item={i} />)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function AppShell({
   user,
   role,
@@ -46,7 +163,9 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({}); // user-collapsed groups
 
+  const [kbdHint, setKbdHint] = useState("⌘K");
   useEffect(() => {
+    if (!/Mac|iPhone|iPad/.test(navigator.platform)) setKbdHint("Ctrl K");
     setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
     setClosedGroups(parseClosedGroups(localStorage.getItem(GROUPS_KEY)));
   }, []);
@@ -77,121 +196,36 @@ export function AppShell({
   const initial = (user.email?.[0] ?? "M").toUpperCase();
   const activeHref = activeLeafHref(role, pathname);
 
-  function Counter({ counter, n: given }: { counter?: CounterKey; n?: number }) {
-    if (!counter && given === undefined) return null;
-    const n = given ?? counts[counter!] ?? 0;
-    return (
-      <span
-        className={cn(
-          "num ms-auto rounded-full px-1.5 py-0.5 text-[11px] font-medium",
-          n > 0 ? "bg-primary/15 text-primary" : "text-faint",
-        )}
-      >
-        {n}
-      </span>
-    );
-  }
-
-  function Leaf({ item, activeOverride }: { item: NavLeaf; activeOverride?: boolean }) {
-    const Icon = item.icon;
-    const active = activeOverride ?? activeHref === item.href;
-    const label = t(`nav.${item.key}`);
-    const link = (
-      <Link
-        href={item.href}
-        onClick={() => setOpen(false)}
-        aria-label={collapsed ? label : undefined}
-        aria-current={active ? "page" : undefined}
-        className={cn(
-          "group relative flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
-          collapsed ? "justify-center px-2" : "px-3",
-          active
-            ? "bg-primary/10 font-medium text-foreground"
-            : "text-muted-foreground hover:bg-surface-raised hover:text-foreground",
-        )}
-      >
-        {active && !collapsed ? (
-          <span className="absolute start-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-e bg-primary" aria-hidden />
-        ) : null}
-        <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
-        {!collapsed && <span className="truncate">{label}</span>}
-        {!collapsed && <Counter counter={item.counter} />}
-      </Link>
-    );
-    if (!collapsed) return link;
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side={tooltipSide}>{label}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  function Group({ group }: { group: NavGroup }) {
-    const hasActive = group.items.some((i) => i.href === activeHref);
-    const isOpen = hasActive || !(closedGroups[group.key] ?? group.defaultClosed ?? false);
-    const total = groupCounterTotal(group, counts);
-    if (collapsed && group.pinned === "bottom") {
-      // Rail: one gear for the whole Settings group (its first leaf is the overview).
-      return (
-        <div className="border-t border-border pt-2">
-          <Leaf item={group.items[0]} activeOverride={hasActive} />
-        </div>
-      );
-    }
-    if (collapsed) {
-      return (
-        <div className="space-y-0.5 border-t border-border pt-2 first:border-t-0 first:pt-0">
-          {group.items.map((i) => <Leaf key={i.href} item={i} />)}
-        </div>
-      );
-    }
-    return (
-      <div>
-        <button
-          type="button"
-          aria-expanded={isOpen}
-          aria-disabled={hasActive}
-          onClick={() => {
-            if (!hasActive) toggleGroup(group.key, isOpen);
-          }}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors",
-            hasActive ? "cursor-default" : "hover:text-foreground",
-          )}
-        >
-          <span className="truncate">{t(`nav.${group.key}`)}</span>
-          {!isOpen && total > 0 ? <Counter n={total} /> : null}
-          <ChevronDown
-            aria-hidden
-            className={cn(
-              "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
-              hasActive && "invisible",
-              !(!isOpen && total > 0) && "ms-auto",
-              !isOpen && "-rotate-90 rtl:rotate-90",
-            )}
-          />
-        </button>
-        {isOpen ? (
-          <div className="mt-0.5 space-y-0.5">
-            {group.items.map((i) => <Leaf key={i.href} item={i} />)}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
+  const ctx: NavCtx = {
+    t,
+    counts,
+    collapsed,
+    tooltipSide,
+    activeHref,
+    onNavigate: () => setOpen(false),
+  };
 
   const nav = (
     <nav className="flex-1 space-y-3 overflow-y-auto p-3">
-      {home ? <Leaf item={home} /> : null}
-      {mainGroups.map((g) => <Group key={g.key} group={g} />)}
-      {bottomGroups.length ? (
-        <div className="space-y-3 border-t border-border pt-3">
-          {bottomGroups.map((g) => <Group key={g.key} group={g} />)}
-        </div>
-      ) : null}
+      {home ? <Leaf ctx={ctx} item={home} /> : null}
+      {mainGroups.map((g) => (
+        <Group key={g.key} ctx={ctx} group={g} closedGroups={closedGroups} onToggle={toggleGroup} />
+      ))}
     </nav>
   );
+
+  // D32: Settings is one always-visible row outside the scroll area, above the user block.
+  const settingsGroup = bottomGroups[0];
+  const settingsRow = settingsGroup ? (
+    <div className={cn("border-t border-border p-3 pb-0", collapsed && "px-2")}>
+      <Leaf
+        ctx={ctx}
+        item={settingsGroup.items[0]}
+        label={t("nav.groupSettings")}
+        activeOverride={settingsGroup.items.some((i) => i.href === activeHref)}
+      />
+    </div>
+  ) : null;
 
   const brand = (
     <Link href={home?.href ?? groups[0]?.items[0]?.href ?? "/app"} className="flex min-w-0 items-center gap-2.5">
@@ -233,6 +267,7 @@ export function AppShell({
           </div>
 
           {nav}
+          {settingsRow}
 
           <div className={cn("border-t border-border p-3", collapsed && "px-2")}>
             <DropdownMenu>
@@ -293,7 +328,7 @@ export function AppShell({
               <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" aria-label={t("cmd.title")}>
                 <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("cmd.title")}</span>
-                <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">⌘K</kbd>
+                <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">{kbdHint}</kbd>
               </Button>
             </CommandPalette>
             <div className="ms-auto md:hidden">{brand}</div>

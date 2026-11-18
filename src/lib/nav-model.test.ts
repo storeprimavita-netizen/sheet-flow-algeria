@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { GROUPS, groupCounterTotal, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
@@ -113,5 +113,22 @@ describe("nav model (round 5)", () => {
     expect(groupCounterTotal(sell, counts)).toBe(7);
     expect(groupCounterTotal(team, counts)).toBe(5);
     expect(groupCounterTotal(GROUPS.find((g) => g.key === "groupSettings")!, counts)).toBe(0);
+  });
+});
+
+describe("app shell (D32, review-4)", () => {
+  const src = readFileSync(path.join(process.cwd(), "src/components/app-shell.tsx"), "utf8");
+  it("nav components are module-level (inner components remount the nav and drop focus)", () => {
+    const body = src.slice(src.indexOf("export function AppShell"));
+    expect(body).not.toMatch(/^\s+function (Counter|Leaf|Group)\(/m);
+    for (const c of ["Counter", "Leaf", "Group"]) expect(src).toMatch(new RegExp(`^function ${c}\\(`, "m"));
+  });
+  it("Settings is one pinned row labelled Settings, outside the scrolling nav", () => {
+    expect(src).toContain('t("nav.groupSettings")');
+    expect(src.indexOf("{settingsRow}")).toBeGreaterThan(src.indexOf("{nav}"));
+    expect(src).not.toMatch(/bottomGroups\.map/);
+  });
+  it("phone touch targets are at least 44px", () => {
+    expect(src.match(/max-md:min-h-11/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });
