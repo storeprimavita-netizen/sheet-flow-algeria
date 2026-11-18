@@ -242,3 +242,8 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: gate lines tsc, tests, i18n parity, color lint, build, protected paths, secret scan all PASS.
 - Owner: none.
 - Next: none in this row.
+
+## SEC-1 — redact secrets in audit_log
+- Done: migration 00033 (`audit_redact()`, `audit_row()` wraps old/new, backfill scrub; search_path public, pg_temp); `src/lib/audit-redact.ts` second layer in the audit page; redacted values shown as `[redacted · ab12cd34]` mono chip with tooltip (`audit.redacted`, en+ar); unit + live RLS tests.
+- Verify: scripts/gate.sh GATE OK, 272 tests. Screenshots EN + AR (dark only) docs/design/audit/SEC-1-{en,ar}.png: chip readable, diff shows changed fingerprint, RTL ok. Light theme not checked.
+- Owner: none. Backfill matched 99 local rows (broad key regex, over-redaction accepted per brief).
