@@ -76,8 +76,9 @@ describe("medium details", () => {
     ]);
   });
   it("final price 0 vs empty", () => {
-    expect(computeAll(S, { ...benz, finalPrice: 0 }).medium.profitPerPiece).toBeNull();
-    expect(computeAll(S, { ...benz, finalPrice: null }).medium.finalPrice).toBe(5500);
+    for (const f of [0, null, undefined, -100, NaN]) {
+      expect(computeAll(S, { ...benz, finalPrice: f }).medium.finalPrice).toBe(5500);
+    }
   });
 });
 
@@ -123,10 +124,13 @@ describe("native preset", () => {
 });
 
 describe("null not NaN", () => {
-  const all = (r: ReturnType<typeof computeScenario>) =>
-    JSON.stringify(r).includes("NaN") ||
-    JSON.stringify(r).includes("Infinity") ||
-    [r.totalCost, r.recommendedPrice, r.profitPerPiece].some((x) => typeof x === "number" && !Number.isFinite(x));
+  const bad = (v: unknown): boolean =>
+    typeof v === "number"
+      ? !Number.isFinite(v)
+      : v !== null && typeof v === "object"
+        ? Object.values(v).some(bad)
+        : false;
+  const all = (r: ReturnType<typeof computeScenario>) => bad(r);
   it.each([
     ["quantity 0", S, { ...benz, quantity: 0 }, medIn],
     ["100% dead stock", { ...S, deadPct: 1 }, benz, medIn],
@@ -154,7 +158,49 @@ describe("null not NaN", () => {
   it("P = 0 gives null margin", () => {
     const r = computeScenario(S, benz, medIn, 0, 0);
     expect(r.margin).toBeNull();
-    expect(r.profitPerPiece).toBeNull();
+    expect(bad(r)).toBe(false);
+  });
+  it("null medium recommended keeps best/worst P null", () => {
+    const all = computeAll(S, { ...benz, finalPrice: undefined, overrides: { confirmPct: { medium: 0 } } });
+    expect(all.medium.recommendedPrice).toBeNull();
+    for (const n of ["best", "worst"] as const) {
+      expect(all[n].finalPrice).toBeNull();
+      expect(all[n].profitPerPiece).toBeNull();
+    }
+  });
+  it("null / NaN medium ad cost is null, not 0", () => {
+    const r = resolveAdCosts(null);
+    expect(r).toEqual({ best: null, medium: null, worst: null });
+    expect(resolveAdCosts(NaN).worst).toBeNull();
+    expect(resolveAdCosts(null, S, { best: 0 }).best).toBe(0);
+    const all = computeAll(S, { ...benz, adCostUsd: { medium: null as unknown as number } });
+    expect(all.best.totalCost).toBeNull();
+  });
+  it("invalid rounding / mode strings are ignored; bad percentages give null", () => {
+    expect(mergeSettings(S, { rounding: "bogus" as never, target: { mode: "foo" as never } })).toEqual(S);
+    expect(applyRounding(100, "bogus" as never)).toBeNull();
+    expect(computeScenario(S, benz, { ...medIn, confirm: -0.5 }, 4500).totalCost).toBeNull();
+    expect(computeScenario(S, benz, { ...medIn, delivery: 1.5 }, 4500).totalCost).toBeNull();
+    expect(computeScenario({ ...S, deadPct: -0.5 }, benz, medIn, 4500).totalCost).toBeNull();
+  });
+  it("markup mode without product cost gives null target", () => {
+    const s = { ...S, target: { mode: "markup" as const, value: 0.65 } };
+    expect(computeScenario(s, { stockCostDzd: NaN, quantity: 50 }, medIn).targetProfit).toBeNull();
+  });
+  it("k exactly 1 gives null recommended price", () => {
+    expect(computeScenario({ ...S, platformPct: 132 / 255 }, benz, medIn).recommendedPrice).toBeNull();
+  });
+  it("charm price already on the ending stays", () => {
+    expect(applyRounding(5900, "charm900")).toBe(5900);
+  });
+  it("sparse workspace settings fall back to defaults; breakEven not shared", () => {
+    expect(computeAll({ packaging: 90 }, benz).medium.recommendedPrice).toBe(5500);
+    const a = computeScenario({ ...S, officialRate: 0 }, benz, medIn);
+    a.breakEven.minDelivery = 1;
+    expect(computeScenario({ ...S, officialRate: 0 }, benz, medIn).breakEven.minDelivery).toBeNull();
+  });
+  it("native preset recommended price", () => {
+    expect(mid(benz, { ...S, ...NATIVE_PLATFORM_PRESET }).recommendedPrice).toBe(5300);
   });
 });
 

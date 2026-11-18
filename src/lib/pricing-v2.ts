@@ -19,6 +19,8 @@ export type Rounding =
   | "charm990"
   | "charm99";
 
+type N = number | null;
+
 type PerScenario = Record<ScenarioName, number>;
 
 export type PricingSettings = {
@@ -74,9 +76,7 @@ export type PricingProduct = {
   overrides?: DeepPartial<PricingSettings> | null;
 };
 
-export type ScenarioInput = { confirm: number; delivery: number; adCostUsd: number };
-
-type N = number | null;
+export type ScenarioInput = { confirm: N; delivery: N; adCostUsd: N };
 
 export type ScenarioResult = {
   sellable: N;
@@ -147,6 +147,8 @@ const round2 = (x: number) => Math.round(x * 100) / 100;
 
 // ---------- settings merge ----------
 
+const ROUNDINGS: readonly string[] = ["none", "up100", "nearest50", "nearest100", "charm900", "charm990", "charm99"];
+
 function mergeNode(base: unknown, over: unknown): unknown {
   if (over === null || over === undefined) return base;
   if (typeof base === "object" && base !== null) {
@@ -164,21 +166,25 @@ function mergeNode(base: unknown, over: unknown): unknown {
 
 /** Deep merge copying only defined, type-correct, finite values. */
 export function mergeSettings(base: PricingSettings, overrides?: DeepPartial<PricingSettings> | null): PricingSettings {
-  return mergeNode(base, overrides) as PricingSettings;
+  const out = mergeNode(base, overrides) as PricingSettings;
+  if (!ROUNDINGS.includes(out.rounding)) out.rounding = base.rounding;
+  if (out.target.mode !== "profit" && out.target.mode !== "markup") out.target = { ...out.target, mode: base.target.mode };
+  return out;
 }
 
 // ---------- ad costs & rounding ----------
 
 /** best/worst = round2(medium x multiplier) unless typed. */
 export function resolveAdCosts(
-  medium: number,
+  medium: N,
   settings: PricingSettings = DEFAULT_PRICING_SETTINGS,
   typed: { best?: number | null; worst?: number | null } = {},
-): PerScenario {
+): Record<ScenarioName, N> {
+  const derived = (m: number) => (fin(medium) ? round2(medium * m) : null);
   return {
-    best: fin(typed.best) ? typed.best : round2(medium * settings.adMultiplier.best),
-    medium,
-    worst: fin(typed.worst) ? typed.worst : round2(medium * settings.adMultiplier.worst),
+    best: fin(typed.best) ? typed.best : derived(settings.adMultiplier.best),
+    medium: fin(medium) ? medium : null,
+    worst: fin(typed.worst) ? typed.worst : derived(settings.adMultiplier.worst),
   };
 }
 
@@ -210,17 +216,25 @@ export function applyRounding(exact: N, rounding: Rounding): N {
       return charm(1000, 990);
     case "charm99":
       return charm(100, 99);
+    default:
+      return null;
   }
 }
 
 // ---------- engine ----------
 
-const EMPTY_BREAK_EVEN = { minConfirmation: null, minDelivery: null, maxAdCostUsd: null, minSellingPrice: null };
+const emptyBreakEven = (): ScenarioResult["breakEven"] => ({
+  minConfirmation: null,
+  minDelivery: null,
+  maxAdCostUsd: null,
+  minSellingPrice: null,
+});
 
 /**
  * One scenario at explicit confirmation / delivery / ad cost (so the PRICE-3
- * Real column reuses it). `finalPrice` > 0 is P; otherwise `defaultPrice`
- * (callers pass the medium recommended price); finalPrice 0 is "no price".
+ * Real column reuses it). `finalPrice` > 0 is P; anything else (0, negative,
+ * empty, NaN) falls back to `defaultPrice`. `defaultPrice` omitted (undefined)
+ * means this scenario's own recommended price; an explicit null stays null.
  */
 export function computeScenario(
   settings: PricingSettings,
@@ -231,11 +245,13 @@ export function computeScenario(
 ): ScenarioResult {
   const O = settings.officialRate;
   const B = settings.parallelRate;
-  const c = s.confirm;
-  const d = s.delivery;
+  const inRange = (x: N) => (fin(x) && x > 0 && x <= 1 ? x : null);
+  const c = inRange(s.confirm);
+  const d = inRange(s.delivery);
   const ad = s.adCostUsd;
   const ratesOk = fin(O) && O > 0 && fin(B) && B > 0;
-  const sellable = ratesOk ? mul(product.quantity, 1 - settings.deadPct) : null;
+  const deadOk = fin(settings.deadPct) && settings.deadPct >= 0 && settings.deadPct < 1;
+  const sellable = ratesOk && deadOk ? mul(product.quantity, 1 - settings.deadPct) : null;
   const sellableOk = fin(sellable) && sellable > 0 ? sellable : null;
 
   const costPiece = div(product.stockCostDzd, sellableOk);
@@ -267,7 +283,8 @@ export function computeScenario(
   const platformFee = mul(exactPrice, k);
   const recommendedPrice = applyRounding(exactPrice, settings.rounding);
 
-  const P = fin(finalPrice) && finalPrice > 0 ? finalPrice : finalPrice === 0 ? null : (defaultPrice ?? recommendedPrice);
+  const fallback = defaultPrice === undefined ? recommendedPrice : defaultPrice;
+  const P = fin(finalPrice) && finalPrice > 0 ? finalPrice : fallback;
   const profitPerPiece = sub(sub(P, totalCost), mul(P, k));
   const netProfit = mul(profitPerPiece, sellableOk);
   const margin = div(profitPerPiece, P);
@@ -307,16 +324,17 @@ export function computeScenario(
     profitPerPiece,
     netProfit,
     margin,
-    breakEven: ratesOk ? breakEven : EMPTY_BREAK_EVEN,
+    breakEven: ratesOk ? breakEven : emptyBreakEven(),
   };
 }
 
 /** Best / medium / worst. Medium first; its recommended price is the default P. */
 export function computeAll(
-  workspace: PricingSettings,
+  workspace: DeepPartial<PricingSettings> | null | undefined,
   product: PricingProduct,
 ): Record<ScenarioName, ScenarioResult> {
-  const settings = mergeSettings(workspace, product.overrides);
+  // defaults < workspace < product, so a sparse workspace jsonb cannot throw
+  const settings = mergeSettings(mergeSettings(DEFAULT_PRICING_SETTINGS, workspace), product.overrides);
   const ads = resolveAdCosts(product.adCostUsd.medium, settings, product.adCostUsd);
   const input = (n: ScenarioName): ScenarioInput => ({
     confirm: settings.confirmPct[n],
