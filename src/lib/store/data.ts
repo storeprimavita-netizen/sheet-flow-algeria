@@ -21,7 +21,7 @@ export type PublicProductPage = {
     settings: { phone?: string; whatsappUrl?: string; instagramUrl?: string; announcement?: string; slogan?: string };
   };
   page: { slug: string; title: string; blocks: Block[]; seo: Seo };
-  product: { name: string; price: number; images: string[] };
+  product: { name: string; price: number | null; images: string[] };
   variants: PublicVariant[];
   related: PublicRelated[];
 };
@@ -68,6 +68,15 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
     .maybeSingle();
   if (!product || product.workspace_id !== store.workspace_id || product.sale_price === null) return null;
 
+  return assembleProductPage(db, store, page, product);
+}
+
+type StoreRow = Pick<Database["public"]["Tables"]["stores"]["Row"], "id" | "workspace_id" | "slug" | "name" | "theme" | "settings">;
+type PageRow = Pick<Database["public"]["Tables"]["store_pages"]["Row"], "slug" | "title" | "blocks" | "seo">;
+type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "images">;
+
+/** Shared by the public page and the admin preview: the same DTO either way, so a preview shows what a visitor will see. */
+export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow, product: ProductRow): Promise<PublicProductPage> {
   const blocks = blocksSchema.safeParse(page.blocks);
   const seo = seoSchema.safeParse(page.seo);
   const settings = publicSettingsSchema.safeParse(store.settings);
@@ -94,7 +103,7 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
     page: { slug: page.slug, title: page.title, blocks: blocks.success ? blocks.data : [], seo: seo.success ? seo.data : {} },
     product: {
       name: stripEmoji(product.name) || page.title,
-      price: Number(product.sale_price),
+      price: product.sale_price === null ? null : Number(product.sale_price),
       images: (product.images ?? []).filter(isHttps),
     },
     variants,

@@ -1,9 +1,11 @@
 import ar from "@/messages/ar.json";
 
 /** The store is Arabic only and never reads the locale cookie: strings come straight from ar.json. */
-export const storeMessages = ar.store;
+// the admin strings live under store.admin and never reach the public bundle
+const { admin: _admin, ...publicMessages } = ar.store as typeof ar.store & { admin?: unknown };
+export const storeMessages = publicMessages as Omit<typeof ar.store, "admin">;
 
-type Messages = typeof ar.store;
+type Messages = typeof storeMessages;
 type Leaf<T, P extends string = ""> = {
   [K in keyof T & string]: T[K] extends string ? `${P}${K}` : Leaf<T[K], `${P}${K}.`>;
 }[keyof T & string];

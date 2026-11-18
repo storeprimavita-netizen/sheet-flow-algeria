@@ -30,6 +30,7 @@ import {
   OctagonAlert,
   CircleCheck,
   ListChecks,
+  Globe,
 } from "lucide-react";
 
 export type IconType = React.ComponentType<{ className?: string }>;
@@ -46,7 +47,7 @@ export type StatusToken =
   | "orange"
   | "rose";
 
-export type StatusKind = "confirmation" | "delivery" | "product" | "task" | "stock";
+export type StatusKind = "confirmation" | "delivery" | "product" | "task" | "stock" | "store";
 
 /** Every chip color token — the fixed palette user-created options may pick from. */
 export const CHIP_TOKENS: StatusToken[] = [
@@ -102,7 +103,9 @@ function def(
           ? "product_status"
           : kind === "stock"
             ? "stock_status"
-            : "task_status";
+            : kind === "store"
+              ? "store_status"
+              : "task_status";
   return {
     key,
     label: `status.${group}.${key}`,
@@ -179,12 +182,20 @@ export const STOCK_STATUS: Record<string, StatusDef> = {
   count_needed: def("stock", "count_needed", "warning", ListChecks, []),
 };
 
+/** Public store (STORE-2): the store itself is draft or live; a page is draft or published. */
+export const STORE_STATUS: Record<string, StatusDef> = {
+  draft: def("store", "draft", "neutral", Circle, ["live", "published"]),
+  live: def("store", "live", "success", Globe, ["draft"]),
+  published: def("store", "published", "success", Globe, ["draft"]),
+};
+
 export const STATUS_KINDS: Record<StatusKind, Record<string, StatusDef>> = {
   confirmation: CONFIRMATION_STATUS,
   delivery: DELIVERY_STATUS,
   product: PRODUCT_STATUS,
   task: TASK_STATUS,
   stock: STOCK_STATUS,
+  store: STORE_STATUS,
 };
 
 export function getStatus(kind: StatusKind, key: string): StatusDef | undefined {
