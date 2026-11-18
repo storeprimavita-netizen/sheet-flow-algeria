@@ -34,6 +34,7 @@ export default async function ProductPricingPage({ params }: { params: Promise<{
         defaults={defaults}
         perPieceCost={cost?.sourcing_cost_dzd ?? null}
         stock={product.stock}
+        salePrice={product.sale_price}
         saved={{
           overrides: sanitizeSparse(pricing?.overrides),
           adBest: pricing?.ad_best_usd ?? null,

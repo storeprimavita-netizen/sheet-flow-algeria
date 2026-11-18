@@ -1,15 +1,31 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 
 import { Empty } from "@/components/empty";
 import { ButtonLink } from "@/components/button-link";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/field";
 import { NumberField } from "@/components/fields/number-field";
+import { PricingFieldGroups, TargetEditor } from "@/components/pricing/pricing-fields";
 import { formatCurrency } from "@/lib/format";
-import { stockCostTotal } from "@/lib/pricing-form";
+import {
+  MAX_AD_USD,
+  MAX_FINAL_PRICE,
+  countOverrides,
+  formErrors,
+  formFromOverrides,
+  overridesFromForm,
+  stockCostTotal,
+  type PricingForm,
+} from "@/lib/pricing-form";
 import { computeAll, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
+import { saveProductPricing } from "./actions";
 import { PricingResults } from "./pricing-results";
 
 export type SavedPricing = {
@@ -20,37 +36,119 @@ export type SavedPricing = {
   finalPrice: number | null;
 };
 
+type Draft = {
+  quantity: number | null;
+  form: PricingForm;
+  adBest: number | null;
+  adMedium: number | null;
+  adWorst: number | null;
+  finalPrice: number | null;
+};
+
+const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD);
+const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE);
+
 export function PricingCalculator({
   productId,
   defaults,
   perPieceCost,
   stock,
+  salePrice,
   saved,
 }: {
   productId: string;
   defaults: PricingSettings;
   perPieceCost: number | null;
   stock: number;
+  salePrice: number | null;
   saved: SavedPricing;
 }) {
   const t = useTranslations("pricingV2");
-  const [quantity, setQuantity] = React.useState<number | null>(stock);
+  const [draft, setDraft] = React.useState<Draft>(() => ({
+    quantity: stock,
+    form: formFromOverrides(saved.overrides, defaults),
+    adBest: saved.adBest,
+    adMedium: saved.adMedium,
+    adWorst: saved.adWorst,
+    finalPrice: saved.finalPrice,
+  }));
+  const [baseline, setBaseline] = React.useState(() => JSON.stringify(draft));
+  const [pending, startTransition] = React.useTransition();
 
-  const qty = quantity ?? 0;
+  const errors = formErrors(draft.form, false);
+  const priceErr = !priceOk(draft.finalPrice);
+  const adErr = { best: !adOk(draft.adBest), medium: !adOk(draft.adMedium), worst: !adOk(draft.adWorst) };
+  const valid = Object.keys(errors).length === 0 && !priceErr && !adErr.best && !adErr.medium && !adErr.worst;
+  const dirty = JSON.stringify(draft) !== baseline;
+
+  const overrides = React.useMemo(() => overridesFromForm(draft.form, defaults), [draft.form, defaults]);
+
+  // Invalid input keeps the last valid table: `applied` only follows valid drafts.
+  const toApplied = (d: Draft) => ({
+    quantity: d.quantity ?? 0,
+    overrides: overridesFromForm(d.form, defaults),
+    ads: { best: d.adBest, medium: d.adMedium, worst: d.adWorst },
+    finalPrice: d.finalPrice,
+  });
+  const [applied, setApplied] = React.useState(() => toApplied(draft));
+  if (valid) {
+    const next = toApplied(draft);
+    if (JSON.stringify(next) !== JSON.stringify(applied)) setApplied(next);
+  }
+
   // sourcing_cost_dzd is PER PIECE; the engine wants the TOTAL and divides by sellable quantity itself
-  const total = stockCostTotal(perPieceCost, qty);
+  const total = stockCostTotal(perPieceCost, applied.quantity);
   const results = React.useMemo(
     () =>
       computeAll(defaults, {
         stockCostDzd: total ?? Number.NaN,
-        quantity: qty,
-        adCostUsd: { best: saved.adBest, medium: saved.adMedium, worst: saved.adWorst },
-        finalPrice: saved.finalPrice,
-        overrides: saved.overrides,
+        quantity: applied.quantity,
+        adCostUsd: applied.ads,
+        finalPrice: applied.finalPrice,
+        overrides: applied.overrides,
       }),
-    [defaults, total, qty, saved],
+    [defaults, total, applied],
   );
   const hasCost = perPieceCost !== null && perPieceCost > 0;
+
+  const update = (fn: (f: PricingForm) => PricingForm) => setDraft((d) => ({ ...d, form: fn(d.form) }));
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+
+  function save() {
+    if (!valid) return;
+    startTransition(async () => {
+      const res = await saveProductPricing({
+        productId,
+        overrides,
+        adBestUsd: draft.adBest,
+        adMediumUsd: draft.adMedium,
+        adWorstUsd: draft.adWorst,
+        finalPrice: draft.finalPrice,
+      });
+      if (res.ok) {
+        setBaseline(JSON.stringify(draft));
+        toast.success(t("product.saved"));
+      } else toast.error(t("product.saveFailed"));
+    });
+  }
+
+  const liveProfit = t("target.live", {
+    value: results.medium.targetProfit === null ? "—" : formatCurrency(results.medium.targetProfit),
+  });
+  const overrideCount = countOverrides(overrides);
+  const qty = draft.quantity ?? 0;
+  const adField = (key: "adBest" | "adMedium" | "adWorst", label: string, hint?: string) => (
+    <Field label={label} htmlFor={`pp-${key}`}>
+      <NumberField
+        id={`pp-${key}`}
+        unit="USD"
+        defaultValue={draft[key]}
+        placeholder={hint}
+        invalid={adErr[key.slice(2).toLowerCase() as "best" | "medium" | "worst"]}
+        onChange={(v) => set(key, v)}
+      />
+    </Field>
+  );
 
   return (
     <div className="space-y-6">
@@ -58,13 +156,13 @@ export function PricingCalculator({
         <h3 id="pp-inputs" className="text-sm font-semibold">
           {t("product.inputs")}
         </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label={t("product.quantity")} htmlFor="pp-quantity">
             <NumberField
               id="pp-quantity"
               defaultValue={stock}
               describedBy="pp-quantity-hint"
-              onChange={(v) => setQuantity(v === null ? null : Math.floor(v))}
+              onChange={(v) => set("quantity", v === null ? null : Math.floor(v))}
             />
             <p id="pp-quantity-hint" className="mt-1 text-xs text-muted-foreground">
               {t("product.quantityHint")}
@@ -80,6 +178,69 @@ export function PricingCalculator({
               </p>
             </div>
           ) : null}
+          <Field label={t("product.finalPrice")} htmlFor="pp-final">
+            <NumberField
+              id="pp-final"
+              unit="DA"
+              defaultValue={draft.finalPrice}
+              placeholder={salePrice === null ? undefined : String(salePrice)}
+              invalid={priceErr}
+              describedBy="pp-final-hint"
+              onChange={(v) => set("finalPrice", v)}
+            />
+            <p id="pp-final-hint" className="mt-1 text-xs text-muted-foreground">
+              {t("product.finalPriceHint")}
+            </p>
+          </Field>
+          {adField("adMedium", t("product.adMedium"))}
+          {adField("adBest", t("product.adBest"), t("product.adDerived"))}
+          {adField("adWorst", t("product.adWorst"), t("product.adDerived"))}
+        </div>
+        <TargetEditor
+          form={draft.form}
+          update={update}
+          errors={errors}
+          defaults={defaults}
+          mode="override"
+          idPrefix="pp"
+          liveProfit={liveProfit}
+        />
+
+        <details className="group rounded-lg border border-border">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />
+            {t("product.advanced")}
+            <Chip token={overrideCount ? "info" : "neutral"} size="sm">
+              {overrideCount ? t("product.advancedCount", { count: overrideCount }) : t("product.advancedNone")}
+            </Chip>
+            <Link
+              href="/app/settings?section=pricing"
+              className="ms-auto text-xs font-normal text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {t("product.settingsLink")}
+            </Link>
+          </summary>
+          <div className="border-t border-border p-3">
+            <PricingFieldGroups
+              groups={["funnel", "ads", "platform", "perOrder", "stock", "rates"]}
+              form={draft.form}
+              update={update}
+              errors={errors}
+              defaults={defaults}
+              mode="override"
+              idPrefix="pp"
+            />
+          </div>
+        </details>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" onClick={save} disabled={!valid || pending || !dirty}>
+            {pending ? t("product.saving") : t("product.save")}
+          </Button>
+          <span className="text-xs text-muted-foreground" aria-live="polite">
+            {!valid ? <span className="text-destructive">{t("product.invalid")}</span> : dirty ? t("product.unsaved") : null}
+          </span>
         </div>
       </section>
 

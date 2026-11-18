@@ -1051,8 +1051,7 @@
       "emptyAction": "Set stock cost",
       "errorTitle": "The pricing could not load",
       "belowBreakEven": "Below break-even in {scenarios}: at the final price this product loses money.",
-      "table": "Pricing results by scenario",
-      "realDropped": "The Real column returns with the actual results update."
+      "table": "Pricing results by scenario"
     },
     "rows": {
       "groupAds": "Ads",

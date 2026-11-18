@@ -8,6 +8,7 @@ import {
   overridesFromForm,
   pricingOverridesSchema,
   pricingSettingsSchema,
+  productPricingInputSchema,
   sanitizeSparse,
   settingsFromForm,
   stockCostTotal,
@@ -155,5 +156,26 @@ describe("stock cost is per piece x quantity", () => {
     expect(stockCostTotal(0, 50)).toBeNull();
     expect(stockCostTotal(null, 50)).toBeNull();
     expect(stockCostTotal(1632, 0)).toBeNull();
+  });
+});
+
+describe("productPricingInputSchema", () => {
+  const ok = {
+    productId: "5b0d7a2e-1c3f-4a8e-9b6d-2f4e8c1a7d30",
+    overrides: {},
+    adBestUsd: null,
+    adMediumUsd: 2.2,
+    adWorstUsd: null,
+    finalPrice: null,
+  };
+  it("accepts a valid input", () => expect(productPricingInputSchema.safeParse(ok).success).toBe(true));
+  it("rejects a non-UUID product id", () => {
+    expect(productPricingInputSchema.safeParse({ ...ok, productId: "1; drop table" }).success).toBe(false);
+    expect(productPricingInputSchema.safeParse({ ...ok, productId: "123" }).success).toBe(false);
+  });
+  it("rejects a bad final price / ad cost / override", () => {
+    expect(productPricingInputSchema.safeParse({ ...ok, finalPrice: 0 }).success).toBe(false);
+    expect(productPricingInputSchema.safeParse({ ...ok, adMediumUsd: -1 }).success).toBe(false);
+    expect(productPricingInputSchema.safeParse({ ...ok, overrides: { share: 2 } }).success).toBe(false);
   });
 });

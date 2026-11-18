@@ -309,6 +309,20 @@ export const pricingOverridesSchema = z
   })
   .strict();
 
+/** numeric(10,2) / numeric(12,2) column limits */
+export const MAX_AD_USD = 99_999_999.99;
+export const MAX_FINAL_PRICE = 9_999_999_999.99;
+
+/** Input of `saveProductPricing` (zod at the server-action boundary). */
+export const productPricingInputSchema = z.object({
+  productId: z.uuid(),
+  overrides: pricingOverridesSchema,
+  adBestUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
+  adMediumUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
+  adWorstUsd: z.number().min(0).max(MAX_AD_USD).nullable(),
+  finalPrice: z.number().gt(0).max(MAX_FINAL_PRICE).nullable(),
+});
+
 // ---------- lenient read (DB -> engine) ----------
 
 /**
