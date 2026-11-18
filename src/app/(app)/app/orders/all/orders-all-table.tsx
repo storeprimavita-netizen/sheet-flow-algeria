@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime, formatOrderNo } from "@/lib/format";
 import { toCSV, downloadCSV } from "@/lib/csv";
 import type { StatusToken } from "@/lib/statuses";
 import { CONFIRMATION_STATUSES } from "@/lib/enums";
@@ -31,9 +31,11 @@ import { OrderTimeline, type TimelineEvent } from "../order-timeline";
 import { SwapBadge } from "@/components/swap-badge";
 import type { SwapTo } from "../_lib/swap-links";
 import { StatusCell } from "../status-cell";
+import { OrderNo } from "@/components/order-no";
 
 export type AllRow = {
   id: string;
+  order_seq: number;
   order_number: string | null;
   placed_at: string | null;
   customer_name: string | null;
@@ -95,7 +97,7 @@ export function OrdersAllTable({
   function exportRows(list: AllRow[]) {
     const csv = toCSV(
       [
-        { key: "order", label: "Order", value: (r: AllRow) => r.order_number ?? r.id.slice(0, 8) },
+        { key: "order", label: "Order", value: (r: AllRow) => formatOrderNo(r.order_seq) },
         { key: "placed", label: "Placed", value: (r: AllRow) => r.placed_at ?? "" },
         { key: "customer", label: "Customer", value: (r: AllRow) => r.customer_name ?? "" },
         { key: "phone", label: "Phone", value: (r: AllRow) => r.customer_phone ?? "" },
@@ -115,7 +117,7 @@ export function OrdersAllTable({
 
   const columns: Column<AllRow>[] = [
     {
-      id: "order_number",
+      id: "order_seq",
       header: t("orders.title"),
       sortable: true,
       sticky: true,
@@ -125,10 +127,11 @@ export function OrdersAllTable({
           <span className="flex min-w-0 items-center gap-1.5">
           <Link
             href={`/app/orders/${r.id}`}
-            className="num truncate font-medium hover:underline"
+            aria-label={t("orders.orderLabel", { number: formatOrderNo(r.order_seq) })}
+            className="num min-w-[5ch] whitespace-nowrap text-sm font-medium text-foreground hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
-            {r.order_number ?? r.id.slice(0, 8)}
+            <OrderNo seq={r.order_seq} />
           </Link>
           {r.is_duplicate_suspect ? (
             <Link
@@ -309,11 +312,18 @@ export function OrdersAllTable({
       )}
       renderSheet={(r) => ({
         title: (
-          <span className="flex items-center gap-2">
-            <span className="num">{r.order_number ?? r.id.slice(0, 8)}</span>
+          <span className="flex flex-col items-start gap-0.5">
+           <span className="flex items-center gap-2">
+            <span className="num"><OrderNo seq={r.order_seq} /></span>
             <Link href={`/app/orders/${r.id}`} className="text-info hover:underline" aria-label={t("orders.openFull")}>
               <ExternalLink className="h-4 w-4" />
             </Link>
+           </span>
+           {r.order_number ? (
+            <span className="text-xs font-normal text-muted-foreground">
+              {t("orders.platformRef")}: <bdi dir="ltr">{r.order_number}</bdi>
+            </span>
+           ) : null}
           </span>
         ),
         body: (

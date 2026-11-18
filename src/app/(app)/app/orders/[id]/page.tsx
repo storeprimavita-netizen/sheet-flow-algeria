@@ -83,18 +83,18 @@ export default async function OrderDetailPage({
   const confirmationAgents: { id: string; email: string }[] = [];
   let zrShipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null = null;
   let swapData: {
-    swappedTo: { id: string; orderNumber: string | null } | null;
-    swappedFrom: { id: string; orderNumber: string | null } | null;
+    swappedTo: { id: string; orderSeq: number } | null;
+    swappedFrom: { id: string; orderSeq: number } | null;
     wilayas: { code: number; name: string }[];
   } = { swappedTo: null, swappedFrom: null, wilayas: [] };
   // the forward swap link is visible to every role (badge); the rest of the swap data is admin-only
   if (order.swapped_to_order_id) {
     const { data: b } = await supabase
       .from("orders")
-      .select("id, order_number")
+      .select("id, order_seq")
       .eq("id", order.swapped_to_order_id)
       .maybeSingle();
-    if (b) swapData.swappedTo = { id: b.id, orderNumber: b.order_number };
+    if (b) swapData.swappedTo = { id: b.id, orderSeq: b.order_seq };
   }
   // agents can't see the ZR card but still need to know the order was pushed (locks cancel-reason)
   const { data: zrExists } = await supabase.from("zr_shipments").select("order_id").eq("order_id", order.id).maybeSingle();
@@ -124,12 +124,12 @@ export default async function OrderDetailPage({
     // swap data: forward link (A→B) + reverse link (B←A) + wilaya list
     const { data: swappedFrom } = await supabase
       .from("orders")
-      .select("id, order_number")
+      .select("id, order_seq")
       .eq("workspace_id", workspaceId)
       .eq("swapped_to_order_id", order.id)
       .limit(1)
       .maybeSingle();
-    if (swappedFrom) swapData.swappedFrom = { id: swappedFrom.id, orderNumber: swappedFrom.order_number };
+    if (swappedFrom) swapData.swappedFrom = { id: swappedFrom.id, orderSeq: swappedFrom.order_seq };
     const { data: wilayas } = await supabase
       .from("wilayas")
       .select("code, name")

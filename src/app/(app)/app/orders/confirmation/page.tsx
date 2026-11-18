@@ -24,7 +24,7 @@ export default async function ConfirmationQueuePage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product:products(name), zr:zr_shipments(order_id)",
+      "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product:products(name), zr:zr_shipments(order_id)",
     )
     .order("created_at", { ascending: true });
   query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
@@ -39,7 +39,7 @@ export default async function ConfirmationQueuePage({
     customerIds.length
       ? supabase
           .from("orders")
-          .select("id, order_number, customer_id, delivery_status, placed_at")
+          .select("id, order_seq, customer_id, delivery_status, placed_at")
           .in("customer_id", customerIds)
           .order("placed_at", { ascending: false })
       : Promise.resolve({ data: [] as never[] }),
@@ -50,7 +50,7 @@ export default async function ConfirmationQueuePage({
   for (const h of history ?? []) {
     if (!h.customer_id) continue;
     const list = historyByCustomer.get(h.customer_id) ?? [];
-    list.push({ id: h.id, order_number: h.order_number, delivery_status: h.delivery_status, placed_at: h.placed_at });
+    list.push({ id: h.id, order_seq: h.order_seq, delivery_status: h.delivery_status, placed_at: h.placed_at });
     historyByCustomer.set(h.customer_id, list);
   }
 
@@ -64,7 +64,7 @@ export default async function ConfirmationQueuePage({
     const total = stat?.total_orders ?? 0;
     return {
       id: o.id,
-      order_number: o.order_number,
+      order_seq: o.order_seq,
       customer_id: o.customer_id,
       customer_name: o.customer_name,
       customer_phone: o.customer_phone,

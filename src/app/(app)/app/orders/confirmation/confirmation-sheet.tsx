@@ -17,6 +17,7 @@ import { allStatuses, getStatus } from "@/lib/statuses";
 import { whatsappHref } from "@/lib/customers";
 import { updateOrderStatus, logConfirmationAttempt } from "../actions";
 import type { ConfRow } from "./confirmation-table";
+import { OrderNo } from "@/components/order-no";
 
 /**
  * Confirmation call sheet. Sheet order (per section-checklists): name → big
@@ -151,7 +152,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
             {order.recent.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2">
                 <Link href={`/app/orders/${p.id}`} className="num text-info hover:underline">
-                  {p.order_number ?? p.id.slice(0, 8)}
+                  <OrderNo seq={p.order_seq} />
                 </Link>
                 <div className="flex items-center gap-1.5">
                   <StatusPill kind="delivery" status={p.delivery_status} size="sm" showIcon={false} />

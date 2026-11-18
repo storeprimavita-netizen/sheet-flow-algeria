@@ -1,5 +1,6 @@
 "use client";
 
+import { formatOrderNo, ltr } from "@/lib/format";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 
@@ -20,8 +21,8 @@ export function SwapCard({
 }: {
   orderId: string;
   deliveryStatus: string;
-  swappedTo: { id: string; orderNumber: string | null } | null;
-  swappedFrom: { id: string; orderNumber: string | null } | null;
+  swappedTo: { id: string; orderSeq: number } | null;
+  swappedFrom: { id: string; orderSeq: number } | null;
   wilayas: { code: number; name: string }[];
 }) {
   const t = useTranslations("orders.swap");
@@ -32,13 +33,13 @@ export function SwapCard({
     <div className="card-surface rounded-xl p-5 space-y-3">
       {swappedTo ? (
         <p className="text-sm">
-          {t("swappedTo", { number: swappedTo.orderNumber ?? swappedTo.id.slice(0, 8) })}{" "}
+          {t("swappedTo", { number: ltr(formatOrderNo(swappedTo.orderSeq)) })}{" "}
           <Link href={`/app/orders/${swappedTo.id}`} className="underline">→</Link>
         </p>
       ) : null}
       {swappedFrom ? (
         <p className="text-sm">
-          {t("swappedFrom", { number: swappedFrom.orderNumber ?? swappedFrom.id.slice(0, 8) })}{" "}
+          {t("swappedFrom", { number: ltr(formatOrderNo(swappedFrom.orderSeq)) })}{" "}
           <Link href={`/app/orders/${swappedFrom.id}`} className="underline">←</Link>
         </p>
       ) : null}

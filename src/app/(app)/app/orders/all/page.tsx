@@ -16,7 +16,7 @@ const PAGE_SIZE = 25;
 
 // columns the DataTable exposes as sortable → real order-able DB columns
 const SORT_COLUMNS: Record<string, string> = {
-  order_number: "order_number",
+  order_seq: "order_seq",
   placed_at: "placed_at",
 };
 
@@ -45,7 +45,7 @@ export default async function AllOrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
+      "id, order_seq, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
       { count: "exact" },
     );
 
@@ -113,6 +113,7 @@ export default async function AllOrdersPage({
   const swaps = await swapTargets(supabase, orders ?? []);
   const rows: AllRow[] = (orders ?? []).map((o) => ({
     id: o.id,
+    order_seq: o.order_seq,
     order_number: o.order_number,
     placed_at: o.placed_at,
     customer_name: o.customer_name,

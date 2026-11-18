@@ -11,7 +11,7 @@ import { DeliveryKanban } from "./delivery-kanban";
 
 export type DelivRow = {
   id: string;
-  order_number: string | null;
+  order_seq: number;
   customer_name: string | null;
   customer_phone: string | null;
   product_name: string | null;
