@@ -23,7 +23,16 @@ export const SETTINGS_SCHEMAS = {
   }),
   /** ZR state name (lower-cased, trimmed) → our delivery_status. ZR states are
    * per-tenant, so this is user-edited (Settings → ZR Express). */
-  zr_state_map: z.object({ map: z.record(z.string(), z.enum(MANUAL_DELIVERY_STATUSES)) }),
+  zr_state_map: z.object({
+    map: z.preprocess(
+      // `swap` can only be set by the swap action (D43): drop such entries instead of rejecting the whole map
+      (v) =>
+        v && typeof v === "object" && !Array.isArray(v)
+          ? Object.fromEntries(Object.entries(v).filter(([, status]) => status !== "swap"))
+          : v,
+      z.record(z.string(), z.enum(MANUAL_DELIVERY_STATUSES)),
+    ),
+  }),
   /** push a parcel to ZR automatically when an order is confirmed */
   zr_auto_push: z.object({ enabled: z.boolean() }),
 } as const;
