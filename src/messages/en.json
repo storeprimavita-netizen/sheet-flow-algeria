@@ -26,6 +26,7 @@
     "groupStore": "Store",
     "groupMoney": "Money",
     "groupTeam": "Team",
+    "groupPending": "{group}, {n} pending",
     "groupSettings": "Settings",
     "shipping": "Shipping",
     "courierCash": "Courier cash",

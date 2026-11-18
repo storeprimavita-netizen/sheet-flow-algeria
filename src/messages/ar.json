@@ -26,6 +26,7 @@
     "groupStore": "المتجر",
     "groupMoney": "المال",
     "groupTeam": "الفريق",
+    "groupPending": "{group}، {n} قيد الانتظار",
     "groupSettings": "الإعدادات",
     "shipping": "الشحن",
     "courierCash": "نقد شركة التوصيل",

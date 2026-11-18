@@ -131,4 +131,22 @@ describe("app shell (D32, review-4)", () => {
   it("phone touch targets are at least 44px", () => {
     expect(src.match(/max-md:min-h-11/g)?.length).toBeGreaterThanOrEqual(2);
   });
+  it("D33: edge fades are token-coloured, click-through, and the active group title is a plain label", () => {
+    expect(src).toContain("pointer-events-none");
+    expect(src).toContain("from-surface");
+    expect(src).toContain("onScroll={measure}");
+    expect(src).toContain("ResizeObserver");
+    expect(src).toMatch(/hasActive \? \(\s*<div className=\{headerClass\}>/);
+    expect(src).not.toContain("aria-disabled");
+  });
+  it("collapsed group counter is announced with the group name, en + ar", () => {
+    expect(src).toContain('t("nav.groupPending"');
+    expect(en.nav.groupPending).toContain("{n}");
+    expect(ar.nav.groupPending).toContain("{n}");
+  });
+  it("palette search never matches the page address; no role means no brand link", () => {
+    const pal = readFileSync(path.join(process.cwd(), "src/components/command-palette.tsx"), "utf8");
+    expect(pal).not.toMatch(/value=\{`[^`]*n\.href/);
+    expect(src).not.toContain('?? "/app"');
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
@@ -110,32 +110,33 @@ function Group({
       </div>
     );
   }
+  const headerClass = "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground max-md:min-h-11";
   return (
     <div>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        aria-disabled={hasActive}
-        onClick={() => {
-          if (!hasActive) onToggle(group.key, isOpen);
-        }}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground transition-colors max-md:min-h-11",
-          hasActive ? "cursor-default" : "hover:text-foreground",
-        )}
-      >
-        <span className="truncate">{t(`nav.${group.key}`)}</span>
-        {!isOpen && total > 0 ? <Counter n={total} counts={counts} /> : null}
-        <ChevronDown
-          aria-hidden
-          className={cn(
-            "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
-            hasActive && "invisible",
-            !(!isOpen && total > 0) && "ms-auto",
-            !isOpen && "-rotate-90 rtl:rotate-90",
-          )}
-        />
-      </button>
+      {hasActive ? (
+        <div className={headerClass}>
+          <span className="truncate">{t(`nav.${group.key}`)}</span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-label={!isOpen && total > 0 ? t("nav.groupPending", { group: t(`nav.${group.key}`), n: total }) : undefined}
+          onClick={() => onToggle(group.key, isOpen)}
+          className={cn(headerClass, "transition-colors hover:text-foreground")}
+        >
+          <span className="truncate">{t(`nav.${group.key}`)}</span>
+          {!isOpen && total > 0 ? <Counter n={total} counts={counts} /> : null}
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 text-faint transition-transform",
+              !(!isOpen && total > 0) && "ms-auto",
+              !isOpen && "-rotate-90 rtl:rotate-90",
+            )}
+          />
+        </button>
+      )}
       {isOpen ? (
         <div className="mt-0.5 space-y-0.5">
           {group.items.map((i) => <Leaf key={i.href} ctx={ctx} item={i} />)}
@@ -205,13 +206,51 @@ export function AppShell({
     onNavigate: () => setOpen(false),
   };
 
+  // D33: fade the list edge while items are hidden beyond it.
+  const navRef = useRef<HTMLElement>(null);
+  const [fade, setFade] = useState({ top: false, bottom: false });
+  const measure = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const top = el.scrollTop > 1;
+    const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+    setFade((f) => (f.top === top && f.bottom === bottom ? f : { top, bottom }));
+  }, []);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure); // size changes of the list, its content (groups opened/closed) and the sidebar
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => ro.disconnect();
+  }, [measure, collapsed, closedGroups, role]);
+
   const nav = (
-    <nav className="flex-1 space-y-3 overflow-y-auto p-3">
-      {home ? <Leaf ctx={ctx} item={home} /> : null}
-      {mainGroups.map((g) => (
-        <Group key={g.key} ctx={ctx} group={g} closedGroups={closedGroups} onToggle={toggleGroup} />
-      ))}
-    </nav>
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <nav ref={navRef} onScroll={measure} className="flex-1 overflow-y-auto p-3">
+        <div className="space-y-3">
+          {home ? <Leaf ctx={ctx} item={home} /> : null}
+          {mainGroups.map((g) => (
+            <Group key={g.key} ctx={ctx} group={g} closedGroups={closedGroups} onToggle={toggleGroup} />
+          ))}
+        </div>
+      </nav>
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-11 bg-linear-to-b from-surface to-transparent transition-opacity",
+          fade.top ? "opacity-100" : "opacity-0",
+        )}
+      />
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 h-11 bg-linear-to-t from-surface to-transparent transition-opacity",
+          fade.bottom ? "opacity-100" : "opacity-0",
+        )}
+      />
+    </div>
   );
 
   // D32: Settings is one always-visible row outside the scroll area, above the user block.
@@ -227,8 +266,10 @@ export function AppShell({
     </div>
   ) : null;
 
-  const brand = (
-    <Link href={home?.href ?? groups[0]?.items[0]?.href ?? "/app"} className="flex min-w-0 items-center gap-2.5">
+  const brandHref = home?.href ?? groups[0]?.items[0]?.href;
+  const brandClass = "flex min-w-0 items-center gap-2.5";
+  const brandBody = (
+    <>
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Store className="h-4 w-4" />
       </span>
@@ -240,8 +281,9 @@ export function AppShell({
           </span>
         </span>
       )}
-    </Link>
+    </>
   );
+  const brand = brandHref ? <Link href={brandHref} className={brandClass}>{brandBody}</Link> : <div className={brandClass}>{brandBody}</div>;
 
   return (
     <TooltipProvider delayDuration={200}>
