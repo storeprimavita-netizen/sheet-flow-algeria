@@ -1,4 +1,4 @@
-# STORE-2 brief (rev 1, answers review-0 FIX) — stores, store_pages, theme, public product page
+# STORE-2 brief (rev 2, answers review-1 FIX) — stores, store_pages, theme, public product page
 risk: high · surface: ui,security · lane: store
 
 Goal: an admin creates a store and a draft product page, publishes it, and `/s/<store>/<slug>` renders it publicly from a server-only, cost-free DTO that is never stale after a change.
@@ -38,3 +38,17 @@ UI shots: store 390/1280 light+dark (long Arabic name, no photos, one size, no a
 
 ## Edge/assumptions
 Stock = boolean per D54.4. Emoji stripped from product name on store. Price via `format.ts`, from `sale_price` (STORE-3 adds offers). No new DECISIONS row needed (D20, D54).
+
+## Rev 2 additions (answers review-1; these override rev 1 where they differ)
+- M1 locale: store never calls `getLocale`/cookies. Store layout builds `NextIntlClientProvider locale="ar"` from `ar.json` `store` namespace only (statically imported); `i18n/request.ts` untouched. Test: `locale=en` cookie -> `/s` HTML Arabic.
+- M2 404: no top-level layout. Add `experimental.globalNotFound` + `src/app/global-not-found.tsx` (neutral, own html/body, read not-found.md first) and `(store)/s/not-found.tsx` (AR copy, noindex).
+- M3 move list (git mv): `page.tsx`, `app/`, `login/`, `auth/`, `reset-password/`, `design-preview/`, `globals.css`, `favicon.ico` -> `(app)/`; `api/` stays. Update `algeria-map.test.ts` paths (l.51,76), do not delete. Delete `src/app/layout.tsx` only after `(app)/layout.tsx` is identical. Test: `<html>` attrs, fonts, Toaster for `/login` + `/app/dashboard` AR/EN identical before/after.
+- M4 FKs: `unique(id, workspace_id)` on stores; `store_pages` composite FKs `(store_id, workspace_id)` and `(product_id, workspace_id)` (products_id_workspace_uniq exists; set-null column list on product). DAL also asserts one workspace_id. Test `cross-workspace store/product id insert rejected`. Slug CHECK on `store_pages.slug`; `seo` zod schema (L3).
+- M5 preview: only `/app/store/pages/[id]/preview` (admin layout, session client, RLS, `force-dynamic`, inside `.store-root`). Test `/s/...?preview=1` draft = 404. No draftMode, no cookie.
+- M6 CSS: store has its own `src/components/store/store.css` (`@import "tailwindcss"` + `.store-root` tokens); never imports `globals.css` or `components/ui`. Store `color-scheme: light dark`, `theme-color` per scheme.
+- M7 IA: sidebar group "Store"/"المتجر" (Lucide `store`), placed after Catalog; items Hub, Pages, Settings only (no forms/discounts yet). Hidden for agents AND layout 404s; both tested. One store per workspace in UI for now (D20 DB allows many; picker later). "View live" disabled with reason while store draft or page unpublished. i18n: `nav.store`, `store.admin.*`.
+- M8 states: `loading.tsx` skeleton = 4:5 block + title + price lines; `error.tsx` AR + retry 44px; empty blocks still render product; no photo = tokenised 4:5 placeholder; alt/title/OG/JSON-LD use emoji-stripped name, fallback page title (unit test).
+- L1: null IS cached under the same tags (every publish path calls `updateTag('store-public')`); avoids amplification. Supersedes DoD "null never cached" and test name `publish after cached 404 shows page` proves it.
+- L2 DAL drops non-https images. L4 product delete: unpublish its page first in the same action (or clear message). L5/L6: script `store-contrast` checks token pairs both themes; no `fonts.googleapis.com` in store HTML, `adjustFontFallback`, preload budget noted. L7: 390px no h-scroll, `dvh`, safe-area on WhatsApp float with AR aria-label. L8 editor: block types = heading/text/image/list; beforeunload when dirty; failed save keeps input + retry; Up/Down keep focus, aria-live. L10 test proxy `/s/x/y` skipped vs `/app/settings` refreshed.
+- Extra tests: `agent sees no Store nav, /app/store 404`, `DAL drops non-https image`, `build smoke each root layout`.
+- Needs no new DECISIONS row. S-1 (assets) open: hide WhatsApp icon/logo slots, not a blocker.
