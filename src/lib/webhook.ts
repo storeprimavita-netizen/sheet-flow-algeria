@@ -99,21 +99,36 @@ async function resolveWorkspace(
   return { configured: rows.length > 0, match: hit ? { workspaceId: hit.workspace_id, secret: hit.secret } : null };
 }
 
-/** Exact match on the 58-row national reference, substring fallback, else null. */
+/**
+ * Pick a wilaya code from the national reference: exact normalised name
+ * first, else the longest wilaya name that overlaps the input (so "Ksar El
+ * Boukhari, Médéa" never lands on a shorter, looser hit). Ties: lowest code.
+ */
+export function pickWilaya(rows: { code: number; name: string }[], name: string | null | undefined): number | null {
+  if (!name) return null;
+  const target = normalizeText(name);
+  if (!target) return null;
+  // Whole-word containment, so "Algérie" does not hit "Alger".
+  const words = ` ${target.replace(/[^\p{L}\p{N}']+/gu, " ").trim()} `;
+  let best: { code: number; len: number } | null = null;
+  for (const w of rows) {
+    const n = normalizeText(w.name);
+    if (n === target) return w.code;
+    if (!n || !(words.includes(` ${n} `) || n.includes(target))) continue;
+    if (!best || n.length > best.len || (n.length === best.len && w.code < best.code)) {
+      best = { code: w.code, len: n.length };
+    }
+  }
+  return best?.code ?? null;
+}
+
 async function matchWilayaCode(
   supabase: SupabaseClient<Database>,
   name: string | null | undefined,
 ): Promise<number | null> {
   if (!name) return null;
-  const target = normalizeText(name);
   const { data } = await supabase.from("wilayas").select("code, name");
-  const rows = data ?? [];
-  const exact = rows.find((w) => normalizeText(w.name) === target);
-  if (exact) return exact.code;
-  const fuzzy = rows.find(
-    (w) => target.includes(normalizeText(w.name)) || normalizeText(w.name).includes(target),
-  );
-  return fuzzy?.code ?? null;
+  return pickWilaya(data ?? [], name);
 }
 
 /**

@@ -1,8 +1,9 @@
 import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { lightfunnelProvider, MAX_WEBHOOK_BYTES, processWebhook, shopifyProvider, verifySignature } from "./webhook";
+import { lightfunnelProvider, MAX_WEBHOOK_BYTES, pickWilaya, processWebhook, shopifyProvider, verifySignature } from "./webhook";
 
 describe("verifySignature", () => {
   const secret = "shh";
@@ -134,5 +135,41 @@ describe.skipIf(!process.env.LOCAL_SUPABASE_URL)("replayEvent after an admin edi
       if (o?.customer_id) await db.from("customers").delete().eq("id", o.customer_id);
       await db.from("webhook_events").delete().eq("id", ev!.id);
     }
+  });
+});
+
+describe("pickWilaya", () => {
+  const seed = readFileSync("supabase/migrations/00007_seed.sql", "utf8");
+  const rows = [...seed.matchAll(/\((\d+),'((?:[^']|'')*)'\)/g)].map(([, code, name]) => ({
+    code: Number(code),
+    name: name.replace(/''/g, "'"),
+  }));
+
+  it("exact name wins", () => {
+    expect(pickWilaya(rows, "Alger")).toBe(16);
+    expect(pickWilaya(rows, "bordj bou arreridj")).toBe(34);
+  });
+  it("is accent and case insensitive", () => {
+    expect(pickWilaya(rows, "MEDEA")).toBe(26);
+    expect(pickWilaya(rows, "Médéa, Algérie")).toBe(26);
+    expect(pickWilaya(rows, "ain temouchent")).toBe(46);
+    expect(pickWilaya(rows, "Ain Defla")).toBe(44);
+  });
+  it("longest loose match wins", () => {
+    const sample = [
+      { code: 1, name: "Bordj" },
+      { code: 2, name: "Bordj Badji Mokhtar" },
+      { code: 3, name: "Bordj Badji" },
+    ];
+    expect(pickWilaya(sample, "Bordj Badji Mokhtar, Algérie")).toBe(2);
+    expect(pickWilaya(sample, "Ksar, Bordj Badji")).toBe(3);
+  });
+  it("ties go to the lowest code", () => {
+    expect(pickWilaya([{ code: 9, name: "Aa" }, { code: 4, name: "Aa" }], "x Aa x")).toBe(4);
+  });
+  it("unknown or empty -> null", () => {
+    expect(pickWilaya(rows, "Atlantis")).toBeNull();
+    expect(pickWilaya(rows, "")).toBeNull();
+    expect(pickWilaya(rows, null)).toBeNull();
   });
 });
