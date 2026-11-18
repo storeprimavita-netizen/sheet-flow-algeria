@@ -174,4 +174,4 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 
 ## CARRIER-0-F — Arabic map legend at 390 px
 - Done: legend verified correct in AR light + dark at a true 390 px (chrome-devtools emulate); stale PNG replaced, map-dark-ar-390.png added; map tooltip uses dashboard.wilaya.noData (new noDataLabel prop); wilaya code in table label wrapped in bdi dir=ltr; source-level bdi test added (no component test setup).
-- Screenshots: AR light + dark at 390 px viewed; EN and desktop not retaken.
+- Screenshots (review-1 FIX, chrome-devtools, filters/dev badge removed, all viewed): map-{light,dark}-{ar,en}-390.png are element shots of the card; map-{light,dark}-{ar,en}-1280.png are viewport shots framing the whole card. Seen, not fixed (out of scope): hyphen between wilaya code and name wraps/leads in AR 390 (review #3), table clips its last column at 390, legend wraps 4+2 (review #4).
