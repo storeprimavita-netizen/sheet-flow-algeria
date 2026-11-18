@@ -15,7 +15,9 @@ the carrier, cancelled, or already returned), or if the order was the new order
 of a swap (the piece goes back to the first order). A deleted order that was
 delivered or is still with the carrier keeps its pieces out of stock; if that
 parcel comes back, add a correction line on the product's stock page. Say so if
-you want every deleted order to put its pieces back. Nothing is blocked.
+you want every deleted order to put its pieces back. Same rule for the new
+order of a swap (D42): if it was already with the carrier when deleted, its
+piece stays out until it physically comes back. Nothing is blocked.
 
 ### Q-6 · P0-8 · 2026-11-18 · answered-by-default
 Between confirmation and handing the parcel to the carrier, the piece is still
