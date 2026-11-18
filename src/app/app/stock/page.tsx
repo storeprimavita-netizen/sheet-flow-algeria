@@ -9,6 +9,7 @@ import { Empty } from "@/components/empty";
 import { Chip } from "@/components/ui/chip";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { tableClass } from "@/components/field";
+import { StatusPill } from "@/components/status-pill";
 import { StockAdjustDialog, ThresholdInput } from "./stock-controls";
 
 export default async function StockHubPage() {
@@ -22,6 +23,8 @@ export default async function StockHubPage() {
     .order("stock", { ascending: true });
 
   const { data: stageRows } = await supabase.from("product_stock_stages").select("product_id, reserved, on_road, delivered");
+  const { data: needRows } = await supabase.from("product_variant_stock_v").select("product_id").eq("count_needed", true);
+  const countNeeded = new Set((needRows ?? []).map((r) => r.product_id));
   const stagesById = new Map((stageRows ?? []).map((r) => [r.product_id, r]));
 
   const list = (products ?? []).map((p) => {
@@ -74,6 +77,11 @@ export default async function StockHubPage() {
                         <Link href={`/app/products/${p.id}`} className="font-medium hover:underline">
                           {p.name}
                         </Link>
+                        {countNeeded.has(p.id) ? (
+                          <Link href={`/app/products/${p.id}/stock`} className="ms-2 inline-block align-middle">
+                            <StatusPill kind="stock" status="count_needed" size="sm" />
+                          </Link>
+                        ) : null}
                       </td>
                       <td className="text-muted-foreground">{p.sku ?? "—"}</td>
                       <td>

@@ -42,6 +42,7 @@ export type ProductRow = {
   net_profit: number | null;
   created_at: string;
   spark: number[];
+  countNeeded: boolean;
 };
 
 export function ProductsView({ rows }: { rows: ProductRow[] }) {
@@ -118,6 +119,11 @@ export function ProductsView({ rows }: { rows: ProductRow[] }) {
               {r.name}
             </Link>
             {r.sku ? <div className="text-xs text-muted-foreground">{r.sku}</div> : null}
+            {r.countNeeded ? (
+              <Link href={`/app/products/${r.id}/stock`} onClick={(e) => e.stopPropagation()} className="mt-1 inline-block">
+                <StatusPill kind="stock" status="count_needed" size="sm" />
+              </Link>
+            ) : null}
           </div>
         </div>
       ),
@@ -276,6 +282,11 @@ function ProductCard({ row, kebab }: { row: ProductRow; kebab: React.ReactNode }
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusPill kind="product" status={row.status} size="sm" />
           <StockChip stock={row.stock} threshold={row.low_stock_threshold} outLabel={t("stock.out")} lowLabel={t("stock.low")} />
+          {row.countNeeded ? (
+            <Link href={`/app/products/${row.id}/stock`}>
+              <StatusPill kind="stock" status="count_needed" size="sm" />
+            </Link>
+          ) : null}
         </div>
         <div className="mt-auto flex items-end justify-between">
           <div className="space-y-1">

@@ -11,7 +11,12 @@ import { Chip } from "@/components/ui/chip";
 import { EnumSelect } from "@/components/fields/enum-select";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
+import { StatusPill } from "@/components/status-pill";
+import { loadProductVariants } from "@/lib/catalog/variants-data";
 import { addStockMovement } from "../../actions";
+import { CountBySize } from "./count-by-size";
+
+const NONE = "__none";
 
 export default async function ProductStockPage({
   params,
@@ -22,7 +27,7 @@ export default async function ProductStockPage({
   const t = await getTranslations();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: stages }, { data: movements }] = await Promise.all([
+  const [{ data: product }, { data: stages }, { data: movements }, variantMap, { data: sizeStock }] = await Promise.all([
     supabase.from("products").select("stock, low_stock_threshold").eq("id", id).maybeSingle(),
     supabase.from("product_stock_stages").select("in_stock, reserved, on_road, delivered").eq("product_id", id).maybeSingle(),
     supabase
@@ -30,9 +35,14 @@ export default async function ProductStockPage({
       .select("*")
       .eq("product_id", id)
       .order("created_at", { ascending: false }),
+    loadProductVariants(supabase, [id]),
+    supabase.from("product_variant_stock_v").select("not_assigned, count_needed").eq("product_id", id).maybeSingle(),
   ]);
   if (!product) notFound();
 
+  const variants = variantMap.get(id)?.variants ?? [];
+  const labelOf = new Map(variants.map((v) => [v.id, v.label]));
+  const notAssigned = sizeStock?.not_assigned ?? 0;
   const out = product.stock <= 0;
   const low = !out && product.stock <= product.low_stock_threshold;
 
@@ -63,6 +73,48 @@ export default async function ProductStockPage({
         )}
       </div>
 
+      {variants.length ? (
+        <div className="card-surface space-y-3 rounded-xl p-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-sm font-semibold">{t("stock.sizesTitle")}</h2>
+            {sizeStock?.count_needed ? <StatusPill kind="stock" status="count_needed" size="sm" /> : null}
+          </div>
+          <div className="overflow-x-auto">
+            <table className={`${tableClass}`}>
+              <thead>
+                <tr>
+                  <th>{t("stock.size")}</th>
+                  <th className="!text-end">{t("fields.quantity")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {variants.map((v) => (
+                  <tr key={v.id} className={v.isActive ? "" : "opacity-70"}>
+                    <td>
+                      <bdi className="font-medium">{v.label}</bdi>
+                      {!v.isActive ? <Chip token="neutral" size="sm" className="ms-2">{t("stock.inactive")}</Chip> : null}
+                    </td>
+                    <td className={v.stock < 0 ? "num text-end text-danger" : "num text-end"}>{v.stock}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td className="text-muted-foreground" title={t("stock.notAssignedHint")}>
+                    {t("stock.notAssigned")}
+                  </td>
+                  <td className="num text-end">{notAssigned}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      <CountBySize
+        productId={id}
+        rows={variants.filter((v) => v.isActive).map((v) => ({ id: v.id, label: v.label, stock: v.stock }))}
+        notAssigned={notAssigned}
+      />
+
       <form
         action={addStockMovement.bind(null, id)}
         className="card-surface grid grid-cols-2 items-end gap-4 rounded-xl p-5 sm:grid-cols-4"
@@ -77,6 +129,18 @@ export default async function ProductStockPage({
             options={MANUAL_STOCK_REASONS.map((r) => ({ value: r, label: t(`stock.reasons.${r}`) }))}
           />
         </Field>
+        {variants.length ? (
+          <Field label={t("stock.variantPicker")}>
+            <EnumSelect
+              name="variant_id"
+              defaultValue={NONE}
+              options={[
+                { value: NONE, label: t("stock.sizeNone") },
+                ...variants.filter((v) => v.isActive).map((v) => ({ value: v.id, label: <bdi>{v.label}</bdi> })),
+              ]}
+            />
+          </Field>
+        ) : null}
         <Field label={t("stock.note")} htmlFor="note" hint={t("common.optional")} className="sm:col-span-2">
           <Input id="note" name="note" />
         </Field>
@@ -98,6 +162,7 @@ export default async function ProductStockPage({
                     <th>{t("fields.incurred_on")}</th>
                     <th>{t("stock.delta")}</th>
                     <th>{t("stock.reason")}</th>
+                    {variants.length ? <th>{t("stock.size")}</th> : null}
                     <th>{t("stock.note")}</th>
                   </tr>
                 </thead>
@@ -111,6 +176,9 @@ export default async function ProductStockPage({
                       <td>
                         <Chip token="neutral" size="sm">{t(`stock.reasons.${m.reason}`)}</Chip>
                       </td>
+                      {variants.length ? (
+                        <td className="text-muted-foreground">{m.variant_id ? <bdi>{labelOf.get(m.variant_id) ?? "—"}</bdi> : "—"}</td>
+                      ) : null}
                       <td className="text-muted-foreground">{m.note ?? "—"}</td>
                     </tr>
                   ))}

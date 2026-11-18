@@ -19,7 +19,7 @@ export default async function ProductsPage() {
   const since = new Date(Date.now() - SPARK_DAYS * 86400000);
   const sinceISO = since.toISOString().slice(0, 10);
 
-  const [{ data: products }, { data: stats }, { data: pnls }, { data: recentOrders }, categories] = await Promise.all([
+  const [{ data: products }, { data: stats }, { data: pnls }, { data: recentOrders }, categories, { data: needRows }] = await Promise.all([
     supabase
       .from("products")
       .select("id, name, sku, category_option_id, status, sale_price, stock, low_stock_threshold, images, created_at")
@@ -28,7 +28,9 @@ export default async function ProductsPage() {
     supabase.rpc("pnl_by_product", {}), // all-time; null pnl for agents
     supabase.from("orders").select("product_id, placed_at").gte("placed_at", since.toISOString()),
     getOptionSet(profile.workspaceId, "product_category"),
+    supabase.from("product_variant_stock_v").select("product_id").eq("count_needed", true),
   ]);
+  const countNeeded = new Set((needRows ?? []).map((r) => r.product_id));
 
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const statById = new Map((stats ?? []).map((s) => [s.id, s]));
@@ -64,6 +66,7 @@ export default async function ProductsPage() {
       net_profit: pnl && pnl.orders_delivered > 0 ? pnl.net_profit : null,
       created_at: p.created_at,
       spark: sparks.get(p.id) ?? new Array(SPARK_DAYS).fill(0),
+      countNeeded: countNeeded.has(p.id),
     };
   });
 
