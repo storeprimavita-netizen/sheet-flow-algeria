@@ -16,9 +16,9 @@
 | Default discount code | OFF = 10% |
 | Customer service days | السبت–الخميس |
 
-**Wilaya count:** the store copy says 69; the app's `wilayas` table currently
-has 58 rows. The number shown on the store must be the count of wilayas the
-delivery table actually serves — fix the data (task in the plan), not the copy.
+**Wilaya count:** never typed by hand. The store shows the number of wilayas
+that have a delivery price in the delivery table (currently 54 of 58 in the
+owner's price sheet), so the old "69" in the copy is replaced by that number.
 
 ## Speed budget (most customers are on a phone, on mobile data)
 

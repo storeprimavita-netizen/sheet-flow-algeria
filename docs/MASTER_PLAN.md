@@ -23,7 +23,8 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | O-3 | Vercel project + env vars + auth URLs + `CRON_SECRET`; re-register the ZR webhook (old P0-7) | deploy | open |
 | P-1 | Calculator formulas: the calculator's source code, or its results for the "benz" sample (the pasted math arrived blank twice) | PRICE-1 final numbers | open |
 | M-1 | List today's finance accounts and say which fold into DZD and which into USDT | MONEY-1 data mapping | open |
-| C-1 | Run `scripts/zr-probe.ts` with the ZR token; delivery-price CSV (wilaya × home/stop-desk); Yalidine API id + token when wanted | ZR-3, ZR-4, P1-7, CARRIER-2 | open |
+| C-1 | Run `scripts/zr-probe.ts` with the ZR token; Yalidine API id + token when wanted | ZR-3, ZR-4, CARRIER-2 | open |
+| C-2 | Delivery-price sheet (wilaya × home/stop-desk) | P1-7 | closed (2026-11-18: `prices/Algeria_numbered.csv`, kept local) |
 | S-1 | Store assets: logo + WhatsApp icon files, product photos, policy texts, domain DNS for `luxemodesty.shop` | STORE-2 content, STORE-6 domain | open |
 | K-1 | Meta pixel/dataset id + Conversions API token + test event code; TikTok pixel id + Events API token | TRACK-2, TRACK-4 live tests | open |
 | T-1 | Create the Telegram bot (BotFather) and give the token | NOTIF-2 live test | open |
@@ -37,14 +38,14 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 |---|---|---|---|---|---|---|---|---|
 | P0-1…P0-5 | Webhook hardening, ZR seam, permission matrix, cash unique index | – | H | sec | – | – | – | done |
 | ZR-0, ZR-2 | ZR API audit; ZR status sync | CARRIER | H | sec | – | – | – | done |
-| P0-8 | `order_stock_effects`: undo stock when an order leaves `returned` | CARRIER | H | – | M | orders | O-1 | claimed:claude |
-| CARRIER-0 | Reconcile `wilayas` (58 rows) with the 69 the carriers serve; reseed fees | CARRIER | H | – | M | orders | O-1 | todo |
+| P0-8 | `order_stock_effects`: undo stock when an order leaves `returned`. Rule D25: target stock held by an order = quantity if confirmed and not returned/cancelled, else 0 — reconcile to the target instead of firing per event. Branch `v3-P0-8` exists: fix review-1 (double deduction on reopen; each live test file creates its own product + order) | CARRIER | H | – | M | orders | O-1 | claimed:claude |
+| CARRIER-0 | Wilayas stay 58 (D26). Fix the dashboard map: centroids 49–58 in `src/lib/geo/algeria-wilayas.ts` are misnumbered vs the seed (review-0 finding 2) and some names are garbled; webhook wilaya name match prefers the longest name. No migration | CARRIER | L | ui | – | orders | O-1 | todo |
 
 ## Wave 1 — clarity (owner's main complaint)
 
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
-| NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names | NAV | L | ui | – | shell | O-1 | todo |
+| NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names. Branch `v3-NAV-1` exists: fix review-3 (Settings must not squeeze the scrolling nav; distinct icon for Users & roles; no dead chevron), then review light theme, 390 px drawer, icon rail and an agent login | NAV | L | ui | – | shell | O-1 | todo |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | todo |
 | NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | todo |
 | NAV-4 | Emoji in option labels and saved views; label overrides for system statuses | NAV | L | ui | M | shell | NAV-1 | todo |
@@ -102,7 +103,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | TRACK-3 | Lifecycle events: confirmed / delivered / returned | TRACK | H | sec | – | track | TRACK-2 | todo |
 | TRACK-4 | TikTok Events API sender | TRACK | H | sec | – | track | TRACK-2 | todo |
 | TRACK-5 | Events screen + match hints + resend | TRACK | L | ui | – | track | TRACK-2 | todo |
-| P1-7 | Delivery prices per wilaya × type; COD amount pushed = sale·qty + fee (D14) | CARRIER | H | – | M | orders | CARRIER-0, C-1 | todo |
+| P1-7 | Delivery prices (D27): import the owner's sheet format (wilaya × home/stop-desk, Arabic labels) into `wilaya_fees`; fees editable in Settings → Delivery fees; upload a new CSV to replace them (preview of changes before applying); wilaya without a price = shipping off; home-only wilaya = no stop-desk; commune list from the same file; COD amount pushed = sale·qty + fee (D14) | CARRIER | H | ui | M | orders | P0-8, C-2 | todo |
 | ZR-3 | "Your ZR history for this phone" in the confirmation sheet | CARRIER | H | ui | – | orders | C-1 | todo |
 | ZR-4 | ZR payments ledger → Money → Courier cash | CARRIER | H | ui | M | money | C-1, MONEY-1 | todo |
 | STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | todo |
