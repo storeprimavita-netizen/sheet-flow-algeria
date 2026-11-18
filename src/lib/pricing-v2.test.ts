@@ -246,3 +246,34 @@ describe("overrides", () => {
     expect(mergeSettings(S, undefined)).toEqual(S);
   });
 });
+
+describe("review 3 fixes", () => {
+  it("target merges as one unit (mode change without value -> null price)", () => {
+    const m = mid({ ...benz, finalPrice: null, overrides: { target: { mode: "markup", value: null } } });
+    expect(m.targetProfit).toBeNull();
+    expect(m.recommendedPrice).toBeNull();
+    const ws = { target: { mode: "markup" as const, value: 0.65 } };
+    const r = computeAll(ws, { ...benz, finalPrice: null, overrides: { target: { mode: "profit" } } }).medium;
+    expect(r.recommendedPrice).toBeNull();
+    expect(mergeSettings(S, { target: { value: 2000 } }).target).toEqual({ mode: "profit", value: 2000 });
+  });
+  it("out-of-range settings give null", () => {
+    expect(mid(benz, { ...S, share: 50 }).recommendedPrice).toBeNull();
+    expect(mid(benz, { ...S, months: -2 }).recommendedPrice).toBeNull();
+    expect(mid(benz, { ...S, platformPct: -0.5 }).recommendedPrice).toBeNull();
+    expect(mid({ ...benz, adCostUsd: { medium: -1 } }).recommendedPrice).toBeNull();
+    expect(mid(benz, { ...S, adMultiplier: { best: -1, worst: 1.23 } }).recommendedPrice).toBe(5500);
+    expect(mid(benz, { ...S, target: { mode: "profit", value: -5000 } }).recommendedPrice).toBeNull();
+    expect(mid(benz, { ...S, target: { mode: "markup", value: 65 } }).recommendedPrice).not.toBeNull();
+  });
+  it("up100 with non-positive exact price is null, never -0", () => {
+    expect(applyRounding(-0.5, "up100")).toBe(-0);
+  });
+  it("worst finalPrice falls back to medium recommended when empty", () => {
+    expect(computeAll(S, { ...benz, finalPrice: null }).worst.finalPrice).toBe(5500);
+  });
+  it("minDelivery null when denominator <= 0", () => {
+    const r = computeScenario(S, benz, { ...medIn, confirm: 0.65, delivery: 0.65 }, 100);
+    expect(r.breakEven.minDelivery).toBeNull();
+  });
+});

@@ -39,7 +39,7 @@ export type PricingSettings = {
   confirmPct: PerScenario;
   deliveryPct: PerScenario;
   adMultiplier: { best: number; worst: number };
-  target: { mode: "profit" | "markup"; value: number }; // markup is a fraction
+  target: { mode: "profit" | "markup"; value: number | null }; // markup is a fraction; null = unset
   rounding: Rounding;
 };
 
@@ -164,11 +164,19 @@ function mergeNode(base: unknown, over: unknown): unknown {
   return base;
 }
 
-/** Deep merge copying only defined, type-correct, finite values. */
+/**
+ * Deep merge copying only defined, type-correct, finite values. `target` is
+ * merged as ONE unit (mode + value mean different things per mode): a mode
+ * change without a value leaves the value null, so the price becomes null
+ * instead of reading a DZD value as a markup fraction.
+ */
 export function mergeSettings(base: PricingSettings, overrides?: DeepPartial<PricingSettings> | null): PricingSettings {
-  const out = mergeNode(base, overrides) as PricingSettings;
+  const { target: ot, ...rest } = (overrides ?? {}) as DeepPartial<PricingSettings>;
+  const out = mergeNode({ ...base, target: undefined }, rest) as PricingSettings;
   if (!ROUNDINGS.includes(out.rounding)) out.rounding = base.rounding;
-  if (out.target.mode !== "profit" && out.target.mode !== "markup") out.target = { ...out.target, mode: base.target.mode };
+  const mode = ot?.mode === "profit" || ot?.mode === "markup" ? ot.mode : base.target.mode;
+  const value = fin(ot?.value) ? ot.value : mode === base.target.mode ? base.target.value : null;
+  out.target = { mode, value };
   return out;
 }
 
@@ -180,7 +188,7 @@ export function resolveAdCosts(
   settings: PricingSettings = DEFAULT_PRICING_SETTINGS,
   typed: { best?: number | null; worst?: number | null } = {},
 ): Record<ScenarioName, N> {
-  const derived = (m: number) => (fin(medium) ? round2(medium * m) : null);
+  const derived = (m: number) => (fin(medium) && medium >= 0 && fin(m) && m >= 0 ? round2(medium * m) : null);
   return {
     best: fin(typed.best) ? typed.best : derived(settings.adMultiplier.best),
     medium: fin(medium) ? medium : null,
@@ -245,17 +253,32 @@ export function computeScenario(
 ): ScenarioResult {
   const O = settings.officialRate;
   const B = settings.parallelRate;
+  // range checks: out-of-range settings (percent typed as 50, negatives) -> null
+  const nn = (x: N) => (fin(x) && x >= 0 ? x : null);
+  const frac = (x: N) => (fin(x) && x >= 0 && x < 1 ? x : null);
+  const st = {
+    platformPct: frac(settings.platformPct),
+    share: frac(settings.share),
+    platformMonthlyUsd: nn(settings.platformMonthlyUsd),
+    months: nn(settings.months),
+    packaging: nn(settings.packaging),
+    confirmationFee: nn(settings.confirmationFee),
+    otherPerOrder: nn(settings.otherPerOrder),
+    returnCost: nn(settings.returnCost),
+    otherStockFees: nn(settings.otherStockFees),
+    target: nn(settings.target.value),
+  };
   const inRange = (x: N) => (fin(x) && x > 0 && x <= 1 ? x : null);
   const c = inRange(s.confirm);
   const d = inRange(s.delivery);
-  const ad = s.adCostUsd;
+  const ad = nn(s.adCostUsd);
   const ratesOk = fin(O) && O > 0 && fin(B) && B > 0;
   const deadOk = fin(settings.deadPct) && settings.deadPct >= 0 && settings.deadPct < 1;
   const sellable = ratesOk && deadOk ? mul(product.quantity, 1 - settings.deadPct) : null;
   const sellableOk = fin(sellable) && sellable > 0 ? sellable : null;
 
-  const costPiece = div(product.stockCostDzd, sellableOk);
-  const k = ratesOk ? div(mul(settings.platformPct, B), O) : null;
+  const costPiece = div(nn(product.stockCostDzd), sellableOk);
+  const k = ratesOk ? div(mul(st.platformPct, B), O) : null;
   const cd = mul(c, d);
   const ordersNeeded = div(sellableOk, cd);
   const returnedOrders = sub(div(sellableOk, d), sellableOk);
@@ -266,20 +289,21 @@ export function computeScenario(
   const lines = {
     product: costPiece,
     ads: mul(adCostPerDeliveredUsd, B),
-    returns: div(mul(settings.returnCost, returnedOrders), sellableOk),
-    confirmation: add(settings.confirmationFee),
-    packaging: add(settings.packaging),
-    otherPerOrder: add(settings.otherPerOrder),
-    otherStock: div(settings.otherStockFees, sellableOk),
-    platformMonthly: div(mul(settings.platformMonthlyUsd, settings.months, settings.share, B), sellableOk),
+    returns: div(mul(st.returnCost, returnedOrders), sellableOk),
+    confirmation: add(st.confirmationFee),
+    packaging: add(st.packaging),
+    otherPerOrder: add(st.otherPerOrder),
+    otherStock: div(st.otherStockFees, sellableOk),
+    platformMonthly: div(mul(st.platformMonthlyUsd, st.months, st.share, B), sellableOk),
   };
   const totalCost = add(...Object.values(lines));
 
   const targetProfit =
-    settings.target.mode === "markup" ? mul(costPiece, settings.target.value) : add(settings.target.value);
+    settings.target.mode === "markup" ? mul(costPiece, st.target) : st.target;
   const oneMinusK = sub(1, k);
   const denom = fin(oneMinusK) && oneMinusK > 0 ? oneMinusK : null;
-  const exactPrice = div(add(totalCost, targetProfit), denom);
+  const rawExact = div(add(totalCost, targetProfit), denom);
+  const exactPrice = fin(rawExact) && rawExact > 0 ? rawExact : null;
   const platformFee = mul(exactPrice, k);
   const recommendedPrice = applyRounding(exactPrice, settings.rounding);
 
@@ -298,8 +322,8 @@ export function computeScenario(
   const breakEven = {
     minConfirmation: positive(room) === null ? null : cap(div(div(mul(ad, B), d), room)),
     minDelivery: (() => {
-      const dn = add(sub(NP, costExAdsReturns), settings.returnCost);
-      return positive(dn) === null ? null : cap(div(add(div(mul(ad, B), c), settings.returnCost), dn));
+      const dn = add(sub(NP, costExAdsReturns), st.returnCost);
+      return positive(dn) === null ? null : cap(div(add(div(mul(ad, B), c), st.returnCost), dn));
     })(),
     maxAdCostUsd: positive(div(mul(room, c, d), B)),
     minSellingPrice: div(totalCost, denom),
