@@ -8,6 +8,17 @@ owner may overturn").
 
 ## Open
 
+### Q-13 · STORE-1 · 2026-11-18 · answered-by-default
+A product already has its sizes saved (S, M, L). Later you want to add a second
+option to it, for example the colour. **Applied by default (D55):** this is not
+possible on that product. Once sizes are saved you can still add or rename
+values (a new size XL) and switch a size off, but not add or remove an option;
+the screen says so. Reason: the existing S, M and L would have no colour, and
+their stock and their orders could not be given one without guessing. To sell a
+product in several colours, create both options before saving its first sizes.
+The other option: allow it, and you choose which colour the existing sizes
+become. Say so if you want it. Nothing is blocked.
+
 ### Q-12 · STORE-1 · 2026-11-18 · answered-by-default
 A customer exchanges size M for size L. When does the M count as back in your
 stock? **Applied by default (D54):** you change the size on the order to L. One
