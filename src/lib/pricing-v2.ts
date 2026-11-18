@@ -1,0 +1,333 @@
+// Pricing calculator v2 (D50 owner formulas, D51 markup base). Pure functions:
+// no DB, no UI, every setting is a parameter (D38). Internal values are
+// unrounded; round only for display. Any non-finite input or zero denominator
+// yields `null` (never NaN/Infinity) and nulls propagate downstream.
+//
+// UNITS: all percentages are FRACTIONS 0-1 (platformPct 0.01 = 1%, share 0.5,
+// deadPct 0.1, confirmPct/deliveryPct 0.65, markup 0.65 = 65%). Money is DZD
+// except fields ending in `Usd`.
+// NAMING: the spec calls two things "k". In code `deadPct` is the dead-stock
+// share and `k` is the platform real % (platformPct x parallel / official).
+
+export type ScenarioName = "best" | "medium" | "worst";
+export type Rounding =
+  | "none"
+  | "up100"
+  | "nearest50"
+  | "nearest100"
+  | "charm900"
+  | "charm990"
+  | "charm99";
+
+type PerScenario = Record<ScenarioName, number>;
+
+export type PricingSettings = {
+  officialRate: number;
+  parallelRate: number;
+  platformPct: number; // fraction of price
+  platformMonthlyUsd: number;
+  months: number;
+  share: number; // product's share of the store, fraction
+  packaging: number;
+  confirmationFee: number;
+  otherPerOrder: number;
+  returnCost: number;
+  otherStockFees: number;
+  deadPct: number; // dead stock, fraction
+  confirmPct: PerScenario;
+  deliveryPct: PerScenario;
+  adMultiplier: { best: number; worst: number };
+  target: { mode: "profit" | "markup"; value: number }; // markup is a fraction
+  rounding: Rounding;
+};
+
+export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> | null : T[K] | null };
+
+export const DEFAULT_PRICING_SETTINGS: PricingSettings = {
+  officialRate: 132,
+  parallelRate: 255,
+  platformPct: 0.01,
+  platformMonthlyUsd: 29,
+  months: 2,
+  share: 0.5,
+  packaging: 90,
+  confirmationFee: 150,
+  otherPerOrder: 10,
+  returnCost: 200,
+  otherStockFees: 10000,
+  deadPct: 0.1,
+  confirmPct: { best: 0.82, medium: 0.65, worst: 0.58 },
+  deliveryPct: { best: 0.82, medium: 0.65, worst: 0.58 },
+  adMultiplier: { best: 0.68, worst: 1.23 },
+  target: { mode: "profit", value: 1500 },
+  rounding: "up100",
+};
+
+/** Native store: no platform fee lines. */
+export const NATIVE_PLATFORM_PRESET = { platformPct: 0, platformMonthlyUsd: 0 } as const;
+
+export type PricingProduct = {
+  stockCostDzd: number;
+  quantity: number;
+  adCostUsd: { best?: number | null; medium: number; worst?: number | null };
+  finalPrice?: number | null;
+  overrides?: DeepPartial<PricingSettings> | null;
+};
+
+export type ScenarioInput = { confirm: number; delivery: number; adCostUsd: number };
+
+type N = number | null;
+
+export type ScenarioResult = {
+  sellable: N;
+  costPiece: N;
+  k: N;
+  ordersNeeded: N;
+  returnedOrders: N;
+  adCostPerDeliveredUsd: N;
+  totalAdUsd: N;
+  totalAdDzd: N;
+  lines: {
+    product: N;
+    ads: N;
+    returns: N;
+    confirmation: N;
+    packaging: N;
+    otherPerOrder: N;
+    otherStock: N;
+    platformMonthly: N;
+  };
+  totalCost: N;
+  targetProfit: N;
+  exactPrice: N;
+  platformFee: N;
+  recommendedPrice: N;
+  finalPrice: N; // the P actually used
+  profitPerPiece: N;
+  netProfit: N;
+  margin: N;
+  breakEven: {
+    minConfirmation: N;
+    minDelivery: N;
+    maxAdCostUsd: N;
+    minSellingPrice: N;
+  };
+};
+
+// ---------- null-safe arithmetic ----------
+
+const fin = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
+
+/** Single division helper: non-finite or zero denominator -> null. */
+function div(a: N, b: N): N {
+  if (!fin(a) || !fin(b) || b === 0) return null;
+  const r = a / b;
+  return Number.isFinite(r) ? r : null;
+}
+function mul(...xs: N[]): N {
+  let r = 1;
+  for (const x of xs) {
+    if (!fin(x)) return null;
+    r *= x;
+  }
+  return Number.isFinite(r) ? r : null;
+}
+function add(...xs: N[]): N {
+  let r = 0;
+  for (const x of xs) {
+    if (!fin(x)) return null;
+    r += x;
+  }
+  return Number.isFinite(r) ? r : null;
+}
+function sub(a: N, b: N): N {
+  return fin(a) && fin(b) ? a - b : null;
+}
+const round2 = (x: number) => Math.round(x * 100) / 100;
+
+// ---------- settings merge ----------
+
+function mergeNode(base: unknown, over: unknown): unknown {
+  if (over === null || over === undefined) return base;
+  if (typeof base === "object" && base !== null) {
+    if (typeof over !== "object") return base;
+    const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+    for (const key of Object.keys(base as object)) {
+      out[key] = mergeNode((base as Record<string, unknown>)[key], (over as Record<string, unknown>)[key]);
+    }
+    return out;
+  }
+  if (typeof base === "number") return fin(over) ? over : base;
+  if (typeof base === "string") return typeof over === "string" ? over : base;
+  return base;
+}
+
+/** Deep merge copying only defined, type-correct, finite values. */
+export function mergeSettings(base: PricingSettings, overrides?: DeepPartial<PricingSettings> | null): PricingSettings {
+  return mergeNode(base, overrides) as PricingSettings;
+}
+
+// ---------- ad costs & rounding ----------
+
+/** best/worst = round2(medium x multiplier) unless typed. */
+export function resolveAdCosts(
+  medium: number,
+  settings: PricingSettings = DEFAULT_PRICING_SETTINGS,
+  typed: { best?: number | null; worst?: number | null } = {},
+): PerScenario {
+  return {
+    best: fin(typed.best) ? typed.best : round2(medium * settings.adMultiplier.best),
+    medium,
+    worst: fin(typed.worst) ? typed.worst : round2(medium * settings.adMultiplier.worst),
+  };
+}
+
+/**
+ * Round an exact price. Rounds to cents first so float noise
+ * (300.00000000000006) does not jump a whole step. nearest50/100 may round
+ * BELOW the exact price (and undercut target profit); charm endings (our
+ * reading: next number ending 900/990/99 at or above exact) never do.
+ */
+export function applyRounding(exact: N, rounding: Rounding): N {
+  if (!fin(exact)) return null;
+  const x = round2(exact);
+  const charm = (step: number, ending: number) => {
+    const base = Math.floor(x / step) * step + ending;
+    return base >= x ? base : base + step;
+  };
+  switch (rounding) {
+    case "none":
+      return exact;
+    case "up100":
+      return Math.ceil(x / 100) * 100;
+    case "nearest50":
+      return Math.round(x / 50) * 50;
+    case "nearest100":
+      return Math.round(x / 100) * 100;
+    case "charm900":
+      return charm(1000, 900);
+    case "charm990":
+      return charm(1000, 990);
+    case "charm99":
+      return charm(100, 99);
+  }
+}
+
+// ---------- engine ----------
+
+const EMPTY_BREAK_EVEN = { minConfirmation: null, minDelivery: null, maxAdCostUsd: null, minSellingPrice: null };
+
+/**
+ * One scenario at explicit confirmation / delivery / ad cost (so the PRICE-3
+ * Real column reuses it). `finalPrice` > 0 is P; otherwise `defaultPrice`
+ * (callers pass the medium recommended price); finalPrice 0 is "no price".
+ */
+export function computeScenario(
+  settings: PricingSettings,
+  product: Pick<PricingProduct, "stockCostDzd" | "quantity">,
+  s: ScenarioInput,
+  finalPrice?: number | null,
+  defaultPrice?: N,
+): ScenarioResult {
+  const O = settings.officialRate;
+  const B = settings.parallelRate;
+  const c = s.confirm;
+  const d = s.delivery;
+  const ad = s.adCostUsd;
+  const ratesOk = fin(O) && O > 0 && fin(B) && B > 0;
+  const sellable = ratesOk ? mul(product.quantity, 1 - settings.deadPct) : null;
+  const sellableOk = fin(sellable) && sellable > 0 ? sellable : null;
+
+  const costPiece = div(product.stockCostDzd, sellableOk);
+  const k = ratesOk ? div(mul(settings.platformPct, B), O) : null;
+  const cd = mul(c, d);
+  const ordersNeeded = div(sellableOk, cd);
+  const returnedOrders = sub(div(sellableOk, d), sellableOk);
+  const adCostPerDeliveredUsd = div(ad, cd);
+  const totalAdUsd = mul(ordersNeeded, ad);
+  const totalAdDzd = mul(totalAdUsd, B);
+
+  const lines = {
+    product: costPiece,
+    ads: mul(adCostPerDeliveredUsd, B),
+    returns: div(mul(settings.returnCost, returnedOrders), sellableOk),
+    confirmation: add(settings.confirmationFee),
+    packaging: add(settings.packaging),
+    otherPerOrder: add(settings.otherPerOrder),
+    otherStock: div(settings.otherStockFees, sellableOk),
+    platformMonthly: div(mul(settings.platformMonthlyUsd, settings.months, settings.share, B), sellableOk),
+  };
+  const totalCost = add(...Object.values(lines));
+
+  const targetProfit =
+    settings.target.mode === "markup" ? mul(costPiece, settings.target.value) : add(settings.target.value);
+  const oneMinusK = sub(1, k);
+  const denom = fin(oneMinusK) && oneMinusK > 0 ? oneMinusK : null;
+  const exactPrice = div(add(totalCost, targetProfit), denom);
+  const platformFee = mul(exactPrice, k);
+  const recommendedPrice = applyRounding(exactPrice, settings.rounding);
+
+  const P = fin(finalPrice) && finalPrice > 0 ? finalPrice : finalPrice === 0 ? null : (defaultPrice ?? recommendedPrice);
+  const profitPerPiece = sub(sub(P, totalCost), mul(P, k));
+  const netProfit = mul(profitPerPiece, sellableOk);
+  const margin = div(profitPerPiece, P);
+
+  const NP = mul(P, denom);
+  const costExAds = sub(totalCost, lines.ads);
+  const costExAdsReturns = sub(costExAds, lines.returns);
+  const room = sub(NP, costExAds); // price net of platform fee minus non-ad costs
+  const cap = (x: N) => (fin(x) && x >= 0 && x <= 1 ? x : null);
+  const positive = (x: N) => (fin(x) && x > 0 ? x : null);
+  const breakEven = {
+    minConfirmation: positive(room) === null ? null : cap(div(div(mul(ad, B), d), room)),
+    minDelivery: (() => {
+      const dn = add(sub(NP, costExAdsReturns), settings.returnCost);
+      return positive(dn) === null ? null : cap(div(add(div(mul(ad, B), c), settings.returnCost), dn));
+    })(),
+    maxAdCostUsd: positive(div(mul(room, c, d), B)),
+    minSellingPrice: div(totalCost, denom),
+  };
+
+  return {
+    sellable: sellableOk,
+    costPiece,
+    k,
+    ordersNeeded,
+    returnedOrders,
+    adCostPerDeliveredUsd,
+    totalAdUsd,
+    totalAdDzd,
+    lines,
+    totalCost,
+    targetProfit,
+    exactPrice,
+    platformFee,
+    recommendedPrice,
+    finalPrice: P,
+    profitPerPiece,
+    netProfit,
+    margin,
+    breakEven: ratesOk ? breakEven : EMPTY_BREAK_EVEN,
+  };
+}
+
+/** Best / medium / worst. Medium first; its recommended price is the default P. */
+export function computeAll(
+  workspace: PricingSettings,
+  product: PricingProduct,
+): Record<ScenarioName, ScenarioResult> {
+  const settings = mergeSettings(workspace, product.overrides);
+  const ads = resolveAdCosts(product.adCostUsd.medium, settings, product.adCostUsd);
+  const input = (n: ScenarioName): ScenarioInput => ({
+    confirm: settings.confirmPct[n],
+    delivery: settings.deliveryPct[n],
+    adCostUsd: ads[n],
+  });
+  const medium = computeScenario(settings, product, input("medium"), product.finalPrice);
+  const dflt = medium.recommendedPrice;
+  return {
+    best: computeScenario(settings, product, input("best"), product.finalPrice, dflt),
+    medium,
+    worst: computeScenario(settings, product, input("worst"), product.finalPrice, dflt),
+  };
+}
