@@ -171,3 +171,7 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: scripts/gate.sh GATE OK on v3-P0-8-F (209 tests incl. live RLS suite, tsc, i18n parity, color lint, build, protected paths, secret scan).
 - Owner: production db push of new migrations is owner-only.
 - Next: none in this row; continue with the next todo task in MASTER_PLAN.
+
+## CARRIER-0-F — Arabic map legend at 390 px
+- Done: legend verified correct in AR light + dark at a true 390 px (chrome-devtools emulate); stale PNG replaced, map-dark-ar-390.png added; map tooltip uses dashboard.wilaya.noData (new noDataLabel prop); wilaya code in table label wrapped in bdi dir=ltr; source-level bdi test added (no component test setup).
+- Screenshots: AR light + dark at 390 px viewed; EN and desktop not retaken.

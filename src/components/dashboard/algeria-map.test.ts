@@ -44,3 +44,13 @@ describe("ALGERIA_OUTLINE", () => {
     expect(last).toEqual(first);
   });
 });
+
+describe("wilaya legend bidi", () => {
+  // No component test setup (jsdom/RTL) in this repo, so assert on source.
+  const src = readFileSync("src/app/app/dashboard/wilaya-section.tsx", "utf8");
+  it("wraps every range label in bdi dir=ltr", () => {
+    for (const label of ["&lt;40%", "40–55%", "55–70%", "70–85%", "85%+"]) {
+      expect(src).toContain(`<bdi dir="ltr">${label}</bdi>`);
+    }
+  });
+});
