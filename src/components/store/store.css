@@ -83,7 +83,7 @@ body.store-root { margin: 0; }
 .store-footer-hair { block-size: 1px; background: var(--gold); border: 0; margin-block: var(--space-4); inline-size: 100%; }
 
 .store-whatsapp {
-  position: fixed; inset-inline-start: var(--space-4); inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom));
+  position: fixed; inset-inline-end: var(--space-4); inset-block-end: calc(var(--space-4) + env(safe-area-inset-bottom));
   inline-size: 56px; block-size: 56px; border-radius: 50%; background: var(--brand-fill); color: var(--on-brand);
   display: grid; place-items: center; box-shadow: var(--shadow-soft); z-index: 30;
 }
