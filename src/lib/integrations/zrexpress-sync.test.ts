@@ -38,9 +38,8 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let orderId: string;
+  let productId: string;
   let parcel: string;
-  let prevCfg: { config: unknown; secret: string | null; is_active: boolean } | null;
-  let prevMap: unknown;
   const MAP = { map: { livre: "delivered", "en transit": "in_transit", retour: "returned" } };
 
   const rpc = (state: string | null, at: string | null, extra: Record<string, unknown> = {}) =>
@@ -50,12 +49,13 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     });
   const order = async () => (await admin.from("orders").select("delivery_status").eq("id", orderId).single()).data!.delivery_status;
   const shipment = async () => (await admin.from("zr_shipments").select("*").eq("order_id", orderId).single()).data!;
-  const stock = async () => (await admin.from("stock_movements").select("id").eq("order_id", orderId).eq("reason", "order_returned")).data!.length;
+  // D34: pieces this order holds outside the warehouse (qty 1): on road/delivered = 1, returned/not shipped = 0
+  const held = async () =>
+    ((await admin.from("stock_movements").select("delta").eq("order_id", orderId)).data ?? []).reduce((s, m) => s - m.delta, 0);
 
   async function reset() {
-    await admin.from("stock_movements").delete().eq("order_id", orderId).eq("reason", "order_returned");
     await admin.from("zr_shipments").delete().eq("order_id", orderId);
-    await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", orderId);
+    await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", orderId); // releases the piece
     await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
     parcel = crypto.randomUUID();
     await admin.from("zr_shipments").insert({ order_id: orderId, workspace_id: ws, parcel_id: parcel });
@@ -66,21 +66,21 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = URL;
     process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
     admin = createClient(URL!, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: o } = await admin.from("orders").select("id, workspace_id").not("product_id", "is", null).eq("delivery_status", "wait_for_deposit").limit(1).single();
-    orderId = o!.id; ws = o!.workspace_id;
-    prevCfg = (await admin.from("integration_configs").select("config, secret, is_active").eq("workspace_id", ws).eq("provider", "zrexpress").maybeSingle()).data;
+    ws = (await admin.from("workspaces").insert({ name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id; // own workspace
+    productId = (await admin.from("products").insert({ workspace_id: ws, name: `zr-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
+    orderId = (await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: 1 }).select("id").single()).data!.id;
     await admin.from("integration_configs").upsert({ workspace_id: ws, provider: "zrexpress", config: {}, secret: SECRET, is_active: true });
-    prevMap = (await admin.from("settings").select("value").eq("workspace_id", ws).eq("key", "zr_state_map").maybeSingle()).data?.value;
   });
   afterAll(async () => {
     if (!admin) return;
-    await admin.from("stock_movements").delete().eq("order_id", orderId).eq("reason", "order_returned");
+    // the stock log is add-only: delete the order, then the product (movements follow by cascade)
     await admin.from("zr_shipments").delete().eq("order_id", orderId);
-    await admin.from("orders").update({ delivery_status: "wait_for_deposit" }).eq("id", orderId);
-    await admin.from("webhook_events").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
-    if (prevCfg) await admin.from("integration_configs").update(prevCfg as never).eq("workspace_id", ws).eq("provider", "zrexpress");
-    else await admin.from("integration_configs").delete().eq("workspace_id", ws).eq("provider", "zrexpress");
-    if (prevMap !== undefined) await setMap(prevMap);
+    await admin.from("orders").delete().eq("id", orderId);
+    await admin.from("products").delete().eq("id", productId);
+    await admin.from("webhook_events").delete().eq("workspace_id", ws);
+    await admin.from("integration_configs").delete().eq("workspace_id", ws);
+    await admin.from("settings").delete().eq("workspace_id", ws);
+    expect((await admin.from("workspaces").delete().eq("id", ws)).error).toBeNull();
   });
 
   async function hook(body: unknown, id = `msg_${crypto.randomUUID()}`) {
@@ -100,7 +100,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await Promise.all([rpc("Livre", T(10)), rpc("En Transit", T(20))]);
     expect((await shipment()).state).toBe("En Transit");
     expect(await order()).toBe("in_transit");
-    expect(await stock()).toBeLessThanOrEqual(1);
+    expect(await held()).toBeLessThanOrEqual(1);
     // returned (restocks) -> in_transit -> stale returned -> returned again
     await reset();
     await rpc("Retour", T(10));
@@ -109,7 +109,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await order()).toBe("in_transit");
     await rpc("Retour", T(30));
     expect(await order()).toBe("returned");
-    expect(await stock()).toBe(2); // two genuine returned transitions, no extras
+    expect(await held()).toBe(0); // two returned transitions net nothing
   });
 
   test("returned -> admin sets delivered -> same-timestamp apply leaves delivered, stock once", async () => {
@@ -119,7 +119,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
     await rpc("Retour", T(10));
     expect(await order()).toBe("delivered");
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(1); // delivered is out of the warehouse, once
   });
 
   test("shopify/lightfunnels redelivery of the same external_id is not blocked by the zr index", async () => {
@@ -138,7 +138,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await rpc("Retour", T(10)); // same ts, idempotent
     await rpc("Retour", T(11));
     expect(await order()).toBe("returned");
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(0);
   });
 
   test("live tie (different state) is applied and converges; same-state replay is a no-op; stock counted", async () => {
@@ -148,14 +148,14 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await rpc("Retour", T(10), { p_live: true }); // same ts, different state, live read
     expect((await shipment()).state).toBe("Retour");
     expect(await order()).toBe("returned");
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(0);
     await admin.from("orders").update({ delivery_status: "delivered" }).eq("id", orderId);
     await rpc("Retour", T(10), { p_live: true }); // same-state replay: admin correction survives
     await rpc(" RETOUR ", T(10), { p_live: true }); // case/whitespace variant is the same state
     expect(await order()).toBe("delivered");
     await applyZRParcelState(admin as never, ws, { id: parcel, live: true, state: { name: "retour" }, stateAt: T(10) });
     expect(await order()).toBe("delivered");
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(1);
   });
 
   test("tie with a different state is ignored for non-live (webhook) callers", async () => {
@@ -165,7 +165,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await rpc("Retour", T(10)); // p_live defaults false
     expect((await shipment()).state).toBe("En Transit");
     expect(await order()).toBe("in_transit");
-    expect(await stock()).toBe(0);
+    expect(await held()).toBe(1);
     await applyZRParcelState(admin as never, ws, { id: parcel, state: { name: "Retour" }, stateAt: T(10) }); // live omitted
     expect((await shipment()).state).toBe("En Transit");
   });
@@ -179,16 +179,16 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     expect(await order()).toBe("in_transit");
   });
 
-  test("returned -> late delivered (webhook, same ts, ignored) -> poll returned: exactly one order_returned movement", async () => {
+  test("returned -> late delivered (webhook, same ts, ignored) -> poll returned: piece back once", async () => {
     await setMap(MAP);
     await reset();
     expect((await hook(stateEvt("Retour", T(10)))).status).toBe(200);
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(0);
     expect((await hook(stateEvt("Livre", T(10)))).status).toBe(200); // late, same ts
     expect(await order()).toBe("returned");
     await applyZRParcelState(admin as never, ws, { id: parcel, live: true, state: { name: "Retour" }, stateAt: T(10) });
     expect(await order()).toBe("returned");
-    expect(await stock()).toBe(1);
+    expect(await held()).toBe(0);
   });
 
   test("webhook timestamps: occurredAt alone is the fallback; neither -> 400", async () => {
