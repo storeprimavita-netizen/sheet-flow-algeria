@@ -8,6 +8,15 @@ owner may overturn").
 
 ## Open
 
+### Q-9 · PRICE-1 · 2026-11-18 · answered-by-default
+When the profit is asked as a percentage of the product's cost, what is the
+highest percentage the calculator should accept? **Applied by default (D52):**
+1000%. Above that the price shows "—" instead of a number, so typing a wrong
+value can never produce a huge price that looks real. Example on benz: 65% →
+5,200 DZD; 1000% → 22,500 DZD; anything higher → "—". Say so if you ever
+use more than 1000% (it is one number to change). Also applied: a product that
+is 100% of the store's sales is accepted. Nothing is blocked.
+
 ### Q-8 · PRICE-1 · 2026-11-18 · answered-by-default
 In the calculator you can ask for a profit as a percentage instead of a fixed
 amount ("cost + 60–70%"). A percentage of what? **Applied by default (D51):**
