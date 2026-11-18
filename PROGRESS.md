@@ -192,3 +192,8 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Evidence: 390 px DOM script (AR, light) plus drawer screenshots in docs/design/audit/NAV-1-F/. EN and dark matrix not captured.
 - Owner: none.
 - Next: none in this row.
+
+## P0-8-G — swap badge + tests (2026-11-18) — DONE (pending review)
+- Done: tests for linked swap original (follows status, stock fixed, unlink, admin cancel via RPC), zr_state_map strips `swap`, swapOrder tests, SwapBadge on orders list / delivery table / kanban / detail, DB.md fixes.
+- Screenshots (chrome-devtools): list, delivery table, kanban, detail checked in EN dark, EN light, AR dark (kanban), AR light (list). Fixed list overflow (badge under order number) and order-number wrap. Not every surface x locale x theme combination was viewed; remaining ones share the same component.
+- Known: AR badge shows "#id" bidi-reordered (pre-existing wording in swap.swappedTo).

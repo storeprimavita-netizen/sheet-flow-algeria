@@ -121,7 +121,8 @@ export function OrdersAllTable({
       sticky: true,
       width: "max-w-[9rem]",
       cell: (r) => (
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex min-w-0 flex-col items-start gap-1">
+          <span className="flex min-w-0 items-center gap-1.5">
           <Link
             href={`/app/orders/${r.id}`}
             className="num truncate font-medium hover:underline"
@@ -141,6 +142,7 @@ export function OrdersAllTable({
               </Chip>
             </Link>
           ) : null}
+          </span>
           {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}
         </span>
       ),
