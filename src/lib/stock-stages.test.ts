@@ -509,7 +509,21 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const row = { workspace_id: ws, product_id: p, delta: 1, reason: "correction" as const };
     expect((await adminUser.from("stock_movements").insert({ ...row, created_by: other })).error).not.toBeNull();
     expect((await adminUser.from("stock_movements").insert({ ...row, created_by: me })).error).toBeNull();
-    expect((await adminUser.from("stock_movements").insert(row)).error).toBeNull();
+    const ins = await adminUser.from("stock_movements").insert(row).select("created_by").single();
+    expect(ins.error).toBeNull();
+    expect(ins.data!.created_by).toBe(me);
+  });
+
+  test("shipped replacement cancelled at confirmation keeps its piece out, also after delivered (review-2 #1)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await status(b as string, "in_transit");
+    expect((await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string)).error).toBeNull();
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+    await status(b as string, "delivered");
+    expect(await stock(p)).toBe(-1);
   });
 
   test("all security definer functions have search_path with pg_temp", async () => {

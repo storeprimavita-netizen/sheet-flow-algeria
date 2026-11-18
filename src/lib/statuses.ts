@@ -251,7 +251,8 @@ const FREE_TRANSITION_KINDS: StatusKind[] = ["confirmation", "delivery"];
 export function statusOptionsFor(kind: StatusKind, current: string): StatusDef[] {
   if (!FREE_TRANSITION_KINDS.includes(kind)) return transitionsFor(kind, current);
   // `swap` is set only by swap_order (D43): display status, never a manual choice
-  return allStatuses(kind).filter((s) => !(kind === "delivery" && s.key === "swap" && current !== "swap"));
+  if (kind === "delivery" && current === "swap") return allStatuses(kind).filter((s) => s.key === "swap");
+  return allStatuses(kind).filter((s) => !(kind === "delivery" && s.key === "swap"));
 }
 
 /** Single merged status for the one-column Orders UI: delivery once confirmed,

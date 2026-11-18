@@ -3,7 +3,7 @@
 -- No table or column change.
 
 -- ---------------------------------------------------------------------------
--- 1) the rule gains the confirmation status: a replacement cancelled at confirmation -> 0 (the 4-arg version is dropped)
+-- 1) the rule gains the confirmation status: a replacement cancelled while still waiting for deposit -> 0 (shipped keeps its piece out) (the 4-arg version is dropped)
 -- ---------------------------------------------------------------------------
 drop view if exists public.product_stock_stages;
 drop function if exists public.order_stock_target(public.delivery_status, integer, boolean, boolean);
@@ -14,7 +14,7 @@ create function public.order_stock_target(
 returns integer
 language sql immutable set search_path = public, pg_temp as $$
   select case
-    when p_confirmation = 'cancelled' and p_replacement then 0
+    when p_confirmation = 'cancelled' and p_replacement and p_status = 'wait_for_deposit' then 0
     when p_linked_original then 0
     when p_status in ('bureau_deposited','in_transit','out_for_delivery','stop_desk_waiting','delayed',
                       'returning','exchange','delivered') then -p_qty
@@ -384,11 +384,12 @@ end; $$;
 -- ---------------------------------------------------------------------------
 -- 5) stock log: created_by cannot be spoofed on insert
 -- ---------------------------------------------------------------------------
+alter table public.stock_movements alter column created_by set default auth.uid();
 drop policy if exists stock_movements_ins on public.stock_movements;
 create policy stock_movements_ins on public.stock_movements for insert to authenticated
   with check (workspace_id = (select public.current_workspace_id()) and (select public.is_admin())
               and reason in ('purchase', 'correction') and order_id is null
-              and (created_by is null or created_by = (select auth.uid())));
+              and created_by = (select auth.uid()));
 
 -- ---------------------------------------------------------------------------
 -- 6) the stage view is read-only for every API role
