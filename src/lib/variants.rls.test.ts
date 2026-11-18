@@ -342,4 +342,158 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect(await vstock(other.variants.S)).toBe(0);
     expect((await adminUser.rpc("stock_count_variants", { p_product: a.p, p_counts: [{ variant_id: a.variants.S, count: -1 }] })).error).not.toBeNull();
   });
+
+  // ---- save_variant_config (00048, D55) -----------------------------------
+  const uid = () => crypto.randomUUID();
+  const bare = async (workspace = ws) => (await svc.from("products").insert({ workspace_id: workspace, name: tag() }).select("id").single()).data!.id as string;
+  type Cfg = { options: { id: string; name: string; values: { id: string; label: string }[] }[]; variants: { id: string; sku: string | null; is_active: boolean; values: Record<string, string> }[] };
+  const save = (c: SupabaseClient, p: string, cfg: Cfg) => c.rpc("save_variant_config", { p_product: p, p_config: cfg });
+  const counts = async (p: string) => ({
+    options: (await svc.from("product_options").select("id", { count: "exact", head: true }).eq("product_id", p)).count,
+    variants: (await svc.from("product_variants").select("id", { count: "exact", head: true }).eq("product_id", p)).count,
+  });
+  const sizeCfg = () => {
+    const o = uid(), s = uid(), m = uid(), vs = uid(), vm = uid();
+    const cfg: Cfg = {
+      options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }],
+      variants: [
+        { id: vs, sku: null, is_active: true, values: { [o]: s } },
+        { id: vm, sku: "SKU-M", is_active: true, values: { [o]: m } },
+      ],
+    };
+    return { cfg, o, s, m, vs, vm };
+  };
+
+  test("save_variant_config: create, swap two labels, deactivate and reactivate in one transaction", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+    expect((await svc.from("product_variants").select("sku, stock").eq("id", a.vm).single()).data).toEqual({ sku: "SKU-M", stock: 0 });
+    // swap S and M
+    a.cfg.options[0].values = [{ id: a.s, label: "M" }, { id: a.m, label: "S" }];
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_option_values").select("label").eq("id", a.s).single()).data!.label).toBe("M");
+    // deactivate, then reactivate; the size's values never change
+    a.cfg.variants[0].is_active = false;
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_variants").select("is_active").eq("id", a.vs).single()).data!.is_active).toBe(false);
+    a.cfg.variants[0].is_active = true;
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    expect((await svc.from("product_variants").select("is_active").eq("id", a.vs).single()).data!.is_active).toBe(true);
+    expect((await svc.from("product_variant_values").select("value_id").eq("variant_id", a.vs).single()).data!.value_id).toBe(a.s);
+  });
+
+  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option after sizes exist is refused", async () => {
+    const p = await bare();
+    const o = uid(), s = uid(), m = uid();
+    const tabA: Cfg = { options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }], variants: [] };
+    expect((await save(adminUser, p, tabA)).error).toBeNull();
+    // tab B adds Color and saves S/Red and M/Red
+    const c = uid(), red = uid(), vs = uid(), vm = uid();
+    const tabB: Cfg = {
+      options: [tabA.options[0], { id: c, name: "Color", values: [{ id: red, label: "Red" }] }],
+      variants: [
+        { id: vs, sku: null, is_active: true, values: { [o]: s, [c]: red } },
+        { id: vm, sku: null, is_active: true, values: { [o]: m, [c]: red } },
+      ],
+    };
+    expect((await save(adminUser, p, tabB)).error).toBeNull();
+    // tab A saves sizes S and M with one option only
+    const stale: Cfg = { ...tabA, variants: [{ id: uid(), sku: null, is_active: true, values: { [o]: s } }, { id: uid(), sku: null, is_active: true, values: { [o]: m } }] };
+    const r = await save(adminUser, p, stale);
+    expect(r.error?.message).toBe("stale");
+    expect(await counts(p)).toEqual({ options: 2, variants: 2 });
+    // a new option once sizes exist
+    const extra: Cfg = { ...tabB, options: [...tabB.options, { id: uid(), name: "Fit", values: [{ id: uid(), label: "Slim" }] }] };
+    expect((await save(adminUser, p, extra)).error?.message).toBe("stale");
+    expect(await counts(p)).toEqual({ options: 2, variants: 2 });
+  });
+
+  test("save_variant_config: ids of another product or workspace, another workspace's product, an agent and anon are refused", async () => {
+    const mine = await product(["S"]);
+    const p = await bare();
+    const a = sizeCfg();
+    // option id that lives under another product of the same workspace
+    const stolen: Cfg = { options: [{ id: mine.o, name: "Size", values: [{ id: uid(), label: "Z" }] }], variants: [] };
+    expect((await save(adminUser, p, stolen)).error?.message).toMatch(/another product/);
+    // value id of another product
+    const stolenValue: Cfg = { options: [{ id: uid(), name: "Size", values: [{ id: mine.values.S, label: "S" }] }], variants: [] };
+    expect((await save(adminUser, p, stolenValue)).error).not.toBeNull();
+    // ids from another workspace
+    const foreign = await product(["S"], ws2);
+    const f1: Cfg = { options: [{ id: foreign.o, name: "Size", values: [{ id: uid(), label: "Z" }] }], variants: [] };
+    expect((await save(adminUser, p, f1)).error).not.toBeNull();
+    const f2: Cfg = { ...a.cfg, variants: [{ id: foreign.variants.S, sku: null, is_active: true, values: { [a.o]: a.s } }] };
+    expect((await save(adminUser, p, f2)).error).not.toBeNull();
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+    // a product of another workspace
+    expect((await save(adminUser, foreign.p, a.cfg)).error).not.toBeNull();
+    expect(await counts(foreign.p)).toEqual({ options: 1, variants: 1 });
+    // agent, anon, service role
+    expect((await save(confAgent, p, a.cfg)).error).not.toBeNull();
+    expect((await save(anon, p, a.cfg)).error).not.toBeNull();
+    expect((await save(svc, p, a.cfg)).error).not.toBeNull();
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+  });
+
+  test("save_variant_config: a save refused half-way leaves no renamed option and no new size", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    // rename the option, add a size with the same values as S: refused at commit
+    const dup: Cfg = {
+      options: [{ ...a.cfg.options[0], name: "Renamed" }],
+      variants: [...a.cfg.variants, { id: uid(), sku: null, is_active: true, values: { [a.o]: a.s } }],
+    };
+    expect((await save(adminUser, p, dup)).error?.message).toMatch(/already has these values/);
+    expect((await svc.from("product_options").select("name").eq("id", a.o).single()).data!.name).toBe("Size");
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+    // drop a value a size still uses: refused, the rename of another value is rolled back
+    const used: Cfg = { options: [{ ...a.cfg.options[0], values: [{ id: a.s, label: "Small" }] }], variants: a.cfg.variants };
+    expect((await save(adminUser, p, used)).error?.code).toBe("23503");
+    expect((await svc.from("product_option_values").select("label").eq("id", a.s).single()).data!.label).toBe("S");
+    expect(await counts(p)).toEqual({ options: 1, variants: 2 });
+  });
+
+  test("the table refuses a size that lacks a value, and a new option on a product whose sizes have values", async () => {
+    const p = await bare();
+    const o1 = uid(), s = uid(), o2 = uid(), red = uid(), v = uid();
+    const cfg: Cfg = {
+      options: [
+        { id: o1, name: "Size", values: [{ id: s, label: "S" }] },
+        { id: o2, name: "Color", values: [{ id: red, label: "Red" }] },
+      ],
+      variants: [{ id: v, sku: null, is_active: true, values: { [o1]: s, [o2]: red } }],
+    };
+    expect((await save(adminUser, p, cfg)).error).toBeNull();
+    // a value row that leaves the size incomplete
+    expect((await svc.from("product_variant_values").delete().eq("variant_id", v).eq("option_id", o2)).error?.message).toMatch(/exactly one value/);
+    // a new option after sizes have values
+    expect((await svc.from("product_options").insert({ workspace_id: ws, product_id: p, name: "Fit" })).error?.message).toMatch(/exactly one value/);
+    expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", v)).data).toHaveLength(2);
+  });
+
+  // ---- order size changes -------------------------------------------------
+  test("a size change moves the hold at reserved (bureau_deposited), stop_desk_waiting and delayed; changeOrderVariant (admin update) rewrites the label; a direct patch of the label is rewritten", async () => {
+    for (const stage of ["bureau_deposited", "stop_desk_waiting", "delayed"]) {
+      const a = await product(["M", "L"]);
+      await buy(a.p, 5);
+      const o = await order(a.p, a.variants.M);
+      await status(o, stage);
+      const total = await pstock(a.p);
+      const heldM = await vstock(a.variants.M);
+      // what the admin action does: an update of variant_id on the session client
+      const r = await adminUser.from("orders").update({ variant_id: a.variants.L }).eq("id", o).select("id");
+      expect(r.error).toBeNull();
+      expect(r.data).toHaveLength(1);
+      expect(await vstock(a.variants.M)).toBe(heldM + 2);
+      expect(await vstock(a.variants.L)).toBe(-2);
+      expect(await pstock(a.p)).toBe(total);
+      expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+      // a direct patch of the label cannot disagree with the size
+      expect((await svc.from("orders").update({ variant: "hacked" }).eq("id", o)).error).toBeNull();
+      expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+    }
+  });
 });

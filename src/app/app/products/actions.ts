@@ -210,77 +210,28 @@ export async function addStockMovement(productId: string, formData: FormData) {
 // ---------------------------------------------------------------------------
 export type VariantResult =
   | { ok: true }
-  | { ok: false; code: "invalid" | "duplicate_value" | "duplicate_variant" | "in_use" | "failed"; error: string };
+  | { ok: false; code: "invalid" | "duplicate_value" | "duplicate_variant" | "in_use" | "stale" | "failed"; error: string };
 
 function variantFailure(error: { code?: string; message: string }): VariantResult {
   if (error.code === "23505" && error.message.includes("product_option_values_label_uniq")) return { ok: false, code: "duplicate_value", error: error.message };
   if (error.message.includes("same values") || error.message.includes("already has these values")) return { ok: false, code: "duplicate_variant", error: error.message };
+  if (error.message === "stale") return { ok: false, code: "stale", error: error.message };
   if (error.code === "23503") return { ok: false, code: "in_use", error: error.message };
   return { ok: false, code: "failed", error: error.message };
 }
 
+/** One transaction in `save_variant_config` (00048): any refusal rolls the whole save back. */
 export async function saveVariantConfig(productId: string, raw: unknown): Promise<VariantResult> {
-  const { workspaceId } = await adminProfile();
+  await adminProfile();
   const pid = uuid.safeParse(productId);
   const parsed = variantConfigSchema.safeParse(raw);
   if (!pid.success || !parsed.success) {
     const msg = parsed.success ? "Invalid product" : (parsed.error.issues[0]?.message ?? "Invalid input");
     return { ok: false, code: msg === "duplicate_value" ? "duplicate_value" : msg === "duplicate_variant" ? "duplicate_variant" : "invalid", error: msg };
   }
-  const { options, variants } = parsed.data;
   const supabase = await createClient();
-  const ws = { workspace_id: workspaceId, product_id: pid.data };
-
-  const { data: product } = await supabase.from("products").select("id").eq("id", pid.data).eq("workspace_id", workspaceId).maybeSingle();
-  if (!product) return { ok: false, code: "invalid", error: "product not found" };
-
-  const { data: oldOptions } = await supabase.from("product_options").select("id").eq("product_id", pid.data);
-  const { data: oldValues } = await supabase.from("product_option_values").select("id").eq("product_id", pid.data);
-  const { data: oldVariantValues } = await supabase.from("product_variant_values").select("variant_id").eq("product_id", pid.data);
-  const { data: oldVariants } = await supabase.from("product_variants").select("id").eq("product_id", pid.data);
-  const oldVariantIds = new Set((oldVariants ?? []).map((v) => v.id));
-  const hasValues = new Set((oldVariantValues ?? []).map((r) => r.variant_id));
-  // no new option once a size exists (existing sizes would lack a value for it); the UI hides it, this enforces it
-  const oldOptionIds = new Set((oldOptions ?? []).map((o) => o.id));
-  if (hasValues.size && options.some((o) => !oldOptionIds.has(o.id))) return { ok: false, code: "invalid", error: "options are locked once sizes exist" };
-
-  // 1) options, then values, then variants (parents first); deletes come last
-  const optRes = await supabase.from("product_options").upsert(options.map((o, i) => ({ id: o.id, ...ws, name: o.name, position: i })));
-  if (optRes.error) return variantFailure(optRes.error);
-  // renaming two values at once can collide mid-way: park every changed label first is overkill; the unique index decides
-  const valueRows = options.flatMap((o) => o.values.map((v, i) => ({ id: v.id, ...ws, option_id: o.id, label: v.label, position: i })));
-  const valRes = await supabase.from("product_option_values").upsert(valueRows);
-  if (valRes.error) return variantFailure(valRes.error);
-
-  if (variants.length) {
-    const varRes = await supabase.from("product_variants").upsert(variants.map((v) => ({ id: v.id, ...ws, sku: v.sku, is_active: v.is_active })));
-    if (varRes.error) return variantFailure(varRes.error);
-    const joinRows = variants
-      .filter((v) => !hasValues.has(v.id))
-      .flatMap((v) => options.map((o) => ({ variant_id: v.id, option_id: o.id, value_id: v.values[o.id], ...ws })));
-    if (joinRows.length) {
-      const joinRes = await supabase.from("product_variant_values").insert(joinRows);
-      if (joinRes.error) {
-        // not one transaction: take back the sizes this call just created so none is left without values
-        const created = variants.filter((v) => !hasValues.has(v.id) && !oldVariantIds.has(v.id)).map((v) => v.id);
-        if (created.length) await supabase.from("product_variants").delete().in("id", created);
-        return variantFailure(joinRes.error);
-      }
-    }
-  }
-
-  const keepValues = new Set(valueRows.map((v) => v.id));
-  const dropValues = (oldValues ?? []).map((v) => v.id).filter((id) => !keepValues.has(id));
-  if (dropValues.length) {
-    const r = await supabase.from("product_option_values").delete().in("id", dropValues);
-    if (r.error) return variantFailure(r.error);
-  }
-  const keepOptions = new Set(options.map((o) => o.id));
-  const dropOptions = (oldOptions ?? []).map((o) => o.id).filter((id) => !keepOptions.has(id));
-  if (dropOptions.length) {
-    const r = await supabase.from("product_options").delete().in("id", dropOptions);
-    if (r.error) return variantFailure(r.error);
-  }
+  const { error } = await supabase.rpc("save_variant_config", { p_product: pid.data, p_config: parsed.data });
+  if (error) return variantFailure(error);
 
   revalidatePath(`/app/products/${pid.data}`);
   revalidatePath(`/app/products/${pid.data}/stock`);

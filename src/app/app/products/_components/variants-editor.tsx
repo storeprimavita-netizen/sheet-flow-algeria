@@ -45,6 +45,7 @@ export function VariantsEditor({
   const [result, setResult] = React.useState<VariantResult | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = React.useState<number | null>(null);
   const [focusKey, setFocusKey] = React.useState<string | null>(null);
+  const lastDeactivated = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!focusKey) return;
     document.querySelector<HTMLElement>(`[data-fk="${focusKey}"]`)?.focus();
@@ -100,6 +101,8 @@ export function VariantsEditor({
           ? t("duplicateVariant")
           : result.code === "in_use"
             ? t("inUse")
+            : result.code === "stale"
+              ? t("stale")
             : result.code === "invalid"
               ? t("invalid")
               : t("failed", { reason: result.error })
@@ -235,9 +238,10 @@ export function VariantsEditor({
                               type="button"
                               variant="ghost"
                               size="sm"
+                              data-fk={`dv-${v.id}`}
                               aria-label={v.isActive ? t("deactivate", { label }) : t("reactivate", { label })}
                               title={v.isActive ? t("deactivate", { label }) : t("reactivate", { label })}
-                              onClick={() => (v.isActive ? setConfirmDeactivate(i) : toggleActive(i))}
+                              onClick={() => { lastDeactivated.current = v.id; if (v.isActive) setConfirmDeactivate(i); else toggleActive(i); }}
                             >
                               {v.isActive ? <PowerOff /> : <Power />}
                             </Button>
@@ -268,7 +272,14 @@ export function VariantsEditor({
         ) : null}
       </div>
       <Dialog open={confirmDeactivate !== null} onOpenChange={(o) => !o && setConfirmDeactivate(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent
+          className="max-w-sm"
+          onCloseAutoFocus={(e) => {
+            // controlled dialog without a Trigger: give focus back to the row's own button
+            e.preventDefault();
+            if (lastDeactivated.current) setFocusKey(`dv-${lastDeactivated.current}`);
+          }}
+        >
           <DialogTitle>
             {t("deactivate", { label: confirmDeactivate !== null && variants[confirmDeactivate] ? variantLabel(options, variants[confirmDeactivate].values) : "" })}
           </DialogTitle>

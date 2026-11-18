@@ -1167,6 +1167,7 @@
     "duplicateValue": "Two values of one option have the same name.",
     "duplicateVariant": "Two sizes have the same values.",
     "inUse": "A value or option is still used by a size and cannot be removed. Deactivate the size instead.",
+    "stale": "This product was changed in another tab or by another admin. Refresh the page, then redo your change. What you typed is kept here.",
     "invalid": "Check the form: every option needs a name and at least one value, and every size one value per option.",
     "failed": "Could not save: {reason}",
     "inactiveVariant": "This size is inactive and cannot be chosen.",
