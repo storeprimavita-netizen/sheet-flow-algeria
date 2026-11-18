@@ -29,20 +29,22 @@ export async function realInputsForProduct(
   workspaceId: string,
   productId: string,
 ): Promise<RealPricing> {
-  const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  // Africa/Algiers day, same as the SQL range predicate (D46)
+  const since = new Date(Date.now() - 30 * 86400000).toLocaleDateString("en-CA", { timeZone: "Africa/Algiers" });
 
-  const [{ data: stats }, { data: kpiRaw }, { data: product }, { data: last30 }, { count: orders30 }, { data: fees }, euroRate, returnFee] = await Promise.all([
+  const [{ data: stats }, { data: kpiRaw }, { data: product }, { data: last30 }, { data: set30 }, { data: fees }, euroRate, returnFee] = await Promise.all([
     supabase.from("product_stats").select("*").eq("id", productId).maybeSingle(),
     supabase.rpc("kpi_summary", { p_product: productId }), // all-time rates: the one KPI source
     supabase.from("products").select("sale_price").eq("id", productId).maybeSingle(),
     supabase.from("ad_spend_daily").select("amount_dzd").eq("product_id", productId).gte("spent_on", since),
-    supabase.from("orders").select("id", { count: "exact", head: true }).eq("product_id", productId).gte("placed_at", since),
+    supabase.rpc("kpi_order_set", { p_from: since, p_product: [productId] }), // eligible leads only
     supabase.from("fixed_fees").select("amount_dzd").eq("workspace_id", workspaceId).eq("is_active", true),
     fxRateFor(supabase, workspaceId, "EUR"),
     getSetting(workspaceId, "return_fee"),
   ]);
 
   const kpi = asKpi(kpiRaw);
+  const orders30 = set30?.length ?? 0;
   const ordersReceived = kpi?.counts.received ?? 0;
   const last30TotalDzd = (last30 ?? []).reduce((sum, r) => sum + (r.amount_dzd ?? 0), 0);
   const fixedFeesTotalDzd = (fees ?? []).reduce((sum, f) => sum + (f.amount_dzd ?? 0), 0);
@@ -50,9 +52,10 @@ export async function realInputsForProduct(
   const inputs: PricingInputs = {
     product_price: stats?.sourcing_cost_dzd ?? 0,
     euro_price: euroRate,
-    lead_cost_eur: safeDiv(safeDiv(last30TotalDzd, orders30 ?? 0), euroRate),
-    confirmation_pct: kpiPct(kpi?.confirmation) ?? 0,
-    delivery_pct: kpiPct(kpi?.delivery) ?? 0,
+    lead_cost_eur: safeDiv(safeDiv(last30TotalDzd, orders30), euroRate),
+    // pricing.ts: confirmation_pct = % of leads that confirm; delivery_pct = % of confirmed that deliver
+    confirmation_pct: kpiPct({ value: kpi?.confirmation.of_received ?? null }) ?? 0,
+    delivery_pct: kpiPct({ value: kpi && kpi.counts.confirmed ? kpi.counts.delivered / kpi.counts.confirmed : null }) ?? 0,
     delivery_price: 0,
     confirmation_agent: 0,
     packaging_fees: 0,

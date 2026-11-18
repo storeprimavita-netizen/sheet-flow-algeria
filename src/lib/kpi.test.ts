@@ -233,7 +233,88 @@ describe.skipIf(!URL)("KPI contract (live DB, 00031)", () => {
     });
   });
 
+  describe("matured, return, of_received (review 1)", () => {
+    const wilayaRow = async (c: SupabaseClient, p: string) => {
+      const { data } = await c.rpc("dashboard_stats", { p_product: [p] });
+      return (data as unknown as { per_wilaya: { wilaya_code: number; stop_shipping_auto: boolean }[] }).per_wilaya.find((w) => w.wilaya_code === 31);
+    };
+
+    test("orders waiting for pickup keep delivery unmatured and stop_shipping_auto off", async () => {
+      const p = await product();
+      for (let i = 0; i < 10; i++) await order(p, { delivery_status: "returned", wilaya_code: 31 });
+      for (let i = 0; i < 40; i++) await order(p, { delivery_status: "wait_for_deposit", wilaya_code: 31 });
+      const k = await kpi(p, DAY, DAY);
+      expect(k.delivery).toMatchObject({ den: 10, value: 0, matured: false });
+      expect(k.return).toMatchObject({ num: 10, den: 10, matured: false });
+      expect((await wilayaRow(adminUser, p))?.stop_shipping_auto).toBe(false);
+    });
+
+    test("a resolved cohort is matured: stop_shipping_auto on, return value and of_received", async () => {
+      const p = await product();
+      for (let i = 0; i < 10; i++) await order(p, { delivery_status: "returned", wilaya_code: 31 });
+      await order(p, { confirmation_status: "cancelled", wilaya_code: 31 });
+      await order(p, { confirmation_status: "wait_for_confirmation", wilaya_code: 31 });
+      const k = await kpi(p, DAY, DAY);
+      expect(k.delivery).toMatchObject({ den: 10, value: 0, matured: true });
+      expect(k.return.value).toBe(1);
+      expect(k.counts.in_flight).toBe(0);
+      expect(k.confirmation.of_received).toBeCloseTo(10 / 12, 6);
+      expect((await wilayaRow(adminUser, p))?.stop_shipping_auto).toBe(true);
+    });
+
+    test("in_flight counts parcels after pickup", async () => {
+      const p = await product();
+      await order(p, { delivery_status: "in_transit" });
+      await order(p, { delivery_status: "wait_for_deposit" });
+      expect((await kpi(p, DAY, DAY)).counts.in_flight).toBe(1);
+    });
+  });
+
+  describe("money ids and roles (review 1)", () => {
+    test("revenue includes a delivered, confirmed duplicate suspect", async () => {
+      const p = await product();
+      await order(p, { delivery_status: "delivered", sale_price: 700 });
+      await order(p, { delivery_status: "delivered", sale_price: 300, is_duplicate_suspect: true });
+      await order(p, { delivery_status: "delivered", sale_price: 9000, excluded_reason: "fake" });
+      const k = await kpi(p, DAY, DAY);
+      expect(k.counts.delivered).toBe(2);
+      expect(k.pnl!.revenue).toBe(1000);
+    });
+
+    test("order ids of another workspace give no revenue or P&L", async () => {
+      const p = await product();
+      const id = await order(p, { delivery_status: "delivered" });
+      const { data } = await ws2Admin.rpc("kpi_lines", { p_order_ids: [id], p_from: NONE, p_to: NONE, p_product: NONE, p_filtered: false });
+      const k = data as unknown as Kpi;
+      expect(k.pnl!.revenue).toBe(0);
+      expect(k.pnl!.orders_received).toBe(0);
+      expect(k.counts.delivered).toBe(0);
+    });
+
+    test("an agent calling dashboard_stats gets kpi without money keys and pnl null; same for pnl_by_product", async () => {
+      const p = await product();
+      await order(p, { delivery_status: "delivered" });
+      const { data } = await confAgent.rpc("dashboard_stats", { p_product: [p] });
+      const d = data as unknown as { kpi: Record<string, unknown>; pnl: unknown };
+      expect(d.pnl).toBeNull();
+      expect(d.kpi.confirmation).toBeDefined();
+      for (const key of ["pnl", "ad_spend_dzd", "roas", "net_profit", "waterfall"]) expect(key in d.kpi, key).toBe(false);
+      const { data: rows } = await confAgent.rpc("pnl_by_product", {});
+      for (const r of rows ?? []) {
+        expect(r.pnl).toBeNull();
+        for (const key of ["ad_spend_dzd", "roas", "net_profit", "waterfall"]) expect(key in (r.kpi as object), key).toBe(false);
+      }
+    });
+  });
+
   describe("walls", () => {
+    test("anon cannot execute kpi_rates / kpi_metric / pnl_by_product", async () => {
+      const anon = client(ANON_KEY);
+      expect((await anon.rpc("kpi_rates", { p_order_ids: [] })).error).not.toBeNull();
+      expect((await anon.rpc("kpi_metric", { p_num: 1, p_den: 2, p_unresolved: 0 })).error).not.toBeNull();
+      expect((await anon.rpc("pnl_by_product", {})).error).not.toBeNull();
+    });
+
     test("order ids of another workspace return 0", async () => {
       const p = await product();
       const id = await order(p);

@@ -195,15 +195,17 @@ export default async function DashboardPage({
   const rates = { USD: usdRate.data ?? 1, EUR: eurRate.data ?? 1 };
 
   // ⚡ Today strip + 🚨 alerts — fixed (ignore the filter bar): what needs action now.
-  const isoDay = (d: Date) => d.toLocaleDateString("en-CA");
-  const todayIso = isoDay(new Date());
-  const yesterdayIso = isoDay(new Date(Date.now() - 86400000));
+  // D46: days are Africa/Algiers calendar days (UTC+1, no DST), same as the SQL range predicate.
+  const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Algiers" });
+  const yesterdayIso = isoDaysAgo(todayIso, 1);
+  const algiersStart = (day: string) => `${day}T00:00:00+01:00`;
+  const algiersEnd = (day: string) => `${day}T23:59:59.999+01:00`;
   const stuckBefore = new Date(Date.now() - STUCK_DAYS * 86400000).toISOString();
   const count = { count: "exact" as const, head: true };
   const [ordersToday, ordersYesterday, toConfirm, toShip, stuck, { data: allTimeRaw }, { data: stockRows }, { data: balances }, { data: productPnls }] =
     await Promise.all([
-      supabase.from("orders").select("id", count).gte("placed_at", todayIso),
-      supabase.from("orders").select("id", count).gte("placed_at", yesterdayIso).lt("placed_at", todayIso),
+      supabase.from("orders").select("id", count).is("excluded_reason", null).gte("placed_at", algiersStart(todayIso)),
+      supabase.from("orders").select("id", count).is("excluded_reason", null).gte("placed_at", algiersStart(yesterdayIso)).lte("placed_at", algiersEnd(yesterdayIso)),
       supabase.from("orders").select("id", count).in("confirmation_status", ACTIONABLE_CONFIRMATION),
       supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),
       supabase.from("orders").select("id", count).in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
@@ -238,9 +240,10 @@ export default async function DashboardPage({
     .select(
       "order_number, placed_at, quantity, sale_price, confirmation_status, delivery_status, product:products(name), customer:customers(name), wilaya:wilayas(name)",
     )
+    .is("excluded_reason", null)
     .limit(5000);
-  if (filters.from) orderQuery = orderQuery.gte("placed_at", filters.from);
-  if (filters.to) orderQuery = orderQuery.lte("placed_at", `${filters.to}T23:59:59`);
+  if (filters.from) orderQuery = orderQuery.gte("placed_at", algiersStart(filters.from));
+  if (filters.to) orderQuery = orderQuery.lte("placed_at", algiersEnd(filters.to));
   if (filters.product) orderQuery = orderQuery.eq("product_id", filters.product);
   if (filters.wilaya) orderQuery = orderQuery.eq("wilaya_code", Number(filters.wilaya));
   if (filters.source) orderQuery = orderQuery.eq("source", filters.source as Enums<"order_source">);

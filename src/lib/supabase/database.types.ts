@@ -1142,7 +1142,7 @@ isOneToOne: false
 { Args: { "p_filtered": boolean,"p_from": string,"p_order_ids": (string)[],"p_product": (string)[],"p_to": string }; Returns: Json
                            },
 "kpi_metric":
-{ Args: { "p_den": number,"p_num": number,"p_young_unresolved": number }; Returns: Json
+{ Args: { "p_den": number,"p_num": number,"p_unresolved": number }; Returns: Json
                            },
 "kpi_order_set":
 { Args: { "p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {

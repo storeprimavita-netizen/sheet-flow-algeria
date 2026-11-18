@@ -10,7 +10,8 @@
 alter table public.orders
   add column excluded_reason text
     check (excluded_reason in ('duplicate', 'test', 'fake', 'other'));
-create index orders_kpi_idx on public.orders (workspace_id, placed_at)
+create index orders_kpi_idx on public.orders
+  (workspace_id, ((coalesce(placed_at, created_at) at time zone 'Africa/Algiers')::date))
   where excluded_reason is null;
 
 -- ---------------------------------------------------------------------------
@@ -25,8 +26,8 @@ language sql stable security invoker set search_path = public as $$
   select o.id
     from public.orders o
    where o.workspace_id = public.current_workspace_id()
-     and (p_from is null or (o.placed_at at time zone 'Africa/Algiers')::date >= p_from)
-     and (p_to   is null or (o.placed_at at time zone 'Africa/Algiers')::date <= p_to)
+     and (p_from is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date >= p_from)
+     and (p_to   is null or (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date <= p_to)
      and (p_product is null or o.product_id = any (p_product))
      and o.excluded_reason is null
      and o.swapped_to_order_id is null
@@ -38,21 +39,23 @@ grant execute on function public.kpi_order_set(date, date, uuid[]) to authentica
 -- ---------------------------------------------------------------------------
 -- 3) Rates. kpi_metric builds one {num, den, value, matured}; value is a
 --    fraction 0..1 (the UI formats the percent). matured (relative to now()):
---    den >= 10 AND (still-unresolved orders of the cohort placed in the last
---    7 days) / den <= 20%. Constants live here; see docs/DB.md.
+--    den >= 10 AND still-unresolved orders (all ages) <= 20% of the cohort
+--    (den + unresolved). Unresolved: confirmation = waiting for confirmation;
+--    delivery/return = confirmed, not yet delivered / returned / cancelled
+--    (includes orders waiting for pickup). Constants live here; see docs/DB.md.
 --    Confirmation = confirmed / decided (confirmed, cancelled, no_answer,
 --    closed_phone); swap replacements (born confirmed) are not in it.
 --    Delivery = delivered / (delivered + returned + cancelled-after-pickup);
 --    cancelled-after-pickup = delivery 'cancelled' with a zr_shipments row or a
 --    delivery-stage carrier history entry. Return = returned / same denominator.
 -- ---------------------------------------------------------------------------
-create or replace function public.kpi_metric(p_num int, p_den int, p_young_unresolved int)
+create or replace function public.kpi_metric(p_num int, p_den int, p_unresolved int)
 returns jsonb
 language sql immutable set search_path = public as $$
   select jsonb_build_object(
     'num', p_num, 'den', p_den,
     'value', case when p_den = 0 then null else p_num::numeric / p_den end,
-    'matured', p_den >= 10 and p_young_unresolved::numeric / p_den <= 0.2);
+    'matured', p_den >= 10 and p_unresolved::numeric <= 0.2 * (p_den + p_unresolved));
 $$;
 
 create or replace function public.kpi_rates(p_order_ids uuid[])
@@ -71,7 +74,9 @@ language sql stable security invoker set search_path = public as $$
            (public.order_stock_target(o.delivery_status, o.quantity, o.swapped_to_order_id is not null,
               exists (select 1 from public.orders r
                        where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id),
-              o.confirmation_status) < 0 and o.delivery_status <> 'delivered') as in_flight
+              o.confirmation_status) < 0 and o.delivery_status <> 'delivered') as in_flight,
+           (o.confirmation_status = 'confirmed'
+              and o.delivery_status not in ('delivered', 'returned', 'cancelled')) as unresolved
       from public.orders o
      where o.id = any (p_order_ids) and o.workspace_id = public.current_workspace_id()
   ), a as (
@@ -79,21 +84,20 @@ language sql stable security invoker set search_path = public as $$
            count(*) filter (where not repl and confirmation_status = 'confirmed')::int as confirmed,
            count(*) filter (where not repl and confirmation_status
                               in ('confirmed', 'cancelled', 'no_answer', 'closed_phone'))::int as decided,
-           count(*) filter (where not repl and confirmation_status = 'wait_for_confirmation'
-                              and placed_at > now() - interval '7 days')::int as conf_young,
+           count(*) filter (where not repl and confirmation_status = 'wait_for_confirmation')::int as conf_open,
            count(*) filter (where delivery_status = 'delivered')::int as delivered,
            count(*) filter (where delivery_status = 'returned')::int as returned,
            count(*) filter (where after_pickup)::int as after_pickup,
            count(*) filter (where in_flight)::int as in_flight,
-           count(*) filter (where in_flight and placed_at > now() - interval '7 days')::int as flight_young
+           count(*) filter (where unresolved)::int as unresolved
       from s
   )
   select jsonb_build_object(
-    'confirmation', public.kpi_metric(confirmed, decided, conf_young)
+    'confirmation', public.kpi_metric(confirmed, decided, conf_open)
                     || jsonb_build_object('of_received',
                          case when received = 0 then null else confirmed::numeric / received end),
-    'delivery', public.kpi_metric(delivered, delivered + returned + after_pickup, flight_young),
-    'return',   public.kpi_metric(returned,  delivered + returned + after_pickup, flight_young),
+    'delivery', public.kpi_metric(delivered, delivered + returned + after_pickup, unresolved),
+    'return',   public.kpi_metric(returned,  delivered + returned + after_pickup, unresolved),
     'counts', jsonb_build_object(
       'received', received, 'confirmed', confirmed, 'delivered', delivered,
       'returned', returned, 'in_flight', in_flight))
@@ -122,8 +126,11 @@ declare
   v_delivered int; v_ad numeric;
   v_cpd numeric; v_cpa numeric;
 begin
-  v_ids := coalesce(p_order_ids,
-    array(select k.id from public.kpi_order_set(p_from, p_to, p_product) k));
+  -- explicit ids are intersected with the eligible set (no bypass of the exclusion rules)
+  v_ids := case when p_order_ids is null
+    then array(select k.id from public.kpi_order_set(p_from, p_to, p_product) k)
+    else array(select i from unnest(p_order_ids) i
+                where i in (select k.id from public.kpi_order_set(null, null, null) k)) end;
   v_out := public.kpi_rates(v_ids);
 
   -- on_road ignores eligibility and dates: same rule as product_stock_stages
@@ -208,6 +215,7 @@ select s.product_id, s.workspace_id, s.in_stock, s.reserved, s.on_road, s.delive
   join public.products p on p.id = s.product_id;
 revoke all on public.product_stock_v from anon, public;
 grant select on public.product_stock_v to authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.product_stock_v from authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 6) Reroute the money model onto the shared order set and the Algiers day.
@@ -234,7 +242,7 @@ begin
   if not public.is_admin() then return null; end if;
 
   v_from := coalesce(p_from,
-    (select min((placed_at at time zone 'Africa/Algiers')::date) from public.orders where workspace_id = v_ws),
+    (select min((coalesce(placed_at, created_at) at time zone 'Africa/Algiers')::date) from public.orders where workspace_id = v_ws),
     (now() at time zone 'Africa/Algiers')::date);
   v_to   := coalesce(p_to, (now() at time zone 'Africa/Algiers')::date);
   v_days := greatest(v_to - v_from + 1, 1);
@@ -521,7 +529,7 @@ begin
     ) order by d.day) into v_daily
     from generate_series(v_series_from, v_series_to, interval '1 day') as d(day)
     left join (
-      select (o.placed_at at time zone 'Africa/Algiers')::date as day,
+      select (coalesce(o.placed_at, o.created_at) at time zone 'Africa/Algiers')::date as day,
              count(*) as orders_received,
              count(*) filter (where o.confirmation_status = 'confirmed') as orders_confirmed,
              count(*) filter (where o.delivery_status = 'delivered') as orders_delivered,
