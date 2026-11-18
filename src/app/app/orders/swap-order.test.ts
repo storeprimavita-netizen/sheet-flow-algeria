@@ -51,7 +51,7 @@ describe("swapOrder", () => {
   });
 
   test("swapOrder refuses a non-uuid id", async () => {
-    await expect(swapOrder("not-a-uuid", form())).rejects.toThrow();
+    await expect(swapOrder("not-a-uuid", form())).rejects.toThrow(/./);
     expect(rpc).not.toHaveBeenCalled();
   });
 
@@ -61,5 +61,12 @@ describe("swapOrder", () => {
     expect(updateFn).toHaveBeenCalledWith({ customer_id: "cust-1" });
     expect(eqFn).toHaveBeenCalledWith("id", B);
     expect(isFn).toHaveBeenCalledWith("customer_id", null);
+  });
+
+  test("swapOrder second submit only ever updates where customer_id is null", async () => {
+    await expect(swapOrder(A, form())).rejects.toThrow("REDIRECT");
+    await expect(swapOrder(A, form())).rejects.toThrow("REDIRECT");
+    for (const c of isFn.mock.calls) expect(c).toEqual(["customer_id", null]);
+    expect(updateFn).toHaveBeenCalledTimes(2);
   });
 });

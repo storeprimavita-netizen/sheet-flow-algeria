@@ -119,7 +119,7 @@ export function OrdersAllTable({
       header: t("orders.title"),
       sortable: true,
       sticky: true,
-      width: "max-w-[9rem]",
+      width: "min-w-[9rem]",
       cell: (r) => (
         <span className="flex min-w-0 flex-col items-start gap-1">
           <span className="flex min-w-0 items-center gap-1.5">
