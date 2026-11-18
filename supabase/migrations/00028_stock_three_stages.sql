@@ -73,7 +73,7 @@ begin
   if v_product is null then return; end if;
 
   v_linked := o.swapped_to_order_id is not null;
-  v_repl := exists (select 1 from public.orders r where r.swapped_to_order_id = o.id);
+  v_repl := exists (select 1 from public.orders r where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id);
   v_target := case when v_product = o.product_id
                    then public.order_stock_target(o.delivery_status, o.quantity, v_linked, v_repl) else 0 end;
   select coalesce(sum(delta), 0) into v_current from public.stock_movements
@@ -117,6 +117,12 @@ begin
     raise exception 'order product must belong to the order''s workspace';
   end if;
 
+  -- D30: a swap link must stay inside the workspace
+  if new.swapped_to_order_id is not null
+     and exists (select 1 from public.orders x where x.id = new.swapped_to_order_id and x.workspace_id <> new.workspace_id) then
+    raise exception 'swap link must point to an order of the same workspace';
+  end if;
+
   if tg_op = 'UPDATE' then
     -- product changed: release the old product first
     if old.product_id is not null and old.product_id is distinct from new.product_id then
@@ -152,22 +158,29 @@ create trigger orders_stock_effects
   after insert or update of delivery_status, quantity, product_id, swapped_to_order_id on public.orders
   for each row execute function public.order_stock_effects();
 
--- deleting an order gives its pieces back (otherwise a deleted replacement would keep a piece out forever);
--- skipped when the product or workspace is going away with it (cascade).
+-- D41: deleting an order gives back only pieces that never left the warehouse: stage before pickup,
+-- cancelled or returned (this also clears an old-rule reservation), or a swap replacement (its piece goes back
+-- to the original, which follows its own status again). On road or delivered keeps its pieces out (D34);
+-- the admin adds a correction line in the log (D35). Skipped when the product or workspace goes away (cascade).
 create or replace function public.order_stock_release()
 returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare r record;
+declare
+  r record;
+  v_repl boolean;
 begin
-  for r in select product_id, sum(delta)::integer as held from public.stock_movements
-           where order_id = old.id and reason = any(public.stock_order_reasons())
-           group by product_id having sum(delta) <> 0 loop
-    if exists (select 1 from public.products where id = r.product_id)
-       and exists (select 1 from public.workspaces where id = old.workspace_id) then
-      insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
-      values (old.workspace_id, r.product_id, -r.held, 'order_stock_sync', old.id, auth.uid());
-    end if;
-  end loop;
+  v_repl := exists (select 1 from public.orders x where x.swapped_to_order_id = old.id and x.workspace_id = old.workspace_id);
+  if v_repl or public.order_stock_target(old.delivery_status, old.quantity, false, false) >= 0 then
+    for r in select product_id, sum(delta)::integer as held from public.stock_movements
+             where order_id = old.id and reason = any(public.stock_order_reasons())
+             group by product_id having sum(delta) <> 0 loop
+      if exists (select 1 from public.products where id = r.product_id)
+         and exists (select 1 from public.workspaces where id = old.workspace_id) then
+        insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
+        values (old.workspace_id, r.product_id, -r.held, 'order_stock_sync', old.id, auth.uid());
+      end if;
+    end loop;
+  end if;
   return old;
 end; $$;
 
@@ -175,6 +188,39 @@ drop trigger if exists orders_stock_release on public.orders;
 create trigger orders_stock_release
   before delete on public.orders
   for each row execute function public.order_stock_release();
+
+-- deleting a swap original: its replacement stops being one, so reconcile it
+create or replace function public.order_stock_after_delete()
+returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if old.swapped_to_order_id is not null
+     and exists (select 1 from public.workspaces where id = old.workspace_id) then
+    perform public.stock_reconcile_order(old.swapped_to_order_id, null, 'order_stock_sync', null);
+  end if;
+  return old;
+end; $$;
+
+drop trigger if exists orders_stock_after_delete on public.orders;
+create trigger orders_stock_after_delete
+  after delete on public.orders
+  for each row execute function public.order_stock_after_delete();
+
+-- D35 in spirit: products.stock changes only through a stock movement (apply_stock_movement runs one trigger level deeper)
+create or replace function public.products_stock_guard()
+returns trigger
+language plpgsql set search_path = public, pg_temp as $$
+begin
+  if new.stock is distinct from old.stock and pg_trigger_depth() < 2 then
+    raise exception 'products.stock changes only through a stock movement';
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists products_stock_guard on public.products;
+create trigger products_stock_guard
+  before update of stock on public.products
+  for each row execute function public.products_stock_guard();
 
 -- ---------------------------------------------------------------------------
 -- 4) add-only log (D35)
@@ -278,7 +324,7 @@ left join (
   from (
     select o.product_id, o.quantity, o.delivery_status, o.confirmation_status,
            o.swapped_to_order_id is not null as is_linked,
-           exists (select 1 from public.orders r where r.swapped_to_order_id = o.id) as is_replacement
+           exists (select 1 from public.orders r where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id) as is_replacement
     from public.orders o
   ) s
 ) f on f.product_id = p.id

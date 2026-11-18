@@ -237,17 +237,54 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect((await adminUser.from("stock_movements").insert({ workspace_id: ws, product_id: p, delta: 3, reason: "correction" })).error).toBeNull();
   });
 
-  test("deleting an order with movements succeeds and releases its pieces; deleting a workspace succeeds", async () => {
+  test("deleting an order (D41): pre-pickup releases, on road and delivered keep pieces out; deleting a workspace succeeds", async () => {
     const p = await product();
-    const o = await order(p, { delivery_status: "in_transit" });
-    expect(await stock(p)).toBe(-2);
-    expect((await svc.from("orders").delete().eq("id", o)).error).toBeNull();
-    expect(await stock(p)).toBe(0);
+    const wait = await order(p, { delivery_status: "wait_for_deposit" });
+    const road = await order(p, { delivery_status: "in_transit" });
+    const done = await order(p, { delivery_status: "delivered" });
+    expect(await stock(p)).toBe(-4);
+    expect((await svc.from("orders").delete().eq("id", wait)).error).toBeNull();
+    expect((await svc.from("orders").delete().eq("id", road)).error).toBeNull();
+    expect((await svc.from("orders").delete().eq("id", done)).error).toBeNull();
+    expect(await stock(p)).toBe(-4);
+    // old-rule reservation on a cancelled order is cleared
+    const c = await order(p, { delivery_status: "in_transit" });
+    await status(c, "cancelled");
+    expect(await held(c)).toBe(0);
 
     const w = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     const wp = await product(w);
     await order(wp, { delivery_status: "delivered" }, w);
     expect((await svc.from("workspaces").delete().eq("id", w)).error).toBeNull();
+  });
+
+  test("deleting a swap original reconciles its replacement (review-5 #2)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await status(b as string, "wait_for_deposit"); // already; B holds -1 as a replacement
+    expect(await held(b as string)).toBe(1);
+    expect((await svc.from("orders").delete().eq("id", a)).error).toBeNull();
+    expect(await held(b as string)).toBe(0);
+    expect(await stock(p)).toBe(0);
+  });
+
+  test("swap link across workspaces is refused (review-5 #1, D30)", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "in_transit" });
+    const other = await order(null, {}, ws2);
+    const { error } = await adminUser.from("orders").update({ swapped_to_order_id: other }).eq("id", a);
+    expect(error?.message).toMatch(/same workspace/);
+    expect((await svc.from("orders").update({ swapped_to_order_id: other }).eq("id", a)).error).not.toBeNull();
+  });
+
+  test("products.stock changes only through a movement (review-5 #4)", async () => {
+    const p = await product();
+    expect((await adminUser.from("products").update({ stock: 99 }).eq("id", p)).error).not.toBeNull();
+    expect((await svc.from("products").update({ stock: 99 }).eq("id", p)).error).not.toBeNull();
+    expect(await stock(p)).toBe(0);
+    expect((await adminUser.from("stock_movements").insert({ workspace_id: ws, product_id: p, delta: 5, reason: "purchase" })).error).toBeNull();
+    expect(await stock(p)).toBe(5);
   });
 
   test("a product with movements deletes only after its orders", async () => {

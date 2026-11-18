@@ -413,9 +413,7 @@ export async function createOrder(formData: FormData) {
 
 // ---------------------------------------------------------------------------
 // Swap: admin creates a new order for customer B from a returned/exchanged
-// order A (same product/qty, item never re-enters warehouse).
-// ponytail: sequential calls — if A update fails after B insert, B is just a
-// normal confirmed order (acceptable at this volume). Upgrade: definer RPC.
+// order A (same product/qty, item never re-enters warehouse). One RPC transaction.
 // ---------------------------------------------------------------------------
 const swapOrderSchema = z.object({
   customer_name: z.string().trim().min(1),
@@ -427,6 +425,7 @@ const swapOrderSchema = z.object({
 
 export async function swapOrder(orderId: string, formData: FormData) {
   const { workspaceId } = await adminProfile();
+  const id = z.string().uuid().parse(orderId);
   const input = swapOrderSchema.parse({
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone"),
@@ -436,6 +435,20 @@ export async function swapOrder(orderId: string, formData: FormData) {
   });
 
   const supabase = await createClient();
+
+  // One transaction (D30): new order B + A to 'swap' + link, or nothing.
+  const { data: newOrderId, error: swapErr } = await supabase.rpc("swap_order", {
+    p_order_id: id,
+    p_customer_id: null as unknown as string,
+    p_customer_name: input.customer_name,
+    p_customer_phone: input.customer_phone,
+    p_wilaya_code: input.wilaya_code,
+    p_commune: input.commune ?? "",
+    p_address: input.address ?? "",
+  });
+  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
+
+  // only after the swap succeeded: link the customer record to the new order
   const customerId = await upsertCustomerFromOrder(supabase, {
     workspaceId,
     name: input.customer_name,
@@ -444,18 +457,7 @@ export async function swapOrder(orderId: string, formData: FormData) {
     commune: input.commune,
     address: input.address,
   });
-
-  // One transaction (D30): new order B + A to 'swap' + link, or nothing.
-  const { data: newOrderId, error: swapErr } = await supabase.rpc("swap_order", {
-    p_order_id: orderId,
-    p_customer_id: customerId,
-    p_customer_name: input.customer_name,
-    p_customer_phone: input.customer_phone,
-    p_wilaya_code: input.wilaya_code,
-    p_commune: input.commune ?? "",
-    p_address: input.address ?? "",
-  });
-  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
+  if (customerId) await supabase.from("orders").update({ customer_id: customerId }).eq("id", newOrderId);
 
   revalidatePath("/app/orders");
   redirect(`/app/orders/${newOrderId}`);
