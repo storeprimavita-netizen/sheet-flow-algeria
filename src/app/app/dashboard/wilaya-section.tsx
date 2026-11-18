@@ -62,7 +62,7 @@ export function WilayaSection({ rows, minOrders, filters, names }: { rows: Wilay
                 onMouseLeave={() => setHovered(null)}
               >
                 <td>
-                  <Link href={wilayaHref(w.code)} className="hover:underline">
+                  <Link href={wilayaHref(w.code)} className="whitespace-nowrap hover:underline">
                     {w.name ? <><bdi dir="ltr">{w.code}</bdi><span aria-hidden> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{w.code}</bdi>}
                   </Link>
                 </td>
