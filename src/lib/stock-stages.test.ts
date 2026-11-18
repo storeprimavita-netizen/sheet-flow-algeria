@@ -103,7 +103,12 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
   afterAll(async () => {
     if (!svc) return;
     // add-only log: deleting the workspaces cascades orders, products and their movements
-    await svc.from("workspaces").delete().in("id", [ws, ws2].filter(Boolean));
+    // audited tables first: their cascade-delete audit rows would point at the vanishing workspace (FK)
+    const wss = [ws, ws2].filter(Boolean);
+    for (const t of ["options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
+      await svc.from(t).delete().in("workspace_id", wss);
+    }
+    expect((await svc.from("workspaces").delete().in("id", wss)).error).toBeNull();
     for (const id of users) await svc.auth.admin.deleteUser(id);
   });
 
