@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Aref_Ruqaa, El_Messiri, Marcellus, Tajawal } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
 
-import { storeMessages } from "@/components/store/t";
+import { StoreIntlProvider } from "@/components/store/intl-provider";
 import "@/components/store/store.css";
 
 // Own root layout: fixed Arabic/RTL, no cookies, no app theme class, no Toaster, no app fonts.
@@ -24,9 +23,7 @@ export default function StoreRootLayout({ children }: Readonly<{ children: React
   return (
     <html lang="ar" dir="rtl" className={`${tajawal.variable} ${elMessiri.variable} ${marcellus.variable} ${arefRuqaa.variable}`}>
       <body className="store-root">
-        <NextIntlClientProvider locale="ar" messages={{ store: storeMessages }}>
-          {children}
-        </NextIntlClientProvider>
+        <StoreIntlProvider>{children}</StoreIntlProvider>
       </body>
     </html>
   );

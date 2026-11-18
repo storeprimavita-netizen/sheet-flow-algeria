@@ -10,16 +10,19 @@ type Store = PublicProductPage["store"];
 /** Public store chrome. Anything without data (announcement, WhatsApp, Instagram, phone) is hidden, never a dead end. */
 export function StoreShell({ store, home, children }: { store: Store; home?: string; children: React.ReactNode }) {
   const { settings } = store;
-  const href = home ?? `/s/${store.slug}`;
   return (
     <>
       <a className="store-skip" href="#main">{st("skip")}</a>
       {settings.announcement ? <div className="store-announce">{settings.announcement}</div> : null}
       <header className="store-header">
         <div className="store-wrap">
-          <Link className="store-brand" href={href} aria-label={st("homeLabel")}>
-            <bdi>{store.name}</bdi>
-          </Link>
+          {home ? (
+            <Link className="store-brand" href={home} aria-label={st("homeLabel")}>
+              <bdi>{store.name}</bdi>
+            </Link>
+          ) : (
+            <span className="store-brand"><bdi>{store.name}</bdi></span>
+          )}
         </div>
       </header>
       <main className="store-main" id="main">

@@ -100,3 +100,5 @@ button { font: inherit; }
 
 .store-skeleton { background: linear-gradient(90deg, var(--surface-300), var(--blush), var(--surface-300)); background-size: 200% 100%; animation: store-shimmer 1.4s linear infinite; border-radius: var(--radius-md); }
 @keyframes store-shimmer { to { background-position: -200% 0; } }
+
+.sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
