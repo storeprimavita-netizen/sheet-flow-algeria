@@ -164,6 +164,37 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(false);
   const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({}); // user-collapsed groups
 
+  const drawerRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  const [isDesktop, setIsDesktop] = useState(true); // true on first render: no inert flash on desktop
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => {
+      setIsDesktop(mq.matches);
+      if (mq.matches) setOpen(false);
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  // Phone drawer: Escape closes (unless a Radix menu/dialog already handled it), focus moves in, then returns to the toggle.
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      drawerRef.current?.focus();
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !e.defaultPrevented) setOpen(false);
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
+      toggleRef.current?.focus();
+    }
+  }, [open]);
+
   const [kbdHint, setKbdHint] = useState("⌘K");
   useEffect(() => {
     if (!/Mac|iPhone|iPad/.test(navigator.platform)) setKbdHint("Ctrl K");
@@ -267,7 +298,7 @@ export function AppShell({
   ) : null;
 
   const brandHref = home?.href ?? groups[0]?.items[0]?.href;
-  const brandClass = "flex min-w-0 items-center gap-2.5";
+  const brandClass = "flex min-w-0 items-center gap-2.5 max-md:min-h-11";
   const brandBody = (
     <>
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -289,8 +320,12 @@ export function AppShell({
     <TooltipProvider delayDuration={200}>
       <div className="flex min-h-screen w-full">
         <aside
+          ref={drawerRef}
+          tabIndex={-1}
+          inert={!open && !isDesktop}
+          {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.toggleSidebar") } : {})}
           className={cn(
-            "fixed inset-y-0 start-0 z-40 flex flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
+            "fixed inset-y-0 start-0 z-40 flex outline-none flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
             collapsed ? "w-16" : "w-64",
             open ? "max-md:translate-x-0" : "max-md:-translate-x-full max-md:rtl:translate-x-full",
           )}
@@ -361,9 +396,9 @@ export function AppShell({
           <div className="fixed inset-0 z-30 bg-overlay md:hidden" onClick={() => setOpen(false)} />
         )}
 
-        <div className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
+        <div inert={open && !isDesktop} className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label={t("nav.toggleSidebar")}>
+            <Button ref={toggleRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label={t("nav.toggleSidebar")}>
               <Menu className="h-5 w-5" />
             </Button>
             <CommandPalette role={role}>

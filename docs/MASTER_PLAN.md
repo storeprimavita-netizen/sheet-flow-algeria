@@ -50,7 +50,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | NAV-1 | Sidebar: five job-named groups + Home + Settings, always visible, labels en/ar, ⌘K knows old and new names. Branch `v3-NAV-1` exists: fix review-3 (Settings must not squeeze the scrolling nav; distinct icon for Users & roles; no dead chevron), then review light theme, 390 px drawer, icon rail and an agent login **Next:** review-6 open: Escape does not close the 390 px drawer, closed drawer is still tabbable, ⌘K matches internal page keys; then one review.. | NAV | L | ui | – | shell | O-1 | done |
-| NAV-1-F | Follow-up (D40): Escape closes the 390 px drawer; closed drawer not tabbable (`inert`); ⌘K must not match internal page keys (review-6) | NAV | L | ui | – | shell | NAV-1 | claimed:claude |
+| NAV-1-F | Follow-up (D40): Escape closes the 390 px drawer; closed drawer not tabbable (`inert`); ⌘K must not match internal page keys (review-6) | NAV | L | ui | – | shell | NAV-1 | done |
 | SEC-1 | Audit log shows integration secrets (`whsec_…`) in plain text on `/app/settings/audit` (admin-only, found in NAV-1 review-6): redact secret-looking values in `audit_row()` / the audit view (stored and displayed), keep a fingerprint; test with a seeded secret | – | H | sec | M | shell | – | todo |
 | NAV-1-G | Follow-up: Arabic ⌘K fuzzy-match noise; RTL shows "K⌘" for the shortcut hint | NAV | L | ui | – | shell | NAV-1-F | todo |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | todo |
