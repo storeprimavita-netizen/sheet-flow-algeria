@@ -288,3 +288,6 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Evidence: full scripts/gate.sh GATE OK, 436 tests with the live RLS suite.
 - Owner: production db push of 00039–00040 is owner-only (O-2). Screenshots at 390 px were incomplete in review-2 — worth a look on a phone.
 - Next: STORE-1.
+
+## STORE-1 build notes
+- Screenshots: chrome-devtools MCP used for stock page and product page, dark, EN, ~390px only. Not done: light theme, AR, 1280px, order form, old-order, inactive, error views, keyboard walk.
