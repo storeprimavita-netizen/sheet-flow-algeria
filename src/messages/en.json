@@ -953,5 +953,5 @@
     "retry": "Try again",
     "ref": "Reference"
   },
-  "audit": { "redacted": "Secret value hidden; the code identifies the value without revealing it" }
+  "audit": { "redactedPill": "Redacted", "redacted": "Secret value hidden; the code identifies the value without revealing it" }
 }

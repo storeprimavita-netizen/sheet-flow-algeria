@@ -16,33 +16,50 @@ export type AuditRow = {
   changes: DiffChange[];
 };
 
-function Value({ v, label }: { v: DiffValue; label: string }) {
+function Value({ v, label, pill }: { v: DiffValue; label: string; pill: string }) {
   if (!v.redacted) return <>{v.text}</>;
   return (
-    <span tabIndex={0} title={label} aria-label={`${v.text}. ${label}`} className="rounded border border-border bg-secondary px-1 font-mono">
-      {v.text}
+    <span
+      dir="ltr"
+      tabIndex={0}
+      title={label}
+      className="inline-block rounded border border-border bg-secondary px-1"
+    >
+      {pill} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
     </span>
+  );
+}
+
+function ChangeList({ changes }: { changes: DiffChange[] }) {
+  const t = useTranslations();
+  return (
+    <ul className="space-y-1 py-2 text-xs text-muted-foreground">
+      {changes.map((c) => (
+        <li key={c.key} className="text-start">
+          <bdi dir="ltr" className="inline-block">
+            {c.key}: <Value v={c.from} label={t("audit.redacted")} pill={t("audit.redactedPill")} /> → <Value v={c.to} label={t("audit.redacted")} pill={t("audit.redactedPill")} />
+          </bdi>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export function AuditTable({ rows }: { rows: AuditRow[] }) {
   const t = useTranslations();
 
+  // Below sm the changes stack under the table name (the table scrolls sideways otherwise and hides them).
   const columns: Column<AuditRow>[] = [
     { id: "created_at", header: t("fields.date"), sticky: true, cell: (r) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</span> },
-    { id: "table", header: t("team.table"), cell: (r) => r.table_name },
+    { id: "table", header: t("team.table"), cell: (r) => (
+        <>
+          {r.table_name}
+          {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
+        </>
+      ) },
     { id: "action", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
     { id: "actor", header: t("fields.agent"), cell: (r) => r.actor_name },
-    { id: "changes", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : (
-        <span className="text-xs text-muted-foreground">
-          {r.changes.map((c, i) => (
-            <bdi key={c.key} dir="ltr" className="inline-block">
-              {i > 0 && "; "}
-              {c.key}: <Value v={c.from} label={t("audit.redacted")} /> → <Value v={c.to} label={t("audit.redacted")} />
-            </bdi>
-          ))}
-        </span>
-      ) },
+    { id: "changes", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : <div className="hidden sm:block"><ChangeList changes={r.changes} /></div> },
   ];
 
   return (

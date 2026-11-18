@@ -255,3 +255,14 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Verify: security reviews 1–4; review-4 no high finding, two medium moved to SEC-1-F.
 - Evidence: full scripts/gate.sh GATE OK, 300 tests with the live RLS suite.
 - Owner: production db push of 00033–00035 is owner-only (O-2); the backfill rewrites audit_log rows (contents only, none deleted).
+
+## SEC-1-F — audit redaction follow-up (D40)
+- 00036: `audit_is_secret_key` (acronym + camel + case-only normalisers), depth cap 64, non-string fingerprints = jsonb text; TS twin + shared case table (`audit-redact.cases.ts`) with live parity test. Diff badge only when masked; table renders `<ul>` rows; pill localised (`audit.redactedPill`).
+- Screenshots (self-critique via chrome-devtools): docs/design/audit/SEC-1-F/ {en,ar}-{dark,light}-1440, ar/en 390. Found and fixed: Arabic pill word reordered around the arrow inside the LTR cell; fixed with an isolated `inline-block dir=ltr` pill. Not all 8 combos retaken after that fix (en-* 1440 predate the pill isolation; EN unaffected visually).
+- Note: local `db reset` wipes seed users; reseed needs a temporary `node_modules/server-only` stub (seed-dev imports admin.ts).
+
+## SEC-1-F — DONE (merged under D40)
+- Done: 00036–00038 acronym and run-together secret names (D49 amended), null handling past depth cap; audit table one row per change, works at 390 px.
+- Verify: reviews 1–3; review-3 no high finding and no secret leak; one medium (SQL/TS output differs exactly at depth 64) moved to SEC-1-G.
+- Evidence: full scripts/gate.sh GATE OK, 331 tests with the live RLS suite.
+- Owner: production db push of 00036–00038 is owner-only (O-2).
