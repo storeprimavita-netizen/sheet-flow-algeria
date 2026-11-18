@@ -197,3 +197,4 @@ Bottom/top edge fade on the sidebar list (token colour, click-through, ResizeObs
 - Done: tests for linked swap original (follows status, stock fixed, unlink, admin cancel via RPC), zr_state_map strips `swap`, swapOrder tests, SwapBadge on orders list / delivery table / kanban / detail, DB.md fixes.
 - Screenshots (chrome-devtools): list, delivery table, kanban, detail checked in EN dark, EN light, AR dark (kanban), AR light (list). Fixed list overflow (badge under order number) and order-number wrap. Not every surface x locale x theme combination was viewed; remaining ones share the same component.
 - Known: AR badge shows "#id" bidi-reordered (pre-existing wording in swap.swappedTo).
+- P0-8-G review-1 FIX: swap badge now shows '#number' (bdi ltr, full sentence in title), delivery badge stacked. Screenshots list EN/AR at 1280 and 390 (light) viewed OK: docs/design/audit/P0-8-G/list-*-{1280,390}.png. Dark theme not re-shot.
