@@ -13,7 +13,10 @@ import { PercentField } from "@/components/fields/percent-field";
 import {
   PRICING_FIELDS,
   ROUNDING_OPTIONS,
+  TARGET_MODES,
+  type TargetMode,
   overridesFromForm,
+  targetModeForKey,
   toPercent,
   type FieldDef,
   type FieldGroup,
@@ -123,6 +126,8 @@ export function PricingFieldGroups({
                           onClick={() => {
                             set(null);
                             setGens((s) => ({ ...s, [f.key]: (s[f.key] ?? 0) + 1 }));
+                            // the reset button unmounts; keep keyboard focus on the field
+                            requestAnimationFrame(() => document.getElementById(id)?.focus());
                           }}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
@@ -175,6 +180,7 @@ export function TargetEditor({
 }) {
   const t = useTranslations("pricingV2");
   const [gen, setGen] = React.useState(0);
+  const radioRefs = React.useRef<Partial<Record<TargetMode, HTMLButtonElement | null>>>({});
   const override = mode === "override";
   const err = errors.target;
   const sameMode = form.targetMode === defaults.target.mode;
@@ -189,6 +195,13 @@ export function TargetEditor({
   const id = `${idPrefix}-target`;
   const valueKey = `${form.targetMode}-${resetKey}-${gen}`;
   const setValue = (v: number | null) => update((cur) => ({ ...cur, targetValue: v }));
+
+  function chooseMode(m: TargetMode) {
+    if (form.targetMode === m) return;
+    // switching mode resets the value: DZD and percent are never reinterpreted
+    update((cur) => ({ ...cur, targetMode: m, targetValue: null }));
+    setGen((g) => g + 1);
+  }
 
   const roundingOptions = [
     ...(override ? [{ value: INHERIT, label: t("rounding.inherit") }] : []),
@@ -218,6 +231,7 @@ export function TargetEditor({
                   onClick={() => {
                     update((cur) => ({ ...cur, targetMode: defaults.target.mode, targetValue: null }));
                     setGen((g) => g + 1);
+                    requestAnimationFrame(() => radioRefs.current[defaults.target.mode]?.focus());
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -226,20 +240,31 @@ export function TargetEditor({
             ) : null}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <div role="radiogroup" aria-labelledby={`${id}-label`} className="inline-flex rounded-md border border-input p-0.5">
-              {(["profit", "markup"] as const).map((m) => (
+            <div
+              role="radiogroup"
+              aria-labelledby={`${id}-label`}
+              className="inline-flex rounded-md border border-input p-0.5"
+              onKeyDown={(e) => {
+                const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
+                const next = targetModeForKey(form.targetMode, e.key, rtl);
+                if (!next) return;
+                e.preventDefault();
+                chooseMode(next);
+                radioRefs.current[next]?.focus();
+              }}
+            >
+              {TARGET_MODES.map((m) => (
                 <button
                   key={m}
+                  ref={(el) => {
+                    radioRefs.current[m] = el;
+                  }}
                   type="button"
                   role="radio"
                   aria-checked={form.targetMode === m}
-                  onClick={() => {
-                    if (form.targetMode === m) return;
-                    // switching mode resets the value: DZD and percent are never reinterpreted
-                    update((cur) => ({ ...cur, targetMode: m, targetValue: null }));
-                    setGen((g) => g + 1);
-                  }}
-                  className={`rounded px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                  tabIndex={form.targetMode === m ? 0 : -1}
+                  onClick={() => chooseMode(m)}
+                  className={`rounded px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     form.targetMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >

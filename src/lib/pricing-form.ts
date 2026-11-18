@@ -374,3 +374,17 @@ export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | 
   if (complete || (r.totalCost !== null && r.k !== null && r.k >= 1)) return "impossible";
   return "missing";
 }
+
+export const TARGET_MODES: readonly TargetMode[] = ["profit", "markup"];
+
+/** Radio-group arrow keys: the mode to move to, or null when the key does nothing. Arrows mirror in RTL. */
+export function targetModeForKey(current: TargetMode, key: string, rtl: boolean): TargetMode | null {
+  const forward = rtl ? "ArrowLeft" : "ArrowRight";
+  const back = rtl ? "ArrowRight" : "ArrowLeft";
+  const i = TARGET_MODES.indexOf(current);
+  let n: number;
+  if (key === forward || key === "ArrowDown") n = i + 1;
+  else if (key === back || key === "ArrowUp") n = i - 1;
+  else return null;
+  return TARGET_MODES[(n + TARGET_MODES.length) % TARGET_MODES.length];
+}

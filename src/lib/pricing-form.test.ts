@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   countOverrides,
+  targetModeForKey,
   breakEvenState,
   formErrors,
   formFromOverrides,
@@ -209,5 +210,22 @@ describe("review 1 findings", () => {
       expect(breakEvenState(r, "minSellingPrice")).toBe("impossible");
       expect(breakEvenState(r, "minConfirmation")).toBe("impossible");
     }
+  });
+});
+
+describe("targetModeForKey (radio group arrows)", () => {
+  it("LTR: right/down forward, left/up back, wraps", () => {
+    expect(targetModeForKey("profit", "ArrowRight", false)).toBe("markup");
+    expect(targetModeForKey("markup", "ArrowRight", false)).toBe("profit");
+    expect(targetModeForKey("markup", "ArrowLeft", false)).toBe("profit");
+    expect(targetModeForKey("profit", "ArrowDown", false)).toBe("markup");
+  });
+  it("RTL mirrors left/right", () => {
+    expect(targetModeForKey("profit", "ArrowLeft", true)).toBe("markup");
+    expect(targetModeForKey("markup", "ArrowRight", true)).toBe("profit");
+  });
+  it("other keys do nothing", () => {
+    expect(targetModeForKey("profit", "Enter", false)).toBeNull();
+    expect(targetModeForKey("profit", "Tab", true)).toBeNull();
   });
 });

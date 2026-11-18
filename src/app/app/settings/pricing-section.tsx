@@ -30,6 +30,8 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
   const [resetKey, setResetKey] = React.useState(0);
   const [pending, startTransition] = React.useTransition();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const resetBtn = React.useRef<HTMLButtonElement>(null);
+  const didReset = React.useRef(false);
 
   const errors = formErrors(form, true);
   const valid = Object.keys(errors).length === 0;
@@ -52,6 +54,7 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
       const res = await resetPricingDefaults();
       setConfirmOpen(false);
       if (res.ok) {
+        didReset.current = true;
         const fresh = formFromSettings(DEFAULT_PRICING_SETTINGS);
         setForm(fresh);
         setBaseline(JSON.stringify(fresh));
@@ -95,7 +98,7 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
         <Button type="button" onClick={save} disabled={!valid || pending || !dirty}>
           {pending ? tc("actions.saving") : tc("actions.save")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setConfirmOpen(true)} disabled={pending || usingBuiltIn}>
+        <Button ref={resetBtn} type="button" variant="outline" onClick={() => setConfirmOpen(true)} disabled={pending || usingBuiltIn}>
           {t("settings.reset")}
         </Button>
         {dirty ? <span className="text-xs text-muted-foreground">{t("settings.unsaved")}</span> : null}
@@ -108,7 +111,18 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
       </p>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(e) => {
+            // Radix would focus the (trigger-less) dialog opener: do it ourselves.
+            e.preventDefault();
+            const btn = resetBtn.current;
+            if (didReset.current || !btn || btn.disabled) {
+              // after a reset the button is disabled (built-in defaults): go to the section's first field
+              didReset.current = false;
+              document.getElementById("pd-target")?.focus();
+            } else btn.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t("settings.resetTitle")}</DialogTitle>
             <DialogDescription>{t("settings.resetBody")}</DialogDescription>
