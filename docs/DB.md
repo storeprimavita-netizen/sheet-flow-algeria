@@ -51,6 +51,7 @@ Finally regenerate types:
 | `webhook_events` | 00002 | raw payloads for debug/replay; written by service role | admin read |
 | `products` | 00003, 00014 | NON-financial only: name, `category_option_id`/`fabric_option_id` (FK → `options`, was free text before 00014), status, sale_price, variants jsonb, images, stock, notes | all read, admin write |
 | `product_costs` | 00003 | 1:1 sourcing cost + currency + fx (the split enforces agent financial blindness) | admin only |
+| `product_pricing` | 00039 | per-product pricing overrides (jsonb, fractions), ad costs `ad_*_usd`, `final_price`; PK product_id; composite FK (product_id, workspace_id) -> products so a row cannot point at another workspace's product; audited (row_id null: no `id`); absent row = all defaults | admin only |
 | `product_scenarios` | 00003 | BENZ inputs jsonb per slug best/medium/worst; `product_id null` = general planner (partial unique indexes) | admin only |
 | `expenses` | 00003, 00014, 00017 | multi-currency + generated `amount_dzd`; optional product/supplier link; optional `subcategory_option_id` (FK → `options`); optional `account_id` (FK → `accounts`) | admin only |
 | `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
@@ -112,6 +113,7 @@ Dashboard aggregate RPC(s) get added in the BI phase as migration
 | `meeting_schedule` | 2 slots/week | meetings page |
 | `zr_state_map` | `{"map": {}}` | ZR state name (lower-cased) → `delivery_status`; applied by the ZR webhook (15f) |
 | `zr_auto_push` | `{"enabled": false}` | push a ZR parcel when an order is confirmed (15f) |
+| `pricing_defaults` | absent = built-in `DEFAULT_PRICING_SETTINGS` (D50); sparse fractions, `target` mode+value as one unit | workspace pricing settings (PRICE-2); Settings -> Pricing; product overrides in `product_pricing` |
 
 ## Financial-effects rule
 

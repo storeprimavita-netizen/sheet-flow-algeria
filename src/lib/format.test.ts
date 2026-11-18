@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCurrency, formatDate, formatDuration } from "./format";
+import { formatCurrency, formatDate, formatDuration, formatUsd } from "./format";
 
 describe("formatDuration", () => {
   it("returns — for null/undefined", () => {
@@ -39,5 +39,17 @@ describe("formatCurrency", () => {
 describe("formatDate", () => {
   it("dd/mm/yyyy with no UTC day shift for ISO dates", () => {
     expect(formatDate("2026-10-01")).toBe("01/10/2026");
+  });
+});
+
+describe("formatUsd", () => {
+  it("keeps whole dollars by default", () => {
+    expect(formatUsd(1234.5)).toBe("⁦$1,235⁩");
+  });
+  it("shows cents with decimals: 2 (ad costs 1.5 / 2.2 / 2.7)", () => {
+    expect(formatUsd(1.5, { decimals: 2 })).toBe("⁦$1.50⁩");
+    expect(formatUsd(2.2, { decimals: 2 })).toBe("⁦$2.20⁩");
+    expect(formatUsd(-2.7, { decimals: 2 })).toBe("⁦−$2.70⁩");
+    expect(formatUsd(null, { decimals: 2 })).toBe("—");
   });
 });

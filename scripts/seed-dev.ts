@@ -279,6 +279,13 @@ async function seedProducts(
       ),
       "product_costs upsert",
     );
+    await must(
+      await admin.from("product_pricing").upsert(
+        { product_id: productId, workspace_id: ws, overrides: {}, ad_medium_usd: 2.2 },
+        { onConflict: "product_id" },
+      ),
+      "product_pricing upsert",
+    );
 
     // scenarios: best/medium/worst, baseline from seedForProduct + fixed-fee/fx inputs
     const baseline: PricingInputs = {

@@ -183,7 +183,7 @@ function ScenarioCard({
                       <PercentField
                         id={`${id}_${f.key}`}
                         defaultValue={inputs[f.key]}
-                        onChange={(v) => onChange(f.key, v)}
+                        onChange={(v) => onChange(f.key, v ?? 0)}
                       />
                     ) : (
                       <MoneyField

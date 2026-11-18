@@ -31,7 +31,7 @@ const SEED_PASSWORD = "SeedDev!2026";
 // their insert-rejection isn't agent-specific — checked separately below.
 const FINANCIAL_TABLES = [
   "product_costs", "expenses", "ad_spend_daily", "fixed_fees", "exchange_rates",
-  "cash_collections", "product_scenarios", "settings", "contacts",
+  "cash_collections", "product_scenarios", "settings", "contacts", "product_pricing",
 ] as const;
 
 function sign(url: string, key: string): SupabaseClient {
@@ -142,11 +142,70 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     product_scenarios: () => ({ workspace_id: workspaceId, product_id: productId, slug: "best", inputs: {} }),
     settings: () => ({ workspace_id: workspaceId, key: "rls_test_key", value: {} }),
     contacts: () => ({ workspace_id: workspaceId, type: "other", name: "rls-test" }),
+    product_pricing: () => ({ product_id: productId, workspace_id: workspaceId }),
   };
 
   test.each(FINANCIAL_TABLES)("agent insert on %s is rejected", async (table) => {
     const { error } = await confAgent.from(table).insert(MINIMAL_INSERT[table]());
     expect(error).not.toBeNull();
+  });
+
+  test("product_pricing: agent update/delete touch 0 rows", async () => {
+    const upd = await confAgent.from("product_pricing").update({ final_price: 1 }).eq("workspace_id", workspaceId).select();
+    expect(upd.data ?? []).toEqual([]);
+    const del = await confAgent.from("product_pricing").delete().eq("workspace_id", workspaceId).select();
+    expect(del.data ?? []).toEqual([]);
+    const { data } = await adminUser.from("product_pricing").select("product_id").eq("workspace_id", workspaceId);
+    expect((data ?? []).length).toBeGreaterThan(0);
+  });
+
+  test("product_pricing: other-workspace admin cannot attach a row to our product (composite FK)", async () => {
+    const ws2Admin = await signIn(LOCAL_URL!, "ws2-admin@seed.mnw");
+    const { error } = await ws2Admin.from("product_pricing").insert({ product_id: productId, workspace_id: ws2Id });
+    expect(error).not.toBeNull();
+    await ws2Admin.auth.signOut({ scope: "local" });
+  });
+
+  test("pricing_defaults: agent cannot write; admin reset (delete) is audited as DELETE", async () => {
+    const agentIns = await confAgent
+      .from("settings")
+      .insert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } });
+    expect(agentIns.error).not.toBeNull();
+
+    // keep whatever was saved before so the shared local DB is left as found
+    const { data: prev } = await admin
+      .from("settings")
+      .select("value")
+      .eq("workspace_id", workspaceId)
+      .eq("key", "pricing_defaults")
+      .maybeSingle();
+
+    const ins = await adminUser
+      .from("settings")
+      .upsert({ workspace_id: workspaceId, key: "pricing_defaults", value: { share: 0.3 } }, { onConflict: "workspace_id,key" });
+    expect(ins.error).toBeNull();
+    const del = await adminUser
+      .from("settings")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("key", "pricing_defaults")
+      .select();
+    expect(del.error).toBeNull();
+    expect(del.data).toHaveLength(1);
+    const { data: audit } = await adminUser
+      .from("audit_log")
+      .select("action, old_row")
+      .eq("workspace_id", workspaceId)
+      .eq("table_name", "settings")
+      .eq("action", "DELETE")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    expect((audit?.[0]?.old_row as { key?: string } | null)?.key).toBe("pricing_defaults");
+    if (prev) {
+      await admin
+        .from("settings")
+        .upsert({ workspace_id: workspaceId, key: "pricing_defaults", value: prev.value }, { onConflict: "workspace_id,key" });
+    }
   });
 
   test("agent select on audit_log returns 0 rows", async () => {

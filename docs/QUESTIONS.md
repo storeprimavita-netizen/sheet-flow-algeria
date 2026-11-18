@@ -8,6 +8,18 @@ owner may overturn").
 
 ## Open
 
+### Q-10 · PRICE-2 · 2026-11-18 · answered-by-default
+In a product's price calculator you can type a "final price" to see what you
+would earn at that price. When that price loses money, should saving it ask
+"are you sure?" **Applied by default (D53):** no. It saves normally, and a red
+line under the table says in which case (best / medium / worst) the product
+loses money. This number is only your calculation: it does not change the price
+in the store or on any order. Your own benz example (final price 4,500) already
+loses 228 DZD per piece in the worst case, so a question would appear on almost
+every product. The other option: ask for confirmation only when the price also
+loses money in the medium case (on benz: below 3,962 DZD). Say so if you want
+it. Nothing is blocked.
+
 ### Q-9 · PRICE-1 · 2026-11-18 · answered-by-default
 When the profit is asked as a percentage of the product's cost, what is the
 highest percentage the calculator should accept? **Applied by default (D52):**

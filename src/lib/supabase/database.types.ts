@@ -625,6 +625,50 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"product_pricing": {
+                  Row: {
+                    "ad_best_usd": number | null,"ad_medium_usd": number | null,"ad_worst_usd": number | null,"final_price": number | null,"overrides": NonNullable<Json>,"product_id": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ad_best_usd"?: number | null,"ad_medium_usd"?: number | null,"ad_worst_usd"?: number | null,"final_price"?: number | null,"overrides"?: NonNullable<Json>,"product_id": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "ad_best_usd"?: number | null,"ad_medium_usd"?: number | null,"ad_worst_usd"?: number | null,"final_price"?: number | null,"overrides"?: NonNullable<Json>,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_pricing_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_pricing_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"product_scenarios": {
                   Row: {
                     "created_at": string,"id": string,"inputs": NonNullable<Json>,"product_id": string | null,"slug": string,"updated_at": string,"workspace_id": string
@@ -1119,6 +1163,14 @@ isOneToOne: false
           Functions: {
             "apply_zr_state":
 { Args: { "p_is_return": boolean,"p_live"?: boolean,"p_occurred": string,"p_parcel": string,"p_situation": string,"p_slug": string,"p_state": string,"p_ws": string }; Returns: string
+                           },
+"audit_is_secret_key":
+{ Args: { "k": string }; Returns: boolean
+                           },
+"audit_redact":
+{ Args: { "j": Json }; Returns: Json
+                           } |
+{ Args: { "depth": number,"j": Json }; Returns: Json
                            },
 "bootstrap_workspace":
 { Args: { "p_email": string,"p_workspace_name"?: string }; Returns: string

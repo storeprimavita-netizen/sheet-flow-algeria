@@ -628,6 +628,7 @@
     "rate": "Rate (DA)",
     "validFrom": "Valid from",
     "noRates": "No exchange rate entries yet.",
+    "pricing": "Pricing",
     "engineRules": "Engine rules",
     "returnFee": "Return fee (DA)",
     "duplicateWindowHours": "Duplicate window (hours)",
@@ -947,11 +948,163 @@
     "nextMonth": "Next month",
     "period": "Period"
   },
+  "pricingV2": {
+    "title": "Pricing",
+    "scenario": {
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
+    "missing": "Missing input",
+    "notPossible": "Not possible",
+    "notPossibleHint": "The price cannot cover the costs at any value of this input.",
+    "da": "DA",
+    "groups": {
+      "target": "Profit target",
+      "funnel": "Confirmation and delivery rates",
+      "ads": "Ad cost multipliers",
+      "platform": "Platform and store",
+      "perOrder": "Per order",
+      "stock": "Stock",
+      "rates": "Exchange rates"
+    },
+    "fields": {
+      "officialRate": "Official USD rate (DA)",
+      "parallelRate": "Parallel USD rate (DA)",
+      "platformPct": "Platform fee (% of price)",
+      "platformMonthlyUsd": "Platform subscription (USD / month)",
+      "months": "Months of subscription to cover",
+      "share": "This product's share of the store",
+      "packaging": "Packaging (DA / order)",
+      "confirmationFee": "Confirmation fee (DA / order)",
+      "otherPerOrder": "Other cost (DA / order)",
+      "returnCost": "Return cost (DA / returned order)",
+      "otherStockFees": "Other stock fees (DA, total)",
+      "deadPct": "Dead stock",
+      "confirmPct": {
+        "best": "Confirmation, best",
+        "medium": "Confirmation, medium",
+        "worst": "Confirmation, worst"
+      },
+      "deliveryPct": {
+        "best": "Delivery, best",
+        "medium": "Delivery, medium",
+        "worst": "Delivery, worst"
+      },
+      "adMultiplier": {
+        "best": "Ad cost multiplier, best",
+        "worst": "Ad cost multiplier, worst"
+      }
+    },
+    "target": {
+      "label": "Profit target",
+      "profit": "Profit / piece (DA)",
+      "markup": "Markup % of product cost",
+      "defaultProfit": "Default: {value}",
+      "defaultMarkup": "Default: {value}",
+      "settingsHint": "Applied to each product's cost.",
+      "live": "Target profit / piece: {value}",
+      "needsValue": "Enter a target value, or the prices stay empty."
+    },
+    "rounding": {
+      "label": "Price rounding",
+      "inherit": "Workspace default",
+      "none": "No rounding",
+      "up100": "Up to the next 100",
+      "nearest50": "Nearest 50",
+      "nearest100": "Nearest 100",
+      "charm900": "Ending in 900",
+      "charm990": "Ending in 990",
+      "charm99": "Ending in 99"
+    },
+    "field": {
+      "default": "Default: {value}",
+      "overridden": "Overridden",
+      "reset": "Reset {field} to the default",
+      "required": "Required.",
+      "range": "Value out of range."
+    },
+    "settings": {
+      "intro": "Defaults for every product. Each product can override any of them in its Pricing tab.",
+      "usingBuiltIn": "Using built-in defaults. Nothing has been saved yet.",
+      "saved": "Pricing settings saved.",
+      "saveFailed": "Could not save the pricing settings.",
+      "unsaved": "Unsaved changes",
+      "reset": "Reset to built-in defaults",
+      "resetTitle": "Reset pricing settings?",
+      "resetBody": "The saved workspace values are removed and the built-in defaults apply again. Product overrides are not touched.",
+      "resetConfirm": "Reset",
+      "resetDone": "Pricing settings reset to the built-in defaults.",
+      "resetFailed": "Could not reset the pricing settings.",
+      "productsHint": "Product overrides live in each product's Pricing tab."
+    },
+    "product": {
+      "subtitle": "Best, medium and worst case for this product, from the workspace pricing settings.",
+      "inputs": "Inputs",
+      "quantity": "Quantity (pieces)",
+      "quantityHint": "Starts from the current stock. It is used for this calculation only and is not saved to the product.",
+      "stockCost": "Stock cost: {value}",
+      "stockCostHint": "{perPiece} per piece x {quantity} pieces.",
+      "adMedium": "Ad cost per order, medium (USD)",
+      "adBest": "Ad cost per order, best (USD)",
+      "adWorst": "Ad cost per order, worst (USD)",
+      "adDerived": "Default: medium x multiplier",
+      "finalPrice": "Final price (DA)",
+      "finalPriceHint": "Empty = the recommended price shown. Current store price: {sale}.",
+      "advanced": "Advanced overrides",
+      "advancedCount": "{count} overridden",
+      "advancedNone": "none",
+      "settingsLink": "Edit the workspace defaults",
+      "save": "Save pricing",
+      "saving": "Saving…",
+      "saved": "Pricing saved.",
+      "saveFailed": "Could not save the pricing.",
+      "unsaved": "Unsaved changes",
+      "invalid": "Fix the highlighted values to save. The table shows the last valid result.",
+      "emptyTitle": "Set the stock cost to see prices",
+      "emptyBody": "This product has no sourcing cost yet, so there is nothing to calculate.",
+      "emptyAction": "Set stock cost",
+      "errorTitle": "The pricing could not load",
+      "belowBreakEven": "Below break-even in {scenarios}: at the final price this product loses money.",
+      "table": "Pricing results by scenario",
+      "quantityInvalid": "Enter a whole number from 0 to 1,000,000.",
+      "adInvalid": "Enter an amount from 0 with at most 2 decimals.",
+      "priceInvalid": "Enter an amount above 0 with at most 2 decimals."
+    },
+    "rows": {
+      "groupAds": "Ads",
+      "groupCost": "Cost",
+      "groupPrice": "Price",
+      "groupProfit": "Profit",
+      "groupBreakEven": "Break-even",
+      "totalAdUsd": "Total ad spend (USD)",
+      "totalAdDzd": "Total ad spend (DA)",
+      "ordersNeeded": "Orders needed",
+      "totalCost": "Cost / piece",
+      "recommendedPrice": "Recommended price",
+      "finalPrice": "Final price used",
+      "profitPerPiece": "Profit / piece",
+      "netProfit": "Net profit",
+      "margin": "Margin",
+      "minConfirmation": "Minimum confirmation rate",
+      "minDelivery": "Minimum delivery rate",
+      "maxAdCostUsd": "Maximum ad cost / order (USD)",
+      "minSellingPrice": "Minimum selling price"
+    },
+    "unit": {
+      "dzd": "DA",
+      "usd": "USD",
+      "times": "×"
+    }
+  },
   "errorPage": {
     "title": "This page couldn't load",
     "body": "Something failed while loading this data. Your changes are safe — try again, and if it keeps failing, check your connection.",
     "retry": "Try again",
     "ref": "Reference"
   },
-  "audit": { "redactedPill": "Redacted", "redacted": "Secret value hidden; the code identifies the value without revealing it" }
+  "audit": {
+    "redactedPill": "Redacted",
+    "redacted": "Secret value hidden; the code identifies the value without revealing it"
+  }
 }

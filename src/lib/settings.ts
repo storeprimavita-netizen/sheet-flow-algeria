@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
+import { pricingSettingsSchema, sanitizeSparse } from "@/lib/pricing-form";
+import { DEFAULT_PRICING_SETTINGS, mergeSettings } from "@/lib/pricing-v2";
 
 /** Schemas for `settings.value` per key (docs/DB.md §settings keys). */
 export const SETTINGS_SCHEMAS = {
@@ -35,6 +37,8 @@ export const SETTINGS_SCHEMAS = {
   }),
   /** push a parcel to ZR automatically when an order is confirmed */
   zr_auto_push: z.object({ enabled: z.boolean() }),
+  /** workspace pricing settings (D50): strict full object on save; READ is lenient (see READERS) */
+  pricing_defaults: pricingSettingsSchema,
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_SCHEMAS;
@@ -49,6 +53,12 @@ const DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   meeting_schedule: { slots: [] },
   zr_state_map: { map: { livre: "delivered", encaisse: "delivered", recouvert: "delivered", recupere_par_fournisseur: "returned" } },
   zr_auto_push: { enabled: false },
+  pricing_defaults: DEFAULT_PRICING_SETTINGS as SettingValue<"pricing_defaults">,
+};
+
+/** Lenient readers: a stored row with one bad/old key keeps its valid keys. */
+const READERS: { [K in SettingKey]?: (raw: unknown) => SettingValue<K> } = {
+  pricing_defaults: (raw) => mergeSettings(DEFAULT_PRICING_SETTINGS, sanitizeSparse(raw)) as SettingValue<"pricing_defaults">,
 };
 
 /** Lookup key for zr_state_map — ZR state names vary in case/spacing. */
@@ -70,6 +80,8 @@ export async function getSetting<K extends SettingKey>(
     .maybeSingle();
 
   if (!data) return DEFAULTS[key];
+  const reader = READERS[key] as ((raw: unknown) => SettingValue<K>) | undefined;
+  if (reader) return reader(data.value);
   const parsed = SETTINGS_SCHEMAS[key].safeParse(data.value);
   return parsed.success ? (parsed.data as SettingValue<K>) : DEFAULTS[key];
 }
