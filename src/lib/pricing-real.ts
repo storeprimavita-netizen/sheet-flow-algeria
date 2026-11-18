@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import type { PricingInputs } from "@/lib/pricing";
 import { fxRateFor } from "@/lib/fx";
+import { asKpi, kpiPct } from "@/lib/kpi";
 import { getSetting } from "@/lib/settings";
 
 const safeDiv = (a: number, b: number): number => (b ? a / b : 0);
@@ -30,8 +31,9 @@ export async function realInputsForProduct(
 ): Promise<RealPricing> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
-  const [{ data: stats }, { data: product }, { data: last30 }, { count: orders30 }, { data: fees }, euroRate, returnFee] = await Promise.all([
+  const [{ data: stats }, { data: kpiRaw }, { data: product }, { data: last30 }, { count: orders30 }, { data: fees }, euroRate, returnFee] = await Promise.all([
     supabase.from("product_stats").select("*").eq("id", productId).maybeSingle(),
+    supabase.rpc("kpi_summary", { p_product: productId }), // all-time rates: the one KPI source
     supabase.from("products").select("sale_price").eq("id", productId).maybeSingle(),
     supabase.from("ad_spend_daily").select("amount_dzd").eq("product_id", productId).gte("spent_on", since),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("product_id", productId).gte("placed_at", since),
@@ -40,7 +42,8 @@ export async function realInputsForProduct(
     getSetting(workspaceId, "return_fee"),
   ]);
 
-  const ordersReceived = stats?.orders_received ?? 0;
+  const kpi = asKpi(kpiRaw);
+  const ordersReceived = kpi?.counts.received ?? 0;
   const last30TotalDzd = (last30 ?? []).reduce((sum, r) => sum + (r.amount_dzd ?? 0), 0);
   const fixedFeesTotalDzd = (fees ?? []).reduce((sum, f) => sum + (f.amount_dzd ?? 0), 0);
 
@@ -48,8 +51,8 @@ export async function realInputsForProduct(
     product_price: stats?.sourcing_cost_dzd ?? 0,
     euro_price: euroRate,
     lead_cost_eur: safeDiv(safeDiv(last30TotalDzd, orders30 ?? 0), euroRate),
-    confirmation_pct: stats?.confirmation_rate ?? 0,
-    delivery_pct: stats?.delivery_rate ?? 0,
+    confirmation_pct: kpiPct(kpi?.confirmation) ?? 0,
+    delivery_pct: kpiPct(kpi?.delivery) ?? 0,
     delivery_price: 0,
     confirmation_agent: 0,
     packaging_fees: 0,

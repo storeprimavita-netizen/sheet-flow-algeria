@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/rbac";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
+import { asKpi, kpiRoas } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { PnlWaterfall } from "@/components/dashboard/pnl-waterfall";
@@ -82,9 +83,9 @@ export default async function FinanceOverviewPage({
     .slice()
     .sort((a, b) => b.amount_dzd - a.amount_dzd);
   const roasRows = (productPnls ?? [])
-    .map((r) => ({ id: r.product_id, pnl: asPnl(r.pnl) }))
+    .map((r) => ({ id: r.product_id, pnl: asPnl(r.pnl), roas: kpiRoas(asKpi(r.kpi)) }))
     .filter((r) => r.pnl && r.pnl.ad_spend > 0)
-    .map((r) => ({ id: r.id, pnl: r.pnl!, roas: pnlMetrics(r.pnl!).roas }))
+    .map((r) => ({ id: r.id, pnl: r.pnl!, roas: r.roas }))
     .sort((a, b) => (b.roas ?? 0) - (a.roas ?? 0));
 
   return (

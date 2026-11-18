@@ -104,8 +104,8 @@ $$;
 -- 4) kpi_lines: rates + on_road + money. order_ids null = select the set from
 --    from/to/product. Money (admin only) by D45: latest USD rate (not the
 --    per-row fx_rate). Agents get rates, no money keys, usd_rate null.
---    cost_per_delivered = ad spend / delivered; cpa_delivered = (ad spend +
---    expenses) / delivered; both null with no delivered order or a non-product
+--    cost_per_delivered = all costs (revenue - net) / delivered; cpa_delivered =
+--    ad spend / delivered; both null with no delivered order or a non-product
 --    filter (ad spend has no wilaya/agent grain). waterfall is signed and sums
 --    exactly to net_profit (delivery fee is pass-through, no part).
 -- ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ declare
   v_out jsonb;
   v_road_orders int; v_road_units int;
   v_pnl jsonb; v_rate numeric; v_rate_date date;
-  v_delivered int; v_ad numeric; v_acq numeric;
+  v_delivered int; v_ad numeric;
   v_cpd numeric; v_cpa numeric;
 begin
   v_ids := coalesce(p_order_ids,
@@ -153,13 +153,13 @@ begin
 
   v_delivered := (v_out->'counts'->>'delivered')::int;
   v_ad  := (v_pnl->>'ad_spend')::numeric;
-  v_acq := v_ad + (v_pnl->>'expenses')::numeric;
   if v_delivered > 0 and not coalesce(p_filtered, false) then
-    v_cpd := v_ad / v_delivered;
-    v_cpa := v_acq / v_delivered;
+    v_cpd := ((v_pnl->>'revenue')::numeric - (v_pnl->>'net_profit')::numeric) / v_delivered;
+    v_cpa := v_ad / v_delivered;
   end if;
 
   return v_out || jsonb_build_object(
+    'pnl', v_pnl,
     'ad_spend_dzd', v_ad,
     'usd_rate', v_rate,
     'usd_rate_date', v_rate_date,
@@ -308,6 +308,20 @@ begin
 end; $$;
 
 -- Thin entry point for finance / product pages: period + optional product.
+-- pnl_by_product also ships each product's kpi (rates + money) so a grid never
+-- re-derives roas or a rate (return type changes, so drop first).
+drop function if exists public.pnl_by_product(date, date);
+create function public.pnl_by_product(p_from date default null, p_to date default null)
+returns table (product_id uuid, pnl jsonb, kpi jsonb)
+language sql stable security invoker set search_path = public as $$
+  select p.id, k->'pnl', k - 'pnl'
+    from public.products p
+   cross join lateral (select public.kpi_summary(p_from, p_to, p.id) as k) s
+   where p.workspace_id = public.current_workspace_id();
+$$;
+revoke execute on function public.pnl_by_product(date, date) from public, anon;
+grant execute on function public.pnl_by_product(date, date) to authenticated;
+
 create or replace function public.pnl_summary(
   p_from date default null, p_to date default null, p_product uuid default null
 ) returns jsonb
@@ -402,7 +416,7 @@ begin
 
   if v_admin then
     -- 15b: every money line comes from pnl_lines() — the one P&L formula.
-    v_pnl := public.pnl_lines(v_order_ids, p_from, p_to, p_product, v_filtered);
+    v_pnl := v_kpi->'pnl';
     v_return_fee := (v_pnl->>'return_fee_unit')::numeric;
     v_fixed_day  := (v_pnl->>'fixed_fees_monthly')::numeric / 30 * (v_pnl->>'fixed_share')::numeric;
 

@@ -1,3 +1,4 @@
+import { asKpi } from "@/lib/kpi";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -18,10 +19,11 @@ export default async function ProductStatisticsPage({
   const t = await getTranslations();
 
   const supabase = await createClient();
-  const [{ data: stats }, { data: pnlRaw }, { data: expenses }] = await Promise.all([
+  const [{ data: stats }, { data: pnlRaw }, { data: expenses }, { data: kpiRaw }] = await Promise.all([
     supabase.from("product_stats").select("*").eq("id", id).maybeSingle(),
     supabase.rpc("pnl_summary", { p_product: id }),
     supabase.from("expenses").select("category, amount_dzd").eq("product_id", id),
+    supabase.rpc("kpi_summary", { p_product: id }),
   ]);
   if (!stats) notFound();
 
@@ -30,9 +32,10 @@ export default async function ProductStatisticsPage({
   const net = pnl?.net_profit ?? 0;
   const allocatedFixedFees = pnl?.fixed_fees ?? 0;
 
+  const kpi = asKpi(kpiRaw);
   const delivered = stats.orders_delivered ?? 0;
   const hasData = (stats.orders_received ?? 0) > 0;
-  const adCostPerDelivered = delivered > 0 ? (stats.ad_spend_dzd ?? 0) / delivered : null;
+  const adCostPerDelivered = kpi?.cpa_delivered_dzd ?? null; // SQL kpi_lines, not derived here
   const profitPerDelivered = delivered > 0 ? net / delivered : null;
 
   const byCategory = new Map<string, number>();

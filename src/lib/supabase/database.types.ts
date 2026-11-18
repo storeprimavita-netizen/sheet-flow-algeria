@@ -115,6 +115,12 @@ isOneToOne: false
       foreignKeyName: "ad_spend_daily_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "ad_spend_daily_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -278,6 +284,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "expenses_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "expenses_product_id_fkey"
@@ -485,14 +497,14 @@ isOneToOne: false
                   ]
                 },"orders": {
                   Row: {
-                    "address": string | null,"assigned_confirmation_agent": string | null,"assigned_delivery_agent": string | null,"cancellation_reason_option_id": string | null,"commune": string | null,"confirmation_attempts": number,"confirmation_comment": string | null,"confirmation_status": Database["public"]['Enums']["confirmation_status"],"created_at": string,"created_by": string | null,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_fee": number | null,"delivery_fee_source": Database["public"]['Enums']["delivery_fee_source"],"delivery_status": Database["public"]['Enums']["delivery_status"],"delivery_type": Database["public"]['Enums']["delivery_type"],"duplicate_of": string | null,"external_id": string | null,"id": string,"is_duplicate_suspect": boolean,"order_number": string | null,"placed_at": string | null,"product_id": string | null,"quantity": number,"sale_price": number | null,"source": Database["public"]['Enums']["order_source"],"swapped_to_order_id": string | null,"updated_at": string,"variant": string | null,"webhook_event_id": string | null,"wilaya_code": number | null,"workspace_id": string
+                    "address": string | null,"assigned_confirmation_agent": string | null,"assigned_delivery_agent": string | null,"cancellation_reason_option_id": string | null,"commune": string | null,"confirmation_attempts": number,"confirmation_comment": string | null,"confirmation_status": Database["public"]['Enums']["confirmation_status"],"created_at": string,"created_by": string | null,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_fee": number | null,"delivery_fee_source": Database["public"]['Enums']["delivery_fee_source"],"delivery_status": Database["public"]['Enums']["delivery_status"],"delivery_type": Database["public"]['Enums']["delivery_type"],"duplicate_of": string | null,"excluded_reason": string | null,"external_id": string | null,"id": string,"is_duplicate_suspect": boolean,"order_number": string | null,"placed_at": string | null,"product_id": string | null,"quantity": number,"sale_price": number | null,"source": Database["public"]['Enums']["order_source"],"swapped_to_order_id": string | null,"updated_at": string,"variant": string | null,"webhook_event_id": string | null,"wilaya_code": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id": string
+                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id": string
                   }
                   Update: {
-                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id"?: string
+                    "address"?: string | null,"assigned_confirmation_agent"?: string | null,"assigned_delivery_agent"?: string | null,"cancellation_reason_option_id"?: string | null,"commune"?: string | null,"confirmation_attempts"?: number,"confirmation_comment"?: string | null,"confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"customer_name"?: string | null,"customer_phone"?: string | null,"delivery_fee"?: number | null,"delivery_fee_source"?: Database["public"]['Enums']["delivery_fee_source"],"delivery_status"?: Database["public"]['Enums']["delivery_status"],"delivery_type"?: Database["public"]['Enums']["delivery_type"],"duplicate_of"?: string | null,"excluded_reason"?: string | null,"external_id"?: string | null,"id"?: string,"is_duplicate_suspect"?: boolean,"order_number"?: string | null,"placed_at"?: string | null,"product_id"?: string | null,"quantity"?: number,"sale_price"?: number | null,"source"?: Database["public"]['Enums']["order_source"],"swapped_to_order_id"?: string | null,"updated_at"?: string,"variant"?: string | null,"webhook_event_id"?: string | null,"wilaya_code"?: number | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -530,6 +542,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "orders_product_id_fkey"
@@ -591,6 +609,12 @@ isOneToOne: true
       foreignKeyName: "product_costs_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: true
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "product_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: true
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -624,6 +648,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "product_scenarios_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "product_scenarios_product_id_fkey"
@@ -765,6 +795,12 @@ isOneToOne: false
       foreignKeyName: "stock_movements_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "stock_movements_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -804,6 +840,12 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "tasks_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
       referencedColumns: ["product_id"]
     },{
       foreignKeyName: "tasks_product_id_fkey"
@@ -1024,6 +1066,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"product_stock_v": {
+                  Row: {
+                    "delivered": number | null,"in_stock": number,"low": boolean | null,"on_road": number | null,"product_id": string,"reserved": number | null,"sellable": number | null,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "products_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"wilaya_stats": {
                   Row: {
                     "confirmed_orders": number | null,"delivered_orders": number | null,"delivery_rate": number | null,"returned_orders": number | null,"stop_shipping_auto": boolean | null,"stop_shipping_manual": boolean | null,"total_orders": number | null,"wilaya_code": number | null,"wilaya_name": string | null,"workspace_id": string
@@ -1082,15 +1138,32 @@ isOneToOne: false
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"kpi_lines":
+{ Args: { "p_filtered": boolean,"p_from": string,"p_order_ids": (string)[],"p_product": (string)[],"p_to": string }; Returns: Json
+                           },
+"kpi_metric":
+{ Args: { "p_den": number,"p_num": number,"p_young_unresolved": number }; Returns: Json
+                           },
+"kpi_order_set":
+{ Args: { "p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "id": string
+            }[]
+                           },
+"kpi_rates":
+{ Args: { "p_order_ids": (string)[] }; Returns: Json
+                           },
+"kpi_summary":
+{ Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
+                           },
 "normalize_dz_phone":
 { Args: { "p": string }; Returns: string
                            },
 "order_stock_target":
-{ Args: { "p_linked_original": boolean,"p_qty": number,"p_replacement": boolean,"p_status": Database["public"]['Enums']["delivery_status"] }; Returns: number
+{ Args: { "p_confirmation": Database["public"]['Enums']["confirmation_status"],"p_linked_original": boolean,"p_qty": number,"p_replacement": boolean,"p_status": Database["public"]['Enums']["delivery_status"] }; Returns: number
                            },
 "pnl_by_product":
 { Args: { "p_from"?: string,"p_to"?: string }; Returns: {
-              "pnl": Json,"product_id": string
+              "kpi": Json,"pnl": Json,"product_id": string
             }[]
                            },
 "pnl_lines":
@@ -1106,7 +1179,7 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: (Database["public"]['Enums']["stock_reason"])[]
                            },
 "stock_reconcile_order":
-{ Args: { "p_old_status": Database["public"]['Enums']["delivery_status"],"p_order_id": string,"p_product": string,"p_reason": Database["public"]['Enums']["stock_reason"] }; Returns: undefined
+{ Args: { "p_old_confirmation"?: Database["public"]['Enums']["confirmation_status"],"p_old_status": Database["public"]['Enums']["delivery_status"],"p_order_id": string,"p_product": string,"p_reason": Database["public"]['Enums']["stock_reason"] }; Returns: undefined
                            },
 "swap_order":
 { Args: { "p_address": string,"p_commune": string,"p_customer_id": string,"p_customer_name": string,"p_customer_phone": string,"p_order_id": string,"p_wilaya_code": number }; Returns: string

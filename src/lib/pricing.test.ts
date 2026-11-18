@@ -101,18 +101,11 @@ describe("pnlMetrics (actuals, 15b)", () => {
     cash_to_collect: 8000,
   };
 
-  it("derives ratios from the lines", () => {
+  it("derives margin, aov and total costs from the lines", () => {
     const m = pnlMetrics(lines);
     expect(m.total_costs).toBe(16950);
     expect(m.margin_pct).toBe(15.3);
     expect(m.aov).toBe(4000);
-    expect(m.roas).toBe(3.33);
-    expect(m.cpa_confirmed).toBe(750);
-    expect(m.cpa_delivered).toBe(1200);
-    expect(m.cost_per_delivered).toBe(3390);
-    expect(m.confirmation_rate).toBe(80);
-    expect(m.delivery_rate).toBe(62.5);
-    expect(m.return_rate).toBe(37.5);
   });
 
   it("break-even delivery rate zeroes net profit at that rate", () => {
@@ -128,7 +121,6 @@ describe("pnlMetrics (actuals, 15b)", () => {
     const m = pnlMetrics({ ...lines, orders_received: 0, orders_confirmed: 0, orders_delivered: 0, orders_returned: 0, revenue: 0, cogs: 0, ad_spend: 0, net_profit: -3000 });
     expect(m.margin_pct).toBeNull();
     expect(m.aov).toBeNull();
-    expect(m.roas).toBeNull();
     expect(m.breakeven_delivery_pct).toBeNull();
   });
 });

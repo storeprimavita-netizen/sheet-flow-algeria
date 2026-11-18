@@ -203,7 +203,8 @@ export function computeScenario(i: Partial<PricingInputs>): ScenarioResult {
   };
 }
 
-/* ── Actuals: P&L lines (from SQL pnl_lines(), migration 00022) → metrics ── */
+/* ── Actuals: P&L lines (from SQL pnl_lines(), migration 00022) → metrics.
+   Rates, ROAS and CPA are NOT here: they come from SQL kpi_lines (src/lib/kpi.ts). ── */
 
 /** Raw P&L lines returned by `pnl_summary()` / `dashboard_stats().pnl`. */
 export type PnlLines = {
@@ -237,17 +238,6 @@ export type PnlMetrics = {
   margin_pct: number | null;
   /** average revenue per delivered order. */
   aov: number | null;
-  /** revenue ÷ ad spend; null with no ad spend. */
-  roas: number | null;
-  /** ad spend per confirmed / delivered order. */
-  cpa_confirmed: number | null;
-  cpa_delivered: number | null;
-  /** all costs ÷ delivered orders. */
-  cost_per_delivered: number | null;
-  confirmation_rate: number | null;
-  delivery_rate: number | null;
-  /** returned ÷ (delivered + returned) — outcomes that reached the customer. */
-  return_rate: number | null;
   /**
    * Delivery rate (%) on confirmed orders at which this period's net turns 0,
    * holding volume, AOV, unit cost and period costs fixed. Every confirmed
@@ -277,13 +267,6 @@ export function pnlMetrics(l: PnlLines): PnlMetrics {
     total_costs: l.revenue - l.net_profit,
     margin_pct: pct(l.net_profit, l.revenue),
     aov,
-    roas: l.ad_spend ? Math.round((l.revenue / l.ad_spend) * 100) / 100 : null,
-    cpa_confirmed: per(l.ad_spend, C),
-    cpa_delivered: per(l.ad_spend, l.orders_delivered),
-    cost_per_delivered: per(l.revenue - l.net_profit, l.orders_delivered),
-    confirmation_rate: pct(C, l.orders_received),
-    delivery_rate: pct(l.orders_delivered, C),
-    return_rate: pct(l.orders_returned, l.orders_delivered + l.orders_returned),
     breakeven_delivery_pct: breakeven,
   };
 }
