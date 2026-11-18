@@ -406,4 +406,28 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     psql(sql);
     expect((await moves(o)).length).toBe(n);
   });
+
+  test("cancelled replacement releases its piece and shows on_road 0", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+    expect(await stock(p)).toBe(-1);
+    const { error } = await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string);
+    expect(error).toBeNull();
+    expect(await held(b as string)).toBe(0);
+    expect(await stock(p)).toBe(0);
+    expect(await stages(p)).toMatchObject({ reserved: 0, on_road: 0, delivered: 0 });
+  });
+
+  test("un-cancelling a replacement re-reserves it", async () => {
+    const p = await product();
+    const a = await order(p, { delivery_status: "delivered", quantity: 1 });
+    const { data: b } = await swap(a);
+    await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", b as string);
+    await svc.from("orders").update({ confirmation_status: "confirmed" }).eq("id", b as string);
+    expect(await held(b as string)).toBe(1);
+    expect(await stock(p)).toBe(-1);
+    expect(await stages(p)).toMatchObject({ on_road: 1 });
+  });
 });
