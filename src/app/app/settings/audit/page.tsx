@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
+import { auditRedact, showRedacted } from "@/lib/audit-redact";
 import { PageHeader } from "@/components/page-header";
 import { SettingsTabs } from "../settings-tabs";
 import { AuditFilterBar } from "./audit-filter-bar";
@@ -18,7 +19,9 @@ const AUDITED_TABLES = [
   "product_costs",
 ] as const;
 
-function diffRows(oldRow: Record<string, unknown> | null, newRow: Record<string, unknown> | null) {
+function diffRows(rawOld: Record<string, unknown> | null, rawNew: Record<string, unknown> | null) {
+  const oldRow = auditRedact(rawOld) as Record<string, unknown> | null;
+  const newRow = auditRedact(rawNew) as Record<string, unknown> | null;
   const keys = new Set([...Object.keys(oldRow ?? {}), ...Object.keys(newRow ?? {})]);
   const changes: { key: string; from: unknown; to: unknown }[] = [];
   for (const key of keys) {
@@ -73,7 +76,9 @@ export default async function AuditPage({
       changes:
         changes.length === 0
           ? "—"
-          : changes.map((c) => `${c.key}: ${JSON.stringify(c.from) ?? "∅"} → ${JSON.stringify(c.to) ?? "∅"}`).join("; "),
+          : showRedacted(
+              changes.map((c) => `${c.key}: ${JSON.stringify(c.from) ?? "∅"} → ${JSON.stringify(c.to) ?? "∅"}`).join("; "),
+            ),
     };
   });
 

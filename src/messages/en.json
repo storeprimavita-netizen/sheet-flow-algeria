@@ -952,5 +952,6 @@
     "body": "Something failed while loading this data. Your changes are safe — try again, and if it keeps failing, check your connection.",
     "retry": "Try again",
     "ref": "Reference"
-  }
+  },
+  "audit": { "redacted": "Secret value hidden; the code identifies the value without revealing it" }
 }
