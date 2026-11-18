@@ -305,3 +305,10 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Screenshots (docs/design/audit/): store 390 light and 1280 dark, app hub (AR dark), pages (AR dark), editor (AR dark), settings (EN light), preview (EN light). Not shot: every state in both themes and 390 dark.
 - Verified live: unpublished 404 stays cached until the UI publish, then 200; UI unpublish gives 404; no Set-Cookie; `locale=en` cookie still Arabic. Lighthouse mobile: a11y 100, best practices 96, SEO 91. LCP/CLS/photo weight not recorded (test photos are external).
 - Known: preview uses the OS colour scheme and fallback fonts, not the app theme; no product delete action exists, so L4 is moot (DB check refuses an unlink of a published page).
+
+## STORE-2 — DONE (merged under D40)
+- Done: 00049 `stores` + `store_pages` (admin-only pages, no anon grants); public product page at `/s/<store>/<page>` (Arabic RTL, cached, published-only DTO with no cost fields, in-stock per D54.4/D57); Store admin: hub, pages list, page editor with publish/unpublish, preview, settings; app routes moved under `(app)`, store under `(store)`.
+- Verify: brief reviews 0–1, build reviews 2–4 (qa-reviewer + ui-reviewer, app run); review-4 ESCALATE with no high finding; its one medium fixed under D57; lows moved to STORE-2-F.
+- Evidence: full scripts/gate.sh GATE OK, 507 tests (3 skipped) with the live RLS suite.
+- Owner: production db push of 00049 is owner-only (O-2). No order form on the page yet (STORE-3/4). Store assets (S-1) still open — logo, photos, policy texts.
+- Next: STORE-3.
