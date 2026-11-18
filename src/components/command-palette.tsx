@@ -94,7 +94,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
               return (
                 <CommandItem
                   key={n.href}
-                  value={`${group} ${label} ${n.key}`}
+                  value={`${group} ${label}`}
                   keywords={[...(n.oldKey ? [t(`navOld.${n.oldKey}`)] : [])]}
                   onSelect={() => go(n.href)}
                 >
