@@ -39,6 +39,15 @@ begin
   return new;
 end; $$;
 
+-- reasons that count as "stock held by an order" (legacy delivered/returned/order_reverted included)
+create or replace function public.stock_order_reasons()
+returns public.stock_reason[]
+language plpgsql immutable set search_path = public, pg_temp as $$   -- plpgsql: new enum values are not checked at create time
+begin
+  return array['order_confirmed','order_reverted','order_returned','order_stock_sync','order_swapped',
+               'order_shipped','delivered','returned']::public.stock_reason[];
+end; $$;
+
 -- ---------------------------------------------------------------------------
 -- 3) reconcile one order against one product (internal; not callable by API roles)
 --    p_product null = the order's current product. Other product = release it (target 0).
@@ -57,8 +66,6 @@ declare
   v_old_target integer;
   v_current integer;
   v_reason public.stock_reason;
-  c_reasons constant public.stock_reason[] :=
-    array['order_confirmed','order_reverted','order_returned','order_stock_sync','order_swapped','order_shipped','delivered','returned']::public.stock_reason[];
 begin
   select * into o from public.orders where id = p_order_id for update;
   if not found then return; end if;
@@ -70,7 +77,7 @@ begin
   v_target := case when v_product = o.product_id
                    then public.order_stock_target(o.delivery_status, o.quantity, v_linked, v_repl) else 0 end;
   select coalesce(sum(delta), 0) into v_current from public.stock_movements
-    where order_id = o.id and product_id = v_product and reason = any(c_reasons);
+    where order_id = o.id and product_id = v_product and reason = any(public.stock_order_reasons());
   if v_target = v_current then return; end if;
 
   v_reason := p_reason;
@@ -144,6 +151,30 @@ drop trigger if exists orders_stock_effects on public.orders;
 create trigger orders_stock_effects
   after insert or update of delivery_status, quantity, product_id, swapped_to_order_id on public.orders
   for each row execute function public.order_stock_effects();
+
+-- deleting an order gives its pieces back (otherwise a deleted replacement would keep a piece out forever);
+-- skipped when the product or workspace is going away with it (cascade).
+create or replace function public.order_stock_release()
+returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare r record;
+begin
+  for r in select product_id, sum(delta)::integer as held from public.stock_movements
+           where order_id = old.id and reason = any(public.stock_order_reasons())
+           group by product_id having sum(delta) <> 0 loop
+    if exists (select 1 from public.products where id = r.product_id)
+       and exists (select 1 from public.workspaces where id = old.workspace_id) then
+      insert into public.stock_movements(workspace_id, product_id, delta, reason, order_id, created_by)
+      values (old.workspace_id, r.product_id, -r.held, 'order_stock_sync', old.id, auth.uid());
+    end if;
+  end loop;
+  return old;
+end; $$;
+
+drop trigger if exists orders_stock_release on public.orders;
+create trigger orders_stock_release
+  before delete on public.orders
+  for each row execute function public.order_stock_release();
 
 -- ---------------------------------------------------------------------------
 -- 4) add-only log (D35)
