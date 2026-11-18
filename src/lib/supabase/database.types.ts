@@ -109,6 +109,12 @@ isOneToOne: false
       foreignKeyName: "ad_spend_daily_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "ad_spend_daily_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -267,6 +273,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "product_stats"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
     },{
       foreignKeyName: "expenses_product_id_fkey"
       columns: ["product_id"]
@@ -517,6 +529,12 @@ isOneToOne: false
       foreignKeyName: "orders_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -567,6 +585,12 @@ isOneToOne: true
       foreignKeyName: "product_costs_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: true
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "product_costs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: true
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -595,6 +619,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "product_stats"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "product_scenarios_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
     },{
       foreignKeyName: "product_scenarios_product_id_fkey"
       columns: ["product_id"]
@@ -729,6 +759,12 @@ isOneToOne: false
       foreignKeyName: "stock_movements_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "stock_movements_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
       referencedRelation: "products"
       referencedColumns: ["id"]
     },{
@@ -763,6 +799,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "product_stats"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tasks_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
     },{
       foreignKeyName: "tasks_product_id_fkey"
       columns: ["product_id"]
@@ -968,6 +1010,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"product_stock_stages": {
+                  Row: {
+                    "delivered": number | null,"in_stock": number,"on_road": number | null,"product_id": string,"reserved": number | null,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "products_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"wilaya_stats": {
                   Row: {
                     "confirmed_orders": number | null,"delivered_orders": number | null,"delivery_rate": number | null,"returned_orders": number | null,"stop_shipping_auto": boolean | null,"stop_shipping_manual": boolean | null,"total_orders": number | null,"wilaya_code": number | null,"wilaya_name": string | null,"workspace_id": string
@@ -1029,6 +1085,9 @@ isOneToOne: false
 "normalize_dz_phone":
 { Args: { "p": string }; Returns: string
                            },
+"order_stock_target":
+{ Args: { "p_linked_original": boolean,"p_qty": number,"p_replacement": boolean,"p_status": Database["public"]['Enums']["delivery_status"] }; Returns: number
+                           },
 "pnl_by_product":
 { Args: { "p_from"?: string,"p_to"?: string }; Returns: {
               "pnl": Json,"product_id": string
@@ -1043,6 +1102,12 @@ isOneToOne: false
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined
                            },
+"stock_order_reasons":
+{ Args: Record<PropertyKey, never>; Returns: (Database["public"]['Enums']["stock_reason"])[]
+                           },
+"stock_reconcile_order":
+{ Args: { "p_old_status": Database["public"]['Enums']["delivery_status"],"p_order_id": string,"p_product": string,"p_reason": Database["public"]['Enums']["stock_reason"] }; Returns: undefined
+                           },
 "swap_order":
 { Args: { "p_address": string,"p_commune": string,"p_customer_id": string,"p_customer_name": string,"p_customer_phone": string,"p_order_id": string,"p_wilaya_code": number }; Returns: string
                            },
@@ -1051,7 +1116,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
+            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped"|"order_shipped","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1171,7 +1236,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
+            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped", "order_shipped"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
           }
         }
 } as const

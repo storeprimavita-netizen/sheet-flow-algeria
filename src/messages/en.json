@@ -92,7 +92,8 @@
     "rebuildPending": "This section is being rebuilt — coming in a later phase.",
     "prev": "Previous",
     "next": "Next",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "deleteInUse": "Cannot delete: other records still use this item. Delete or reassign them first."
   },
   "actions": {
     "new": "New",
@@ -568,7 +569,8 @@
       "order_reverted": "Order reverted",
       "order_returned": "Order returned",
       "order_stock_sync": "Stock reconciled",
-      "order_swapped": "Order swapped"
+      "order_swapped": "Order swapped",
+      "order_shipped": "Sent to carrier"
     },
     "unitsOnHand": "Units on hand",
     "stockValue": "Stock value",
@@ -578,7 +580,14 @@
     "unitCost": "Unit cost",
     "deltaHint": "+ to add, − to remove",
     "adjustTitle": "Adjust stock — {name}",
-    "save": "Apply"
+    "save": "Apply",
+    "stages": {
+      "inStock": "In stock",
+      "reserved": "Reserved",
+      "onRoad": "On the road",
+      "delivered": "Delivered",
+      "hint": "In stock = pieces in the warehouse. Reserved = confirmed orders waiting for deposit. On the road = with the carrier. Delivered = handed to the customer."
+    }
   },
   "reset": {
     "title": "Set a new password",

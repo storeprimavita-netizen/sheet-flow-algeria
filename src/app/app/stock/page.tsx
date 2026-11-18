@@ -21,6 +21,9 @@ export default async function StockHubPage() {
     .neq("status", "cancelled")
     .order("stock", { ascending: true });
 
+  const { data: stageRows } = await supabase.from("product_stock_stages").select("product_id, reserved, on_road, delivered");
+  const stagesById = new Map((stageRows ?? []).map((r) => [r.product_id, r]));
+
   const list = (products ?? []).map((p) => {
     const unitCost = p.cost?.sourcing_cost_dzd ?? null;
     return { ...p, unitCost, value: unitCost != null ? Math.max(p.stock, 0) * unitCost : null };
@@ -52,6 +55,9 @@ export default async function StockHubPage() {
                   <th>{t("fields.product")}</th>
                   <th>SKU</th>
                   <th>{t("stock.onHand")}</th>
+                  <th className="!text-end">{t("stock.stages.reserved")}</th>
+                  <th className="!text-end">{t("stock.stages.onRoad")}</th>
+                  <th className="!text-end">{t("stock.stages.delivered")}</th>
                   <th>{t("stock.threshold")}</th>
                   <th className="!text-end">{t("stock.unitCost")}</th>
                   <th className="!text-end">{t("stock.stockValue")}</th>
@@ -76,6 +82,9 @@ export default async function StockHubPage() {
                           {isOut ? ` · ${t("stock.out")}` : isLow ? ` · ${t("stock.low")}` : ""}
                         </Chip>
                       </td>
+                      <td className="num text-end">{stagesById.get(p.id)?.reserved ?? 0}</td>
+                      <td className="num text-end">{stagesById.get(p.id)?.on_road ?? 0}</td>
+                      <td className="num text-end">{stagesById.get(p.id)?.delivered ?? 0}</td>
                       <td>
                         <ThresholdInput productId={p.id} value={p.low_stock_threshold} label={t("stock.threshold")} />
                       </td>

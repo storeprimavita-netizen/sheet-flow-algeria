@@ -22,8 +22,9 @@ export default async function ProductStockPage({
   const t = await getTranslations();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: movements }] = await Promise.all([
+  const [{ data: product }, { data: stages }, { data: movements }] = await Promise.all([
     supabase.from("products").select("stock, low_stock_threshold").eq("id", id).maybeSingle(),
+    supabase.from("product_stock_stages").select("in_stock, reserved, on_road, delivered").eq("product_id", id).maybeSingle(),
     supabase
       .from("stock_movements")
       .select("*")
@@ -43,6 +44,23 @@ export default async function ProductStockPage({
           <span className="num">{product.stock}</span>
           {out ? ` · ${t("stock.out")}` : low ? ` · ${t("stock.low")}` : ""}
         </Chip>
+        {stages && (
+          <dl className="ms-auto flex flex-wrap gap-x-6 gap-y-2 text-sm" title={t("stock.stages.hint")}>
+            {(
+              [
+                ["inStock", stages.in_stock],
+                ["reserved", stages.reserved],
+                ["onRoad", stages.on_road],
+                ["delivered", stages.delivered],
+              ] as const
+            ).map(([k, v]) => (
+              <div key={k} className="flex items-baseline gap-2">
+                <dt className="text-muted-foreground">{t(`stock.stages.${k}`)}</dt>
+                <dd className="num font-medium">{v ?? 0}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
 
       <form

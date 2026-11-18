@@ -55,7 +55,7 @@ Finally regenerate types:
 | `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
 | `accounts` | 00017 | spending budget accounts (name, currency, opening_balance, low_balance_threshold); `account_topups` for deposits; balance derived via `account_balances` view | admin only |
 | `account_topups` | 00017 | append-only deposits (account_id, amount, occurred_on, note) | admin only |
-| `stock_movements` | 00003, 00018 | trigger maintains `products.stock`; reasons purchase/correction/order_confirmed/order_reverted/order_returned (legacy: delivered/returned) | admin only |
+| `stock_movements` | 00003, 00018, 00028 | ADD-ONLY log (D35): policies select + insert (admin; insert only `purchase`/`correction` with no order); UPDATE/DELETE/TRUNCATE revoked and a trigger refuses them except FK cascades (order gone -> `order_id` null; product/workspace gone -> delete). Trigger maintains `products.stock` = pieces in the warehouse and refuses a movement whose workspace is not the product's (D30). Reasons: purchase/correction (manual), order_shipped/order_returned/order_swapped/order_stock_sync (order trigger), legacy order_confirmed/order_reverted/delivered/returned | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
 | `orders` | 00004, 00014 | see SPEC §3; unique (workspace, source, external_id); optional `cancellation_reason_option_id` (FK → `options`, set when confirmation/delivery status goes cancelled/returned) | admin all; conf agent: `confirmation_status <> 'confirmed'`; delivery agent: confirmed only |
@@ -79,9 +79,12 @@ Finally regenerate types:
 3. `orders_flag_duplicate` — BEFORE INSERT: same normalized phone + product
    within `settings.duplicate_window` hours ⇒ `is_duplicate_suspect = true`,
    `duplicate_of` set.
-4. `orders_stock_effects` — confirmed ⇒ stock −qty (`order_confirmed`); leave-confirmed pre-delivery ⇒ +qty (`order_reverted`); returned ⇒ +qty (`order_returned`) via `stock_movements`.
+4. `orders_stock_effects` (00028, D34/D31/D30) — AFTER INSERT OR UPDATE OF delivery_status, quantity, product_id, swapped_to_order_id. `order_stock_target(status, qty, is_linked_original, is_replacement)` is the ONLY stock rule: 0 when the order is linked to its replacement (`swapped_to_order_id` set); `-qty` from `bureau_deposited` on (bureau_deposited, in_transit, out_for_delivery, stop_desk_waiting, delayed, returning, exchange, delivered), and for a swap replacement already in `wait_for_deposit`; else 0 (wait_for_deposit, returned, cancelled, swap). `stock_reconcile_order()` (internal, not granted to API roles) sums the order's movements for the product (reasons order_confirmed/order_reverted/order_returned/order_stock_sync/order_swapped/order_shipped + legacy delivered/returned) and inserts one `target - current` movement. Reasons: order_shipped (leaves to carrier), order_returned (back), order_swapped (link), else order_stock_sync. Changing product releases the old one first; a link change also reconciles the replacement; `orders_stock_release` (BEFORE DELETE) gives an order's pieces back unless its product/workspace is being deleted. 00029 ran the reconcile once over existing orders (idempotent).
+5. `swap_order(...)` (00028, security invoker, admin only) — locks original A; returns the existing B on double submit; A must have a product, status returning/returned/exchange/delivered, customer in A's workspace; creates confirmed `wait_for_deposit` B, moves A to `swap` through `transition_order_status`, links `swapped_to_order_id` (trigger reconciles A and B).
 
 ## Views (00006, all `security_invoker` — caller's RLS applies)
+
+- `product_stock_stages` (00028) — per product: `in_stock` (= products.stock), `reserved` (confirmed + wait_for_deposit, not a replacement, not a linked original), `on_road` (target < 0, not delivered), `delivered`. Calls `order_stock_target`; `where is_admin()`, revoked from anon.
 
 | View | Feeds |
 |---|---|

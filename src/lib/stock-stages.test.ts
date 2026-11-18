@@ -42,7 +42,6 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
   let ws: string; // the seed admin's workspace
   let ws2: string; // a second workspace
   const products: string[] = [];
-  const orders: string[] = [];
   const tag = () => `t-${crypto.randomUUID()}`;
 
   async function product(workspace = ws) {
@@ -58,7 +57,6 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
       .select("id")
       .single();
     expect(error).toBeNull();
-    if (workspace === ws) orders.push(data!.id);
     return data!.id as string;
   }
   const status = async (id: string, delivery_status: string) => {
@@ -82,22 +80,31 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     return data!.id as string;
   }
 
+  const users: string[] = [];
+  // Own workspace + own users: other suites compute workspace-wide sums (pnl) and must not see these orders.
+  async function userIn(workspace: string, role: "admin" | "confirmation_agent" | "delivery_agent") {
+    const email = `p08-${role}-${crypto.randomUUID()}@test.mnw`;
+    const { data, error } = await svc.auth.admin.createUser({ email, password: SEED_PASSWORD, email_confirm: true });
+    if (error) throw error;
+    users.push(data.user.id);
+    const up = await svc.from("profiles").update({ workspace_id: workspace, role, is_active: true }).eq("user_id", data.user.id);
+    expect(up.error).toBeNull();
+    return signIn(email);
+  }
+
   beforeAll(async () => {
     svc = client(SERVICE_KEY);
-    adminUser = await signIn("admin@seed.mnw");
-    confAgent = await signIn("confirmation@seed.mnw");
-    delivAgent = await signIn("delivery@seed.mnw");
-    const uid = (await adminUser.auth.getUser()).data.user!.id;
-    ws = (await svc.from("profiles").select("workspace_id").eq("user_id", uid).single()).data!.workspace_id;
+    ws = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     ws2 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
+    adminUser = await userIn(ws, "admin");
+    confAgent = await userIn(ws, "confirmation_agent");
+    delivAgent = await userIn(ws, "delivery_agent");
   });
   afterAll(async () => {
     if (!svc) return;
-    // add-only log: delete orders first, then the products (movements go by cascade)
-    if (orders.length) await svc.from("orders").delete().in("id", orders);
-    if (products.length) await svc.from("products").delete().in("id", products);
-    await svc.from("customers").delete().eq("workspace_id", ws2);
-    await svc.from("workspaces").delete().eq("id", ws2);
+    // add-only log: deleting the workspaces cascades orders, products and their movements
+    await svc.from("workspaces").delete().in("id", [ws, ws2].filter(Boolean));
+    for (const id of users) await svc.auth.admin.deleteUser(id);
   });
 
   test("confirm only keeps stock and shows reserved", async () => {
@@ -179,7 +186,6 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(await stock(p)).toBe(-1);
     const { data: b, error } = await swap(a);
     expect(error).toBeNull();
-    orders.push(b as string);
     expect(await held(a)).toBe(0);
     expect(await held(b as string)).toBe(1);
     expect(await stock(p)).toBe(-1);
@@ -202,7 +208,6 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     expect(r1.error).toBeNull();
     expect(r2.error).toBeNull();
     expect(r1.data).toBe(r2.data);
-    orders.push(r1.data as string);
     const { count } = await svc.from("orders").select("id", { count: "exact", head: true }).eq("product_id", p);
     expect(count).toBe(2);
   });
