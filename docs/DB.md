@@ -55,7 +55,7 @@ Finally regenerate types:
 | `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
 | `accounts` | 00017 | spending budget accounts (name, currency, opening_balance, low_balance_threshold); `account_topups` for deposits; balance derived via `account_balances` view | admin only |
 | `account_topups` | 00017 | append-only deposits (account_id, amount, occurred_on, note) | admin only |
-| `stock_movements` | 00003, 00018, 00028, 00030 | trigger maintains `products.stock` and refuses a movement whose workspace is not the product's (D30); reasons purchase/correction/order_confirmed/order_reverted/order_returned/order_stock_sync/order_swapped (legacy: delivered/returned) | admin only |
+| `stock_movements` | 00003, 00018 | trigger maintains `products.stock`; reasons purchase/correction/order_confirmed/order_reverted/order_returned (legacy: delivered/returned) | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
 | `orders` | 00004, 00014 | see SPEC §3; unique (workspace, source, external_id); optional `cancellation_reason_option_id` (FK → `options`, set when confirmation/delivery status goes cancelled/returned) | admin all; conf agent: `confirmation_status <> 'confirmed'`; delivery agent: confirmed only |
@@ -79,8 +79,7 @@ Finally regenerate types:
 3. `orders_flag_duplicate` — BEFORE INSERT: same normalized phone + product
    within `settings.duplicate_window` hours ⇒ `is_duplicate_suspect = true`,
    `duplicate_of` set.
-4. `orders_stock_effects` (00028, 00029, 00030; D25, D29, D30) — AFTER INSERT or UPDATE reconciles stock held by the order: target = −qty while `confirmed` and delivery not `returned`/`cancelled`/`swap`, else 0 (`exchange` keeps its stock; `swap` releases it because the new order holds it); current = net of the order's movements for the product (reasons order_confirmed/order_returned/order_reverted/order_stock_sync/order_swapped plus legacy `delivered`/`returned`, which count as already applied); one movement of target − current is inserted when they differ. An order inserted already confirmed holds stock at once. An UPDATE that changes none of confirmation_status/delivery_status/quantity/product_id returns early and writes nothing. Reasons: order_stock_sync on qty/product change or when the held stock was not what the old row implied (legacy/drift), order_swapped when A goes to `swap`, else order_confirmed on deduct, order_returned/order_reverted on restock. Changing the product releases the old product first. D30: an order carrying a product of another workspace raises an exception (no table constraint; composite key deferred to STORE-1).
-5. `swap_order(...)` (00030, security invoker, admin only) — creates the confirmed replacement order B, moves A to `swap` through `transition_order_status` and links `swapped_to_order_id` in one transaction.
+4. `orders_stock_effects` — confirmed ⇒ stock −qty (`order_confirmed`); leave-confirmed pre-delivery ⇒ +qty (`order_reverted`); returned ⇒ +qty (`order_returned`) via `stock_movements`.
 
 ## Views (00006, all `security_invoker` — caller's RLS applies)
 
