@@ -31,7 +31,7 @@ const SEED_PASSWORD = "SeedDev!2026";
 // their insert-rejection isn't agent-specific — checked separately below.
 const FINANCIAL_TABLES = [
   "product_costs", "expenses", "ad_spend_daily", "fixed_fees", "exchange_rates",
-  "cash_collections", "product_scenarios", "settings", "contacts",
+  "cash_collections", "product_scenarios", "settings", "contacts", "product_pricing",
 ] as const;
 
 function sign(url: string, key: string): SupabaseClient {
@@ -142,11 +142,28 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     product_scenarios: () => ({ workspace_id: workspaceId, product_id: productId, slug: "best", inputs: {} }),
     settings: () => ({ workspace_id: workspaceId, key: "rls_test_key", value: {} }),
     contacts: () => ({ workspace_id: workspaceId, type: "other", name: "rls-test" }),
+    product_pricing: () => ({ product_id: productId, workspace_id: workspaceId }),
   };
 
   test.each(FINANCIAL_TABLES)("agent insert on %s is rejected", async (table) => {
     const { error } = await confAgent.from(table).insert(MINIMAL_INSERT[table]());
     expect(error).not.toBeNull();
+  });
+
+  test("product_pricing: agent update/delete touch 0 rows", async () => {
+    const upd = await confAgent.from("product_pricing").update({ final_price: 1 }).eq("workspace_id", workspaceId).select();
+    expect(upd.data ?? []).toEqual([]);
+    const del = await confAgent.from("product_pricing").delete().eq("workspace_id", workspaceId).select();
+    expect(del.data ?? []).toEqual([]);
+    const { data } = await adminUser.from("product_pricing").select("product_id").eq("workspace_id", workspaceId);
+    expect((data ?? []).length).toBeGreaterThan(0);
+  });
+
+  test("product_pricing: other-workspace admin cannot attach a row to our product (composite FK)", async () => {
+    const ws2Admin = await signIn(LOCAL_URL!, "ws2-admin@seed.mnw");
+    const { error } = await ws2Admin.from("product_pricing").insert({ product_id: productId, workspace_id: ws2Id });
+    expect(error).not.toBeNull();
+    await ws2Admin.auth.signOut({ scope: "local" });
   });
 
   test("agent select on audit_log returns 0 rows", async () => {
