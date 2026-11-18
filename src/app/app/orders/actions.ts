@@ -436,13 +436,6 @@ export async function swapOrder(orderId: string, formData: FormData) {
   });
 
   const supabase = await createClient();
-  const { data: orderA } = await supabase
-    .from("orders")
-    .select("product_id, variant, quantity, sale_price, delivery_fee, delivery_type")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!orderA) throw new Error("Order not found.");
-
   const customerId = await upsertCustomerFromOrder(supabase, {
     workspaceId,
     name: input.customer_name,
@@ -452,44 +445,18 @@ export async function swapOrder(orderId: string, formData: FormData) {
     address: input.address,
   });
 
-  const { data: orderB, error: insertErr } = await supabase
-    .from("orders")
-    .insert({
-      workspace_id: workspaceId,
-      source: "manual",
-      product_id: orderA.product_id,
-      variant: orderA.variant,
-      quantity: orderA.quantity,
-      sale_price: orderA.sale_price,
-      delivery_fee: orderA.delivery_fee,
-      delivery_type: orderA.delivery_type,
-      customer_id: customerId,
-      customer_name: input.customer_name,
-      customer_phone: input.customer_phone,
-      wilaya_code: input.wilaya_code,
-      commune: input.commune,
-      address: input.address,
-      confirmation_status: "confirmed",
-      delivery_status: "wait_for_deposit",
-      placed_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  if (insertErr) throw new Error(insertErr.message);
-
-  // A → swap status + link to B (admin, so o_upd + guard_order_fields pass)
-  const { error: rpcErr } = await supabase.rpc("transition_order_status", {
+  // One transaction (D30): new order B + A to 'swap' + link, or nothing.
+  const { data: newOrderId, error: swapErr } = await supabase.rpc("swap_order", {
     p_order_id: orderId,
-    p_delivery_status: "swap",
+    p_customer_id: customerId,
+    p_customer_name: input.customer_name,
+    p_customer_phone: input.customer_phone,
+    p_wilaya_code: input.wilaya_code,
+    p_commune: input.commune ?? "",
+    p_address: input.address ?? "",
   });
-  if (rpcErr) throw new Error(rpcErr.message);
-
-  const { error: linkErr } = await supabase
-    .from("orders")
-    .update({ swapped_to_order_id: orderB.id })
-    .eq("id", orderId);
-  if (linkErr) throw new Error(linkErr.message);
+  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
 
   revalidatePath("/app/orders");
-  redirect(`/app/orders/${orderB.id}`);
+  redirect(`/app/orders/${newOrderId}`);
 }

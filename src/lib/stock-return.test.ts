@@ -13,7 +13,7 @@ const QTY = 3;
 
 // P0-8 / D25: stock held by an order is reconciled to its target after every update.
 // Each run uses its OWN throwaway product and order (live stack).
-describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028/00029)", () => {
+describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028-00030)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let productId: string;
@@ -61,7 +61,7 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028/00029)", () => 
     await admin.from("products").delete().eq("id", productId);
     await admin.from("profiles").delete().eq("user_id", userId);
     await admin.auth.admin.deleteUser(userId);
-    await admin.from("workspaces").delete().eq("id", ws);
+    expect((await admin.from("workspaces").delete().eq("id", ws)).error).toBeNull();
   });
 
   test("returned net 0 for a confirmed order, then delivered nets -qty", async () => {
@@ -142,10 +142,10 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028/00029)", () => 
     const stockP = async (id: string) => (await admin.from("products").select("stock").eq("id", id).single()).data!.stock as number;
     try {
       await setO(confirmed);
-      await admin.from("orders").update({ product_id: p2!.id }).eq("id", orderId);
+      expect((await admin.from("orders").update({ product_id: p2!.id }).eq("id", orderId)).error).toBeNull();
       expect(await stockOf()).toBe(start);
       expect(await stockP(p2!.id)).toBe(-QTY);
-      await admin.from("orders").update({ product_id: productId }).eq("id", orderId);
+      expect((await admin.from("orders").update({ product_id: productId }).eq("id", orderId)).error).toBeNull();
       expect(await stockOf()).toBe(start - QTY);
       expect(await stockP(p2!.id)).toBe(0);
     } finally {
@@ -176,12 +176,104 @@ describe.skipIf(!URL)("order_stock_effects: D25 reconcile (00028/00029)", () => 
 
   test("legacy delivered row: no-op edit writes nothing; later return restocks", async () => {
     await admin.from("stock_movements").insert({ workspace_id: ws, product_id: productId, order_id: orderId, delta: -QTY, reason: "delivered" });
-    await admin.from("orders").update({ confirmation_status: "confirmed", delivery_status: "delivered" }).eq("id", orderId);
+    await setO({ confirmation_status: "confirmed", delivery_status: "delivered" });
     expect(await net()).toBe(-QTY);
-    await admin.from("orders").update({ notes: "x" }).eq("id", orderId);
+    await setO({ commune: "x" });
     expect(await net()).toBe(-QTY);
     await setO({ delivery_status: "returned" });
     expect(await net()).toBe(0);
+  });
+
+  test("early return: with drift present, a note edit writes no movement; a real change reconciles", async () => {
+    await setO(confirmed);
+    await admin.from("stock_movements").insert({ workspace_id: ws, product_id: productId, order_id: orderId, delta: QTY, reason: "order_reverted" });
+    const before = (await moves()).length;
+    await setO({ commune: "edit" });
+    expect(await moves()).toHaveLength(before);
+    await setO({ delivery_status: "in_transit" });
+    const m = await moves();
+    expect(m).toHaveLength(before + 1);
+    expect(m[m.length - 1]).toEqual({ reason: "order_stock_sync", delta: -QTY });
+    expect(await net()).toBe(-QTY);
+  });
+
+  test("insert: only a confirmed, live order holds stock", async () => {
+    const mk = async (extra: Record<string, string>) => {
+      const { data, error } = await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: QTY, ...extra }).select("id").single();
+      expect(error).toBeNull();
+      const { data: mv } = await admin.from("stock_movements").select("delta").eq("order_id", data!.id);
+      return (mv ?? []).length;
+    };
+    expect(await mk({})).toBe(0);
+    for (const d of ["returned", "cancelled", "swap"]) expect(await mk({ ...confirmed, delivery_status: d })).toBe(0);
+    expect(await mk({ ...confirmed, delivery_status: "in_transit" })).toBe(1);
+    expect(await stockOf()).toBe(start - QTY);
+  });
+
+  test("product_id set to null returns all held stock to the old product", async () => {
+    await setO(confirmed);
+    const { error } = await admin.from("orders").update({ product_id: null }).eq("id", orderId);
+    expect(error).toBeNull();
+    expect(await stockOf()).toBe(start);
+    await admin.from("orders").update({ product_id: productId }).eq("id", orderId);
+  });
+
+  test("exchange -> returned releases the stock (D29)", async () => {
+    await setO(confirmed);
+    await setO({ delivery_status: "exchange" });
+    await setO({ delivery_status: "returned" });
+    expect(await net()).toBe(0);
+  });
+
+  test("reasons: swap release is order_swapped; a drifted row is order_stock_sync", async () => {
+    await setO(confirmed);
+    await setO({ delivery_status: "swap" });
+    expect((await moves()).map((m) => m.reason)).toEqual(["order_confirmed", "order_swapped"]);
+    const { data: o } = await admin.from("orders").insert({ workspace_id: ws, product_id: productId, quantity: QTY }).select("id").single();
+    await admin.from("stock_movements").insert({ workspace_id: ws, product_id: productId, order_id: o!.id, delta: -QTY, reason: "delivered" });
+    await admin.from("orders").update({ ...confirmed, delivery_status: "returned" }).eq("id", o!.id);
+    const { data } = await admin.from("stock_movements").select("reason").eq("order_id", o!.id).order("created_at");
+    expect(data!.map((m) => m.reason)).toEqual(["delivered", "order_stock_sync"]);
+  });
+
+  test("swap_order RPC: one transaction, B holds, A released, linked; admin only", async () => {
+    await setO(confirmed);
+    const adminUser = createClient(URL!, ANON_KEY, opts);
+    expect((await adminUser.auth.signInWithPassword({ email, password: SEED_PASSWORD })).error).toBeNull();
+    const args = { p_order_id: orderId, p_customer_id: null as unknown as string, p_customer_name: "n", p_customer_phone: "0555000000", p_wilaya_code: 16, p_commune: "", p_address: "" };
+    const { data: bId, error } = await adminUser.rpc("swap_order", args);
+    expect(error).toBeNull();
+    expect(await stockOf()).toBe(start - QTY);
+    const { data: a } = await admin.from("orders").select("delivery_status, swapped_to_order_id").eq("id", orderId).single();
+    expect(a).toEqual({ delivery_status: "swap", swapped_to_order_id: bId });
+    // a failing swap (bad wilaya) rolls everything back: A holds again, B was not created
+    await setO({ delivery_status: "in_transit" });
+    expect(await stockOf()).toBe(start - 2 * QTY);
+    const bad = await adminUser.rpc("swap_order", { ...args, p_wilaya_code: 9999 });
+    expect(bad.error).not.toBeNull();
+    expect(await stockOf()).toBe(start - 2 * QTY);
+    const { data: a2 } = await admin.from("orders").select("delivery_status").eq("id", orderId).single();
+    expect(a2!.delivery_status).toBe("in_transit");
+  });
+
+  test("D30: another workspace's product is refused on orders and on movements", async () => {
+    const ws2 = (await admin.from("workspaces").insert({ name: `stock-test-${crypto.randomUUID()}` }).select("id").single()).data!.id;
+    const { data: p2 } = await admin.from("products").insert({ workspace_id: ws2, name: `stock-test-${crypto.randomUUID()}` }).select("id").single();
+    try {
+      await setO(confirmed);
+      const adminUser = createClient(URL!, ANON_KEY, opts);
+      await adminUser.auth.signInWithPassword({ email, password: SEED_PASSWORD });
+      const r = await adminUser.from("orders").update({ product_id: p2!.id }).eq("id", orderId);
+      expect(r.error).not.toBeNull();
+      expect((await admin.from("orders").insert({ workspace_id: ws, product_id: p2!.id, quantity: 1 })).error).not.toBeNull();
+      const mv = await admin.from("stock_movements").insert({ workspace_id: ws, product_id: p2!.id, delta: -1, reason: "correction" });
+      expect(mv.error).not.toBeNull();
+      expect((await admin.from("products").select("stock").eq("id", p2!.id).single()).data!.stock).toBe(0);
+      expect(await stockOf()).toBe(start - QTY);
+    } finally {
+      await admin.from("products").delete().eq("id", p2!.id);
+      await admin.from("workspaces").delete().eq("id", ws2);
+    }
   });
 
   test("reconciling row has the right reason and created_by", async () => {
