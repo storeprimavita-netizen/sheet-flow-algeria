@@ -97,11 +97,11 @@ export function WilayaSection({ rows, minOrders, filters }: { rows: WilayaRow[];
           label={t("dashboard.wilaya.mapLabel")}
         />
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" />&lt;40%</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-orange" />40–55%</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-warning" />55–70%</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-info" />70–85%</span>
-          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-success" />85%+</span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-danger" /><bdi dir="ltr">&lt;40%</bdi></span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-orange" /><bdi dir="ltr">40–55%</bdi></span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-warning" /><bdi dir="ltr">55–70%</bdi></span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-info" /><bdi dir="ltr">70–85%</bdi></span>
+          <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-success" /><bdi dir="ltr">85%+</bdi></span>
           <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-neutral/30" />{t("dashboard.wilaya.noData")}</span>
         </div>
       </div>
