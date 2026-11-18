@@ -31,7 +31,8 @@ Finally regenerate types:
 | `current_fx_rate(ws, currency)` | Latest manual rate (DZD=1) |
 | `bootstrap_workspace(email, name)` | One-shot first workspace + admin + seed |
 | `seed_workspace(ws)` | Idempotent per-workspace defaults (58 fee rows + settings) |
-| `audit_row()` | Generic audit trigger fn → `audit_log` |
+| `audit_row()` | Generic audit trigger fn → `audit_log`; old/new pass through `audit_redact()` (00033) |
+| `audit_redact(jsonb)` | Replaces values of secret-looking keys (secret/token/password/api key/authorization/signature) and `whsec_`/`sk_`/`shpss_`/`shpat_`/`Bearer ` values with `[redacted:<sha256 first 8 hex>]` |
 | `transition_order_status(order_id, confirmation_status?, delivery_status?, comment?)` | Security-definer status transition (00009) — a plain agent `UPDATE` moving `confirmation_status` to `'confirmed'` fails RLS because the post-update row no longer satisfies the agent's own SELECT policy; re-checks authorization manually and bypasses that. Used by every agent-facing status change instead of `.update()`. |
 
 ## Tables (all have `workspace_id` unless noted)
