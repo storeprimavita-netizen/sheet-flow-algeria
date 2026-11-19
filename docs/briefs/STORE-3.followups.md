@@ -10,3 +10,5 @@ Open, STORE-4 brief starts from this list:
 - #11: app chrome targets under 44 px in the 390 preview.
 - Missing tests: selling actions call updateTag('store-public'); sale price above compare price saved through the product action; live test that save per_value then uniform leaves price_delta rows at 0.
 - Screens (D61 #5): not captured by the builder (no browser run in this round); left to the ui-reviewer, files `docs/design/audit/STORE-3/r4-*`.
+
+- Round 5 left open: review-4 #2 admin hint about unassigned stock on the Selling tab; #4 publish guard should refuse a product with no sellable price (`unit !== null`); #5 curl 404 status on a production build; #6 badge contrast in dark; #7 AR save error gender; publish-refused test.
