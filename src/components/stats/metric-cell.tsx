@@ -20,6 +20,7 @@ export function MetricCell({ m, numHref, title }: { m: KpiMetric; numHref?: stri
       compact
       matured={m.matured && pct !== null}
       title={m.matured ? undefined : title}
+      hint={m.matured ? undefined : title}
       sub={<>{numNode}/{m.den}</>}
     />
   );

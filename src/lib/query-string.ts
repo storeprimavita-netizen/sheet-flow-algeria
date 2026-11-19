@@ -32,8 +32,16 @@ export type DashboardFilters = {
 
 /** One date shape for every statistics/drill param (an invalid value is dropped, never half-applied). */
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** ISO shape AND a real calendar day (2026-02-30 is rejected, never rolled over to March). */
+export function isRealIsoDate(v: string): boolean {
+  if (!ISO_DATE.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
 /** Longest commune key accepted by the drill (longer is rejected, never cut). */
 export const MAX_COMMUNE_KEY = 120;
+/** A commune key can be a drill link only when the drill would accept it. */
+export const communeLinkable = (key: string) => key.length <= MAX_COMMUNE_KEY;
 /** `commune_unknown=1` on /app/orders/all means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
 export const COMMUNE_UNKNOWN_PARAM = "commune_unknown";
 
@@ -64,11 +72,17 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
 }
 
 /** Drill metric -> the orders behind a /app/statistics count (`kpi_drill_orders`, same predicate as the SQL count). */
-export type DrillMetric = "received" | "confirmed" | "delivered" | "return";
+export type DrillMetric = "received" | "confirmed" | "delivered" | "return" | "shipped";
 
 /** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (communeKey null = no commune). */
-export const drillHref = (filters: DashboardFilters, metric: DrillMetric, extra: { wilaya: number; communeKey?: string | null }) =>
+export const drillHref = (
+  filters: DashboardFilters,
+  metric: DrillMetric,
+  extra: { wilaya: number; communeKey?: string | null; communeLabel?: string; deliveryType?: string },
+) =>
   ordersQs(filters, {
+    ...(extra.deliveryType ? { delivery_type: extra.deliveryType } : {}),
+    commune_label: extra.communeLabel,
     drill: metric,
     wilaya_code: String(extra.wilaya),
     // communeKey === null -> the "no commune" group; undefined -> the whole wilaya
@@ -112,8 +126,8 @@ export function parseStatsFilters(get: (k: string) => string): StatsFilters {
   const wilaya = get("f_wilaya");
   const year = get("year");
   const out: StatsFilters = {
-    from: ISO_DATE.test(get("from")) ? get("from") : undefined,
-    to: ISO_DATE.test(get("to")) ? get("to") : undefined,
+    from: isRealIsoDate(get("from")) ? get("from") : undefined,
+    to: isRealIsoDate(get("to")) ? get("to") : undefined,
     product: uuid("product"),
     season: uuid("season"),
     year: /^\d{4}$/.test(year) ? Number(year) : undefined,

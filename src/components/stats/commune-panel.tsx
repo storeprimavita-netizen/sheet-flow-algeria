@@ -1,10 +1,11 @@
+import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { asKpiGroup, type KpiGroup, type KpiGroupExtras } from "@/lib/kpi";
-import { drillHref, type DashboardFilters } from "@/lib/query-string";
+import { communeLinkable, drillHref, type DashboardFilters } from "@/lib/query-string";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
@@ -23,7 +24,20 @@ export function CommunePanelSkeleton() {
   );
 }
 
-function ExtrasLine({ extras, t }: { extras: KpiGroupExtras; t: Awaited<ReturnType<typeof getTranslations>> }) {
+function ExtrasLine({
+  extras,
+  t,
+  typeHref,
+}: {
+  extras: KpiGroupExtras;
+  t: Awaited<ReturnType<typeof getTranslations>>;
+  /** shipped-orders drill of one delivery type (undefined = no link) */
+  typeHref?: (type: "home" | "stopdesk") => string | undefined;
+}) {
+  const count = (type: "home" | "stopdesk", n: number) => {
+    const href = typeHref?.(type);
+    return href && n > 0 ? <Link href={href} className={DRILL_LINK}>{n}</Link> : n;
+  };
   return (
     <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
       <div className="flex gap-1">
@@ -40,11 +54,11 @@ function ExtrasLine({ extras, t }: { extras: KpiGroupExtras; t: Awaited<ReturnTy
       </div>
       <div className="flex gap-1">
         <dt>{t("statistics.home")}</dt>
-        <dd className="num text-foreground"><bdi dir="ltr">{extras.shipped > 0 ? `${extras.home_count}/${extras.shipped}` : "—"}</bdi></dd>
+        <dd className="num text-foreground"><bdi dir="ltr">{extras.shipped > 0 ? <>{count("home", extras.home_count)}/{extras.shipped}</> : "—"}</bdi></dd>
       </div>
       <div className="flex gap-1">
         <dt>{t("statistics.stopdesk")}</dt>
-        <dd className="num text-foreground"><bdi dir="ltr">{extras.shipped > 0 ? `${extras.stopdesk_count}/${extras.shipped}` : "—"}</bdi></dd>
+        <dd className="num text-foreground"><bdi dir="ltr">{extras.shipped > 0 ? <>{count("stopdesk", extras.stopdesk_count)}/{extras.shipped}</> : "—"}</bdi></dd>
       </div>
     </dl>
   );
@@ -95,7 +109,11 @@ export async function CommunePanel({
 
   return (
     <div className="sticky start-0 max-w-[calc(100vw-2rem)] space-y-3 p-4 max-sm:p-1.5">
-      <ExtrasLine extras={group.extras} t={t} />
+      <ExtrasLine
+        extras={group.extras}
+        t={t}
+        typeHref={(type) => drillHref(filters, "shipped", { wilaya, deliveryType: type })}
+      />
       {rows.length === 0 ? (
         <Empty className="p-6">{t("statistics.noCommunes")}</Empty>
       ) : (
@@ -113,17 +131,27 @@ export async function CommunePanel({
             <tbody>
               {rows.map((r) => {
                 const { counts } = r.g.rates;
-                const href = (m: Parameters<typeof drillHref>[1]) => drillHref(filters, m, { wilaya, communeKey: r.key });
+                // a key the drill would reject is never linked (the count stays plain text)
+                const linkable = r.key === null || communeLinkable(r.key);
+                const href = (m: Parameters<typeof drillHref>[1], deliveryType?: string) =>
+                  linkable ? drillHref(filters, m, { wilaya, communeKey: r.key, communeLabel: r.name ?? undefined, deliveryType }) : undefined;
                 return (
-                  <tr key={r.key ?? "\u0000unknown"}>
+                  <React.Fragment key={r.key ?? "\u0000unknown"}>
+                  <tr>
                     <td className="sticky start-0 z-[1] whitespace-nowrap bg-surface">{r.key === null ? <span className="text-muted-foreground">{t("statistics.unknownCommune")}</span> : <bdi>{r.name}</bdi>}</td>
                     <td className="num text-end">
-                      {counts.received > 0 ? <Link href={href("received")} className={DRILL_LINK}>{counts.received}</Link> : counts.received}
+                      {counts.received > 0 && href("received") ? <Link href={href("received")!} className={DRILL_LINK}>{counts.received}</Link> : counts.received}
                     </td>
                     <td className="sm:min-w-32"><MetricCell m={r.g.rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
                     <td className="sm:min-w-32"><MetricCell m={r.g.rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
                     <td className="sm:min-w-32"><MetricCell m={r.g.rates.return} numHref={href("return")} title={notEnough} /></td>
                   </tr>
+                  <tr>
+                    <td colSpan={5} className="sticky start-0 !pt-0">
+                      <ExtrasLine extras={r.g.extras} t={t} typeHref={(type) => href("shipped", type)} />
+                    </td>
+                  </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>

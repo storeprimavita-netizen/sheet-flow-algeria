@@ -23,6 +23,7 @@ export function RateCell({
   matured = true,
   sub,
   title,
+  hint,
   compact = false,
 }: {
   pct: number;
@@ -31,16 +32,21 @@ export function RateCell({
   matured?: boolean;
   sub?: React.ReactNode;
   title?: string;
+  /** visible muted text under the cell (the unmatured reason; `title` alone is invisible on touch) */
+  hint?: string;
   /** below `sm`: no bar, label auto-width (narrow tables) */
   compact?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2" title={title}>
-      <RateBar pct={pct} matured={matured} className={compact ? "max-sm:hidden" : undefined} />
-      <span className={cn("num shrink-0 text-end text-xs", labelWidth, !matured && "text-muted-foreground")}>
-        {sub ? <bdi dir="ltr">{label}</bdi> : label}
-        {sub ? <span className="block text-[11px] text-muted-foreground"><bdi dir="ltr">{sub}</bdi></span> : null}
-      </span>
+    <div title={title}>
+      <div className="flex items-center gap-2">
+        <RateBar pct={pct} matured={matured} className={compact ? "max-sm:hidden" : undefined} />
+        <span className={cn("num shrink-0 text-end text-xs", labelWidth, !matured && "text-muted-foreground")}>
+          {sub ? <bdi dir="ltr">{label}</bdi> : label}
+          {sub ? <span className="block text-[11px] text-muted-foreground"><bdi dir="ltr">{sub}</bdi></span> : null}
+        </span>
+      </div>
+      {!matured && hint ? <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
