@@ -134,13 +134,13 @@ database. Two medium points are left. On the store, the words "Size" and
 "Color" above the choices show in English when the option was created from the
 English back office, although the store is in Arabic. And when a save fails for
 an unexpected reason, the screen shows a technical database message instead of
-a plain sentence. **Applied the same way (D80):** one last short round for
+a plain sentence. **Applied the same way (D82):** one last short round for
 these two points, merged only if the review passes; if not, it waits for your
 OK. One thing to know: a name you type yourself for an option (for example
 "Fit") is shown on the store exactly as you typed it, so type it in Arabic.
 The review also asked which of two written rules is right for a size saved
 with no option value. No screen can create such a size (only the tests do), so
-it was settled as a technical point in D80: such a size is never filled in by
+it was settled as a technical point in D82: such a size is never filled in by
 guessing.
 
 Nothing is blocked.

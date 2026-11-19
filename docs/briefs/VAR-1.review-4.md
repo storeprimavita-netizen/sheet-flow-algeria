@@ -1,11 +1,11 @@
 VERDICT: ESCALATE
 
 ## Summary
-- Round 4, the last one D80 allows. Diff `git diff v3...v3-VAR-1`, reviewed by `qa-reviewer` (owasp-security) and `ui-reviewer` in parallel. No high. Two medium, both from the UI reviewer; the QA reviewer has none.
+- Round 4, the last one D82 allows. Diff `git diff v3...v3-VAR-1`, reviewed by `qa-reviewer` (owasp-security) and `ui-reviewer` in parallel. No high. Two medium, both from the UI reviewer; the QA reviewer has none.
 - Both review-3 mediums are fixed: store headings come from `storeOptionHeadingKey` (Arabic "المقاسات" / "اللون" seen in the browser), and `VariantResult` returns a code only, details logged on the server.
 - QA ran `variants.rls.test.ts`, `variants.test.ts`, `store/data.test.ts` on the live stack (82/82) and rolled-back psql probes on backfill, swatches, size sets, agent sessions and the store DTO: all held.
-- Not a PASS (two medium), n = 4, and D80 allows no round 5: VAR-1 is parked `blocked:merge needs owner OK`. Neither medium needs a design decision; the owner decides only whether to merge.
-- This file was assembled by the run coordinator from the two reviewers' reports: the verify stage returned before they finished. Severities are the reviewers' own. Both mediums are points review 3 listed as low (#10 and the size-set delete confirm) and D80 (3e) had assigned to VAR-1-B; D80 (4) says it lowers no severity, so they stand as rated here.
+- Not a PASS (two medium), n = 4, and D82 allows no round 5: VAR-1 is parked `blocked:merge needs owner OK`. Neither medium needs a design decision; the owner decides only whether to merge.
+- This file was assembled by the run coordinator from the two reviewers' reports: the verify stage returned before they finished. Severities are the reviewers' own. Both mediums are points review 3 listed as low (#10 and the size-set delete confirm) and D82 (3e) had assigned to VAR-1-B; D82 (4) says it lowers no severity, so they stand as rated here.
 
 ## Findings (ranked)
 
@@ -15,7 +15,7 @@ VERDICT: ESCALATE
 4. **LOW (QA)** — `supabase/migrations/00068_variant_options_swatches.sql:224-228` and `:136`. Through a direct RPC only: an existing size sent with `values: null` raises "cannot call jsonb_each_text on a non-object"; non-UUID ids raise 22P02. The user sees `failed`; text is only logged; the app's zod blocks both. Fix (VAR-1-B migration): check `jsonb_typeof(values)='object'` and the UUID shape first, raise `incomplete size`.
 5. **LOW (QA)** — `src/components/ui/dialog.tsx:40`. `max-h` + `overflow-y-auto` now apply to every dialog in the app; not in the brief. Check focus rings and shadows of other dialogs are not clipped.
 6. **LOW (QA)** — `src/components/fields/swatch-field.tsx:61-64`. Any keystroke that leaves the hex incomplete calls `onChange(null)`; saving at that moment drops the saved swatch (the error text is shown).
-7. **LOW (QA, deferred to VAR-1-B by D80)** — `size_sets.items` accepts a 2-D array (confirmed live); `saveSizeSet` reports success when no row matched; option names are not unique per product.
+7. **LOW (QA, deferred to VAR-1-B by D82)** — `size_sets.items` accepts a 2-D array (confirmed live); `saveSizeSet` reports success when no row matched; option names are not unique per product.
 8. **LOW (UI)** — the seed option named "Variant" shows untranslated in the AR editor (review-3 #10).
 9. **LOW (UI)** — `variants-editor.tsx:248,251`. Move and delete value buttons are 36 px; fine on desktop, under 44 px for touch.
 10. **LOW (UI + QA)** — `src/components/store/product-view.tsx`. Swatch `<img>` has no `referrerPolicy="no-referrer"` (review-3 #11).

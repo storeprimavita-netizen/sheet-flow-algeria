@@ -689,7 +689,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", bare1)).data).toHaveLength(2);
   });
 
-  test("backfill: a value-less size given one of two options' values, another given {}, plus a new option, is refused and nothing changes (D80)", async () => {
+  test("backfill: a value-less size given one of two options' values, another given {}, plus a new option, is refused and nothing changes (D82)", async () => {
     const b = await bare();
     const so = uid(), sv = uid(), po = uid(), pv = uid();
     const ins = await svc.from("product_options").insert([{ id: so, workspace_id: ws, product_id: b, name: "Size", position: 0 }, { id: po, workspace_id: ws, product_id: b, name: "Fit", position: 1 }]);
