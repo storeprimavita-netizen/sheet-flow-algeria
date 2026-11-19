@@ -9,6 +9,7 @@ import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { MetricCell } from "@/components/stats/metric-cell";
 import { formatInt } from "@/lib/format";
+import { CalendarRange } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MAX_YEARS = 5;
@@ -97,12 +98,15 @@ export async function SeasonCompare({
               className={cn("card-surface space-y-3 rounded-xl p-4", current && "ring-2 ring-primary")}
             >
               <div className="flex items-baseline justify-between gap-2">
-                <Link
-                  href={hrefForYear(period.year)}
-                  className="rounded-sm text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <bdi dir="ltr">{period.year}</bdi>
-                </Link>
+                <span className="flex items-center gap-1.5">
+                  <CalendarRange className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  <Link
+                    href={hrefForYear(period.year)}
+                    className="rounded-sm text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <bdi dir="ltr">{period.year}</bdi>
+                  </Link>
+                </span>
                 {current ? (
                   <span className="text-xs font-medium text-primary">{t("statistics.compare.selected")}</span>
                 ) : rates && seasonYearInProgress(period.date_to, today) ? (
