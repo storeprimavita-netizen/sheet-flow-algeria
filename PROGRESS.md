@@ -500,3 +500,10 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Tests added: name separators, count==items with an emoji-only review, preview equals public (admin session vs service client, live), `runDelete` failure, `dir="auto"` render. Not unit-tested: `<bdi>` on the admin order link and 390 px reachability (async server page, no jsdom): verified on screen (switch x=115, scrollWidth 390, 12 rows).
 - Screenshots (chrome-devtools emulate, true viewports, `docs/design/audit/STORE-7/r3-*` + refreshed `public-320.png`): admin list AR light 390; public 6-column size guide AR light 320 (table scrolls, note LTR); public AR light 1280 size guide + reviews; admin preview (9 cards, 4.3 · 9, equals public); admin empty states no-match / none / no-pages, error (EN dark 1280); keyboard Tab switch -> Delete at 390. Local review/store_pages rows were backed up and restored for the empty/error shots.
 - Accepted/noted (low #8): verified mark up to 120 s stale; createReview accepts a product without a store page (list labels it).
+
+## STORE-7 — done (2026-11-19)
+- Done: reviews table (00064, admin-only RLS), size guide + reviews blocks, cost-free public DAL, admin Store > Reviews page, editor size grid. Reviews of products without a store page are labelled, not hidden.
+- Verify: review-3 `VERDICT: PASS` (risk high, surface ui,security). `scripts/gate.sh` GATE OK (797 passed, 3 skipped).
+- Evidence: screenshots in `docs/design/audit/STORE-7/`, EN/AR, light/dark, 390 and 1280 px; true 320 px public page checked in review-2.
+- Owner: none open from STORE-7. Known: verified mark may be up to 120 s stale (accepted, low).
+- Next: next `todo` task in docs/MASTER_PLAN.md.
