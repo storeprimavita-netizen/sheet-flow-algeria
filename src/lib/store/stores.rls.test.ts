@@ -132,4 +132,18 @@ describe.skipIf(!URL)("stores and store_pages (live DB)", () => {
     expect((await svc.from("store_pages").insert({ workspace_id: ws, store_id: s.id, slug: "nopr", title: "T", status: "published" })).error).not.toBeNull();
     expect((await svc.from("store_pages").insert({ workspace_id: ws, store_id: s.id, kind: "content", slug: "about", title: "T", status: "published" })).error).toBeNull();
   });
+
+  test("store_pages cross-workspace: ws2 admin cannot read, insert with a ws1 store, or relink a ws1 product", async () => {
+    const sa = (await store()).data!;
+    const pa = await product();
+    const pb = await product(ws2);
+    const page = (await svc.from("store_pages").insert({ workspace_id: ws, store_id: sa.id, product_id: pa, slug: "rls-x", title: "T" }).select("id").single()).data!;
+    expect((await adminB.from("store_pages").select("id").eq("id", page.id)).data ?? []).toEqual([]);
+    expect((await adminB.from("store_pages").insert({ workspace_id: ws2, store_id: sa.id, slug: "rls-y", title: "T" })).error).not.toBeNull();
+    expect((await adminB.from("store_pages").insert({ workspace_id: ws, store_id: sa.id, slug: "rls-z", title: "T" })).error).not.toBeNull();
+    expect((await adminB.from("store_pages").update({ product_id: pb }).eq("id", page.id).select("id")).data ?? []).toEqual([]);
+    // a ws1 admin cannot point its own page at a ws2 product either
+    expect((await adminA.from("store_pages").update({ product_id: pb }).eq("id", page.id).select("id")).error).not.toBeNull();
+    expect((await svc.from("store_pages").select("product_id").eq("id", page.id).single()).data?.product_id).toBe(pa);
+  });
 });

@@ -194,7 +194,7 @@ export function PageEditor({ page, store, products }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-start">
       <div className="card-surface sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-xl p-3">
         <StatusPill kind="store" status={status} />
         <span className="text-sm text-muted-foreground" role="status">

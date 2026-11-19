@@ -101,7 +101,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     return { ids, move, stock, store };
   }
 
-  test("not assigned below zero never hides a counted size (D58a)", async () => {
+  test("D54.4 not-assigned below 0 keeps counted sizes available", async () => {
     const { ids, move, stock } = await sizes(["M", "L"]);
     await move(10);
     await move(-10);
@@ -113,7 +113,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(await stock()).toEqual([["M", false], ["L", true]]);
   });
 
-  test("a switched-off size's pieces are not handed to active sizes (D58b)", async () => {
+  test("inactive variant stock inside total", async () => {
     const { ids, move, stock, store } = await sizes(["M", "L"]);
     await move(10);
     await move(-10);

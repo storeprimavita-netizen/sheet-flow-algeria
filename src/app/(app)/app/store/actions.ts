@@ -35,6 +35,7 @@ export async function createStore(formData: FormData): Promise<StoreResult> {
   if (!input.success) return fail("invalid");
   const supabase = await createClient();
   const existing = await supabase.from("stores").select("id").eq("workspace_id", workspaceId).limit(1);
+  if (existing.error) return fail("failed");
   if (existing.data?.length) return fail("exists");
   const { data, error } = await supabase
     .from("stores")
@@ -43,9 +44,12 @@ export async function createStore(formData: FormData): Promise<StoreResult> {
     .single();
   if (error) return dbFail(error);
   // two quick requests can both pass the check above: the oldest store wins, the loser removes its own row
-  const { data: all } = await supabase.from("stores").select("id").eq("workspace_id", workspaceId).order("created_at").order("id");
-  if (all && all.length > 1 && all[0].id !== data.id) {
-    await supabase.from("stores").delete().eq("id", data.id);
+  const { data: all, error: allError } = await supabase.from("stores").select("id").eq("workspace_id", workspaceId).order("created_at").order("id");
+  if (allError || !all) return fail("failed");
+  if (all.length > 1 && all[0].id !== data.id) {
+    const del = await supabase.from("stores").delete().eq("id", data.id).select("id");
+    // if our row could not be removed, two stores exist: report a failure, not "exists"
+    if (del.error || !del.data?.length) return fail("failed");
     return fail("exists");
   }
   done();
@@ -123,16 +127,26 @@ export async function linkPageProduct(pageId: string, productId: string | null):
   const ids = z.object({ pageId: uuid, productId: uuid.nullable() }).safeParse({ pageId, productId });
   if (!ids.success) return fail("invalid");
   const supabase = await createClient();
+  const { data: page, error: pageError } = await supabase.from("store_pages").select("status").eq("id", ids.data.pageId).eq("workspace_id", workspaceId).maybeSingle();
+  if (pageError || !page) return fail("failed");
+  if (page.status === "published" && (!ids.data.productId || !(await assertPublishable(supabase, ids.data.productId)))) return fail("needs_product");
   const { data, error } = await supabase
     .from("store_pages")
     .update({ product_id: ids.data.productId })
     .eq("id", ids.data.pageId)
+    .eq("status", page.status)
     .eq("workspace_id", workspaceId)
     .select("id");
   if (error) return dbFail(error);
   if (!data?.length) return fail("failed");
   done(`/app/store/pages/${pageId}`);
   return { ok: true, id: pageId };
+}
+
+/** A page can only answer 200 when its product is active and priced. */
+async function assertPublishable(supabase: Awaited<ReturnType<typeof createClient>>, productId: string): Promise<boolean> {
+  const { data: pr } = await supabase.from("products").select("is_active, sale_price").eq("id", productId).maybeSingle();
+  return !!pr?.is_active && pr.sale_price !== null;
 }
 
 async function setPublished(pageId: string, publish: boolean): Promise<StoreResult> {
@@ -143,9 +157,7 @@ async function setPublished(pageId: string, publish: boolean): Promise<StoreResu
   if (publish) {
     // the UI disables Publish, but a direct call must not publish a page that would answer 404
     const { data: pg } = await supabase.from("store_pages").select("product_id").eq("id", id.data).eq("workspace_id", workspaceId).maybeSingle();
-    if (!pg?.product_id) return fail("needs_product");
-    const { data: pr } = await supabase.from("products").select("is_active, sale_price").eq("id", pg.product_id).maybeSingle();
-    if (!pr?.is_active || pr.sale_price === null) return fail("needs_product");
+    if (!pg?.product_id || !(await assertPublishable(supabase, pg.product_id))) return fail("needs_product");
   }
   const { data, error } = await supabase
     .from("store_pages")

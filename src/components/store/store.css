@@ -44,6 +44,7 @@ body.store-root { margin: 0; }
 
 .store-gallery { display: flex; gap: var(--space-3); overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
 .store-gallery > * { flex: 0 0 100%; scroll-snap-align: center; }
+@media (min-width: 860px) { .store-gallery { max-block-size: min(80vh, 640px); } .store-gallery .store-photo, .store-gallery .store-photo-empty { block-size: 100%; inline-size: auto; max-block-size: min(80vh, 640px); } }
 .store-photo { aspect-ratio: 4 / 5; inline-size: 100%; object-fit: cover; border-radius: var(--radius-md); background: var(--blush); }
 .store-photo-empty {
   aspect-ratio: 4 / 5; inline-size: 100%; border-radius: var(--radius-md); display: grid; place-items: center;

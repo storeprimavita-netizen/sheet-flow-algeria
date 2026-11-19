@@ -39,4 +39,25 @@ describe("store admin guard", () => {
     await expect(requireStoreAdmin()).rejects.toThrow("NEXT_NOT_FOUND");
     expect(from).not.toHaveBeenCalled();
   });
+
+  test("getStore throws on DB error, never returns null", async () => {
+    const { getStore } = await import("@/app/(app)/app/store/_lib/data");
+    getProfile.mockResolvedValue({ role: "admin", workspaceId: "w" });
+    const q: Record<string, unknown> = {};
+    for (const m of ["select", "order", "limit"]) q[m] = () => q;
+    q.maybeSingle = () => Promise.resolve({ data: null, error: { message: "boom" } });
+    from.mockReturnValue(q);
+    await expect(getStore()).rejects.toThrow(/boom/);
+  });
+
+  test("editor and preview pages call requireStoreAdmin/getStore for an agent", async () => {
+    getProfile.mockResolvedValue({ role: "confirmation_agent", workspaceId: "w" });
+    from.mockClear();
+    const { default: Editor } = await import("@/app/(app)/app/store/pages/[id]/page");
+    const { default: Preview } = await import("@/app/(app)/app/store/pages/[id]/preview/page");
+    const props = { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000000" }), searchParams: Promise.resolve({}) };
+    await expect(Editor(props as never)).rejects.toThrow("NEXT_NOT_FOUND");
+    await expect(Preview(props as never)).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(from).not.toHaveBeenCalled();
+  });
 });
