@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { WilayaSection, type StatsRow } from "@/components/stats/wilaya-section";
+import { StatsCharts, WilayaChart } from "@/components/stats/stats-charts";
 import { CommunePanel, CommunePanelSkeleton } from "@/components/stats/commune-panel";
 import { SeasonCompare, SeasonCompareSkeleton } from "@/components/stats/season-compare";
 import { StatsFilterBar, type StatsOpt } from "@/components/stats/stats-filter-bar";
@@ -121,6 +122,19 @@ export default async function StatisticsPage({
 
   const names = Object.fromEntries(rows.flatMap((r) => (r.code !== null && r.name ? [[r.code, r.name] as const] : [])));
 
+  const seasonCompare = season.season ? (
+    <Suspense fallback={<SeasonCompareSkeleton />}>
+      <SeasonCompare
+        season={season.season}
+        selectedYear={season.overridden ? null : season.period?.year ?? null}
+        product={f.product}
+        pFilters={pFilters}
+        hrefForYear={yearHref}
+        retryHref={baseHref}
+      />
+    </Suspense>
+  ) : null;
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("statistics.title")} subtitle={t("statistics.subtitle")} />
@@ -139,19 +153,6 @@ export default async function StatisticsPage({
         active={activeStatsFilters(f, season)}
       />
 
-      {season.season ? (
-        <Suspense fallback={<SeasonCompareSkeleton />}>
-          <SeasonCompare
-            season={season.season}
-            selectedYear={season.overridden ? null : season.period?.year ?? null}
-            product={f.product}
-            pFilters={pFilters}
-            hrefForYear={yearHref}
-            retryHref={baseHref}
-          />
-        </Suspense>
-      ) : null}
-
       {seasonError ? (
         <Empty>
           <div role="alert">
@@ -164,40 +165,68 @@ export default async function StatisticsPage({
       ) : null}
 
       {error ? (
-        <Empty>
-          <div role="alert">
-            <p className="font-medium text-foreground">{t("statistics.loadError")}</p>
-            <div className="mt-4 flex justify-center">
-              <ButtonLink href={baseHref} size="sm">{t("statistics.retry")}</ButtonLink>
+        <>
+          {seasonCompare}
+          <Empty>
+            <div role="alert">
+              <p className="font-medium text-foreground">{t("statistics.loadError")}</p>
+              <div className="mt-4 flex justify-center">
+                <ButtonLink href={baseHref} size="sm">{t("statistics.retry")}</ButtonLink>
+              </div>
             </div>
-          </div>
-        </Empty>
+          </Empty>
+        </>
       ) : rows.length === 0 ? (
-        <Empty>
-          <p className="font-medium text-foreground">{t("statistics.emptyTitle")}</p>
-          <p className="mt-1">{t("statistics.emptyBody")}</p>
-          {activeParams.size ? null : (
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {keep.size ? (
-                <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
-              ) : (
-                <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
-              )}
-            </div>
-          )}
-        </Empty>
+        <>
+          {seasonCompare}
+          <Empty>
+            <p className="font-medium text-foreground">{t("statistics.emptyTitle")}</p>
+            <p className="mt-1">{t("statistics.emptyBody")}</p>
+            {activeParams.size ? null : (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {keep.size ? (
+                  <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
+                ) : (
+                  <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
+                )}
+              </div>
+            )}
+          </Empty>
+        </>
       ) : (
-        <WilayaSection
-          rows={rows}
-          filters={filters}
-          openWilaya={open?.code ?? null}
-          names={names}
-          panel={
-            open && wantedWilaya !== null ? (
-              <Suspense fallback={<CommunePanelSkeleton />}>
-                <CommunePanel wilaya={wantedWilaya} group={open.group} filters={filters} pFilters={pFilters} retryHref={retryHref} />
-              </Suspense>
-            ) : null
+        <StatsCharts
+          scope={{ from: range.from, to: range.to, product: f.product, pFilters, filters }}
+          wilayaChart={
+            <WilayaChart
+              rows={rows}
+              filters={filters}
+              title={t("statistics.charts.byWilaya")}
+              labels={{
+                delivery: t("statistics.charts.delivery"),
+                received: t("statistics.charts.received"),
+                ordersCount: (n) => t("statistics.charts.ordersCount", { n }),
+                note: t("statistics.charts.floorNote", { n: 10 }),
+                empty: { title: t("statistics.charts.emptyFloor", { n: 10 }), action: t("statistics.charts.allOrders") },
+              }}
+            />
+          }
+          where={
+            <>
+              {seasonCompare}
+              <WilayaSection
+                rows={rows}
+                filters={filters}
+                openWilaya={open?.code ?? null}
+                names={names}
+                panel={
+                  open && wantedWilaya !== null ? (
+                    <Suspense fallback={<CommunePanelSkeleton />}>
+                      <CommunePanel wilaya={wantedWilaya} group={open.group} filters={filters} pFilters={pFilters} retryHref={retryHref} />
+                    </Suspense>
+                  ) : null
+                }
+              />
+            </>
           }
         />
       )}

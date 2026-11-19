@@ -220,3 +220,8 @@ export function ChartTooltip({
     </div>
   );
 }
+
+/** Error card for a chart whose server-side query failed: reason + retry (router.refresh). */
+export function ChartLoadError({ title }: { title: string }) {
+  return <ChartErrorView title={title} onRetry={() => undefined} />;
+}

@@ -1676,6 +1676,59 @@
       "yearError": "Couldn't load {year}.",
       "noOrders": "No orders",
       "more": "Showing the latest {shown} of {total} years."
+    },
+    "charts": {
+      "ordersPerDay": "Orders per day",
+      "rates": "Confirmation and delivery rate per day",
+      "received": "Orders",
+      "confirmation": "Confirmation rate",
+      "delivery": "Delivery rate",
+      "share": "Share",
+      "outcomes": "Order outcomes",
+      "outcome": {
+        "delivered": "Delivered",
+        "returned": "Returned",
+        "cancelled": "Cancelled",
+        "unconfirmed": "Not confirmed yet",
+        "in_progress": "In progress"
+      },
+      "other": "Other",
+      "byWilaya": "Delivery rate by wilaya, worst first",
+      "byProduct": "Delivery rate by product, worst first",
+      "byWeekday": "Orders by weekday",
+      "byHour": "Orders by hour of day",
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "ordersCount": "{n} orders",
+      "floorNote": "Only groups with at least {n} orders. Grey bars are not final yet.",
+      "emptyFloor": "No group has {n} orders yet.",
+      "emptyDaily": "No orders in this period.",
+      "emptyOutcomes": "No orders in this period.",
+      "allOrders": "All orders",
+      "immatureNote": "Dashed recent days are not final: deliveries are still coming in.",
+      "hourNote": "Hours are Algiers time."
+    },
+    "sections": {
+      "volume": "Volume and conversion",
+      "outcomes": "Outcomes",
+      "where": "Where",
+      "when": "When"
     }
   },
   "seasons": {
