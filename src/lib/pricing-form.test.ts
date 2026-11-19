@@ -4,6 +4,8 @@ import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
 
 import {
   anyRealImpossible,
+  realBothZero,
+  realDrawnProfit,
   realCellState,
   realBelow,
   realLosing,
@@ -354,9 +356,50 @@ describe("Real column, ad cost 0 and drawn cells (PRICE-3-F)", () => {
   it("c 0 with d null: every cell missing, no footer", () => {
     const real = build(0, null, 2);
     expect(real.rateOne.totalCost).toBeNull();
-    expect(anyRealImpossible(real, rows.filter((r) => r.key !== "ordersNeeded"))).toBe(false);
+    expect(anyRealImpossible(real, rows)).toBe(false);
     expect(draw(real).minConfirmation).toMatch(/^missing/);
     expect(draw(real).profitPerPiece).toMatch(/^missing/);
+  });
+  it("ad 0, c 0, d 0.6, price below cost: drawn negative alt profit flags Real as losing", () => {
+    const input = { confirm: 0, delivery: 0.6, adCostUsd: 0 };
+    const mk = (price: number) => {
+      const result = computeScenario(settings, product, input, price, price);
+      const rateOne = computeScenario(settings, product, { ...input, confirm: 1 }, price, price);
+      return { result, rateOne, input, hasData: true };
+    };
+    const real = mk(500);
+    expect(real.result.profitPerPiece).toBeNull();
+    const drawn = realDrawnProfit(real);
+    expect(drawn).not.toBeNull();
+    expect(drawn as number).toBeLessThan(0);
+    expect(realLosing(true, input, drawn, 0)).toBe(true);
+    expect(realDrawnProfit({ ...real, hasData: false })).toBeNull();
+    expect(realLosing(true, input, realDrawnProfit(mk(9900)), 0)).toBe(false);
+  });
+  it("maxAdCostUsd: impossible at c 0 when ad 0 (needs c); adCostPerDeliveredUsd alt", () => {
+    const more = [
+      ...rows,
+      { key: "maxAdCostUsd", breakEven: "maxAdCostUsd" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.maxAdCostUsd },
+      { key: "adCostPerDeliveredUsd", get: (r: ReturnType<typeof computeScenario>) => r.adCostPerDeliveredUsd },
+      { key: "totalAdUsd", get: () => null },
+    ];
+    const real = build(0, 0.6, 0);
+    const state = (key: string) => {
+      const row = more.find((r) => r.key === key)!;
+      const mode = realZeroRowMode(real.input, row, true, 0);
+      return `${mode}:${realCellState(mode, real, row).state}`;
+    };
+    expect(state("maxAdCostUsd")).toBe("impossible:impossible");
+    expect(state("adCostPerDeliveredUsd")).toBe("alt:value");
+    expect(state("totalAdUsd")).toBe("impossible:impossible");
+    expect(anyRealImpossible(real, more)).toBe(true);
+  });
+  it("realBothZero truth table", () => {
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 2)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, null)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 0)).toBe(false);
+    expect(realBothZero(true, { confirm: 0, delivery: 0.5 }, 2)).toBe(false);
+    expect(realBothZero(false, { confirm: 0, delivery: 0 }, 2)).toBe(false);
   });
   it("NaN stock cost: rate-one totalCost null, cell missing", () => {
     const run = computeScenario(settings, { stockCostDzd: Number.NaN, quantity: 100 }, { confirm: 1, delivery: 1, adCostUsd: 2 }, 9900, 9900);

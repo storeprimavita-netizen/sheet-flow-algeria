@@ -393,6 +393,12 @@ export const realZeroRate = (
 
 type RealRow = { key: string; breakEven?: BreakEvenKey; isInput?: boolean };
 const AD_TOTAL_ROWS = ["ordersNeeded", "totalAdUsd", "totalAdDzd"];
+/**
+ * Rows that still depend on c when ad = 0: the ad totals (divide by c) and maxAdCostUsd
+ * (room * c * d / B: at c = 0 any ad spend is a pure loss, so the rate-1 value would mislead).
+ * adCostPerDeliveredUsd is NOT here: it is ad / (c * d) = 0 for ad = 0, so "alt" (0) is right.
+ */
+const C_DEPENDENT_ROWS = [...AD_TOTAL_ROWS, "maxAdCostUsd"];
 
 /**
  * How one Real-column row is drawn when a rate is exactly 0 (the engine rejects 0):
@@ -413,7 +419,7 @@ export function realZeroRowMode(
   if (!(dZero || cZero) || row.isInput || !rateOneComplete) return "normal";
   if (row.key === "finalPrice") return "alt";
   const cDrops = cZero && adCostUsd === 0;
-  if (cDrops && !dZero) return AD_TOTAL_ROWS.includes(row.key) ? "impossible" : "alt";
+  if (cDrops && !dZero) return C_DEPENDENT_ROWS.includes(row.key) ? "impossible" : "alt";
   const cEff = cZero && !cDrops;
   if (dZero && !cEff && row.breakEven === "minDelivery") return "alt";
   if (cEff && !dZero && row.breakEven === "minConfirmation") return "alt";
@@ -448,6 +454,27 @@ export function anyRealImpossible(
     return realCellState(mode, real, row).state === "impossible";
   });
 }
+
+/** The Real profit-per-piece value actually drawn (rate-1 run when the row is "alt"); null when not a value. */
+export function realDrawnProfit(real: {
+  result: ScenarioResult;
+  rateOne: ScenarioResult | null;
+  input: ScenarioInput;
+  hasData: boolean;
+}): number | null {
+  if (!real.hasData) return null;
+  const row = { key: "profitPerPiece", get: (r: ScenarioResult) => r.profitPerPiece };
+  const mode = realZeroRowMode(real.input, row, !!real.rateOne && real.rateOne.totalCost !== null, real.input.adCostUsd);
+  const cell = realCellState(mode, real, row);
+  return cell.state === "value" ? cell.value : null;
+}
+
+/** Footer line "no orders confirmed or delivered": both rates exactly 0 and ad cost not 0 (null counts as not 0). */
+export const realBothZero = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  adCostUsd?: number | null,
+): boolean => hasData && input.confirm === 0 && input.delivery === 0 && adCostUsd !== 0;
 
 /** Real column loses money: negative profit, or a zero rate with data. */
 export const realLosing = (

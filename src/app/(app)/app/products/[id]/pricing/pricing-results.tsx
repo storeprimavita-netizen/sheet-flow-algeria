@@ -8,7 +8,10 @@ import { Chip } from "@/components/ui/chip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
 import { formatCurrency, formatInt, formatPercent, formatUsd, ltr } from "@/lib/format";
-import { anyRealImpossible, breakEvenState, realCellState, realLosing, realZeroRowMode, type BreakEvenKey } from "@/lib/pricing-form";
+import {
+  anyRealImpossible,
+  realBothZero,
+  realDrawnProfit, breakEvenState, realCellState, realLosing, realZeroRowMode, type BreakEvenKey } from "@/lib/pricing-form";
 import type { ScenarioInput, ScenarioName, ScenarioResult } from "@/lib/pricing-v2";
 
 const SCENARIOS: readonly ScenarioName[] = ["best", "medium", "worst"];
@@ -135,7 +138,7 @@ export function PricingResults({
 }) {
   const t = useTranslations("pricingV2");
   const realAd = real?.input.adCostUsd;
-  const realLoses = !!real && realLosing(real.hasData, real.input, real.result.profitPerPiece, realAd);
+  const realLoses = !!real && realLosing(real.hasData, real.input, realDrawnProfit(real), realAd);
   const losing = [
     ...SCENARIOS.filter((s) => (results[s].profitPerPiece ?? 0) < 0).map((s) => t(`scenario.${s}`)),
     ...(realLoses ? [t("scenario.real")] : []),
@@ -145,7 +148,7 @@ export function PricingResults({
     SCENARIOS.some((s) =>
       (["minConfirmation", "minDelivery", "maxAdCostUsd"] as const).some((k) => breakEvenState(results[s], k) === "impossible"),
     );
-  const bothZero = !!real && real.hasData && real.input.confirm === 0 && real.input.delivery === 0 && realAd !== 0;
+  const bothZero = !!real && realBothZero(real.hasData, real.input, realAd);
 
   return (
     <div className="space-y-2">
@@ -251,7 +254,7 @@ export function PricingResults({
                             </Hint>
                           );
                         }
-                        if (row.breakEven && state === "value" && realLoses && v !== 0) {
+                        if (row.breakEven && state === "value" && realLoses && !(mode === "alt" && v === 0)) {
                           return (
                             <span className="inline-flex items-center gap-1 text-danger">
                               <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
