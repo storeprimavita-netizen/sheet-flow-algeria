@@ -8,6 +8,30 @@ owner may overturn").
 
 ## Open
 
+### Q-23 · PRICE-4 · 2026-11-19 · answered-by-default
+The new Pricing page (one line per product, with totals) shows "Capital
+needed". Your calculator had this number, but its rule is not in the text you
+pasted. **Applied by default (D68):** capital needed = what the pieces in stock
+cost you + the ad budget needed to sell them, in dinars, for the case you pick
+(best / medium / worst). It is the sum of the two cards beside it, and the card
+says so. Example on benz (stock 81,600 DZD, 50 pieces): best 107,199 · medium
+141,351 · worst 173,700. Not counted: return fees, confirmation, packaging and
+the other fees. They are paid as the orders go out and come back, and they are
+already in the cost per piece and in the profit. Two things to know: the stock
+part is the product cost you entered × the pieces in stock today, so if that
+cost does not include shipping and customs to Algeria, this number does not
+either; and a product with no cost, no stock or no ad cost is left out of all
+the totals, with a note saying how many are left out. The other options:
+(a) also add the fees you pay whatever you sell (other fees for the whole stock
++ the platform's monthly fee): benz medium 158,746; (b) every cost of the
+batch: benz medium 174,843. Say which one your calculator used; it is one line
+to change. This number is only your calculation aid: it changes no price, order
+or profit report.
+Also applied: the first calculator (the planner) leaves the menu and its old
+address opens the new Pricing page. What you saved in it stays in the database,
+untouched, but no screen shows it any more. Say so if you want it deleted, or
+want something from it back. Nothing is blocked.
+
 ### Q-22 · PRICE-3 · 2026-11-19 · answered-by-default
 The price calculator gets a fourth column, "Real", filled with the product's
 actual results. Two points about what it shows. **Applied by default (D67):**
