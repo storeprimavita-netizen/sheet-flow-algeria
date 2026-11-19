@@ -45,6 +45,22 @@ describe("parseDeliveryCsv", () => {
     expect(r.wilayas).toEqual([]);
     expect(r.warnings).toHaveLength(2);
   });
+  it("fixture: 4 unpriced and 2 home-only wilayas parse together with the priced ones", () => {
+    const rows = [
+      `DZ,1-Adrar,,,rate,,${HOME}:1400|${DESK}:970`,
+      `DZ,2-Chlef,,,rate,,${HOME}:700`,
+      `DZ,3-Laghouat,,,rate,,${HOME}:800`,
+      `DZ,33-Illizi,,,extra,,`,
+      `DZ,37-Tindouf,,,extra,,`,
+      `DZ,50-Bordj,,,extra,,`,
+      `DZ,52-Beni Abbes,,,extra,,`,
+    ].join("\n");
+    const r = parseDeliveryCsv(`${H}${rows}\n`);
+    expect(r.wilayas).toHaveLength(7);
+    expect(r.wilayas.filter((w) => !w.priced).map((w) => w.code)).toEqual([33, 37, 50, 52]);
+    expect(r.wilayas.filter((w) => w.priced && !w.stopdeskAvailable).map((w) => w.code)).toEqual([2, 3]);
+    expect(r.wilayas[0]).toMatchObject({ priced: true, stopdeskAvailable: true });
+  });
   const real = "prices/Algeria_numbered.csv";
   it.skipIf(!(() => { try { readFileSync(real); return true; } catch { return false; } })())(
     "local file: 58 wilayas, 4 unpriced",
