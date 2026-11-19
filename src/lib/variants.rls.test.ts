@@ -386,6 +386,47 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect((await svc.from("product_variant_values").select("value_id").eq("variant_id", a.vs).single()).data!.value_id).toBe(a.s);
   });
 
+  test("re-adding a removed label in one save succeeds", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    // drop the "M" value and its size, add a new value labelled "M" (new id) with a new size
+    const m2 = uid(), vm2 = uid();
+    const o = a.cfg.options[0].id;
+    a.cfg.options[0].values = [{ id: a.s, label: "S" }, { id: m2, label: "M" }];
+    a.cfg.variants = [a.cfg.variants[0], { id: vm2, sku: null, is_active: true, values: { [o]: m2 } }];
+    // the old M size still uses the old M value: refused (in use), nothing changes
+    expect((await save(adminUser, p, a.cfg)).error?.code).toBe("23503");
+    // with the old size kept the old value cannot go; re-adding after a clean removal is covered below
+    const b = sizeCfg();
+    const p2 = await bare();
+    b.cfg.variants = [b.cfg.variants[0]]; // only S has a size
+    expect((await save(adminUser, p2, b.cfg)).error).toBeNull();
+    const m3 = uid();
+    b.cfg.options[0].values = [{ id: b.s, label: "S" }];
+    expect((await save(adminUser, p2, b.cfg)).error).toBeNull(); // M removed
+    b.cfg.options[0].values = [{ id: b.s, label: "S" }, { id: m3, label: "M" }];
+    expect((await save(adminUser, p2, b.cfg)).error).toBeNull();
+    // remove and re-add the same label inside ONE save
+    const m4 = uid();
+    b.cfg.options[0].values = [{ id: b.s, label: "S" }, { id: m4, label: "M" }];
+    expect((await save(adminUser, p2, b.cfg)).error).toBeNull();
+    expect((await svc.from("product_option_values").select("id").eq("product_id", p2).eq("label", "M")).data).toEqual([{ id: m4 }]);
+  });
+
+  test("a new size with empty values is refused", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    a.cfg.variants[1].values = {};
+    expect((await save(adminUser, p, a.cfg)).error?.message).toMatch(/incomplete size/);
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+    // a key that is not a payload option is refused too
+    const b = sizeCfg();
+    b.cfg.variants[1].values = { [uid()]: b.m };
+    expect((await save(adminUser, p, b.cfg)).error?.message).toMatch(/incomplete size/);
+    // the two-writer race is not reproducible in a single-connection test: the lock is covered by reasoning (same hashtext key in both functions)
+  });
+
   test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option after sizes exist is refused", async () => {
     const p = await bare();
     const o = uid(), s = uid(), m = uid();
@@ -477,7 +518,25 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
   });
 
   // ---- order size changes -------------------------------------------------
-  test("a size change moves the hold at reserved (bureau_deposited), stop_desk_waiting and delayed; changeOrderVariant (admin update) rewrites the label; a direct patch of the label is rewritten", async () => {
+  test("size change at reserved (wait_for_deposit): the order moves from size M to L without touching stock", async () => {
+    const a = await product(["M", "L"]);
+    await buy(a.p, 5);
+    const o = await order(a.p, a.variants.M);
+    await status(o, "wait_for_deposit");
+    const total = await pstock(a.p);
+    const heldM = await vstock(a.variants.M);
+    // changeOrderVariant cannot be called from vitest: the admin-session update it performs is used instead
+    const r = await adminUser.from("orders").update({ variant_id: a.variants.L }).eq("id", o).select("id");
+    expect(r.error).toBeNull();
+    expect(r.data).toHaveLength(1);
+    // reserved is a derived stage: nothing was taken from stock yet, so no hold moves
+    expect(await vstock(a.variants.M)).toBe(heldM);
+    expect(await vstock(a.variants.L)).toBe(0);
+    expect(await pstock(a.p)).toBe(total);
+    expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+  });
+
+  test("on-road (bureau_deposited), stop_desk_waiting and delayed: a size change moves the hold; changeOrderVariant (admin update) rewrites the label; a direct patch of the label is rewritten", async () => {
     for (const stage of ["bureau_deposited", "stop_desk_waiting", "delayed"]) {
       const a = await product(["M", "L"]);
       await buy(a.p, 5);
