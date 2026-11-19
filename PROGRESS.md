@@ -353,3 +353,11 @@ select
 - Follow-up P1-7-F (D62 item 7) to be added as a plan row at ship.
 
 P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one medium. A home label priced 0 now still counts as "home seen", so Béchar's `home:0|home:720` gives stop-desk 720, home none, wilaya not priced (parser test on that exact row). Also `method="post"` on the grid, new-order and swap forms (no GET with personal data before hydration). Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Other lows left to P1-7-F.
+
+## P1-7 done (review-5 PASS)
+- Done: delivery prices from the owner's CSV (wilaya fees, preview then apply, grid edits, ZR sync prices only, 0 is never a price, D62 rounds 1-5). Migrations 00052-00055.
+- Verify: `scripts/gate.sh` GATE OK (tsc, 572 passed / 3 skipped with live RLS suite, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/P1-7.review-5.md PASS (no high or medium in the round-5 diff); screenshots docs/design/audit/P1-7-r5/.
+- Open: P1-7-F (review-5 lows, pre-existing swap medium on a typed wilaya name, reviews 3-4 leftovers, missing tests).
+- Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
+- Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.
