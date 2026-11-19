@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import type { KpiGroupRates } from "@/lib/kpi";
 import type { SeasonRow } from "@/lib/seasons";
-import { seasonLabel } from "@/lib/seasons";
+import { seasonLabel, seasonYearInProgress, seasonYearState } from "@/lib/seasons";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { MetricCell } from "@/components/stats/metric-cell";
@@ -89,6 +89,7 @@ export async function SeasonCompare({
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {results.map(({ period, rates, failed }) => {
           const current = period.year === selectedYear;
+          const state = seasonYearState(rates, failed);
           return (
             <li
               key={period.year}
@@ -104,16 +105,16 @@ export async function SeasonCompare({
                 </Link>
                 {current ? (
                   <span className="text-xs font-medium text-primary">{t("statistics.compare.selected")}</span>
-                ) : rates && period.date_to >= today ? (
+                ) : rates && seasonYearInProgress(period.date_to, today) ? (
                   <span className="text-xs text-muted-foreground">{t("statistics.compare.inProgress")}</span>
                 ) : null}
               </div>
-              {failed || !rates ? (
+              {state === "error" || !rates ? (
                 <div role="alert" className="space-y-2 text-sm">
                   <p className="text-foreground">{t("statistics.compare.yearError", { year: period.year })}</p>
                   <ButtonLink href={retryHref} size="sm">{t("statistics.retry")}</ButtonLink>
                 </div>
-              ) : rates.counts.received === 0 ? (
+              ) : state === "noOrders" ? (
                 <p className="text-sm text-muted-foreground">{t("statistics.compare.noOrders")}</p>
               ) : (
                 <dl className="space-y-2 text-xs">
