@@ -50,7 +50,7 @@ export function WilayaSection({
   };
 
   return (
-    <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 2xl:grid-cols-[1fr_auto]">
+    <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 max-sm:p-2 2xl:grid-cols-[1fr_auto]">
       <div className="min-w-0">
         <h2 className="mb-3 text-sm font-semibold">{t("dashboard.wilaya.title")}</h2>
         <WilayaTable rows={rows} filters={filters} openWilaya={openWilaya} panel={panel} hovered={hovered} onHover={setHovered} />

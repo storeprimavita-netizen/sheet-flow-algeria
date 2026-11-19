@@ -73,7 +73,7 @@ export function WilayaTable({
   return (
     <div className="relative">
     <div ref={scrollRef} onScroll={measure} className="overflow-x-auto">
-      <table className={cn(tableClass, "max-sm:[&_td]:px-1.5 max-sm:[&_th]:px-1.5 max-sm:text-xs sm:min-w-[32rem]")}>
+      <table className={cn(tableClass, "max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_th]:text-[10px] max-sm:text-xs sm:min-w-[32rem]")}>
         <thead>
           <tr>
             <th className="sticky start-0 z-[1] bg-surface">{t("fields.wilaya")}</th>
@@ -98,14 +98,14 @@ export function WilayaTable({
                   onMouseLeave={() => onHover(null)}
                 >
                   <td className={cn("sticky start-0 z-[1]", hovered === code || open ? "bg-surface-raised" : "bg-surface")}>
-                    <div className="flex items-center gap-1">
-                      {code === null ? <span className="h-7 w-7 shrink-0" /> : <Link
+                    <div className="flex items-center sm:gap-1">
+                      {code === null ? <span className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> : <Link
                         href={toggleHref(code)}
                         scroll={false}
                         aria-expanded={open}
                         aria-controls={panelId}
                         aria-label={t(open ? "statistics.collapse" : "statistics.expand", { name: w.name ?? String(code) })}
-                        className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="relative inline-flex h-6 w-6 shrink-0 sm:h-7 sm:w-7 items-center justify-center rounded-md text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <ChevronRight className={cn("h-4 w-4 transition-transform rtl:-scale-x-100", open && "rotate-90 rtl:rotate-90")} />
                       </Link>}
@@ -127,7 +127,7 @@ export function WilayaTable({
                 </tr>
                 {open ? (
                   <tr>
-                    <td colSpan={5} id={panelId} className="bg-surface p-0">
+                    <td colSpan={5} id={panelId} className="max-w-0 bg-surface p-0">
                       {panel}
                     </td>
                   </tr>

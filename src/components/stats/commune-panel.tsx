@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -89,13 +90,13 @@ export async function CommunePanel({
   const notEnough = t("statistics.notEnoughData");
 
   return (
-    <div className="sticky start-0 max-w-[calc(100vw-3rem)] space-y-3 p-4">
+    <div className="sticky start-0 max-w-[calc(100vw-2rem)] space-y-3 p-4 max-sm:p-1.5">
       <ExtrasLine extras={group.extras} t={t} />
       {rows.length === 0 ? (
         <Empty className="p-6">{t("statistics.noCommunes")}</Empty>
       ) : (
         <div className="overflow-x-auto">
-          <table className={tableClass}>
+          <table className={cn(tableClass, "max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_th]:text-[10px] max-sm:text-xs")}>
             <thead>
               <tr>
                 <th className="sticky start-0 z-[1] bg-surface">{t("statistics.commune")}</th>
@@ -115,9 +116,9 @@ export async function CommunePanel({
                     <td className="num text-end">
                       {counts.received > 0 ? <Link href={href("received")} className={DRILL_LINK}>{counts.received}</Link> : counts.received}
                     </td>
-                    <td className="min-w-32"><MetricCell m={r.g.rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
-                    <td className="min-w-32"><MetricCell m={r.g.rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
-                    <td className="min-w-32"><MetricCell m={r.g.rates.return} numHref={href("return")} title={notEnough} /></td>
+                    <td className="sm:min-w-32"><MetricCell m={r.g.rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
+                    <td className="sm:min-w-32"><MetricCell m={r.g.rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
+                    <td className="sm:min-w-32"><MetricCell m={r.g.rates.return} numHref={href("return")} title={notEnough} /></td>
                   </tr>
                 );
               })}
