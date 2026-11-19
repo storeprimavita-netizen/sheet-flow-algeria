@@ -91,4 +91,16 @@ describe("status filter options", () => {
     expect(values(await Page({ searchParams: Promise.resolve({}) }))).not.toContain("delivered");
     expect(values(await Page({ searchParams: Promise.resolve({ show: "all" }) }))).toContain("delivered");
   });
+
+  test("delivery without show=all leaves out swap, returned and cancelled", async () => {
+    const { default: Page } = await import("./delivery/page");
+    const v = values(await Page({ searchParams: Promise.resolve({}) }));
+    for (const s of ["swap", "returned", "cancelled"]) expect(v).not.toContain(s);
+  });
+
+  test("confirmation never lists confirmed", async () => {
+    const { default: Page } = await import("./confirmation/page");
+    expect(values(await Page({ searchParams: Promise.resolve({}) }))).not.toContain("confirmed");
+    expect(values(await Page({ searchParams: Promise.resolve({ show: "all" }) }))).not.toContain("confirmed");
+  });
 });

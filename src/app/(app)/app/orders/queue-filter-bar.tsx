@@ -1,10 +1,11 @@
 "use client";
 
+import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { SearchParamInput } from "@/components/fields/search-param-input";
+import { SearchParamInput, type SearchBoxHandle } from "@/components/fields/search-param-input";
 import { CLEARED } from "@/lib/order-views";
 
 export type QueueStatusOpt = { value: string; label: string };
@@ -30,6 +31,7 @@ export function QueueFilterBar({
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
+  const box = React.useRef<SearchBoxHandle>(null);
 
   function setStatus(v: string) {
     const next = new URLSearchParams(sp.toString());
@@ -38,6 +40,7 @@ export function QueueFilterBar({
       else next.delete(statusKey);
     } else next.set(statusKey, v);
     next.delete("page");
+    box.current?.mergeInto(next);
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -45,7 +48,7 @@ export function QueueFilterBar({
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="min-w-48 flex-1">
-        <SearchParamInput placeholder={t("orders.search")} inherited={q} clearedMarker={CLEARED} />
+        <SearchParamInput placeholder={t("orders.search")} inherited={q} clearedMarker={CLEARED} syncRef={box} />
       </div>
       <label className="space-y-1">
         <span className="text-xs font-medium text-muted-foreground">{statusLabel}</span>
