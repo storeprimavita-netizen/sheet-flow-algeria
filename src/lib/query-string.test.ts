@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
+import { communeLinkable, COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, isRealIsoDate, MAX_COMMUNE_KEY, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
 import { DRILL_FILTER_KEYS } from "@/app/(app)/app/orders/orders-filter-bar";
 
 describe("drillHref", () => {
@@ -41,5 +41,26 @@ describe("normalized stats filters", () => {
   });
   test("leaving drill removes every statistics-only filter orders/all applies", () => {
     expect([...DRILL_FILTER_KEYS]).toEqual(["category", "conf_agent", "delivery_type"]);
+  });
+});
+
+describe("impossible values", () => {
+  test("rejects impossible dates (2026-02-30) on statistics + drill params", () => {
+    expect(isRealIsoDate("2026-02-30")).toBe(false);
+    expect(isRealIsoDate("2026-13-01")).toBe(false);
+    expect(isRealIsoDate("2024-02-29")).toBe(true);
+    const f = parseStatsFilters((k) => ({ from: "2026-02-30", to: "2026-03-01" })[k] ?? "");
+    expect(f.from).toBeUndefined();
+    expect(f.to).toBe("2026-03-01");
+  });
+  test("communeLinkable false over 120", () => {
+    expect(communeLinkable("a".repeat(MAX_COMMUNE_KEY))).toBe(true);
+    expect(communeLinkable("a".repeat(MAX_COMMUNE_KEY + 1))).toBe(false);
+  });
+  test("shipped drill carries delivery_type and the display label", () => {
+    const u = new URL(drillHref({}, "shipped", { wilaya: 16, communeKey: "bab", communeLabel: "Bab Ezzouar", deliveryType: "home" }), "http://x");
+    expect(u.searchParams.get("drill")).toBe("shipped");
+    expect(u.searchParams.get("delivery_type")).toBe("home");
+    expect(u.searchParams.get("commune_label")).toBe("Bab Ezzouar");
   });
 });

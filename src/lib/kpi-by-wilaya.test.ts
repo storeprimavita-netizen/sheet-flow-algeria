@@ -252,4 +252,51 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
     expect(await drill("received", {}, ws2Admin)).toEqual([]);
     expect(await drill("nonsense")).toEqual([]);
   });
+  test("drill shipped count == extras.shipped per wilaya, and by delivery_type == home/stopdesk counts; anon and delivery agent get no rows", async () => {
+    const p = await product();
+    await order(p, { delivery_status: "delivered", delivery_type: "home" });
+    await order(p, { delivery_status: "returned", delivery_type: "home" });
+    await order(p, { delivery_status: "delivered", delivery_type: "stopdesk", wilaya_code: 31 });
+    await order(p, { delivery_status: "wait_for_deposit", delivery_type: "home" });
+    const drill = async (extra: Record<string, unknown>, c = admin) => {
+      const { data, error } = await c.rpc("kpi_drill_orders", { p_metric: "shipped", p_from: DAY, p_to: DAY, p_product: [p], ...extra });
+      return { data: (data ?? []) as { id: string; total: number }[], error };
+    };
+    for (const w of await byWilaya(p)) {
+      const all = await drill({ p_wilaya: w.wilaya_code });
+      expect(Number(all.data[0]?.total ?? 0)).toBe(w.extras.shipped);
+      const home = await drill({ p_wilaya: w.wilaya_code, p_delivery_type: "home" });
+      expect(Number(home.data[0]?.total ?? 0)).toBe(w.extras.home_count);
+      const stop = await drill({ p_wilaya: w.wilaya_code, p_delivery_type: "stopdesk" });
+      expect(Number(stop.data[0]?.total ?? 0)).toBe(w.extras.stopdesk_count);
+    }
+    expect((await drill({ p_wilaya: 16 }, delAgent)).data).toEqual([]);
+    expect((await drill({ p_wilaya: 16 }, client(ANON_KEY))).error).not.toBeNull();
+  });
+
+  test("drill return includes swap original (D47); avg_days excludes a swapped delivered original; commune confirmed/return totals match", async () => {
+    const p = await product();
+    const b = await order(p, { delivery_status: "returning", commune: "Hydra" });
+    const sw = await admin.rpc("swap_order", {
+      p_order_id: b, p_customer_id: null as unknown as string, p_customer_name: "Swap Client", p_customer_phone: "0555000111",
+      p_wilaya_code: 16, p_commune: "Hydra", p_address: "y",
+    });
+    expect(sw.error).toBeNull();
+    const d = await order(p, { delivery_status: "delivered", commune: "Hydra" });
+    const drill = async (metric: string, extra: Record<string, unknown> = {}) => {
+      const { data, error } = await admin.rpc("kpi_drill_orders", { p_metric: metric, p_from: DAY, p_to: DAY, p_product: [p], p_wilaya: 16, ...extra });
+      expect(error).toBeNull();
+      return (data ?? []) as { id: string; total: number }[];
+    };
+    expect((await drill("return")).map((r) => r.id)).toContain(b);
+    for (const c of await byCommune(p, 16)) {
+      const extra = c.commune_key === null ? { p_unknown: true } : { p_commune_key: c.commune_key };
+      expect(Number((await drill("confirmed", extra))[0]?.total ?? 0)).toBe(c.rates.counts.confirmed);
+      expect(Number((await drill("return", extra))[0]?.total ?? 0)).toBe(c.rates.return.num);
+    }
+    // the swapped original is shipped but never sampled for avg days
+    const [w] = await byWilaya(p);
+    expect(w.extras.avg_days_sample).toBe(1);
+    expect(d).toBeTruthy();
+  });
 });
