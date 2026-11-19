@@ -1065,6 +1065,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"season_periods": {
+                  Row: {
+                    "created_at": string,"date_from": string,"date_to": string,"id": string,"season_id": string,"updated_at": string,"workspace_id": string,"year": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"date_from": string,"date_to": string,"id"?: string,"season_id": string,"updated_at"?: string,"workspace_id": string,"year": number
+                  }
+                  Update: {
+                    "created_at"?: string,"date_from"?: string,"date_to"?: string,"id"?: string,"season_id"?: string,"updated_at"?: string,"workspace_id"?: string,"year"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "season_periods_season_id_workspace_id_fkey"
+      columns: ["season_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "seasons"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "season_periods_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"seasons": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"name_key": string | null,"sort": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"name_key"?: string | null,"sort"?: number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"name_key"?: string | null,"sort"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "seasons_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"settings": {
                   Row: {
                     "key": string,"updated_at": string,"value": NonNullable<Json>,"workspace_id": string
@@ -1611,17 +1657,17 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "kpi_by_commune":
-{ Args: { "p_from"?: string,"p_product"?: (string)[],"p_to"?: string,"p_wilaya": number }; Returns: {
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string,"p_wilaya": number }; Returns: {
               "commune": string,"commune_key": string,"extras": Json,"rates": Json
             }[]
                            },
 "kpi_by_wilaya":
-{ Args: { "p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
               "extras": Json,"rates": Json,"wilaya_code": number,"wilaya_name": string
             }[]
                            },
 "kpi_drill_orders":
-{ Args: { "p_commune_key"?: string,"p_delivery_type"?: string,"p_from"?: string,"p_limit"?: number,"p_metric": string,"p_offset"?: number,"p_product"?: (string)[],"p_to"?: string,"p_unknown"?: boolean,"p_wilaya"?: number }; Returns: {
+{ Args: { "p_commune_key"?: string,"p_delivery_type"?: string,"p_filters"?: Json,"p_from"?: string,"p_limit"?: number,"p_metric": string,"p_offset"?: number,"p_product"?: (string)[],"p_to"?: string,"p_unknown"?: boolean,"p_wilaya"?: number }; Returns: {
               "id": string,"total": number
             }[]
                            },
@@ -1635,12 +1681,15 @@ isOneToOne: false
 { Args: { "p_den": number,"p_num": number,"p_unresolved": number }; Returns: Json
                            },
 "kpi_order_set":
-{ Args: { "p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
               "id": string
             }[]
                            },
 "kpi_rates":
 { Args: { "p_from"?: string,"p_order_ids": (string)[],"p_to"?: string }; Returns: Json
+                           },
+"kpi_set_rates":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: Json
                            },
 "kpi_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json

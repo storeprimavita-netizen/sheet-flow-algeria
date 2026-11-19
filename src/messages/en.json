@@ -35,7 +35,8 @@
     "storeHub": "Store",
     "storePages": "Product pages",
     "storeSettings": "Store settings",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "seasons": "Seasons"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -676,7 +677,8 @@
     "tabs": {
       "overview": "Overview",
       "users": "Users",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "seasons": "Seasons"
     },
     "usersSubtitle": "Invite teammates & manage roles",
     "auditSubtitle": "Who changed what, when",
@@ -850,6 +852,37 @@
       "tooLarge": "The file is larger than 1 MB.",
       "chooseFile": "Choose file",
       "noFile": "No file chosen"
+    },
+    "seasons": {
+      "purpose": "Name the periods that matter to your sales (Ramadan, Eid, back to school) and set their dates for each year. Statistics uses them to compare the same season year over year.",
+      "loadError": "Couldn't load the seasons.",
+      "addSeason": "New season",
+      "namePlaceholder": "e.g. Black Friday",
+      "add": "Add season",
+      "name": "Season name",
+      "rename": "Rename",
+      "deleteSeasonLabel": "Delete season {name}",
+      "deleteSeasonConfirm": "Delete {name} and all its dates? This cannot be undone.",
+      "deletePeriodLabel": "Delete {year} dates of {name}",
+      "noDates": "No dates yet",
+      "addDates": "Add dates",
+      "addPeriod": "Add a year",
+      "editPeriod": "Edit dates",
+      "dateFrom": "First day",
+      "dateTo": "Last day",
+      "yearRule": "The year is the year of the first day. One period per year.",
+      "empty": "No seasons yet. Add the first one above.",
+      "err": {
+        "errForbidden": "Only an admin can change seasons.",
+        "errName": "Enter a name (80 characters at most).",
+        "errDuplicateName": "A season with this name already exists.",
+        "errDates": "Enter valid first and last days.",
+        "errRange": "The last day must be on or after the first day.",
+        "errDuplicateYear": "This season already has dates for that year. Edit them instead.",
+        "errDuplicate": "This already exists.",
+        "errMissing": "That season no longer exists. Reload the page.",
+        "errGeneric": "Could not save. Try again."
+      }
     }
   },
   "login": {
@@ -1464,11 +1497,49 @@
     "retry": "Try again",
     "errorTitle": "Statistics couldn't load",
     "emptyTitle": "No orders match these filters",
-    "emptyBody": "Widen the period or clear the product filter to see wilaya rates.",
-    "widenPeriod": "Clear the period",
-    "clearProduct": "Clear the product",
+    "emptyBody": "Clear the filters to see wilaya rates.",
     "unknownWilaya": "Unknown wilaya",
     "allOrders": "Open all orders",
-    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection."
+    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection.",
+    "loadError": "Couldn't load the statistics.",
+    "clearFilters": "Clear filters",
+    "filters": {
+      "season": "Season",
+      "year": "Year",
+      "latestYear": "Latest year",
+      "yearNeedsSeason": "Choose a season first.",
+      "more": "More filters ({n})",
+      "noCategories": "No product categories yet.",
+      "deliveryType": "Delivery type",
+      "overridden": "overridden",
+      "overriddenNote": "The dates in the period filter override the season.",
+      "invalidSeason": "That season no longer exists, so it was ignored.",
+      "invalidYear": "That year has no dates for this season, so the latest year is shown.",
+      "noPeriods": "This season has no dates yet. Add them in Settings > Seasons.",
+      "remove": "Remove filter: {name}",
+      "dropped": "The {name} filter was ignored: that value is not available.",
+      "seasonsError": "Couldn't load the seasons. Try again.",
+      "active": "Active filters"
+    },
+    "compare": {
+      "title": "{name} across years",
+      "noPeriods": "{name} has no dates yet.",
+      "openSettings": "Add dates in Settings > Seasons",
+      "inProgress": "In progress",
+      "selected": "Selected",
+      "yearError": "Couldn't load {year}.",
+      "noOrders": "No orders",
+      "more": "Showing the latest {shown} of {total} years."
+    }
+  },
+  "seasons": {
+    "names": {
+      "ramadan": "Ramadan",
+      "eid_al_fitr": "Eid al-Fitr",
+      "eid_al_adha": "Eid al-Adha",
+      "summer": "Summer",
+      "back_to_school": "Back to school",
+      "winter": "Winter"
+    }
   }
 }

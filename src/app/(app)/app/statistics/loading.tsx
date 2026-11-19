@@ -7,7 +7,7 @@ export default function StatisticsLoading() {
         <div className={`${bar} h-7 w-48`} />
         <div className={`${bar} h-4 w-80 max-w-full`} />
       </div>
-      <div className="card-surface h-20 rounded-xl sm:w-[32rem]" />
+      <div className="card-surface h-44 w-full rounded-xl sm:h-32" />
       <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 2xl:grid-cols-[1fr_auto]">
         <div className="space-y-2">
           {Array.from({ length: 8 }, (_, i) => (

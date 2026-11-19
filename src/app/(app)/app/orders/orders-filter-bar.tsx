@@ -12,9 +12,13 @@ import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
+import { drillChips, type DrillFilters, type DrillKey } from "./_lib/drill-filters";
 import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses";
 
 export type Opt = { value: string; label: string; token?: StatusToken };
+
+/** Statistics-only filters read by orders/all (with or without a drill metric). */
+export const DRILL_FILTER_KEYS = ["category", "conf_agent", "delivery_type"] as const;
 
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
@@ -23,10 +27,17 @@ export function OrdersFilterBar({
   products,
   wilayas,
   agents,
+  categories,
+  drill,
+  dropped,
 }: {
   products: Opt[];
   wilayas: Opt[];
   agents: Opt[];
+  categories: Opt[];
+  /** Statistics-only filters, already checked by the page. */
+  drill: DrillFilters;
+  dropped: DrillKey[];
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -37,7 +48,7 @@ export function OrdersFilterBar({
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
   function leaveDrill(next: URLSearchParams) {
-    for (const k of ["drill", "commune_key", "commune_unknown"]) next.delete(k);
+    for (const k of ["drill", "commune_key", "commune_unknown", ...DRILL_FILTER_KEYS]) next.delete(k);
   }
 
   function setDates(from: string, to: string) {
@@ -56,6 +67,14 @@ export function OrdersFilterBar({
     else next.set(k, v);
     leaveDrill(next);
     next.delete("page"); // any filter change resets pagination
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  const DRILL_KEYS = new Set<string>(DRILL_FILTER_KEYS);
+  function dropOne(k: string) {
+    const next = new URLSearchParams(sp.toString());
+    next.delete(k);
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -92,10 +111,28 @@ export function OrdersFilterBar({
     const v = get(s.key);
     if (v) chips.push({ key: s.key, label: `${s.label}: ${s.opts.find((o) => o.value === v)?.label ?? v}` });
   }
+  // statistics-only filters that orders/all applies: always visible, removable one by one
+  chips.push(
+    ...drillChips(drill, {
+      category: t("fields.category"),
+      agent: t("fields.agent"),
+      deliveryType: t("statistics.filters.deliveryType"),
+      selected: t("statistics.compare.selected"),
+      deliveryTypeNames: { home: t("statistics.home"), stopdesk: t("statistics.stopdesk") },
+      categories,
+      agents,
+    }),
+  );
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
   if (get("q")) chips.push({ key: "q", label: `${t("orders.search")}: ${get("q")}` });
   if (dupOn) chips.push({ key: "duplicates", label: t("orders.duplicatesOnly") });
+
+  const droppedNames: Record<DrillKey, string> = {
+    category: t("fields.category"),
+    conf_agent: t("fields.agent"),
+    delivery_type: t("statistics.filters.deliveryType"),
+  };
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-4">
@@ -140,7 +177,7 @@ export function OrdersFilterBar({
         {chips.length > 0 ? (
           <>
             {chips.map((c) => (
-              <button key={c.key} type="button" onClick={() => setParam(c.key, null)} className="focus:outline-none">
+              <button key={c.key} type="button" onClick={() => (DRILL_KEYS.has(c.key) ? dropOne(c.key) : setParam(c.key, null))} className="focus:outline-none">
                 <Chip token="neutral" size="sm" className="gap-1 hover:bg-neutral-bg/70">
                   {c.label}
                   <X className="h-3 w-3" />
@@ -158,6 +195,11 @@ export function OrdersFilterBar({
           </>
         ) : null}
       </div>
+      {dropped.length > 0 ? (
+        <p className="text-xs text-muted-foreground" role="status">
+          {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
+        </p>
+      ) : null}
     </div>
   );
 }

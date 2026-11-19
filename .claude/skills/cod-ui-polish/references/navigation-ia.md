@@ -58,7 +58,7 @@ Rules:
 | Courier cash | `/app/money/courier-cash` | `/app/orders/cash` + Finance → Income | Dashboard tiles |
 | Accounts, Expenses, Ad spend, Overview | `/app/money/*` | `/app/finance/*` | Product tabs (filtered) |
 | Suppliers | `/app/money/suppliers` | `/app/contacts/suppliers` | Expense form |
-| Users, Audit | `/app/settings/users`, `/app/settings/audit` | same | – |
+| Users, Seasons, Audit | `/app/settings/users`, `/app/settings/seasons`, `/app/settings/audit` | same (Seasons new, STATS-3) | Statistics filter bar and compare strip link to Seasons |
 
 (Folders may keep their current names behind route groups if a rename is too
 wide for one task; the **URLs and labels** above are what users see.)

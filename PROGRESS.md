@@ -373,3 +373,20 @@ STATS-2 round 2 (review-1 FIX): fixed findings 1-8, 10-13 (drill error -> retry 
 - Open: STATS-2-F (12 lows, missing brief tests, review-1 findings 9 and 14).
 - Owner: migrations 00059-00060 need the production push; product call on Latin names in AR (STATS-2-F).
 - Next: STATS-2-F after the owner's priority rows; STATS-3 is unblocked once STATS-2 merges to v3.
+
+## STATS-3 UI self-critique
+Screenshots (light, EN): statistics with season + compare strip, Seasons tab at 390px. Dark theme, AR, other states not screenshotted.
+
+STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filter values dropped with a note, Period field shows the season range, no highlight when dates override plus a "Selected" label, "In progress" only while the period is open, named delete buttons and season-specific confirm, unique (workspace_id, season_id, year) in 00062, orders/all leaveDrill clears category and conf_agent, rename keeps the translated name when unchanged, savePeriod errors on 0 rows, lone season remembered, formatted counts, seasons-load error with retry, ltr period chip). Not done: 8 partly (no chips added), the bar height on mobile, extra tests listed under "Missing tests" except savePeriod/rename. Screenshots (chrome-devtools, docs/design/audit/STATS-3/r2-*): 390px dark EN and AR with 4 filters + dropped notes + overridden compare, Seasons edit dialog 390 dark AR. Not captured: light AR, desktop dark/AR, compare error, Seasons empty/error (no safe way to force them locally).
+
+## STATS-3 round 5 (D66)
+- Orders/all drill chips: category shows "Category: <label>", delivery type shows the translated home/stop-desk label, only home/stopdesk accepted (otherwise dropped, `role=status` note); unknown label falls back to "<field>: Selected". Pure fns + tests in `orders/_lib/drill-filters*.ts`.
+- Browser (chrome-devtools, viewport locked at 390): screenshots `docs/design/audit/STATS-3/final-orders-drill-390-{en-dark,ar-dark,en-light}.png`, `final-stats-390-{en,ar}-dark.png`. Chip removal and Clear all verified on both pages. Not done: 1280 screens and Settings > Seasons dark EN 1280 (viewport could not be resized). Observed: removing one Statistics chip also dropped season/year from the URL (check in STATS-3-F).
+
+## STATS-3 done (review-5 PASS, D66)
+- Done: admin seasons (named date ranges per year, migrations 00061-00062) and one URL-state filter bar on Statistics; Orders/all drill chips (category label, translated delivery type, checked values).
+- Verify: `scripts/gate.sh` GATE OK (tsc, 627 passed / 3 skipped with live RLS suite, i18n parity, color lint, build, protected paths, secret scan). Retry after test-cleanup 8f72ccb; local DB reset to 00062.
+- Evidence: docs/briefs/STATS-3.review-5.md PASS; screenshots docs/design/audit/STATS-3/ (390px only).
+- Open: STATS-3-F (review-3/4/5 lows, missing tests, chip removal drops season/year from URL, seasons.rls.test.ts 5s timeouts when leaked workspaces exist).
+- Owner: migrations 00061-00062 await the production push.
+- Next: STATS-3-F after the owner's priority rows; STATS-4 is unblocked once STATS-3 merges to v3.

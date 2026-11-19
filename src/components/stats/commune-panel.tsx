@@ -55,11 +55,14 @@ export async function CommunePanel({
   wilaya,
   group,
   filters,
+  pFilters,
   retryHref,
 }: {
   wilaya: number;
   group: KpiGroup;
   filters: DashboardFilters;
+  /** `p_filters` of the SQL set (kpiFiltersJson) */
+  pFilters?: Record<string, string>;
   retryHref: string;
 }) {
   const t = await getTranslations();
@@ -69,6 +72,7 @@ export async function CommunePanel({
     p_from: filters.from,
     p_to: filters.to,
     p_product: filters.product ? [filters.product] : undefined,
+    p_filters: pFilters,
   });
 
   if (error) {
