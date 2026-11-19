@@ -333,3 +333,4 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Known issue: the fast gate failed once in 4 runs right after the STORE-1 merge (test clean-up deadlock, reduced not gone — STORE-1-F).
 - Owner: migrations 00039–00050 wait for the production push (O-2). Products with sizes show "Count needed" until counted once.
 - Next /auto: STORE-3 (pricing modes, offers, order form fields), then P1-7, STORE-4.
+- P1-7 screenshots (browser MCP, AR + light + 1280 only): CSV dialog preview, fee grid after apply, order form. Not covered: dark, EN, 390px, warning/failed/applying dialog states, commune picker open. Fixed from screenshots: before/after values forced LTR in the preview cards.

@@ -257,15 +257,15 @@ function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
       </div>
       <dl className="grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
         <dt className="text-muted-foreground">{t("colHome")}</dt>
-        <dd className="col-span-2 tabular-nums">
+        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
           {homeBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {homeAfter}
         </dd>
         <dt className="text-muted-foreground">{t("colDesk")}</dt>
-        <dd className="col-span-2 tabular-nums">
+        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
           {deskBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {deskAfter}
         </dd>
         <dt className="text-muted-foreground">{t("colCommunes")}</dt>
-        <dd className="col-span-2 tabular-nums">
+        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
           {row.communesBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {row.communesAfter}
         </dd>
       </dl>
