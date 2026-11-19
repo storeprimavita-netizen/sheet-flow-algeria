@@ -408,3 +408,16 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: docs/briefs/PRICE-3.review-4.md PASS; screenshots docs/design/audit/PRICE-3/ and PRICE-3-r4review/.
 - Owner: none.
 - Next: PRICE-3-F (review-4 lows, missing tests); PRICE-4 unblocked.
+
+## PRICE-4 — Portfolio view + CSV; BENZ retired (2026-11-19) — BUILT
+- Done: `/app/pricing` portfolio (scenario toggle, 5 cards, totals, CSV) on `pricing-v2` via `src/lib/pricing-portfolio.ts`; BENZ engine/planner/v1 strings removed; `/app/products/planner` redirects.
+- Removed: `scenario-engine.tsx`, `pricing-data.ts`, BENZ half of `pricing.ts` (P&L metrics kept), v1 tests, `pricing.*` messages.
+- Screenshots: `docs/design/audit/PRICE-4/` (1280 + 390, dark/light, EN/AR; scrollWidth == viewport at 390 in all four). Empty and error states not screenshotted (no way to force them with seed data); missing-cost row not shown (all seed products have cost).
+- Note: benz worst capital 173,700 needs worst ad cost typed as 2.70 (derived 2.71 gives 174,041); test fixture types 2.7.
+- PRICE-4 r2: review-1 fixed (inactive excluded, CSV formula neutralised, capital column, chip slot, lows); screenshots r2-* (light/dark, AR/EN, 390/1280) checked.
+
+## PRICE-4 round 4 done (review-4 PASS, D69)
+- Done: `csv.ts` segment rule (`;`, tab, CR, LF start a new segment; formula-like segments get an apostrophe; wider quoting) with the 19 pinned outputs in `csv.test.ts`; no other file changed in round 4.
+- Verify: `scripts/gate.sh` GATE OK on v3-PRICE-4 (680 passed / 3 skipped, live RLS suite).
+- Evidence: `docs/briefs/PRICE-4.review-4.md` PASS; D69. Owner: Q-24 and D69 section 6 accepted limits (owner may overturn D69).
+- Next: PRICE-4-F (reviews 1–4 lows, missing tests, 1,000-product cap, agent-redirect test, "Pricing calculator" sidebar label, Excel leading zero).

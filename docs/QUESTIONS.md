@@ -8,6 +8,29 @@ owner may overturn").
 
 ## Open
 
+### Q-24 · PRICE-4 · 2026-11-19 · answered-by-default
+The new Pricing page is finished and its numbers passed three reviews. The
+third review found one serious point, and it is not in the Pricing page: it is
+in the file export that Pricing shares with "All orders". A customer can type
+anything as her name on the store. A name written in a certain way (for
+example `Ali;=...`) can become a formula when the orders export is opened in
+Excel on a computer set to French or Arabic, where Excel separates columns with
+a semicolon. The app you use today has this weakness and a wider one (a name
+that simply starts with `=`); this task already closes the wider one.
+**Applied by default (D69):** one last short round that fixes only the export
+file, then a normal review. If it passes, the task is merged. If it does not,
+there is no further round and no merge: the task waits for your OK. The other
+options were to park the task now (the export keeps no protection at all
+meanwhile) or to move the export fix to a separate task. What you will see: a
+name or note that looks like a formula gets a `'` in front of that part in the
+exported file; phone numbers and amounts are not changed. Until this reaches
+the live app: if Excel shows a security warning when you open an orders export,
+answer No.
+Worth a word later: when you open an export in Excel, does everything land in
+one column, or do phone numbers lose their first 0? If yes, say so: the export
+can be made a real Excel file (or use semicolons), which fixes both. Nothing is
+blocked.
+
 ### Q-23 · PRICE-4 · 2026-11-19 · answered-by-default
 The new Pricing page (one line per product, with totals) shows "Capital
 needed". Your calculator had this number, but its rule is not in the text you

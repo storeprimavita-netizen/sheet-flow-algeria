@@ -62,7 +62,7 @@ describe("nav model", () => {
     const a = (p: string) => activeLeafHref("admin", p);
     expect(a("/app/contacts/suppliers")).toBe("/app/contacts/suppliers");
     expect(a("/app/contacts")).toBe("/app/contacts");
-    expect(a("/app/products/planner")).toBe("/app/products/planner");
+    expect(a("/app/pricing")).toBe("/app/pricing");
     expect(a("/app/products")).toBe("/app/products");
     expect(a("/app/orders/123")).toBe("/app/orders/all");
     expect(a("/app/orders/new")).toBe("/app/orders/all");

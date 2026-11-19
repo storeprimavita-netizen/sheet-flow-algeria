@@ -77,7 +77,7 @@ export const GROUPS: NavGroup[] = [
     items: [
       { key: "products", href: "/app/products", icon: Package, adminOnly: true },
       { key: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
-      { key: "pricing", oldKey: "planner", href: "/app/products/planner", icon: Calculator, adminOnly: true },
+      { key: "pricing", oldKey: "planner", href: "/app/pricing", icon: Calculator, adminOnly: true },
     ],
   },
   {
