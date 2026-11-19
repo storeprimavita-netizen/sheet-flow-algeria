@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { MoneyField } from "@/components/fields/money-field";
 import { tableClass } from "@/components/field";
 import { cn } from "@/lib/utils";
-import { saveWilayaFees } from "./actions";
+import { saveWilayaFees, type FeesSaveState } from "./actions";
 import { FeesCsvDialog } from "./fees-csv-dialog";
 
 type FeeRow = {
@@ -36,6 +36,8 @@ export function FeesSection({
   const t = useTranslations();
   // re-key rows after a CSV apply so uncontrolled inputs pick up new defaults
   const gridKey = snapshot + rows.length;
+  const [state, formAction] = React.useActionState<FeesSaveState, FormData>((_prev, fd) => saveWilayaFees(fd), undefined);
+  const nameOf = (code: number) => rows.find((r) => r.wilaya_code === code)?.wilaya?.name ?? String(code);
 
   return (
     <section id="delivery-fees" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
@@ -43,10 +45,16 @@ export function FeesSection({
         <h2 className="text-sm font-semibold">{t("settings.deliveryFees")}</h2>
         <FeesCsvDialog />
       </div>
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <p>{t("settings.fees.purpose")}</p>
+        <p>
+          <bdi>{t("settings.deliveryCsv.formatHint")}</bdi>
+        </p>
+      </div>
 
-      <form key={gridKey} action={saveWilayaFees} className="space-y-4">
+      <form key={gridKey} action={formAction} className="space-y-4">
         <input type="hidden" name="snapshot" value={snapshot} />
-        <div className="max-h-[28rem] overflow-auto">
+        <div className="md:max-h-[28rem] md:overflow-auto">
           <table className={cn(tableClass, "max-md:block [&_tbody]:max-md:block [&_tr]:max-md:block")}>
             <thead className="max-md:sr-only">
               <tr>
@@ -66,6 +74,11 @@ export function FeesSection({
             </tbody>
           </table>
         </div>
+        {state?.error ? (
+          <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
+            {t(`settings.fees.${state.error}`, { names: (state.codes ?? []).map(nameOf).join(", ") })}
+          </p>
+        ) : null}
         <Button type="submit">{t("actions.save")}</Button>
       </form>
     </section>

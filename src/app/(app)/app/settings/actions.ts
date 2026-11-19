@@ -288,7 +288,9 @@ const feeAmount = z.coerce.number().min(0);
 /** Admin saves the grid. A disabled fee input is not submitted: keep the stored value.
  * "No price" never becomes 0 (it is `priced=false`). Refuses to overwrite a CSV apply
  * that landed after the grid was loaded (compares the snapshot's updated_at). */
-export async function saveWilayaFees(formData: FormData) {
+export type FeesSaveState = { error: string; codes?: number[] } | undefined;
+
+export async function saveWilayaFees(formData: FormData): Promise<FeesSaveState> {
   const { workspaceId } = await adminProfile();
   const supabase = await createClient();
 
@@ -301,14 +303,18 @@ export async function saveWilayaFees(formData: FormData) {
   const snapshot = String(formData.get("snapshot") ?? "");
   const latest = stored.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
   if (snapshot && latest && new Date(snapshot).getTime() !== new Date(latest).getTime()) {
-    throw new Error("Fees changed since this page loaded. Reload and try again.");
+    return { error: "errStale" };
   }
 
+  let invalid = false;
   const field = (name: string, fallback: number) => {
     const raw = formData.get(name);
     if (raw === null || raw === "") return fallback;
     const r = feeAmount.safeParse(raw);
-    if (!r.success) throw new Error("Invalid fee amount");
+    if (!r.success) {
+      invalid = true;
+      return fallback;
+    }
     return r.data;
   };
 
@@ -337,9 +343,20 @@ export async function saveWilayaFees(formData: FormData) {
       );
     });
 
+  if (invalid) return { error: "errInvalid" };
+
+  // Re-enabling a wilaya (or its stop desk) must not go live at the 0 DZD stored while it was off.
+  const zeroOn = rows.filter((n) => {
+    const r = stored.find((x) => x.wilaya_code === n.wilaya_code)!;
+    const homeOn = n.priced && !r.priced;
+    const deskOn = n.priced && n.stopdesk_available && (!r.priced || !r.stopdesk_available);
+    return (homeOn && n.home_fee <= 0) || (deskOn && n.stopdesk_fee <= 0);
+  });
+  if (zeroOn.length) return { error: "errNeedFee", codes: zeroOn.map((n) => n.wilaya_code) };
+
   if (rows.length) {
     const { error } = await supabase.from("wilaya_fees").upsert(rows, { onConflict: "workspace_id,wilaya_code" });
-    if (error) throw new Error(error.message);
+    if (error) return { error: "errSave" };
   }
   revalidatePath("/app/settings");
 }

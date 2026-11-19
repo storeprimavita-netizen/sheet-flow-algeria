@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { AlertTriangle, FileUp, Loader2, RotateCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, FileUp, Loader2, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,10 @@ type Phase =
   | { name: "preview"; data: Extract<DeliveryPreview, { ok: true }> }
   | { name: "applying"; data: Extract<DeliveryPreview, { ok: true }> }
   | { name: "failed"; data: Extract<DeliveryPreview, { ok: true }>; error: string };
+
+const MAX_CSV_BYTES = 1024 * 1024;
+
+const isWarned = (r: DeliveryDiffRow) => r.warnings.length > 0 || !r.after.priced;
 
 type Filter = "all" | "changed" | "warnings";
 
@@ -43,6 +47,7 @@ export function FeesCsvDialog() {
   async function onPick(f: File | null) {
     if (!f) return;
     setFile(f);
+    if (f.size > MAX_CSV_BYTES) return setPhase({ name: "invalid", error: t("tooLarge") }); // the action's 1 MB body limit would hide this
     setPhase({ name: "parsing" });
     const fd = new FormData();
     fd.set("file", f);
@@ -76,9 +81,9 @@ export function FeesCsvDialog() {
   const data = phase.name === "preview" || phase.name === "applying" || phase.name === "failed" ? phase.data : null;
   const rows = React.useMemo(() => {
     if (!data) return [];
-    return data.diff.rows.filter((r) => (filter === "changed" ? r.changed : filter === "warnings" ? r.warnings.length > 0 : true));
+    return data.diff.rows.filter((r) => (filter === "changed" ? r.changed : filter === "warnings" ? isWarned(r) : true));
   }, [data, filter]);
-  const warningCount = data ? data.diff.rows.reduce((n, r) => n + r.warnings.length, 0) + data.diff.fileWarnings.length : 0;
+  const warningCount = data ? data.diff.rows.reduce((n, r) => n + r.warnings.length + (r.after.priced ? 0 : 1), 0) + data.diff.fileWarnings.length : 0;
   const changedCount = data ? data.diff.rows.filter((r) => r.changed).length : 0;
 
   return (
@@ -103,9 +108,17 @@ export function FeesCsvDialog() {
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5" aria-live="polite" aria-busy={busy}>
             <div className="space-y-2">
-              <FileField accept=".csv,text/csv" onFile={onPick} disabled={busy} aria-describedby="csv-format-hint" />
+              <FileField
+                accept=".csv,text/csv"
+                onFile={onPick}
+                disabled={busy}
+                buttonLabel={t("chooseFile")}
+                emptyLabel={t("noFile")}
+                fileName={file?.name}
+                aria-describedby="csv-format-hint"
+              />
               <p id="csv-format-hint" className="text-xs text-muted-foreground">
-                {t("formatHint")}
+                <bdi>{t("formatHint")}</bdi>
               </p>
             </div>
 
@@ -192,11 +205,11 @@ export function FeesCsvDialog() {
             ) : null}
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border p-4 sm:flex-row sm:justify-end">
+          <div className="grid grid-cols-2 gap-2 border-t border-border p-4 sm:flex sm:justify-end">
             <Button type="button" variant="outline" disabled={phase.name === "applying"} onClick={() => setOpen(false)}>
               {t("cancel")}
             </Button>
-            <Button type="button" disabled={!(phase.name === "preview" || phase.name === "failed")} onClick={onApply}>
+            <Button type="button" disabled={!(phase.name === "preview" || phase.name === "failed") || (phase.name === "preview" && changedCount === 0)} onClick={onApply}>
               {phase.name === "applying" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {phase.name === "applying" ? t("applying") : t("apply")}
             </Button>
@@ -215,7 +228,7 @@ function Note({ text }: { text: string }) {
   return (
     <p className="flex items-start gap-2 rounded-lg border border-border p-3 text-xs text-muted-foreground">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-      <span>{text}</span>
+      <bdi>{text}</bdi>
     </p>
   );
 }
@@ -239,6 +252,18 @@ function fee(n: number | null, label: string) {
   return n === null ? label : formatCurrency(n);
 }
 
+/** before → after, following the page direction; numbers stay left-to-right inside their own isolate. */
+function Change({ before, after, label }: { before: string; after: string; label: string }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <bdi>{before}</bdi>
+      <ArrowRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden />
+      <span className="sr-only">{label}</span>
+      <bdi>{after}</bdi>
+    </span>
+  );
+}
+
 function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
   const t = useTranslations("settings.deliveryCsv");
   const a = row.after;
@@ -257,16 +282,16 @@ function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
       </div>
       <dl className="grid grid-cols-3 gap-x-3 gap-y-1 text-xs">
         <dt className="text-muted-foreground">{t("colHome")}</dt>
-        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
-          {homeBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {homeAfter}
+        <dd className="col-span-2 tabular-nums">
+          <Change before={homeBefore} after={homeAfter} label={t("after")} />
         </dd>
         <dt className="text-muted-foreground">{t("colDesk")}</dt>
-        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
-          {deskBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {deskAfter}
+        <dd className="col-span-2 tabular-nums">
+          <Change before={deskBefore} after={deskAfter} label={t("after")} />
         </dd>
         <dt className="text-muted-foreground">{t("colCommunes")}</dt>
-        <dd dir="ltr" className="col-span-2 text-start tabular-nums">
-          {row.communesBefore} <span aria-hidden>→</span> <span className="sr-only">{t("after")}</span> {row.communesAfter}
+        <dd className="col-span-2 tabular-nums">
+          <Change before={String(row.communesBefore)} after={String(row.communesAfter)} label={t("after")} />
         </dd>
       </dl>
       {row.warnings.length ? <FileWarnings warnings={row.warnings} /> : null}

@@ -122,8 +122,8 @@ export function OrderForm({
         <Field label={t("fields.quantity")}>
           <QuantityStepper name="quantity" defaultValue={1} />
         </Field>
-        <Field label={t("fields.unit_price")}>
-          <MoneyField key={`price-${productId}`} name="sale_price" defaultValue={product?.sale_price ?? 0} />
+        <Field label={t("fields.unit_price")} htmlFor="sale_price">
+          <MoneyField id="sale_price" key={`price-${productId}`} name="sale_price" defaultValue={product?.sale_price ?? 0} />
         </Field>
       </div>
 
@@ -149,7 +149,7 @@ export function OrderForm({
             </p>
           ) : null}
         </Field>
-        <Field label={t("fields.city")} htmlFor="commune" hint={t("common.optional")}>
+        <Field label={t("fields.city")} htmlFor={communeList.length ? undefined : "commune"} hint={t("common.optional")}>
           {communeList.length ? (
             <Combobox
               key={`commune-${wilayaCode}`}
@@ -191,8 +191,9 @@ export function OrderForm({
             </p>
           ) : null}
         </Field>
-        <Field label={t("fields.delivery_fee")}>
+        <Field label={t("fields.delivery_fee")} htmlFor="delivery_fee">
           <MoneyField
+            id="delivery_fee"
             key={`fee-${feeKey}`}
             name="delivery_fee"
             defaultValue={seededFee}

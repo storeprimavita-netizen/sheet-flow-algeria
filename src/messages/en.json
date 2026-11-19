@@ -788,7 +788,12 @@
       "colPriced": "Priced",
       "colDesk": "Stop desk",
       "autoStop": "Auto stop",
-      "unavailable": "Not available"
+      "unavailable": "Not available",
+      "errStale": "Fees changed since this page loaded. Reload the page and try again.",
+      "errNeedFee": "Enter a delivery fee above 0 DZD for {names} before turning it on.",
+      "errInvalid": "One of the fees is not a valid amount.",
+      "errSave": "The fees could not be saved. Try again.",
+      "purpose": "Delivery price per wilaya. Upload the price CSV to update all wilayas and communes at once."
     },
     "deliveryCsv": {
       "button": "Import CSV",
@@ -831,7 +836,10 @@
         "unknown_label": "Unknown price label: {text}",
         "duplicate_wilaya": "Wilaya listed twice, first one used: {text}"
       },
-      "warnWilaya": "Wilaya {code}"
+      "warnWilaya": "Wilaya {code}",
+      "tooLarge": "The file is larger than 1 MB.",
+      "chooseFile": "Choose file",
+      "noFile": "No file chosen"
     }
   },
   "login": {
