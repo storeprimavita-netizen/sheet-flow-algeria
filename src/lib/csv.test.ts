@@ -82,3 +82,34 @@ describe("toCSV edge cases (PRICE-4-F)", () => {
     expect(one(Number.NEGATIVE_INFINITY)).toBe("-Infinity");
   });
 });
+
+describe("toCSV orders export row (PRICE-4-F)", () => {
+  // Same twelve columns as exportRows in orders-all-table.tsx (kept inline: moving them is out of scope, D69).
+  type R = {
+    no: string; placed: string | null; name: string | null; phone: string | null; product: string | null;
+    qty: number; price: number | null; fee: number | null; wilaya: string | null; source: string; conf: string; del: string;
+  };
+  const cols = [
+    { key: "order", label: "Order", value: (r: R) => r.no },
+    { key: "placed", label: "Placed", value: (r: R) => r.placed ?? "" },
+    { key: "customer", label: "Customer", value: (r: R) => r.name ?? "" },
+    { key: "phone", label: "Phone", value: (r: R) => r.phone ?? "" },
+    { key: "product", label: "Product", value: (r: R) => r.product ?? "" },
+    { key: "qty", label: "Qty", value: (r: R) => r.qty },
+    { key: "total", label: "Total (DZD)", value: (r: R) => (r.price ?? 0) * r.qty },
+    { key: "fee", label: "Delivery fee (DZD)", value: (r: R) => r.fee ?? 0 },
+    { key: "wilaya", label: "Wilaya", value: (r: R) => r.wilaya ?? "" },
+    { key: "source", label: "Source", value: (r: R) => r.source },
+    { key: "confirmation", label: "Confirmation", value: (r: R) => r.conf },
+    { key: "delivery", label: "Delivery", value: (r: R) => r.del },
+  ];
+  it("neutralises hostile text but leaves phones, numbers and plain fields intact", () => {
+    const out = toCSV(cols, [
+      { no: "ORD-0001", placed: "2026-01-02T10:00:00Z", name: "=HYPERLINK(\"x\")", phone: "+213555123456", product: "Robe; -x", qty: 2, price: 2500, fee: 600, wilaya: "Alger", source: "store", conf: "confirmed", del: "pending" },
+      { no: "ORD-0002", placed: null, name: null, phone: "0555123456", product: null, qty: 1, price: null, fee: null, wilaya: null, source: "manual", conf: "new", del: "pending" },
+    ]).split("\r\n");
+    expect(out).toHaveLength(3);
+    expect(out[1]).toBe(`ORD-0001,2026-01-02T10:00:00Z,"'=HYPERLINK(""x"")",+213555123456,"Robe;' -x",2,5000,600,Alger,store,confirmed,pending`);
+    expect(out[2]).toBe("ORD-0002,,,0555123456,,1,0,0,,manual,new,pending");
+  });
+});
