@@ -111,6 +111,19 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     expect((await admin.rpc("apply_delivery_prices", { p: { wilayas: "x" } })).error).not.toBeNull();
   });
 
+  test("swap_order refuses a stop-desk order into a home-only wilaya, allows home", async () => {
+    expect((await admin.rpc("apply_delivery_prices", { p: payload() })).error).toBeNull();
+    const prod = (await svc.from("products").insert({ workspace_id: ws, name: tag() }).select("id").single()).data!.id as string;
+    const mk = async (type: "home" | "stopdesk") =>
+      (await svc.from("orders").insert({ workspace_id: ws, product_id: prod, quantity: 1, wilaya_code: 1, delivery_type: type, confirmation_status: "confirmed", delivery_status: "returned" }).select("id").single()).data!.id as string;
+    const swap = (id: string) => admin.rpc("swap_order", { p_order_id: id, p_customer_id: null, p_customer_name: "A", p_customer_phone: "0550000000", p_wilaya_code: 8, p_commune: "Bechar", p_address: "x" });
+    const bad = await swap(await mk("stopdesk"));
+    expect(bad.error?.message).toMatch(/not available/);
+    expect((await swap(await mk("home"))).error).toBeNull();
+    await svc.from("orders").delete().eq("workspace_id", ws);
+    await svc.from("products").delete().eq("id", prod);
+  });
+
   test("agent reads communes, cannot write or apply; other-workspace admin sees and changes nothing", async () => {
     expect((await agent.from("wilaya_communes").select("name").eq("wilaya_code", 1)).data!.length).toBeGreaterThan(0);
     expect((await agent.from("wilaya_communes").insert({ workspace_id: ws, wilaya_code: 1, name: "X" })).error).not.toBeNull();

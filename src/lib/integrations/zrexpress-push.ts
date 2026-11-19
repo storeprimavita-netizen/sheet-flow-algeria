@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";
+import { deliveryFeeFor } from "@/lib/pricing-delivery";
 import { normalizeText } from "@/lib/utils";
 import {
   getZRCredentials,
@@ -45,6 +46,21 @@ export async function pushToZR(
   }
   if (!order.customer_phone) {
     return { ok: false, error: "Order has no customer phone." };
+  }
+
+  // Delivery-type guard. An order that already carries a fee keeps it even if
+  // the wilaya became home-only since (push still works, warning logged).
+  const { data: feeRow } = await supabase
+    .from("wilaya_fees")
+    .select("home_fee, stopdesk_fee, priced, stopdesk_available")
+    .eq("workspace_id", workspaceId)
+    .eq("wilaya_code", order.wilaya_code)
+    .maybeSingle();
+  if (feeRow && deliveryFeeFor(feeRow, order.delivery_type) === null) {
+    if (order.delivery_fee == null) {
+      return { ok: false, error: "This delivery type is not available in this wilaya." };
+    }
+    console.warn(`pushToZR: order ${orderId} uses a delivery type no longer available in wilaya ${order.wilaya_code}`);
   }
 
   const { data: existing } = await supabase
