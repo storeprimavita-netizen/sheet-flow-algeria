@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { ChevronRight } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { isCurrentUserAdmin } from "@/lib/rbac";
 import { StatusPill } from "@/components/status-pill";
 import { ProductTabs } from "./product-tabs";
 
@@ -34,6 +35,7 @@ export default async function ProductTabsLayout({
     { href: `${base}/orders`, label: t("orders") },
     { href: `${base}/stock`, label: t("stock") },
     { href: `${base}/statistics`, label: t("statistics") },
+    ...((await isCurrentUserAdmin()) ? [{ href: `${base}/selling`, label: t("selling") }] : []),
   ];
   const image = product.images?.[0] ?? null;
 

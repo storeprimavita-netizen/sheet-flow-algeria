@@ -303,7 +303,8 @@
       "statistics": "Statistics",
       "pricing": "Pricing",
       "overview": "Overview",
-      "orders": "Orders"
+      "orders": "Orders",
+      "selling": "Selling"
     },
     "statistics": {
       "received": "Received",
@@ -1349,7 +1350,120 @@
         "saved": "Settings saved",
         "publicNote": "These details are public. Never enter a password or key."
       },
-      "loading": "Loading store"
+      "loading": "Loading store",
+      "selling": {
+        "title": "Selling",
+        "purpose": "How this product is priced, the quantity offers and bump, and the order-form fields.",
+        "viewOnStore": "View on store",
+        "viewOnStoreNone": "Publish a page for this product to view it on the store.",
+        "errorTitle": "The Selling tab could not load",
+        "save": "Save",
+        "saving": "Saving",
+        "saved": "Saved",
+        "unsaved": "Unsaved changes",
+        "retry": "Retry",
+        "errors": {
+          "invalid": "Check the values and try again.",
+          "notFound": "This product was not found.",
+          "forbidden": "Only an admin can change this.",
+          "bump": "This bump product cannot be used: it must be active, priced, and have no sizes.",
+          "failed": "Could not save. Try again."
+        },
+        "pricing": {
+          "title": "Pricing",
+          "base": "Base price {price} (set in Details).",
+          "noBase": "Set a sale price in Details first.",
+          "modeLabel": "Pricing mode",
+          "mode": {
+            "uniform": "Same price",
+            "per_value": "By option value",
+            "per_variant": "Per size"
+          },
+          "modeHint": {
+            "uniform": "Every size costs the base price.",
+            "per_value": "Each option value adds or removes an amount from the base price (for example XL +300).",
+            "per_variant": "Set a price for individual sizes. A size left empty uses the base price."
+          },
+          "noSizes": "Add options and sizes in Details (Stock tab) to price sizes differently.",
+          "confirmDiscard": "Switching mode discards the amounts you entered for the current mode. Continue?",
+          "compareAt": "Crossed-out price",
+          "compareHint": "Shown only when higher than the price the visitor pays.",
+          "colSize": "Size",
+          "colOverride": "Price",
+          "colCompare": "Crossed-out price",
+          "colPrice": "Visitor pays",
+          "overrideFor": "Price for {label}",
+          "compareOverrideFor": "Crossed-out price for {label}",
+          "deltaFor": "Price change for {label}",
+          "notSellable": "Not sellable (price is 0 or less)"
+        },
+        "offers": {
+          "title": "Quantity offers and bump",
+          "hint": "A quantity offer is a fixed total for a number of pieces. Delivery is added at checkout.",
+          "empty": "No offer yet. Add one to sell more pieces per order.",
+          "add": "Add offer",
+          "max": "Up to {n} offers",
+          "label": "Offer name",
+          "qty": "Pieces",
+          "total": "Total price",
+          "from": "Starts",
+          "to": "Ends",
+          "default": "Preselected",
+          "active": "Active",
+          "unnamed": "Offer {n}",
+          "moveUp": "Move {name} up",
+          "moveDown": "Move {name} down",
+          "remove": "Remove {name}",
+          "removeConfirm": "Remove \"{name}\"?",
+          "saves": "Saves {n} against buying the pieces one by one.",
+          "savesNothing": "Saves nothing at the base price: the store hides this offer.",
+          "incomplete": "Every offer needs a name, pieces and a total price.",
+          "bumpIncomplete": "The bump needs a product, a name and a price.",
+          "bumpTitle": "Bump",
+          "bumpHint": "One extra product offered next to the order button, at its own price.",
+          "bumpNoCandidates": "No other active, priced product without sizes is available.",
+          "bumpProduct": "Bump product",
+          "bumpNone": "No bump",
+          "bumpLabel": "Shown as",
+          "bumpPrice": "Bump price"
+        },
+        "form": {
+          "title": "Order form",
+          "hint": "The fields a visitor fills in. Name, phone, wilaya, commune and delivery are always required.",
+          "builtin": {
+            "name": "Full name",
+            "phone": "Phone",
+            "wilaya": "Wilaya",
+            "commune": "Commune",
+            "delivery": "Delivery method",
+            "note": "Note",
+            "email": "Email"
+          },
+          "labelFor": "Label for {name}",
+          "defaultLabel": "Default label (Arabic)",
+          "alwaysRequired": "Always required",
+          "enabled": "Shown",
+          "required": "Required",
+          "customTitle": "Extra fields",
+          "customEmpty": "No extra field.",
+          "customLabel": "Label (shown in Arabic)",
+          "customType": "Type",
+          "typeText": "Text",
+          "typeSelect": "Choice",
+          "options": "Choices, one per line (2 to 10)",
+          "addCustom": "Add field",
+          "maxCustom": "Up to {n} extra fields",
+          "removeField": "Remove field {name}",
+          "incomplete": "Every extra field needs a label, and a choice field needs at least two choices.",
+          "invalid": "A label has HTML, an emoji, or is too long.",
+          "deliveryTitle": "Delivery methods",
+          "delivery": {
+            "home": "Home delivery",
+            "stopdesk": "Stop desk pickup"
+          },
+          "deliveryHint": "At least one method stays on. Delivery prices are added when orders open."
+        }
+      }
     }
   },
   "notFoundPage": {
