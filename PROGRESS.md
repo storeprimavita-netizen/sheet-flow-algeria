@@ -435,3 +435,15 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Done: orders bar (Clear all with dropped-only note, drill keys kept outside drill mode, chips on own row, remove aria, admins in agent lookup, repeated delivery_type dropped with note); Statistics `active` normalized (stale season / lone year not persisted, one Clear action on empty state); combobox + Seasons empty card layout; drill banner trim; pure helpers (`leaveDrillKeys`, `dropOneKey`, `stats-filter-edit.ts`, `seasonYearState`) with behavioural tests; RLS suite: 30s beforeAll, leaked-workspace cleanup, non-admin 0 rows, drill parity, direct-count checks.
 - Screenshots (r2, chrome-devtools, `docs/design/audit/STATS-3-F/r2-*`): orders drill/dropped-only (dark EN + light AR, 1280 and 390), Statistics with filters (light AR 1280/390), Statistics empty state (dark EN 1280/390, light AR 390), Seasons empty cards (dark EN + light AR, 1280/390). `<html>` class and real width verified per shot (390 via emulate; plain resize floors at 500). Found: dropped-only 'Clear all' sat detached on its own row; now inline with the note. Empty state shows one Clear action (chip + button), no defects. Not shot: dark AR / light EN combos, Statistics with filters in dark EN, orders drill banner in dark AR.
 - STATS-3-F merge: review-2 PASS verified; gate OK on v3-STATS-3-F (716 passed / 3 skipped, live RLS suite). Merging v3-STATS-3-F into v3 (no-ff).
+
+## PRICE-3-F round 2
+- Fixed review-1: Real "losing" now uses the drawn profit (`realDrawnProfit`); `maxAdCostUsd` impossible at c=0/ad=0 (adCostPerDelivered stays "alt": 0); `realBothZero` helper + test; `v!==0` guard keyed on `mode==="alt"`; test filter removed.
+- Screenshots (chrome-devtools, `docs/design/audit/PRICE-3-F/`): c=0 ad=0 (dark EN 1280), both 0 ad>0 with footer line (dark EN 1280), both 0 ad=0 (light AR 1280), c=0 d null all missing and no footer (light AR 1280), d=0 (light EN 1280), normal (dark EN, window floored at 500 px: Real divider visible, Real column reachable by scroll). Real divider visible in dark and light. Edge data seeded as `P3F*` products locally; orders removed afterwards (stock_movements are append-only, so the P3F products remain: run `db reset` to clear them).
+- Not shot: other theme/locale/width combos. Review-4 L5 (Real column off-screen at 390) still open, tracked.
+
+## PRICE-3-F done
+- Done: PRICE-3 follow-up delivered on v3-PRICE-3-F (review-2 fixes; ad-cost-0 both-rates-zero case, stray footer, both-zero line EN/AR, U4 divider, listed tests).
+- Verify: `scripts/gate.sh` GATE OK on v3-PRICE-3-F (commit 3f7d7f0); local DB reset to 00063 and reseeded before run.
+- Evidence: `docs/briefs/PRICE-3-F.review-2.md` VERDICT PASS; screenshots in `docs/design/audit/PRICE-3-F/`.
+- Owner: none for this task.
+- Next: review-4 L5 (Real column off-screen at 390 px) still open, tracked under PRICE-3.

@@ -8,7 +8,10 @@ import { Chip } from "@/components/ui/chip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
 import { formatCurrency, formatInt, formatPercent, formatUsd, ltr } from "@/lib/format";
-import { breakEvenState, realLosing, realZeroRate, realZeroRowMode, type BreakEvenKey } from "@/lib/pricing-form";
+import {
+  anyRealImpossible,
+  realBothZero,
+  realDrawnProfit, breakEvenState, realCellState, realLosing, realZeroRowMode, type BreakEvenKey } from "@/lib/pricing-form";
 import type { ScenarioInput, ScenarioName, ScenarioResult } from "@/lib/pricing-v2";
 
 const SCENARIOS: readonly ScenarioName[] = ["best", "medium", "worst"];
@@ -134,15 +137,18 @@ export function PricingResults({
   unit: string;
 }) {
   const t = useTranslations("pricingV2");
-  const realZero = !!real && realZeroRate(real.hasData, real.input);
-  const realLoses = !!real && realLosing(real.hasData, real.input, real.result.profitPerPiece);
+  const realAd = real?.input.adCostUsd;
+  const realLoses = !!real && realLosing(real.hasData, real.input, realDrawnProfit(real), realAd);
   const losing = [
     ...SCENARIOS.filter((s) => (results[s].profitPerPiece ?? 0) < 0).map((s) => t(`scenario.${s}`)),
     ...(realLoses ? [t("scenario.real")] : []),
   ];
-  const anyImpossible = realZero || SCENARIOS.some((s) =>
-    (["minConfirmation", "minDelivery", "maxAdCostUsd"] as const).some((k) => breakEvenState(results[s], k) === "impossible"),
-  );
+  const anyImpossible =
+    (!!real && anyRealImpossible(real, GROUPS.flatMap((g) => g.rows))) ||
+    SCENARIOS.some((s) =>
+      (["minConfirmation", "minDelivery", "maxAdCostUsd"] as const).some((k) => breakEvenState(results[s], k) === "impossible"),
+    );
+  const bothZero = !!real && realBothZero(real.hasData, real.input, realAd);
 
   return (
     <div className="space-y-2">
@@ -225,19 +231,12 @@ export function PricingResults({
                               real.input,
                               { key: row.key, breakEven: row.breakEven, isInput: !!row.input },
                               !!real.rateOne && real.rateOne.totalCost !== null,
+                              real.input.adCostUsd,
                             )
                           : "normal";
-                        const src = mode === "alt" && real.rateOne ? real.rateOne : real.result;
-                        const v = !real.hasData ? null : row.input ? row.input(real.input) : row.get(src);
-                        const state: PricingCellState = !real.hasData
-                          ? "missing"
-                          : mode === "impossible"
-                            ? "impossible"
-                            : row.breakEven
-                              ? breakEvenState(src, row.breakEven)
-                              : v === null
-                                ? "missing"
-                                : "value";
+                        const drawn = real.hasData ? realCellState(mode, real, row) : null;
+                        const state: PricingCellState = drawn ? drawn.state : "missing";
+                        const v = drawn ? drawn.value : null;
                         const cell = (
                           <PricingCell state={state} missingLabel={real.hasData ? t("missing") : t("real.noData")} impossibleLabel={t("notPossible")}>
                             {v === null ? null : format(v, row.fmt, unit)}
@@ -255,7 +254,7 @@ export function PricingResults({
                             </Hint>
                           );
                         }
-                        if (row.breakEven && state === "value" && realLoses) {
+                        if (row.breakEven && state === "value" && realLoses && !(mode === "alt" && v === 0)) {
                           return (
                             <span className="inline-flex items-center gap-1 text-danger">
                               <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -281,6 +280,7 @@ export function PricingResults({
         </p>
       ) : null}
       {anyImpossible ? <p className="text-xs text-muted-foreground">{t("notPossibleHint")}</p> : null}
+      {bothZero ? <p className="text-xs text-muted-foreground">{t("realBothZeroHint")}</p> : null}
     </div>
   );
 }

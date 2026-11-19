@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
 
 import {
+  anyRealImpossible,
+  realBothZero,
+  realDrawnProfit,
+  realCellState,
   realBelow,
   realLosing,
   realZeroRate,
@@ -286,5 +290,127 @@ describe("realZeroRowMode (0% real delivery)", () => {
     const c0 = { confirm: 0, delivery: 0.6 };
     expect(realZeroRowMode(c0, { key: "minConfirmation", breakEven: "minConfirmation" }, true)).toBe("alt");
     expect(realZeroRowMode(c0, { key: "minDelivery", breakEven: "minDelivery" }, true)).toBe("impossible");
+  });
+});
+
+describe("Real column, ad cost 0 and drawn cells (PRICE-3-F)", () => {
+  const settings = PS;
+  const product = { stockCostDzd: 100000, quantity: 100 };
+  const rows = [
+    { key: "confirmation", isInput: true, get: () => null, input: (i: { confirm: number | null }) => i.confirm },
+    { key: "ordersNeeded", get: (r: ReturnType<typeof computeScenario>) => r.ordersNeeded },
+    { key: "finalPrice", get: (r: ReturnType<typeof computeScenario>) => r.finalPrice },
+    { key: "profitPerPiece", get: (r: ReturnType<typeof computeScenario>) => r.profitPerPiece },
+    { key: "minConfirmation", breakEven: "minConfirmation" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.minConfirmation },
+    { key: "minDelivery", breakEven: "minDelivery" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.minDelivery },
+  ];
+  const build = (c: number | null, d: number | null, ad: number | null) => {
+    const input = { confirm: c, delivery: d, adCostUsd: ad };
+    const price = 9900;
+    const result = computeScenario(settings, product, input, price, price);
+    const rateOne = computeScenario(settings, product, { confirm: c === 0 ? 1 : c, delivery: d === 0 ? 1 : d, adCostUsd: ad }, price, price);
+    return { result, rateOne, input, hasData: true };
+  };
+  const draw = (real: ReturnType<typeof build>) =>
+    Object.fromEntries(
+      rows.map((row) => {
+        const mode = realZeroRowMode(real.input, row, real.rateOne.totalCost !== null, real.input.adCostUsd);
+        const cell = realCellState(mode, real, row);
+        return [row.key, `${cell.state}:${cell.srcKey}`];
+      }),
+    );
+
+  it("ad 0, c 0, d 0.6: engine values, not Not possible; ordersNeeded impossible", () => {
+    const real = build(0, 0.6, 0);
+    expect(realZeroRowMode(real.input, rows[4], true, 0)).toBe("alt");
+    expect(draw(real)).toEqual({
+      confirmation: "value:result",
+      ordersNeeded: "impossible:result",
+      finalPrice: "value:rateOne",
+      profitPerPiece: "value:rateOne",
+      minConfirmation: "value:rateOne",
+      minDelivery: "value:rateOne",
+    });
+    const other = computeScenario(settings, product, { confirm: 0.3, delivery: 0.6, adCostUsd: 0 }, 9900, 9900);
+    expect(real.rateOne.profitPerPiece).toBeCloseTo(other.profitPerPiece ?? NaN, 8); // c drops out when ad = 0
+    expect(realZeroRate(true, real.input, 0)).toBe(false);
+    expect(realLosing(true, real.input, real.rateOne.profitPerPiece, 0)).toBe(false);
+  });
+  it("ad 0, c 0, d 0: minDelivery alt, the rest impossible", () => {
+    const real = build(0, 0, 0);
+    expect(realZeroRowMode(real.input, rows[5], true, 0)).toBe("alt");
+    expect(draw(real)).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "impossible:result", minDelivery: "value:rateOne", finalPrice: "value:rateOne" });
+  });
+  it("ad > 0: d 0, c 0 and both 0 draw as before", () => {
+    expect(draw(build(0.7, 0, 2))).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "impossible:result", minDelivery: "value:rateOne", finalPrice: "value:rateOne" });
+    expect(draw(build(0, 0.6, 2))).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "value:rateOne", minDelivery: "impossible:result" });
+    expect(draw(build(0, 0, 2))).toMatchObject({ minConfirmation: "impossible:result", minDelivery: "impossible:result", finalPrice: "value:rateOne" });
+    expect(realZeroRate(true, { confirm: 0, delivery: 0.6 }, 2)).toBe(true);
+  });
+  it("footer: impossible only if a drawn cell is impossible", () => {
+    expect(anyRealImpossible(build(0, 0.6, 0), rows)).toBe(true); // ordersNeeded
+    expect(anyRealImpossible(build(0, 0.6, 2), rows)).toBe(true);
+    expect(anyRealImpossible(build(0.7, 0.6, 2), rows)).toBe(false);
+    expect(anyRealImpossible({ ...build(0.7, 0.6, 2), hasData: false }, rows)).toBe(false);
+  });
+  it("c 0 with d null: every cell missing, no footer", () => {
+    const real = build(0, null, 2);
+    expect(real.rateOne.totalCost).toBeNull();
+    expect(anyRealImpossible(real, rows)).toBe(false);
+    expect(draw(real).minConfirmation).toMatch(/^missing/);
+    expect(draw(real).profitPerPiece).toMatch(/^missing/);
+  });
+  it("ad 0, c 0, d 0.6, price below cost: drawn negative alt profit flags Real as losing", () => {
+    const input = { confirm: 0, delivery: 0.6, adCostUsd: 0 };
+    const mk = (price: number) => {
+      const result = computeScenario(settings, product, input, price, price);
+      const rateOne = computeScenario(settings, product, { ...input, confirm: 1 }, price, price);
+      return { result, rateOne, input, hasData: true };
+    };
+    const real = mk(500);
+    expect(real.result.profitPerPiece).toBeNull();
+    const drawn = realDrawnProfit(real);
+    expect(drawn).not.toBeNull();
+    expect(drawn as number).toBeLessThan(0);
+    expect(realLosing(true, input, drawn, 0)).toBe(true);
+    expect(realDrawnProfit({ ...real, hasData: false })).toBeNull();
+    expect(realLosing(true, input, realDrawnProfit(mk(9900)), 0)).toBe(false);
+  });
+  it("maxAdCostUsd: impossible at c 0 when ad 0 (needs c); adCostPerDeliveredUsd alt", () => {
+    const more = [
+      ...rows,
+      { key: "maxAdCostUsd", breakEven: "maxAdCostUsd" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.maxAdCostUsd },
+      { key: "adCostPerDeliveredUsd", get: (r: ReturnType<typeof computeScenario>) => r.adCostPerDeliveredUsd },
+      { key: "totalAdUsd", get: () => null },
+    ];
+    const real = build(0, 0.6, 0);
+    const state = (key: string) => {
+      const row = more.find((r) => r.key === key)!;
+      const mode = realZeroRowMode(real.input, row, true, 0);
+      return `${mode}:${realCellState(mode, real, row).state}`;
+    };
+    expect(state("maxAdCostUsd")).toBe("impossible:impossible");
+    expect(state("adCostPerDeliveredUsd")).toBe("alt:value");
+    expect(state("totalAdUsd")).toBe("impossible:impossible");
+    expect(anyRealImpossible(real, more)).toBe(true);
+  });
+  it("realBothZero truth table", () => {
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 2)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, null)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 0)).toBe(false);
+    expect(realBothZero(true, { confirm: 0, delivery: 0.5 }, 2)).toBe(false);
+    expect(realBothZero(false, { confirm: 0, delivery: 0 }, 2)).toBe(false);
+  });
+  it("NaN stock cost: rate-one totalCost null, cell missing", () => {
+    const run = computeScenario(settings, { stockCostDzd: Number.NaN, quantity: 100 }, { confirm: 1, delivery: 1, adCostUsd: 2 }, 9900, 9900);
+    expect(run.totalCost).toBeNull();
+    expect(realZeroRowMode({ confirm: 0.7, delivery: 0 }, rows[3], false, 2)).toBe("normal");
+    expect(breakEvenState(run, "minDelivery")).toBe("missing");
+  });
+  it("engine: d 0 keeps finalPrice; minDelivery same at d 1 and 0.0001, same for c", () => {
+    const at = (c: number, d: number) => computeScenario(settings, product, { confirm: c, delivery: d, adCostUsd: 2 }, 9900, 9900);
+    expect(at(0.7, 0).finalPrice).not.toBeNull();
+    expect(at(0.7, 1).breakEven.minDelivery).toBeCloseTo(at(0.7, 0.0001).breakEven.minDelivery ?? NaN, 10);
+    expect(at(1, 0.6).breakEven.minConfirmation).toBeCloseTo(at(0.0001, 0.6).breakEven.minConfirmation ?? NaN, 10);
   });
 });
