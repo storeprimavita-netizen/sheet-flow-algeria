@@ -185,8 +185,8 @@ export type StoredWilayaFee = {
   priced: boolean;
   stopdesk_available: boolean;
   stop_shipping: boolean;
-  /** Stored commune count. */
-  communes: number;
+  /** Stored commune names. */
+  communes: string[];
 };
 
 export type DeliveryDiffRow = {
@@ -210,6 +210,12 @@ export type DeliveryDiff = {
   unpricedNotStopped: number[];
 };
 
+function sameNames(a: string[], b: string[]) {
+  const set = new Set(a);
+  const other = new Set(b);
+  return set.size === other.size && [...other].every((n) => set.has(n));
+}
+
 export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWilayaFee[]): DeliveryDiff {
   const byCode = new Map(stored.map((s) => [s.wilaya_code, s]));
   const unpricedNotStopped: number[] = [];
@@ -224,7 +230,7 @@ export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWila
       cur.stopdesk_available !== w.stopdeskAvailable ||
       (w.priced && cur.home_fee !== w.home) ||
       (w.priced && w.stopdeskAvailable && cur.stopdesk_fee !== w.stopdesk) ||
-      cur.communes !== w.communes.length;
+      !sameNames(cur.communes, w.communes);
     if (!w.priced && cur && !cur.stop_shipping) unpricedNotStopped.push(w.code);
     return {
       code: w.code,
@@ -237,7 +243,7 @@ export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWila
         stopdesk_available: cur.stopdesk_available,
       },
       after: { home_fee: home, stopdesk_fee: desk, priced: w.priced, stopdesk_available: w.stopdeskAvailable },
-      communesBefore: cur?.communes ?? 0,
+      communesBefore: cur?.communes.length ?? 0,
       communesAfter: w.communes.length,
       warnings: parsed.warnings.filter((x) => x.code === w.code),
     };

@@ -64,7 +64,7 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     ws = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     ws2 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     for (const w of [ws, ws2]) {
-      const r = await svc.from("wilaya_fees").insert([1, 8, 33].map((c) => ({ workspace_id: w, wilaya_code: c, home_fee: 500, stopdesk_fee: 300 })));
+      const r = await svc.from("wilaya_fees").insert([1, 8, 33].map((c) => ({ workspace_id: w, wilaya_code: c, home_fee: 500, stopdesk_fee: 300, priced: true })));
       expect(r.error).toBeNull();
     }
     admin = await userIn(ws, "admin");
@@ -95,6 +95,11 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     // commune set is replaced
     expect((await admin.rpc("apply_delivery_prices", { p: payload({ communes: ["Adrar"] }) })).error).toBeNull();
     expect((await admin.from("wilaya_communes").select("name").eq("wilaya_code", 1)).data!).toHaveLength(1);
+  });
+
+  test("no wilaya is priced at 0/0 (migration 00054 backfill)", async () => {
+    const r = await svc.from("wilaya_fees").select("workspace_id").eq("priced", true).eq("home_fee", 0).eq("stopdesk_fee", 0);
+    expect(r.data).toEqual([]);
   });
 
   test("delivery_fee_for returns null when unavailable", async () => {

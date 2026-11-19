@@ -89,6 +89,7 @@ function FeeGridRow({ row: r, auto }: { row: FeeRow; auto: boolean }) {
   const t = useTranslations();
   const [priced, setPriced] = React.useState(r.priced);
   const [desk, setDesk] = React.useState(r.stopdesk_available);
+  const [stop, setStop] = React.useState(r.stop_shipping);
   const name = r.wilaya?.name ?? String(r.wilaya_code);
   const cell = "max-md:flex max-md:items-center max-md:justify-between max-md:gap-3";
   return (
@@ -109,7 +110,7 @@ function FeeGridRow({ row: r, auto }: { row: FeeRow; auto: boolean }) {
       <td className={cell}>
         <span className="md:hidden">{t("settings.homeFee")}</span>
         {priced ? (
-          <MoneyField name={`home_${r.wilaya_code}`} defaultValue={r.home_fee} className="w-32" />
+          <MoneyField name={`home_${r.wilaya_code}`} ariaLabel={`${t("settings.homeFee")}: ${name}`} defaultValue={r.home_fee} className="w-32" />
         ) : (
           <span className="text-xs text-muted-foreground" title={t("settings.fees.noPriceHint")}>
             {t("settings.fees.noPrice")}
@@ -129,14 +130,14 @@ function FeeGridRow({ row: r, auto }: { row: FeeRow; auto: boolean }) {
       <td className={cell}>
         <span className="md:hidden">{t("settings.stopdeskFee")}</span>
         {priced && desk ? (
-          <MoneyField name={`stopdesk_${r.wilaya_code}`} defaultValue={r.stopdesk_fee} className="w-32" />
+          <MoneyField name={`stopdesk_${r.wilaya_code}`} ariaLabel={`${t("settings.stopdeskFee")}: ${name}`} defaultValue={r.stopdesk_fee} className="w-32" />
         ) : (
           <span className="text-xs text-muted-foreground">{priced ? t("settings.fees.homeOnly") : t("settings.fees.noPrice")}</span>
         )}
       </td>
       <td className={cell}>
         <span className="md:hidden">{t("settings.stopShipping")}</span>
-        <Switch name={`stop_${r.wilaya_code}`} defaultChecked={r.stop_shipping} aria-label={t("settings.fees.stopFor", { name })} />
+        <Switch name={`stop_${r.wilaya_code}`} checked={stop} onCheckedChange={setStop} aria-label={t("settings.fees.stopFor", { name })} />
       </td>
       <td className={cell}>
         <span className="md:hidden">{t("dashboard.wilaya.stopShippingAuto")}</span>

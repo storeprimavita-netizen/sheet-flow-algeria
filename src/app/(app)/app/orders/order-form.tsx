@@ -67,6 +67,8 @@ export function OrderForm({
   }
 
   const [commune, setCommune] = React.useState("");
+  const [customerName, setCustomerName] = React.useState("");
+  const [address, setAddress] = React.useState("");
 
   const fee = fees[Number(wilayaCode)];
   const seededFee = deliveryFeeFor(fee, deliveryType as DeliveryType) ?? 0;
@@ -129,7 +131,7 @@ export function OrderForm({
 
       <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
         <Field label={t("fields.customer")} htmlFor="customer_name">
-          <Input id="customer_name" name="customer_name" required />
+          <Input id="customer_name" name="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
         </Field>
         <Field label={t("fields.phone")} htmlFor="customer_phone">
           <PhoneField id="customer_phone" name="customer_phone" />
@@ -169,7 +171,7 @@ export function OrderForm({
           )}
         </Field>
         <Field label={t("fields.address")} htmlFor="address" hint={t("common.optional")} className="sm:col-span-2">
-          <Input id="address" name="address" />
+          <Input id="address" name="address" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
         <Field label={t("fields.delivery_type")}>
           <Select value={deliveryType} onValueChange={(v) => onWilayaOrType({ type: v })} name="delivery_type">

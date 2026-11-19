@@ -393,20 +393,20 @@ async function loadStoredFees(supabase: Awaited<ReturnType<typeof createClient>>
     .from("wilaya_fees")
     .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at")
     .eq("workspace_id", workspaceId);
-  const counts = new Map<number, number>();
+  const names = new Map<number, string[]>();
   for (let from = 0; ; from += 1000) {
     const { data } = await supabase
       .from("wilaya_communes")
-      .select("wilaya_code")
+      .select("wilaya_code, name")
       .eq("workspace_id", workspaceId)
       .order("wilaya_code")
       .order("name")
       .range(from, from + 999);
-    for (const c of data ?? []) counts.set(c.wilaya_code, (counts.get(c.wilaya_code) ?? 0) + 1);
+    for (const c of data ?? []) names.set(c.wilaya_code, [...(names.get(c.wilaya_code) ?? []), c.name]);
     if ((data?.length ?? 0) < 1000) break;
   }
   const rows = fees ?? [];
-  const stored: StoredWilayaFee[] = rows.map((r) => ({ ...r, communes: counts.get(r.wilaya_code) ?? 0 }));
+  const stored: StoredWilayaFee[] = rows.map((r) => ({ ...r, communes: names.get(r.wilaya_code) ?? [] }));
   const snapshot = rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
   return { stored, snapshot };
 }

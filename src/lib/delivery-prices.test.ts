@@ -74,11 +74,11 @@ describe("parseDeliveryCsv", () => {
 
 describe("diffDeliveryPrices", () => {
   const stored = (o: Partial<StoredWilayaFee> = {}): StoredWilayaFee => ({
-    wilaya_code: 1, home_fee: 1400, stopdesk_fee: 970, priced: true, stopdesk_available: true, stop_shipping: false, communes: 1, ...o,
+    wilaya_code: 1, home_fee: 1400, stopdesk_fee: 970, priced: true, stopdesk_available: true, stop_shipping: false, communes: ["Adrar"], ...o,
   });
   const parsed = parseDeliveryCsv(`${H}DZ,1-Adrar,,,rate,,${HOME}:1400|${DESK}:970\nDZ,1-Adrar,Adrar,,,,\nDZ,33-Illizi,,,extra,,\n`);
   it("unchanged when equal; lists absent wilayas", () => {
-    const d = diffDeliveryPrices(parsed, [stored(), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: 0 }), stored({ wilaya_code: 5 })]);
+    const d = diffDeliveryPrices(parsed, [stored(), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] }), stored({ wilaya_code: 5 })]);
     expect(d.rows.map((r) => r.changed)).toEqual([false, false]);
     expect(d.absent).toEqual([5]);
   });
@@ -86,6 +86,10 @@ describe("diffDeliveryPrices", () => {
     const d = diffDeliveryPrices(parsed, [stored({ home_fee: 1 }), stored({ wilaya_code: 33 })]);
     expect(d.rows[0].changed).toBe(true);
     expect(d.unpricedNotStopped).toEqual([33]);
+  });
+  it("a commune spelling change with the same count counts as changed", () => {
+    const d = diffDeliveryPrices(parsed, [stored({ communes: ["Adrare"] }), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] })]);
+    expect(d.rows.map((r) => r.changed)).toEqual([true, false]);
   });
   it("payload mirrors the parse", () => {
     expect(toApplyPayload(parsed).wilayas[1]).toMatchObject({ code: 33, priced: false, home_fee: null });
