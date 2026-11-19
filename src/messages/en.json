@@ -635,6 +635,25 @@
     "busy": "Please wait..."
   },
   "settings": {
+    "sizeSets": {
+          "title": "Size sets",
+          "hint": "Reusable lists of size names. In a product's options, \"Use size set\" adds the names that are missing and keeps the rest.",
+          "add": "Add size set",
+          "empty": "No size sets yet. Create one such as S, M, L, XL to reuse on every product.",
+          "name": "Set name",
+          "items": "Sizes",
+          "itemsHint": "Separate with commas or new lines. 1 to 40 names, up to 60 characters each.",
+          "save": "Save",
+          "saving": "Saving…",
+          "cancel": "Cancel",
+          "edit": "Edit {name}",
+          "delete": "Delete {name}",
+          "invalid": "Give the set a name and 1 to 40 sizes of up to 60 characters.",
+          "duplicate": "A size set with this name already exists.",
+          "failed": "Could not save. Try again.",
+          "loadFailed": "Could not load size sets: {reason}",
+          "retry": "Retry"
+    },
     "title": "Settings",
     "subtitle": "Workspace, integrations, fees & thresholds",
     "tabs": {

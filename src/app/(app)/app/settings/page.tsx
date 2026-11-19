@@ -20,6 +20,7 @@ import { PricingSection } from "./pricing-section";
 import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
 import { OptionsSection } from "./options-section";
+import { SizeSetsSection } from "./size-sets-section";
 import { AppearanceSection } from "./appearance-section";
 import { SettingsTabs } from "./settings-tabs";
 
@@ -184,7 +185,17 @@ async function SectionBody({ section }: { section: SectionId }) {
       const optionUsage = Object.fromEntries(
         await Promise.all(optionSets.map(async (s) => [s.key, await getOptionUsageCounts(ws, s.key)])),
       ) as Record<OptionSetKey, Record<string, number>>;
-      return <OptionsSection sets={optionSets} usage={optionUsage} />;
+      const { data: sizeSets, error: sizeSetsError } = await (await createClient())
+        .from("size_sets")
+        .select("id, name, items")
+        .order("position")
+        .order("name");
+      return (
+        <div className="space-y-6">
+          <OptionsSection sets={optionSets} usage={optionUsage} />
+          <SizeSetsSection sets={sizeSets ?? []} error={sizeSetsError?.message ?? null} />
+        </div>
+      );
     }
   }
 }
