@@ -132,8 +132,23 @@ export function PricingCalculator({
       applied.finalPrice,
       results.medium.recommendedPrice,
     );
+    const zero = scenario.input.confirm === 0 || scenario.input.delivery === 0;
+    const rateOne = zero
+      ? computeScenario(
+          settings,
+          { stockCostDzd: total ?? Number.NaN, quantity: applied.quantity },
+          {
+            ...scenario.input,
+            confirm: scenario.input.confirm === 0 ? 1 : scenario.input.confirm,
+            delivery: scenario.input.delivery === 0 ? 1 : scenario.input.delivery,
+          },
+          applied.finalPrice,
+          results.medium.recommendedPrice,
+        )
+      : null;
     return {
       result,
+      rateOne,
       input: scenario.input,
       adCostDzd: scenario.adCostDzd,
       rate: settings.parallelRate,

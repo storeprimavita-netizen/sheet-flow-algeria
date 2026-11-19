@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/chip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
 import { formatCurrency, formatInt, formatPercent, formatUsd, ltr } from "@/lib/format";
-import { breakEvenState, realLosing, realZeroRate, type BreakEvenKey } from "@/lib/pricing-form";
+import { breakEvenState, realLosing, realZeroRate, realZeroRowMode, type BreakEvenKey } from "@/lib/pricing-form";
 import type { ScenarioInput, ScenarioName, ScenarioResult } from "@/lib/pricing-v2";
 
 const SCENARIOS: readonly ScenarioName[] = ["best", "medium", "worst"];
@@ -88,6 +88,8 @@ function format(v: number, fmt: Fmt, unit: string): string {
 export type RealColumn = {
   result: ScenarioResult;
   input: ScenarioInput;
+  /** engine run with any zero real rate set to 1 (rows that do not depend on that rate); null if no zero rate */
+  rateOne: ScenarioResult | null;
   /** real DZD ad spend per received order */
   adCostDzd: number | null;
   /** the calculator's parallel rate (DA per $), for the hint */
@@ -218,16 +220,24 @@ export function PricingResults({
                   {real ? (
                     <td className="border-s border-border px-3 py-2 text-end">
                       {(() => {
-                        const v = !real.hasData ? null : row.input ? row.input(real.input) : row.get(real.result);
+                        const mode = real.hasData
+                          ? realZeroRowMode(
+                              real.input,
+                              { key: row.key, breakEven: row.breakEven, isInput: !!row.input },
+                              !!real.rateOne && real.rateOne.totalCost !== null,
+                            )
+                          : "normal";
+                        const src = mode === "alt" && real.rateOne ? real.rateOne : real.result;
+                        const v = !real.hasData ? null : row.input ? row.input(real.input) : row.get(src);
                         const state: PricingCellState = !real.hasData
                           ? "missing"
-                          : realZero && !row.input
+                          : mode === "impossible"
                             ? "impossible"
                             : row.breakEven
-                            ? breakEvenState(real.result, row.breakEven)
-                            : v === null
-                              ? "missing"
-                              : "value";
+                              ? breakEvenState(src, row.breakEven)
+                              : v === null
+                                ? "missing"
+                                : "value";
                         const cell = (
                           <PricingCell state={state} missingLabel={real.hasData ? t("missing") : t("real.noData")} impossibleLabel={t("notPossible")}>
                             {v === null ? null : format(v, row.fmt, unit)}

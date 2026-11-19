@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
+
 import {
   realBelow,
   realLosing,
   realZeroRate,
+  realZeroRowMode,
   countOverrides,
   targetModeForKey,
   breakEvenState,
@@ -259,5 +262,29 @@ describe("Real column classification (review 2)", () => {
     expect(realZeroRate(true, { confirm: null, delivery: 0.5 })).toBe(false);
     expect(realLosing(true, ok, 5)).toBe(false);
     expect(realLosing(true, ok, -5)).toBe(true);
+  });
+});
+
+describe("realZeroRowMode (0% real delivery)", () => {
+  const input = { confirm: 0.7, delivery: 0 };
+  const run = computeScenario(PS, { stockCostDzd: 100000, quantity: 100 }, { confirm: 0.7, delivery: 1, adCostUsd: 2 }, 9900, 9900);
+  it("final price and own break-even are read from the rate-1 run, not Not possible", () => {
+    expect(realZeroRowMode(input, { key: "finalPrice" }, true)).toBe("alt");
+    expect(realZeroRowMode(input, { key: "minDelivery", breakEven: "minDelivery" }, true)).toBe("alt");
+    expect(run.finalPrice).toBe(9900);
+    expect(run.breakEven.minDelivery).not.toBeNull();
+    expect(breakEvenState(run, "minDelivery")).toBe("value");
+  });
+  it("other dependent rows stay impossible; inputs, no zero and missing inputs are normal", () => {
+    expect(realZeroRowMode(input, { key: "minConfirmation", breakEven: "minConfirmation" }, true)).toBe("impossible");
+    expect(realZeroRowMode(input, { key: "netProfit" }, true)).toBe("impossible");
+    expect(realZeroRowMode(input, { key: "delivery", isInput: true }, true)).toBe("normal");
+    expect(realZeroRowMode({ confirm: 0.7, delivery: 0.5 }, { key: "netProfit" }, true)).toBe("normal");
+    expect(realZeroRowMode(input, { key: "netProfit" }, false)).toBe("normal");
+  });
+  it("mirror: confirmation 0 keeps minConfirmation and final price", () => {
+    const c0 = { confirm: 0, delivery: 0.6 };
+    expect(realZeroRowMode(c0, { key: "minConfirmation", breakEven: "minConfirmation" }, true)).toBe("alt");
+    expect(realZeroRowMode(c0, { key: "minDelivery", breakEven: "minDelivery" }, true)).toBe("impossible");
   });
 });

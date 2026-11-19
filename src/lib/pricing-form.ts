@@ -386,6 +386,26 @@ export const realBelow = (profitPerPiece: number | null): boolean => profitPerPi
 export const realZeroRate = (hasData: boolean, input: { confirm: number | null; delivery: number | null }): boolean =>
   hasData && (input.confirm === 0 || input.delivery === 0);
 
+/**
+ * How one Real-column row is drawn when a rate is exactly 0 (the engine rejects 0):
+ * "alt" = read it from the engine run with the zero rate set to 1 (the row does not depend
+ * on that rate: the final price echo, the zero rate's own break-even); "impossible" = every
+ * other dependent row; "normal" = no zero rate, an input row, or the rate-1 run has missing inputs.
+ */
+export function realZeroRowMode(
+  input: { confirm: number | null; delivery: number | null },
+  row: { key: string; breakEven?: BreakEvenKey; isInput?: boolean },
+  rateOneComplete: boolean,
+): "normal" | "impossible" | "alt" {
+  const dZero = input.delivery === 0;
+  const cZero = input.confirm === 0;
+  if (!(dZero || cZero) || row.isInput || !rateOneComplete) return "normal";
+  if (row.key === "finalPrice") return "alt";
+  if (dZero && !cZero && row.breakEven === "minDelivery") return "alt";
+  if (cZero && !dZero && row.breakEven === "minConfirmation") return "alt";
+  return "impossible";
+}
+
 /** Real column loses money: negative profit, or a zero rate with data. */
 export const realLosing = (
   hasData: boolean,
