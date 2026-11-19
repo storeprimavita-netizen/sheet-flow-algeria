@@ -1114,6 +1114,44 @@
     "nextMonth": "Next month",
     "period": "Period"
   },
+  "pricingPortfolio": {
+    "title": "Pricing",
+    "subtitle": "Every product at a glance: price, profit and capital in the best, medium or worst case.",
+    "dzd": "DA",
+    "scenario": { "label": "Scenario", "best": "Best", "medium": "Medium", "worst": "Worst" },
+    "export": "Export CSV",
+    "table": "Pricing by product",
+    "totals": "Total",
+    "columns": {
+      "name": "Product",
+      "stock": "Stock",
+      "stockCost": "Stock cost",
+      "adCostUsd": "Ad cost / order (USD)",
+      "recommendedPrice": "Recommended price",
+      "salePrice": "Sale price",
+      "profitPerPiece": "Profit / piece",
+      "netProfit": "Net profit",
+      "margin": "Margin",
+      "totalAdUsd": "Total ads (USD)",
+      "totalAdDzd": "Total ads (DA)",
+      "minPrice": "Break-even price"
+    },
+    "cards": {
+      "stockCost": "Total stock cost",
+      "adSpend": "Total ad spend",
+      "netProfit": "Combined net profit",
+      "capital": "Capital needed",
+      "margin": "Blended margin"
+    },
+    "capitalHint": "stock + ads",
+    "notIncluded": "{count, plural, one {# product is} other {# products are}} not included in the totals: stock cost, stock or ad cost is missing.",
+    "missing": "Missing cost, stock or ad cost",
+    "belowBreakEven": "Below break-even",
+    "emptyTitle": "No products yet",
+    "emptyBody": "Add a product to see its pricing here.",
+    "emptyAction": "Add a product",
+    "errorTitle": "The pricing could not load"
+  },
   "pricingV2": {
     "title": "Pricing",
     "scenario": {
