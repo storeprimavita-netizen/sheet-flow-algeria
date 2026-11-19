@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, ExternalLink, Eye, ImageIcon, Lock, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Eye, ImageIcon, Lock, Star, Ruler, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ButtonLink } from "@/components/button-link";
@@ -14,11 +14,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { Block } from "@/lib/store/blocks";
+import { SIZEGUIDE_COLUMNS, type Block } from "@/lib/store/blocks";
 
 import { linkPageProduct, publishPage, savePage, unpublishPage, type StoreResult } from "../actions";
 
 type Row = { id: string; block: Block };
+type SizeguideBlock = Extract<Block, { type: "sizeguide" }>;
+type SizeCol = (typeof SIZEGUIDE_COLUMNS)[number];
+const MAX_SIZE_ROWS = 12;
 type Seo = { title: string; description: string; image: string };
 type Props = {
   page: { id: string; title: string; slug: string; status: string; productId: string | null; productOk: boolean; blocks: Block[]; seo: Partial<Seo> };
@@ -31,6 +34,30 @@ const toRows = (blocks: Block[]): Row[] => blocks.map((block, i) => ({ id: `r${i
 const toSeo = (s: Props["page"]["seo"]): Seo => ({ title: s.title ?? "", description: s.description ?? "", image: s.image ?? "" });
 const cleanSeo = (s: Seo) => Object.fromEntries(Object.entries(s).filter(([, v]) => v.trim() !== "")) as Partial<Seo>;
 const snapshot = (title: string, slug: string, rows: Row[], seo: Seo) => JSON.stringify({ title, slug, blocks: rows.map((r) => r.block), seo });
+
+/** Exhaustive: adding a block type without handling it here is a compile error, never a silent "list". */
+function newBlock(type: Block["type"]): Block {
+  switch (type) {
+    case "heading":
+      return { type, text: "" };
+    case "text":
+      return { type, text: "" };
+    case "image":
+      return { type, url: "", alt: "" };
+    case "list":
+      return { type, items: [""] };
+    case "related":
+      return { type, pageIds: [] };
+    case "sizeguide":
+      return { type, rows: [{ size: "" }] };
+    case "reviews":
+      return { type };
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
+  }
+}
 
 export function PageEditor({ page, store, products }: Props) {
   const t = useTranslations("store.admin.editor");
@@ -49,7 +76,7 @@ export function PageEditor({ page, store, products }: Props) {
   const nextId = useRef(page.blocks.length);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const publishBtn = useRef<HTMLButtonElement>(null);
-  const focusRef = useRef<{ id: string; dir: "up" | "down" } | null>(null);
+  const focusRef = useRef<string | null>(null);
 
   const dirty = useMemo(() => snapshot(title, slug, rows, seo) !== saved, [title, slug, rows, seo, saved]);
 
@@ -65,7 +92,7 @@ export function PageEditor({ page, store, products }: Props) {
     const f = focusRef.current;
     if (!f) return;
     focusRef.current = null;
-    document.getElementById(`blk-${f.id}-${f.dir}`)?.focus();
+    document.getElementById(f)?.focus();
   }, [rows]);
 
   const errMsg = (r: Extract<StoreResult, { ok: false }>) =>
@@ -76,14 +103,13 @@ export function PageEditor({ page, store, products }: Props) {
     if (j < 0 || j >= rows.length) return;
     const next = [...rows];
     [next[i], next[j]] = [next[j], next[i]];
-    focusRef.current = { id: rows[i].id, dir: d === -1 ? "up" : "down" };
+    focusRef.current = `blk-${rows[i].id}-${d === -1 ? "up" : "down"}`;
     setRows(next);
     setLive(t("movedTo", { n: j + 1 }));
   }
   const update = (id: string, block: Block) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, block } : r)));
   const add = (type: Block["type"]) => {
-    const block: Block =
-      type === "heading" ? { type, text: "" } : type === "text" ? { type, text: "" } : type === "image" ? { type, url: "", alt: "" } : { type: "list", items: [""] };
+    const block = newBlock(type);
     setRows((rs) => [...rs, { id: `r${nextId.current++}`, block }]);
   };
 
@@ -132,8 +158,40 @@ export function PageEditor({ page, store, products }: Props) {
       {label}
     </li>
   );
-  const typeLabel = (b: Block) =>
-    b.type === "heading" ? t("typeHeading") : b.type === "text" ? t("typeText") : b.type === "image" ? t("typeImage") : b.type === "list" ? t("typeList") : t("typeRelated");
+  const typeLabel = (b: Block): string => {
+    switch (b.type) {
+      case "heading":
+        return t("typeHeading");
+      case "text":
+        return t("typeText");
+      case "image":
+        return t("typeImage");
+      case "list":
+        return t("typeList");
+      case "related":
+        return t("typeRelated");
+      case "sizeguide":
+        return t("typeSizeguide");
+      case "reviews":
+        return t("typeReviews");
+      default: {
+        const unreachable: never = b;
+        return unreachable;
+      }
+    }
+  };
+  const has = (type: Block["type"]) => rows.some((r) => r.block.type === type);
+
+  function moveSizeRow(rowId: string, b: SizeguideBlock, i: number, d: -1 | 1) {
+    const j = i + d;
+    if (j < 0 || j >= b.rows.length) return;
+    const next = [...b.rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    // the button that was pressed now sits at index j
+    focusRef.current = `sg-${rowId}-${j}-${d === -1 ? "up" : "down"}`;
+    update(rowId, { ...b, rows: next });
+    setLive(t("sgMoved", { n: j + 1 }));
+  }
 
   return (
     <div className="space-y-6">
@@ -253,6 +311,24 @@ export function PageEditor({ page, store, products }: Props) {
                   </Field>
                 </div>
               ) : null}
+              {r.block.type === "sizeguide" ? (
+                <SizeguideEditor
+                  rowId={r.id}
+                  block={r.block}
+                  update={(b) => update(r.id, b)}
+                  move={(b, idx, d) => moveSizeRow(r.id, b, idx, d)}
+                  setLive={setLive}
+                />
+              ) : null}
+              {r.block.type === "reviews" ? (
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>{t("reviewsHint")}</p>
+                  <ButtonLink href="/app/store/reviews" variant="outline" size="sm">
+                    <Star className="h-4 w-4" />
+                    {t("reviewsLink")}
+                  </ButtonLink>
+                </div>
+              ) : null}
               {r.block.type === "list" ? (
                 <Field label={t("fieldItems")} htmlFor={`b-${r.id}`}>
                   <Textarea id={`b-${r.id}`} rows={4} value={r.block.items.join("\n")} onChange={(e) => update(r.id, { type: "list", items: e.target.value.split("\n") })} />
@@ -269,6 +345,14 @@ export function PageEditor({ page, store, products }: Props) {
               {t(type === "heading" ? "addHeading" : type === "text" ? "addText" : type === "image" ? "addImage" : "addList")}
             </Button>
           ))}
+          <Button type="button" variant="outline" size="sm" disabled={has("sizeguide")} title={has("sizeguide") ? t("onlyOne") : undefined} onClick={() => add("sizeguide")}>
+            <Ruler className="h-4 w-4" />
+            {t("addSizeguide")}
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={has("reviews")} title={has("reviews") ? t("onlyOne") : undefined} onClick={() => add("reviews")}>
+            <Star className="h-4 w-4" />
+            {t("addReviews")}
+          </Button>
         </div>
         <p className="sr-only" aria-live="polite">
           {live}
@@ -314,6 +398,81 @@ export function PageEditor({ page, store, products }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/** Size table grid: a card per row (stacks at 390px), every cell labelled, rows can be added, removed and reordered. */
+function SizeguideEditor({
+  rowId,
+  block,
+  update,
+  move,
+  setLive,
+}: {
+  rowId: string;
+  block: SizeguideBlock;
+  update: (b: SizeguideBlock) => void;
+  move: (b: SizeguideBlock, i: number, d: -1 | 1) => void;
+  setLive: (s: string) => void;
+}) {
+  const t = useTranslations("store.admin.editor");
+  const setCell = (i: number, col: "size" | SizeCol, v: string) => update({ ...block, rows: block.rows.map((r, k) => (k === i ? { ...r, [col]: v } : r)) });
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label={t("sgTitle")} htmlFor={`sg-${rowId}-title`}>
+          <Input id={`sg-${rowId}-title`} value={block.title ?? ""} maxLength={80} onChange={(e) => update({ ...block, title: e.target.value })} />
+        </Field>
+        <Field label={t("sgNote")} htmlFor={`sg-${rowId}-note`}>
+          <Input id={`sg-${rowId}-note`} value={block.note ?? ""} maxLength={300} onChange={(e) => update({ ...block, note: e.target.value })} />
+        </Field>
+      </div>
+      <ul className="space-y-2">
+        {block.rows.map((r, i) => (
+          <li key={i} className="rounded-lg border border-border p-3">
+            <div className="mb-2 flex items-center gap-1">
+              <span className="text-xs font-medium text-muted-foreground">{t("sgRow", { n: i + 1 })}</span>
+              <div className="ms-auto flex items-center gap-1">
+                <Button id={`sg-${rowId}-${i}-up`} type="button" variant="ghost" size="icon" aria-label={t("sgUp", { n: i + 1 })} disabled={i === 0} onClick={() => move(block, i, -1)}>
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button id={`sg-${rowId}-${i}-down`} type="button" variant="ghost" size="icon" aria-label={t("sgDown", { n: i + 1 })} disabled={i === block.rows.length - 1} onClick={() => move(block, i, 1)}>
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("sgRemove", { n: i + 1 })}
+                  disabled={block.rows.length === 1}
+                  onClick={() => {
+                    update({ ...block, rows: block.rows.filter((_, k) => k !== i) });
+                    setLive(t("sgRemoved", { n: i + 1 }));
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label={t("sgSize")} htmlFor={`sg-${rowId}-${i}-size`}>
+                <Input id={`sg-${rowId}-${i}-size`} value={r.size} maxLength={40} onChange={(e) => setCell(i, "size", e.target.value)} />
+              </Field>
+              {SIZEGUIDE_COLUMNS.map((c) => (
+                <Field key={c} label={t(`sg_${c}`)} htmlFor={`sg-${rowId}-${i}-${c}`}>
+                  <Input id={`sg-${rowId}-${i}-${c}`} value={r[c] ?? ""} maxLength={40} onChange={(e) => setCell(i, c, e.target.value)} />
+                </Field>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Button type="button" variant="outline" size="sm" disabled={block.rows.length >= MAX_SIZE_ROWS} onClick={() => update({ ...block, rows: [...block.rows, { size: "" }] })}>
+        <Plus className="h-4 w-4" />
+        {t("sgAddRow")}
+      </Button>
+      {block.rows.length >= MAX_SIZE_ROWS ? <p className="text-xs text-muted-foreground">{t("sgMax")}</p> : null}
     </div>
   );
 }
