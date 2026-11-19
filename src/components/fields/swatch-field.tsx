@@ -28,6 +28,8 @@ export function SwatchDot({ swatch, className = "" }: { swatch: Swatch; classNam
  */
 export function SwatchField({ value, onChange }: { value: Swatch; onChange: (next: Swatch) => void }) {
   const t = useTranslations("variants");
+  const hexErrId = React.useId();
+  const urlErrId = React.useId();
   const [mode, setMode] = React.useState<"color" | "image">(value.image ? "image" : "color");
   const [hex, setHex] = React.useState(value.color ?? "");
   const [url, setUrl] = React.useState(value.image ?? "");
@@ -35,7 +37,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
   const urlOk = !url || swatchImageSchema.safeParse(url).success;
 
   return (
-    <div className="w-72 space-y-3">
+    <div className="w-full space-y-3">
       <div className="flex gap-2" role="group" aria-label={t("swatchMode")}>
         <Button type="button" size="sm" variant={mode === "color" ? "default" : "outline"} aria-pressed={mode === "color"} onClick={() => setMode("color")}>
           {t("swatchColor")}
@@ -50,7 +52,9 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
             <Input
               aria-label={t("swatchHex")}
               aria-invalid={!hexOk}
+              aria-describedby={hexOk ? undefined : hexErrId}
               dir="ltr"
+              className="min-w-0 flex-1"
               value={hex}
               maxLength={7}
               placeholder="#rrggbb"
@@ -71,7 +75,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
               }}
             />
           </div>
-          {!hexOk ? <p role="alert" className="text-xs text-danger">{t("swatchHexError")}</p> : null}
+          {!hexOk ? <p id={hexErrId} role="alert" className="text-xs text-danger">{t("swatchHexError")}</p> : null}
           <div className="flex flex-wrap gap-1.5">
             {SWATCH_PRESETS.map((p) => (
               <button
@@ -94,6 +98,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
           <Input
             aria-label={t("swatchUrl")}
             aria-invalid={!urlOk}
+            aria-describedby={urlOk ? undefined : urlErrId}
             dir="ltr"
             type="url"
             inputMode="url"
@@ -105,7 +110,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
               else if (!e.target.value) onChange({ color: null, image: null });
             }}
           />
-          {!urlOk ? <p role="alert" className="text-xs text-danger">{t("swatchUrlError")}</p> : null}
+          {!urlOk ? <p id={urlErrId} role="alert" className="text-xs text-danger">{t("swatchUrlError")}</p> : null}
           {url && urlOk ? <SwatchDot swatch={{ color: null, image: url }} className="!size-12" /> : null}
         </div>
       )}

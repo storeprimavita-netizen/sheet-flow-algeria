@@ -549,3 +549,14 @@ STORE-2-F round 4 screenshots (D79 f), chrome-devtools MCP, local stack (dev ser
 - Evidence: screenshots in docs/design/audit/STORE-2-F/ (r4-*); store-http.test.ts 5/5 against `next start` (local stack).
 - Owner: store 404 `<h1>` missing from initial HTML is a Next framework behaviour; needs an owner decision (see round 1 notes).
 - Next: STORE-2-G (review-3 lows 5 to 10, missing tests, photo-failure placeholder, EN store shots not taken).
+
+VAR-1 screenshot self-critique pass (2026-11-19), chrome-devtools MCP, admin@seed.mnw, local stack. Files in docs/design/audit/VAR-1/ (34 PNGs). Captured:
+- Backfill dialog (product Veste Sarah / Abaya Noor, "+ Color" with Red/Blue, backfill choice): EN dark 1280, EN light 1280, EN light 390; AR dark 1280, AR light 1280, AR dark 390, AR light 390.
+- Options editor, saved product with sizes: EN dark 1280; "+ Color" added (dialog over page) EN dark 1280. Color option with Burgundy/Ivory swatches saved: EN and AR, dark and light, 1280 and 390 (8 files).
+- Swatch popover (colour/photo, hex, presets, remove): EN dark and light, 1280 and 390.
+- Settings > Options > Size sets: empty EN dark 1280, add form EN dark 1280, one set with 9 sizes EN and AR dark and light 1280 and 390.
+- Store product page (chips, burgundy swatch dot): AR dark and light, 1280 and 390.
+Not captured: store EN (store is Arabic-only); out-of-stock chip (variant stock only changes through stock movements, so no sold-out size was made; code path data-out reads fine); size-set error state; swatch Photo mode and invalid-hex error; swatch popover in AR; the 200-variant and 8+ value wrap cases; EN dark 390 backfill dialog; value-less Ivory chip (a value with no size is hidden on the store by design).
+Local seed data added for the shots (local DB only): store `luxe-audit` + published page `abaya-noor` for Abaya Noor, Color option (Burgundy, Ivory) on Abaya Noor, size set "Women", a Red/Blue option was NOT saved on Veste Sarah.
+Fixes from the screenshots: swatch popover overflowed its right edge by 13 px at 390 (field was w-72 inside a w-72 padded popover; now w-full, hex input min-w-0); dialog content now max-h with overflow-y-auto and overscroll-contain (short phones, scroll chaining); swatch field errors get aria-describedby via useId (accessible-error-announcement guide). modern-web-guidance retrieved: dialog, accessible-error-announcement, validate-input-after-interaction; the app keeps Radix dialog/popover per AGENTS.md (native dialog guide not applied), the colour input stays the documented exception. No `color` input guide exists in the CLI (search returned none).
+Gate: `scripts/gate.sh --fast` GATE OK (first run failed once in kpi.test.ts teardown, audit_log FK 23503 on workspace delete, unrelated and green on rerun).
