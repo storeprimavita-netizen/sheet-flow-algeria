@@ -11,7 +11,8 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { DateRangePicker } from "@/components/fields/date-field";
 import { Chip } from "@/components/ui/chip";
 import { formatDate, ltr } from "@/lib/format";
-import { STATS_PERSIST_KEYS, pickParams, statsFiltersToParams, parseStatsFilters, type StatsFilters } from "@/lib/query-string";
+import { STATS_PERSIST_KEYS, pickParams, statsFiltersToParams, type StatsFilters } from "@/lib/query-string";
+import { cleanStatsParams, editStatsParams } from "./stats-filter-edit";
 import { cn } from "@/lib/utils";
 
 export type StatsOpt = { value: string; label: string };
@@ -64,21 +65,14 @@ export function StatsFilterBar({
   }, []);
 
   function go(raw: URLSearchParams) {
-    let next = raw;
-    // only values the server accepts are remembered or kept in the URL
-    const clean = statsFiltersToParams(parseStatsFilters((k) => next.get(k) ?? ""));
-    if (next.get("wilaya")) clean.set("wilaya", next.get("wilaya")!);
-    next = clean;
+    const next = cleanStatsParams(raw); // only values the server accepts are remembered or kept in the URL
     const remembered = pickParams(next.toString(), STATS_PERSIST_KEYS);
     if (remembered) localStorage.setItem(STORAGE_KEY, remembered);
     else localStorage.removeItem(STORAGE_KEY);
     router.push(next.size ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   }
   function change(edit: (p: URLSearchParams) => void) {
-    const next = new URLSearchParams(canon.toString());
-    if (sp.get("wilaya")) next.set("wilaya", sp.get("wilaya")!); // the open drill panel stays
-    edit(next);
-    go(next);
+    go(editStatsParams(canon, sp.get("wilaya"), edit));
   }
   const setParam = (k: string, v: string | null) =>
     change((p) => {
