@@ -135,8 +135,9 @@ export function DataTable<T>({
   const openRow = searchParams.get("row");
 
   function toggleSort(id: string) {
-    if (sortId === id) setParams({ dir: sortDir === "asc" ? "desc" : "asc", page: null });
-    else setParams({ sort: id, dir: "asc", page: null });
+    // a sort change leaves statistics drill mode (the drill id page has its own order)
+    if (sortId === id) setParams({ dir: sortDir === "asc" ? "desc" : "asc", page: null, drill: null, commune_key: null, commune_unknown: null });
+    else setParams({ sort: id, dir: "asc", page: null, drill: null, commune_key: null, commune_unknown: null });
   }
 
   // a column shows unless its id is in `hidden` (seeded from defaultHidden on mount)

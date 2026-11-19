@@ -17,7 +17,7 @@ export default function StatisticsError({ error, unstable_retry }: { error: Erro
       </div>
       <div className="space-y-1">
         <h2 className="text-base font-semibold">{t("statistics.errorTitle")}</h2>
-        <p className="text-sm text-muted-foreground">{t("errorPage.body")}</p>
+        <p className="text-sm text-muted-foreground">{t("statistics.errorBody")}</p>
       </div>
       <Button type="button" onClick={() => unstable_retry()}>
         <RotateCw className="h-4 w-4" />

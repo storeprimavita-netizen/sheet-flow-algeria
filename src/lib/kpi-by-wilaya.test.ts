@@ -135,6 +135,17 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
     expect((await anon.rpc("kpi_by_commune", { p_wilaya: 16 })).error).not.toBeNull();
   });
 
+  test("kpi_group_extras is admin-gated: agents and anon get nothing", async () => {
+    const p = await product();
+    const o = await order(p);
+    const ids = [o];
+    for (const a of [confAgent, delAgent]) {
+      const { data } = await a.rpc("kpi_group_extras", { p_order_ids: ids });
+      expect((data as { shipped?: number } | null)?.shipped ?? 0).toBe(0);
+    }
+    expect((await client(ANON_KEY).rpc("kpi_group_extras", { p_order_ids: ids })).error).not.toBeNull();
+  });
+
   test("commune grouping: '', whitespace/case variants and NULL; communes sum to the wilaya row", async () => {
     const p = await product();
     await order(p, { commune: "Alger" });

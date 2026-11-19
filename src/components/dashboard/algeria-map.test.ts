@@ -74,7 +74,7 @@ describe("wilayaTitle", () => {
 describe("wilaya table label structure", () => {
   const src = readFileSync("src/components/stats/wilaya-table.tsx", "utf8");
   it("renders ltr code, readable separator, name in bdi", () => {
-    expect(src).toContain('<bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi>');
+    expect(src).toContain('<bdi dir="ltr">{code}</bdi><span> · </span><bdi>{w.name}</bdi>');
     expect(src).not.toContain("<span aria-hidden> · </span>");
   });
   it("has a scroll-fade hint on the table", () => {

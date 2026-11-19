@@ -23,8 +23,12 @@ export type DashboardFilters = {
   delivery_status?: string;
 };
 
-/** Reserved `commune_key` value on /app/orders/all meaning "no commune" (`is null`); a real key is lower(trim(commune)). */
-export const UNKNOWN_COMMUNE = "__unknown";
+/** One date shape for every statistics/drill param (an invalid value is dropped, never half-applied). */
+export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** Longest commune key accepted by the drill (longer is rejected, never cut). */
+export const MAX_COMMUNE_KEY = 120;
+/** `commune_unknown=1` on /app/orders/all means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
+export const COMMUNE_UNKNOWN_PARAM = "commune_unknown";
 
 /**
  * `/app/orders/all`'s URL-param shape (product_id/wilaya_code/agent/…). Takes
@@ -52,6 +56,12 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
 /** Drill metric -> the orders behind a /app/statistics count (`kpi_drill_orders`, same predicate as the SQL count). */
 export type DrillMetric = "received" | "confirmed" | "delivered" | "return";
 
-/** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (UNKNOWN_COMMUNE = none). */
-export const drillHref = (filters: DashboardFilters, metric: DrillMetric, extra: { wilaya: number; communeKey?: string }) =>
-  ordersQs(filters, { drill: metric, wilaya_code: String(extra.wilaya), commune_key: extra.communeKey });
+/** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (communeKey null = no commune). */
+export const drillHref = (filters: DashboardFilters, metric: DrillMetric, extra: { wilaya: number; communeKey?: string | null }) =>
+  ordersQs(filters, {
+    drill: metric,
+    wilaya_code: String(extra.wilaya),
+    // communeKey === null -> the "no commune" group; undefined -> the whole wilaya
+    commune_key: extra.communeKey ?? undefined,
+    [COMMUNE_UNKNOWN_PARAM]: extra.communeKey === null ? "1" : undefined,
+  });

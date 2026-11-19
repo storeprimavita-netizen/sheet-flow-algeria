@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { asKpiGroup } from "@/lib/kpi";
-import type { DashboardFilters } from "@/lib/query-string";
+import { ISO_DATE, type DashboardFilters } from "@/lib/query-string";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
@@ -25,7 +25,11 @@ export default async function StatisticsPage({
   const t = await getTranslations();
   const supabase = await createClient();
 
-  const filters: DashboardFilters = { from: get("from") || undefined, to: get("to") || undefined, product: get("product") || undefined };
+  const filters: DashboardFilters = {
+    from: ISO_DATE.test(get("from")) ? get("from") : undefined,
+    to: ISO_DATE.test(get("to")) ? get("to") : undefined,
+    product: get("product") || undefined,
+  };
   const { data: products } = await supabase.from("products").select("id, name").order("name");
   // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
   if (filters.product && !(products ?? []).some((p) => p.id === filters.product)) filters.product = undefined;
@@ -41,18 +45,18 @@ export default async function StatisticsPage({
   const rows: StatsRow[] = (data ?? [])
     .flatMap((r) => {
       const group = asKpiGroup(r.rates, r.extras);
-      return group && r.wilaya_code != null ? [{ code: r.wilaya_code, name: r.wilaya_name, group }] : [];
+      return group ? [{ code: r.wilaya_code, name: r.wilaya_name, group }] : [];
     })
-    .sort((a, b) => b.group.rates.counts.received - a.group.rates.counts.received || a.code - b.code);
+    .sort((a, b) => b.group.rates.counts.received - a.group.rates.counts.received || (a.code ?? 999) - (b.code ?? 999));
 
   // ?wilaya=: one open at a time; a value that is not a wilaya of the result is ignored.
   const wantedWilaya = /^\d{1,2}$/.test(get("wilaya")) ? Number(get("wilaya")) : null;
-  const open = rows.find((r) => r.code === wantedWilaya) ?? null;
+  const open = wantedWilaya === null ? null : rows.find((r) => r.code === wantedWilaya) ?? null;
 
   const keep = new URLSearchParams();
   for (const k of ["from", "to", "product"] as const) if (filters[k]) keep.set(k, filters[k]!);
   const baseHref = `/app/statistics${keep.size ? `?${keep.toString()}` : ""}`;
-  const retryHref = open ? `${baseHref}${keep.size ? "&" : "?"}wilaya=${open.code}` : baseHref;
+  const retryHref = open ? `${baseHref}${keep.size ? "&" : "?"}wilaya=${wantedWilaya}` : baseHref;
   const widenHref = (() => {
     const p = new URLSearchParams();
     if (filters.product) p.set("product", filters.product);
@@ -65,7 +69,7 @@ export default async function StatisticsPage({
     return `/app/statistics${p.size ? `?${p.toString()}` : ""}`;
   })();
 
-  const names = Object.fromEntries(rows.flatMap((r) => (r.name ? [[r.code, r.name] as const] : [])));
+  const names = Object.fromEntries(rows.flatMap((r) => (r.code !== null && r.name ? [[r.code, r.name] as const] : [])));
 
   return (
     <div className="space-y-6">
@@ -80,6 +84,7 @@ export default async function StatisticsPage({
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {filters.from || filters.to ? <ButtonLink href={widenHref} size="sm">{t("statistics.widenPeriod")}</ButtonLink> : null}
             {filters.product ? <ButtonLink href={clearProductHref} size="sm" variant="outline">{t("statistics.clearProduct")}</ButtonLink> : null}
+            {!filters.from && !filters.to && !filters.product ? <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink> : null}
           </div>
         </Empty>
       ) : (
@@ -89,9 +94,9 @@ export default async function StatisticsPage({
           openWilaya={open?.code ?? null}
           names={names}
           panel={
-            open ? (
+            open && wantedWilaya !== null ? (
               <Suspense fallback={<CommunePanelSkeleton />}>
-                <CommunePanel wilaya={open.code} group={open.group} filters={filters} retryHref={retryHref} />
+                <CommunePanel wilaya={wantedWilaya} group={open.group} filters={filters} retryHref={retryHref} />
               </Suspense>
             ) : null
           }

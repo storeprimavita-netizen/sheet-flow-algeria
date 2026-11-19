@@ -3,11 +3,11 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { asKpiGroup, type KpiGroup, type KpiGroupExtras } from "@/lib/kpi";
-import { drillHref, UNKNOWN_COMMUNE, type DashboardFilters } from "@/lib/query-string";
+import { drillHref, type DashboardFilters } from "@/lib/query-string";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { tableClass } from "@/components/field";
-import { MetricCell } from "@/components/stats/metric-cell";
+import { MetricCell, DRILL_LINK } from "@/components/stats/metric-cell";
 
 /** Skeleton shown while the commune rows stream in (own Suspense, the wilaya table stays usable). */
 export function CommunePanelSkeleton() {
@@ -89,7 +89,7 @@ export async function CommunePanel({
   const notEnough = t("statistics.notEnoughData");
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="sticky start-0 max-w-[calc(100vw-3rem)] space-y-3 p-4">
       <ExtrasLine extras={group.extras} t={t} />
       {rows.length === 0 ? (
         <Empty className="p-6">{t("statistics.noCommunes")}</Empty>
@@ -98,7 +98,7 @@ export async function CommunePanel({
           <table className={tableClass}>
             <thead>
               <tr>
-                <th>{t("statistics.commune")}</th>
+                <th className="sticky start-0 z-[1] bg-surface">{t("statistics.commune")}</th>
                 <th className="text-end">{t("statistics.received")}</th>
                 <th>{t("statistics.confirmation")}</th>
                 <th>{t("statistics.delivery")}</th>
@@ -108,13 +108,12 @@ export async function CommunePanel({
             <tbody>
               {rows.map((r) => {
                 const { counts } = r.g.rates;
-                const key = r.key ?? UNKNOWN_COMMUNE;
-                const href = (m: Parameters<typeof drillHref>[1]) => drillHref(filters, m, { wilaya, communeKey: key });
+                const href = (m: Parameters<typeof drillHref>[1]) => drillHref(filters, m, { wilaya, communeKey: r.key });
                 return (
-                  <tr key={key}>
-                    <td className="whitespace-nowrap">{r.key === null ? <span className="text-muted-foreground">{t("statistics.unknownCommune")}</span> : <bdi>{r.name}</bdi>}</td>
+                  <tr key={r.key ?? "\u0000unknown"}>
+                    <td className="sticky start-0 z-[1] whitespace-nowrap bg-surface">{r.key === null ? <span className="text-muted-foreground">{t("statistics.unknownCommune")}</span> : <bdi>{r.name}</bdi>}</td>
                     <td className="num text-end">
-                      {counts.received > 0 ? <Link href={href("received")} className="underline-offset-2 hover:underline">{counts.received}</Link> : counts.received}
+                      {counts.received > 0 ? <Link href={href("received")} className={DRILL_LINK}>{counts.received}</Link> : counts.received}
                     </td>
                     <td className="min-w-32"><MetricCell m={r.g.rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
                     <td className="min-w-32"><MetricCell m={r.g.rates.delivery} numHref={href("delivered")} title={notEnough} /></td>

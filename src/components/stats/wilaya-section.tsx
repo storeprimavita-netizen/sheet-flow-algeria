@@ -35,13 +35,13 @@ export function WilayaSection({
   const sp = useSearchParams();
   const [hovered, setHovered] = React.useState<number | null>(null);
 
-  const data: WilayaMapDatum[] = rows.map((r) => ({
+  const data: WilayaMapDatum[] = rows.flatMap((r) => (r.code === null ? [] : [{
     code: r.code,
     name: r.name,
     totalOrders: r.group.rates.counts.received,
     deliveryRate: kpiPct(r.group.rates.delivery),
     matured: r.group.rates.delivery.matured,
-  }));
+  }]));
 
   const open = (code: number) => {
     const next = new URLSearchParams(sp.toString());

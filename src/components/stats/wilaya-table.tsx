@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import type { KpiGroup } from "@/lib/kpi";
 import { drillHref, type DashboardFilters, type DrillMetric } from "@/lib/query-string";
 import { tableClass } from "@/components/field";
-import { MetricCell } from "@/components/stats/metric-cell";
+import { MetricCell, DRILL_LINK } from "@/components/stats/metric-cell";
 
 export type StatsRow = {
-  code: number;
+  /** null = orders without a wilaya (no drill, no communes) */
+  code: number | null;
   name: string | null;
   group: KpiGroup;
 };
@@ -72,7 +73,7 @@ export function WilayaTable({
   return (
     <div className="relative">
     <div ref={scrollRef} onScroll={measure} className="overflow-x-auto">
-      <table className={cn(tableClass, "min-w-[32rem]")}>
+      <table className={cn(tableClass, "max-sm:[&_td]:px-1.5 max-sm:[&_th]:px-1.5 max-sm:text-xs sm:min-w-[32rem]")}>
         <thead>
           <tr>
             <th className="sticky start-0 z-[1] bg-surface">{t("fields.wilaya")}</th>
@@ -85,43 +86,44 @@ export function WilayaTable({
         <tbody>
           {rows.map((w) => {
             const { rates } = w.group;
-            const open = openWilaya === w.code;
-            const panelId = `commune-panel-${w.code}`;
-            const href = (m: DrillMetric) => drillHref(filters, m, { wilaya: w.code });
+            const code = w.code;
+            const open = code !== null && openWilaya === code;
+            const panelId = `commune-panel-${code}`;
+            const href = (m: DrillMetric) => (code === null ? undefined : drillHref(filters, m, { wilaya: code }));
             return (
-              <React.Fragment key={w.code}>
+              <React.Fragment key={code ?? "unknown"}>
                 <tr
-                  className={cn("transition-colors", (hovered === w.code || open) && "bg-surface-raised")}
-                  onMouseEnter={() => onHover(w.code)}
+                  className={cn("transition-colors", (hovered === code || open) && "bg-surface-raised")}
+                  onMouseEnter={() => onHover(code)}
                   onMouseLeave={() => onHover(null)}
                 >
-                  <td className={cn("sticky start-0 z-[1]", hovered === w.code || open ? "bg-surface-raised" : "bg-surface")}>
+                  <td className={cn("sticky start-0 z-[1]", hovered === code || open ? "bg-surface-raised" : "bg-surface")}>
                     <div className="flex items-center gap-1">
-                      <Link
-                        href={toggleHref(w.code)}
+                      {code === null ? <span className="h-7 w-7 shrink-0" /> : <Link
+                        href={toggleHref(code)}
                         scroll={false}
                         aria-expanded={open}
                         aria-controls={panelId}
-                        aria-label={t(open ? "statistics.collapse" : "statistics.expand", { name: w.name ?? String(w.code) })}
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-raised hover:text-foreground"
+                        aria-label={t(open ? "statistics.collapse" : "statistics.expand", { name: w.name ?? String(code) })}
+                        className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <ChevronRight className={cn("h-4 w-4 transition-transform rtl:-scale-x-100", open && "rotate-90 rtl:rotate-90")} />
-                      </Link>
-                      <span className="whitespace-nowrap">
-                        {w.name ? <><bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{w.code}</bdi>}
+                      </Link>}
+                      <span className="sm:whitespace-nowrap">
+                        {code === null ? t("statistics.unknownWilaya") : w.name ? <><bdi dir="ltr">{code}</bdi><span> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{code}</bdi>}
                       </span>
                     </div>
                   </td>
                   <td className="num text-end">
-                    {rates.counts.received > 0 ? (
-                      <Link href={href("received")} className="underline-offset-2 hover:underline">{rates.counts.received}</Link>
+                    {rates.counts.received > 0 && href("received") ? (
+                      <Link href={href("received")!} className={DRILL_LINK}>{rates.counts.received}</Link>
                     ) : (
                       rates.counts.received
                     )}
                   </td>
-                  <td className="min-w-32"><MetricCell m={rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
-                  <td className="min-w-32"><MetricCell m={rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
-                  <td className="min-w-32"><MetricCell m={rates.return} numHref={href("return")} title={notEnough} /></td>
+                  <td className="sm:min-w-32"><MetricCell m={rates.confirmation} numHref={href("confirmed")} title={notEnough} /></td>
+                  <td className="sm:min-w-32"><MetricCell m={rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
+                  <td className="sm:min-w-32"><MetricCell m={rates.return} numHref={href("return")} title={notEnough} /></td>
                 </tr>
                 {open ? (
                   <tr>

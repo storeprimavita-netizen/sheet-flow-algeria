@@ -12,7 +12,7 @@ import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { UNKNOWN_COMMUNE } from "@/lib/query-string";
+import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY } from "@/lib/query-string";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
@@ -49,22 +49,30 @@ export default async function AllOrdersPage({
   // from kpi_drill_orders (same set, commune key and predicate as the table), one page at a time.
   const drillMetric = ["received", "confirmed", "delivered", "return"].find((m) => m === get("drill")) ?? null;
   const communeKey = get("commune_key");
+  const communeUnknown = get(COMMUNE_UNKNOWN_PARAM) === "1";
   let drillIds: string[] | null = null;
   let drillTotal = 0;
-  if (drillMetric) {
+  let drillFailed = false;
+  if (drillMetric && communeKey.length > MAX_COMMUNE_KEY) {
+    // no commune key can be this long: nothing matches (never cut a key to a different one)
+    drillIds = [];
+  } else if (drillMetric) {
     const { data: drill, error: drillError } = await supabase.rpc("kpi_drill_orders", {
       p_metric: drillMetric,
-      p_from: /^\d{4}-\d{2}-\d{2}$/.test(get("from")) ? get("from") : undefined,
-      p_to: /^\d{4}-\d{2}-\d{2}$/.test(get("to")) ? get("to") : undefined,
+      p_from: ISO_DATE.test(get("from")) ? get("from") : undefined,
+      p_to: ISO_DATE.test(get("to")) ? get("to") : undefined,
       p_product: /^[0-9a-f-]{36}$/i.test(get("product_id")) ? [get("product_id")] : undefined,
       p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
-      p_commune_key: communeKey && communeKey !== UNKNOWN_COMMUNE ? communeKey.slice(0, 120) : undefined,
-      p_unknown: communeKey === UNKNOWN_COMMUNE,
+      p_commune_key: communeKey && !communeUnknown ? communeKey : undefined,
+      p_unknown: communeUnknown,
       p_delivery_type: get("delivery_type") || undefined,
       p_offset: (page - 1) * PAGE_SIZE,
       p_limit: PAGE_SIZE,
     });
-    if (drillError) console.error("orders/all drill", drillError.message);
+    if (drillError) {
+      console.error("orders/all drill", drillError.message);
+      drillFailed = true;
+    }
     drillIds = (drill ?? []).map((r) => r.id);
     drillTotal = Number(drill?.[0]?.total ?? 0);
   }
@@ -128,8 +136,8 @@ export default async function AllOrdersPage({
   const orders = drillIds ? [...(fetched ?? [])].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)) : fetched;
   const count = drillIds ? drillTotal : fetchedCount;
 
-  if (ordersError) {
-    console.error("orders/all", ordersError.message);
+  if (ordersError || drillFailed) {
+    if (ordersError) console.error("orders/all", ordersError.message);
     const retry = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
     return (
       <div className="space-y-6">
@@ -224,6 +232,20 @@ export default async function AllOrdersPage({
       </PageHeader>
 
       <OrderTabs active="all" />
+
+      {drillMetric ? (
+        <div className="card-surface flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm" role="status">
+          <p>
+            <span className="font-medium text-foreground">{t(`orders.drill.${drillMetric}`)}</span>
+            <span className="text-muted-foreground">
+              {" · "}
+              {wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code")}
+              {communeKey || communeUnknown ? ` · ${communeUnknown ? t("statistics.unknownCommune") : communeKey}` : ""}
+            </span>
+          </p>
+          <ButtonLink href="/app/orders/all" size="sm" variant="outline">{t("orders.drill.clear")}</ButtonLink>
+        </div>
+      ) : null}
 
       <OrdersFilterBar products={productOpts} wilayas={wilayaOpts} agents={agentOpts} />
 
