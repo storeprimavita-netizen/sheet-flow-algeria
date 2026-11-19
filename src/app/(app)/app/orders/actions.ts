@@ -14,6 +14,7 @@ import { applyZRParcelState } from "@/lib/integrations/zrexpress-webhook";
 import { hubsForOrder, pushToZR } from "@/lib/integrations/zrexpress-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SETTINGS_SCHEMAS } from "@/lib/settings";
+import { newOrderBlock } from "@/lib/pricing-delivery";
 import {
   CONFIRMATION_STATUSES,
   MANUAL_DELIVERY_STATUSES,
@@ -375,6 +376,15 @@ export async function createOrder(formData: FormData) {
   });
 
   const supabase = await createClient();
+  const { data: feeRow } = await supabase
+    .from("wilaya_fees")
+    .select("home_fee, stopdesk_fee, priced, stopdesk_available, stop_shipping")
+    .eq("workspace_id", workspaceId)
+    .eq("wilaya_code", input.wilaya_code)
+    .maybeSingle();
+  const block = newOrderBlock(feeRow, input.delivery_type);
+  if (block) throw new Error(`Cannot create this order: ${block}`);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

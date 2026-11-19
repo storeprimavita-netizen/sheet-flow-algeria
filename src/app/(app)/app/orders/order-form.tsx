@@ -2,17 +2,20 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
+import { Ban, Info } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Field } from "@/components/field";
+import { Combobox } from "@/components/ui/combobox";
 import { ProductCombobox } from "@/components/fields/comboboxes";
 import { WilayaCombobox } from "@/components/fields/comboboxes";
 import { PhoneField } from "@/components/fields/phone-field";
 import { MoneyField } from "@/components/fields/money-field";
 import { QuantityStepper } from "@/components/fields/quantity-stepper";
 import { DELIVERY_TYPES } from "@/lib/enums";
+import { deliveryFeeFor, newOrderBlock, type DeliveryType, type DeliveryFeeRow } from "@/lib/pricing-delivery";
 import { createOrder } from "./actions";
 
 type ProductOpt = {
@@ -28,14 +31,24 @@ type ProductOpt = {
 const NONE = "__none"; // Radix Select needs a non-empty sentinel for "no size yet"
 
 type WilayaOpt = { code: number; name: string };
-type FeeMap = Record<number, { home_fee: number; stopdesk_fee: number }>;
+type FeeMap = Record<number, DeliveryFeeRow & { stop_shipping: boolean }>;
 
 /**
  * Manual order creation — all field components (no native select / raw input).
  * State drives the auto-fill: picking a product seeds the price; picking a
  * wilaya / delivery type seeds the fee (editing it flips the source to manual).
  */
-export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[]; wilayas: WilayaOpt[]; fees: FeeMap }) {
+export function OrderForm({
+  products,
+  wilayas,
+  fees,
+  communes,
+}: {
+  products: ProductOpt[];
+  wilayas: WilayaOpt[];
+  fees: FeeMap;
+  communes: Record<number, string[]>;
+}) {
   const t = useTranslations();
 
   const [productId, setProductId] = React.useState("");
@@ -52,13 +65,23 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
     setVariantId(NONE); // a size belongs to one product
   }
 
+  const [commune, setCommune] = React.useState("");
+
   const fee = fees[Number(wilayaCode)];
-  const seededFee = fee ? (deliveryType === "stopdesk" ? fee.stopdesk_fee : fee.home_fee) : 0;
+  const seededFee = deliveryFeeFor(fee, deliveryType as DeliveryType) ?? 0;
+  const block = newOrderBlock(fee, deliveryType as DeliveryType);
+  const stopdeskBlocked = !!fee && deliveryFeeFor(fee, "stopdesk") === null;
+  const communeList = communes[Number(wilayaCode)] ?? [];
   // remount the money fields when the seed changes so the auto value shows
   const feeKey = `${wilayaCode}-${deliveryType}`;
 
   function onWilayaOrType(next: { wilaya?: string; type?: string }) {
-    if (next.wilaya !== undefined) setWilayaCode(next.wilaya);
+    if (next.wilaya !== undefined) {
+      setWilayaCode(next.wilaya);
+      setCommune(""); // a commune belongs to one wilaya
+      // stop-desk may not exist in the new wilaya: fall back to home
+      if (deliveryFeeFor(fees[Number(next.wilaya)], "stopdesk") === null && fees[Number(next.wilaya)]) setDeliveryType("home");
+    }
     if (next.type !== undefined) setDeliveryType(next.type);
     setFeeSource("wilaya_table");
   }
@@ -120,7 +143,23 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
           />
         </Field>
         <Field label={t("fields.city")} htmlFor="commune" hint={t("common.optional")}>
-          <Input id="commune" name="commune" />
+          {communeList.length ? (
+            <Combobox
+              key={`commune-${wilayaCode}`}
+              name="commune"
+              options={(communeList.includes(commune) || !commune ? communeList : [commune, ...communeList]).map((c) => ({ value: c, label: c }))}
+              value={commune}
+              onChange={setCommune}
+              onCreate={setCommune}
+              createLabel={(q) => t("orders.form.useCommune", { name: q })}
+              searchPlaceholder={t("orders.form.searchCommune")}
+              emptyText={t("orders.form.noCommune")}
+              placeholder={t("orders.form.chooseCommune")}
+              ariaLabel={t("fields.city")}
+            />
+          ) : (
+            <Input id="commune" name="commune" value={commune} onChange={(e) => setCommune(e.target.value)} dir="auto" />
+          )}
         </Field>
         <Field label={t("fields.address")} htmlFor="address" hint={t("common.optional")} className="sm:col-span-2">
           <Input id="address" name="address" />
@@ -132,12 +171,18 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
             </SelectTrigger>
             <SelectContent>
               {DELIVERY_TYPES.map((d) => (
-                <SelectItem key={d} value={d}>
+                <SelectItem key={d} value={d} disabled={d === "stopdesk" && stopdeskBlocked}>
                   {t(`status.delivery_type.${d}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {stopdeskBlocked && !block ? (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {t("orders.form.stopdeskUnavailable")}
+            </p>
+          ) : null}
         </Field>
         <Field label={t("fields.delivery_fee")}>
           <MoneyField
@@ -150,7 +195,16 @@ export function OrderForm({ products, wilayas, fees }: { products: ProductOpt[];
         </Field>
       </div>
 
-      <Button type="submit">{t("actions.save")}</Button>
+      {block === "stopped" || block === "unpriced" ? (
+        <p role="alert" className="flex items-center gap-2 rounded-lg border border-destructive/40 p-3 text-sm">
+          <Ban className="h-4 w-4 shrink-0 text-destructive" aria-hidden />
+          {t(`orders.form.blocked.${block}`)}
+        </p>
+      ) : null}
+
+      <Button type="submit" disabled={block !== null}>
+        {t("actions.save")}
+      </Button>
     </form>
   );
 }

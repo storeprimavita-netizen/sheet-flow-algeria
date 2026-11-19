@@ -430,7 +430,18 @@
     "sizeOldHint": "كُتب قبل وجود المقاسات",
     "chooseSize": "اختر مقاسًا",
     "sizeTitle": "المقاس",
-    "sizeFailed": "تعذّر تغيير المقاس: {reason}"
+    "sizeFailed": "تعذّر تغيير المقاس: {reason}",
+    "form": {
+      "useCommune": "استخدام \"{name}\"",
+      "searchCommune": "ابحث عن بلدية",
+      "noCommune": "لا توجد بلدية مطابقة.",
+      "chooseCommune": "اختر بلدية",
+      "stopdeskUnavailable": "التوصيل إلى المكتب غير متاح في هذه الولاية.",
+      "blocked": {
+        "stopped": "الشحن إلى هذه الولاية متوقف. لا يمكن إنشاء طلبات لها.",
+        "unpriced": "لا يوجد سعر توصيل لهذه الولاية بعد. لا يمكن إنشاء طلبات لها."
+      }
+    }
   },
   "expenses": {
     "title": "المصاريف",

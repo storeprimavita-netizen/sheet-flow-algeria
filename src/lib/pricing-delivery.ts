@@ -14,3 +14,16 @@ export function deliveryFeeFor(row: DeliveryFeeRow | null | undefined, type: Del
   if (type === "home") return row.home_fee;
   return row.stopdesk_available ? row.stopdesk_fee : null;
 }
+
+export type OrderBlock = "stopped" | "unpriced" | "type_unavailable";
+
+/** Why a NEW order cannot be created for this wilaya and type (null = fine). Same check client and server. */
+export function newOrderBlock(
+  row: (DeliveryFeeRow & { stop_shipping: boolean }) | null | undefined,
+  type: DeliveryType,
+): OrderBlock | null {
+  if (!row) return null;
+  if (row.stop_shipping) return "stopped";
+  if (!row.priced) return "unpriced";
+  return deliveryFeeFor(row, type) === null ? "type_unavailable" : null;
+}

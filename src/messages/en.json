@@ -430,7 +430,18 @@
     "sizeOldHint": "Typed before sizes existed",
     "chooseSize": "Choose a size",
     "sizeTitle": "Size",
-    "sizeFailed": "Could not change the size: {reason}"
+    "sizeFailed": "Could not change the size: {reason}",
+    "form": {
+      "useCommune": "Use \"{name}\"",
+      "searchCommune": "Search commune",
+      "noCommune": "No matching commune.",
+      "chooseCommune": "Choose a commune",
+      "stopdeskUnavailable": "Stop desk delivery is not available in this wilaya.",
+      "blocked": {
+        "stopped": "Shipping to this wilaya is stopped. Orders cannot be created for it.",
+        "unpriced": "This wilaya has no delivery price yet. Orders cannot be created for it."
+      }
+    }
   },
   "expenses": {
     "title": "Expenses",

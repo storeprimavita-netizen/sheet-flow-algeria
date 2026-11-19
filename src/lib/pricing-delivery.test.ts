@@ -20,3 +20,18 @@ describe("deliveryFeeFor", () => {
     expect(deliveryFeeFor(null, "home")).toBeNull();
   });
 });
+
+import { newOrderBlock } from "./pricing-delivery";
+
+describe("newOrderBlock", () => {
+  const r = { ...row, stop_shipping: false };
+  it("allows a normal order", () => expect(newOrderBlock(r, "stopdesk")).toBeNull());
+  it("blocks stop_shipping and unpriced for any type", () => {
+    expect(newOrderBlock({ ...r, stop_shipping: true }, "home")).toBe("stopped");
+    expect(newOrderBlock({ ...r, priced: false }, "home")).toBe("unpriced");
+  });
+  it("blocks stop-desk on a home-only wilaya", () => {
+    expect(newOrderBlock({ ...r, stopdesk_available: false }, "stopdesk")).toBe("type_unavailable");
+    expect(newOrderBlock({ ...r, stopdesk_available: false }, "home")).toBeNull();
+  });
+});
