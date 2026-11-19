@@ -16,7 +16,7 @@ import { MoneyField } from "@/components/fields/money-field";
 import { QuantityStepper } from "@/components/fields/quantity-stepper";
 import { DELIVERY_TYPES } from "@/lib/enums";
 import { deliveryFeeFor, newOrderBlock, type DeliveryType, type DeliveryFeeRow } from "@/lib/pricing-delivery";
-import { createOrder } from "./actions";
+import { createOrder, type OrderFormState } from "./actions";
 
 type ProductOpt = {
   id: string;
@@ -50,6 +50,7 @@ export function OrderForm({
   communes: Record<number, string[]>;
 }) {
   const t = useTranslations();
+  const [state, formAction] = React.useActionState<OrderFormState, FormData>((_prev, fd) => createOrder(fd), undefined);
 
   const [productId, setProductId] = React.useState("");
   const [variantId, setVariantId] = React.useState(NONE);
@@ -90,7 +91,7 @@ export function OrderForm({
   const wilayaOpts = wilayas.map((w) => ({ code: String(w.code), name: w.name }));
 
   return (
-    <form action={createOrder} className="space-y-6">
+    <form action={formAction} className="space-y-6">
       <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
         <Field label={t("fields.product")} htmlFor="product_id">
           <ProductCombobox
@@ -141,6 +142,12 @@ export function OrderForm({
             name="wilaya_code"
             placeholder={t("fields.none")}
           />
+          {block ? (
+            <p role="alert" className="mt-1 flex items-start gap-1.5 text-xs text-destructive">
+              <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              {t(`orders.form.blocked.${block}`)}
+            </p>
+          ) : null}
         </Field>
         <Field label={t("fields.city")} htmlFor="commune" hint={t("common.optional")}>
           {communeList.length ? (
@@ -195,16 +202,19 @@ export function OrderForm({
         </Field>
       </div>
 
-      {block === "stopped" || block === "unpriced" ? (
+      {state?.error ? (
         <p role="alert" className="flex items-center gap-2 rounded-lg border border-destructive/40 p-3 text-sm">
           <Ban className="h-4 w-4 shrink-0 text-destructive" aria-hidden />
-          {t(`orders.form.blocked.${block}`)}
+          {t(`orders.form.${state.error}`)}
         </p>
       ) : null}
 
-      <Button type="submit" disabled={block !== null}>
-        {t("actions.save")}
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={block !== null}>
+          {t("actions.save")}
+        </Button>
+        {block ? <p className="text-xs text-muted-foreground">{t("orders.form.saveBlocked")}</p> : null}
+      </div>
     </form>
   );
 }

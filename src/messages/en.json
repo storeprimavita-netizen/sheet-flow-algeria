@@ -417,7 +417,8 @@
       "badge": "Swap",
       "swappedTo": "Swapped to order {number}",
       "swappedFrom": "Swapped from order {number}",
-      "confirm": "Swap this order? A new order will be created for the new customer with the same product."
+      "confirm": "Swap this order? A new order will be created for the new customer with the same product.",
+      "failed": "The swap could not be created. Check the wilaya and try again."
     },
     "call": "Call",
     "whatsapp": "WhatsApp",
@@ -441,8 +442,11 @@
       "stopdeskUnavailable": "Stop desk delivery is not available in this wilaya.",
       "blocked": {
         "stopped": "Shipping to this wilaya is stopped. Orders cannot be created for it.",
-        "unpriced": "This wilaya has no delivery price yet. Orders cannot be created for it."
-      }
+        "unpriced": "This wilaya has no delivery price yet. Orders cannot be created for it.",
+        "type_unavailable": "This delivery type is not available in this wilaya."
+      },
+      "saveBlocked": "Choose another wilaya or delivery type to save.",
+      "createFailed": "The order could not be saved. Refresh the page and try again."
     }
   },
   "expenses": {

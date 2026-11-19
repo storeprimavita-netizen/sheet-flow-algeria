@@ -387,7 +387,10 @@ const createOrderSchema = z.object({
   delivery_fee_source: z.enum(DELIVERY_FEE_SOURCES),
 });
 
-export async function createOrder(formData: FormData) {
+/** Form-level failure: `error` is an i18n key suffix under orders.form (never raw server text). */
+export type OrderFormState = { error: string } | undefined;
+
+export async function createOrder(formData: FormData): Promise<OrderFormState> {
   const { workspaceId } = await adminProfile();
   const input = createOrderSchema.parse({
     product_id: formData.get("product_id"),
@@ -412,7 +415,7 @@ export async function createOrder(formData: FormData) {
     .eq("wilaya_code", input.wilaya_code)
     .maybeSingle();
   const block = newOrderBlock(feeRow, input.delivery_type);
-  if (block) throw new Error(`Cannot create this order: ${block}`);
+  if (block) return { error: `blocked.${block}` };
 
   const {
     data: { user },
@@ -450,7 +453,7 @@ export async function createOrder(formData: FormData) {
     })
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
+  if (error) return { error: "createFailed" };
 
   markStorePublicStale();
   revalidatePath("/app/orders/all");
@@ -495,7 +498,7 @@ const swapOrderSchema = z.object({
   address: optionalText,
 });
 
-export async function swapOrder(orderId: string, formData: FormData) {
+export async function swapOrder(orderId: string, formData: FormData): Promise<{ error: string } | undefined> {
   const { workspaceId } = await adminProfile();
   const id = z.string().uuid().parse(orderId);
   const input = swapOrderSchema.parse({
@@ -518,7 +521,10 @@ export async function swapOrder(orderId: string, formData: FormData) {
     p_commune: input.commune ?? "",
     p_address: input.address ?? "",
   });
-  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
+  if (swapErr || !newOrderId) {
+    // the RPC refuses a delivery type the destination wilaya cannot ship; anything else is a generic failure
+    return { error: /not available/.test(swapErr?.message ?? "") ? "form.blocked.type_unavailable" : "swap.failed" };
+  }
 
   // only after the swap succeeded: link the customer record to the new order
   const customerId = await upsertCustomerFromOrder(supabase, {
