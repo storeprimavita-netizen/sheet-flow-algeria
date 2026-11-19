@@ -501,3 +501,24 @@ export function targetModeForKey(current: TargetMode, key: string, rtl: boolean)
   else return null;
   return TARGET_MODES[(n + TARGET_MODES.length) % TARGET_MODES.length];
 }
+
+// ---------- keyboard / focus helpers (D53) ----------
+
+/** Switching target mode clears the value (D52: DZD and percent are never reinterpreted); same mode keeps the form. */
+export function withTargetMode(form: PricingForm, mode: TargetMode): PricingForm {
+  return form.targetMode === mode ? form : { ...form, targetMode: mode, targetValue: null };
+}
+
+/**
+ * Where focus goes when the reset-confirm dialog closes: back to the opener button,
+ * unless a reset just happened or the button is disabled (built-in defaults) - then the first field.
+ */
+export function closeFocusTarget({ didReset, btnDisabled }: { didReset: boolean; btnDisabled: boolean }): "button" | "firstField" {
+  return didReset || btnDisabled ? "firstField" : "button";
+}
+
+/** Roving tabindex: only the checked radio is in the tab order. */
+export const radioTabIndex = (checked: boolean): 0 | -1 => (checked ? 0 : -1);
+
+/** DOM id of a field's input (keys may be dotted, e.g. `adMultiplier.best`). */
+export const focusIdFor = (idPrefix: string, key: FieldKey | string) => `${idPrefix}-${key}`;

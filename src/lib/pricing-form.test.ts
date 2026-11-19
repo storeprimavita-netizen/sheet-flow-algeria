@@ -13,6 +13,10 @@ import {
   realZeroRowMode,
   countOverrides,
   targetModeForKey,
+  withTargetMode,
+  closeFocusTarget,
+  radioTabIndex,
+  focusIdFor,
   breakEvenState,
   saleBelowBreakEven,
   formErrors,
@@ -412,5 +416,33 @@ describe("Real column, ad cost 0 and drawn cells (PRICE-3-F)", () => {
     expect(at(0.7, 0).finalPrice).not.toBeNull();
     expect(at(0.7, 1).breakEven.minDelivery).toBeCloseTo(at(0.7, 0.0001).breakEven.minDelivery ?? NaN, 10);
     expect(at(1, 0.6).breakEven.minConfirmation).toBeCloseTo(at(0.0001, 0.6).breakEven.minConfirmation ?? NaN, 10);
+  });
+});
+
+describe("focus helpers", () => {
+  const form = { ...formFromSettings(PS), targetMode: "profit" as const, targetValue: 500 };
+  it("withTargetMode clears value on mode change", () => {
+    const next = withTargetMode(form, "markup");
+    expect(next.targetMode).toBe("markup");
+    expect(next.targetValue).toBeNull();
+    expect(next.values).toBe(form.values);
+  });
+  it("withTargetMode same mode keeps form", () => {
+    expect(withTargetMode(form, "profit")).toBe(form);
+  });
+  it("closeFocusTarget escape/cancel -> button", () => {
+    expect(closeFocusTarget({ didReset: false, btnDisabled: false })).toBe("button");
+  });
+  it("closeFocusTarget after reset or disabled -> firstField", () => {
+    expect(closeFocusTarget({ didReset: true, btnDisabled: false })).toBe("firstField");
+    expect(closeFocusTarget({ didReset: false, btnDisabled: true })).toBe("firstField");
+  });
+  it("radioTabIndex roving", () => {
+    expect(radioTabIndex(true)).toBe(0);
+    expect(radioTabIndex(false)).toBe(-1);
+  });
+  it("focusIdFor dotted key", () => {
+    expect(focusIdFor("pd", "adMultiplier.best")).toBe("pd-adMultiplier.best");
+    expect(focusIdFor("pd", "target")).toBe("pd-target");
   });
 });
