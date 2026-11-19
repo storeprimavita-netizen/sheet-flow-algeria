@@ -83,7 +83,7 @@ export function SizeguideSection({ block }: { block: SizeguideBlock }) {
           </tbody>
         </table>
       </div>
-      {block.note ? <p className="store-note">{block.note}</p> : null}
+      {block.note ? <p className="store-note" dir="auto">{block.note}</p> : null}
     </section>
   );
 }

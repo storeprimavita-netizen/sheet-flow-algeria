@@ -108,9 +108,9 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
           {filtered ? <ButtonLink href="/app/store/reviews" variant="outline">{t("clear")}</ButtonLink> : null}
         </Empty>
       ) : (
-        <div className="card-surface overflow-x-auto rounded-xl">
-          <table className={tableClass}>
-            <thead>
+        <div className="card-surface rounded-xl md:overflow-x-auto">
+          <table className={`${tableClass} max-md:block [&_tbody]:max-md:block [&_td]:max-md:block [&_td]:max-md:px-0! [&_td]:max-md:py-0! [&_tr]:max-md:flex [&_tr]:max-md:flex-col [&_tr]:max-md:gap-2 [&_tr]:max-md:p-3`}>
+            <thead className="max-md:hidden">
               <tr>
                 <th>{t("colReview")}</th>
                 <th>{t("colProduct")}</th>
@@ -141,7 +141,7 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
                   <td>
                     {r.order_id && orders.has(r.order_id) ? (
                       <Link href={`/app/orders/${r.order_id}`} className="num hover:underline">
-                        {t("orderLink", { n: orders.get(r.order_id)! })}
+                        <bdi>{t("orderLink", { n: orders.get(r.order_id)! })}</bdi>
                       </Link>
                     ) : (
                       <span className="text-muted-foreground">{t("noOrder")}</span>

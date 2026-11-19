@@ -26,6 +26,15 @@ describe("SizeguideSection", () => {
   });
 });
 
+describe("bidi", () => {
+  test("the size note and a review body both get dir=auto", () => {
+    const sg = renderToStaticMarkup(<SizeguideSection block={{ type: "sizeguide", rows: [{ size: "M", chest: "90" }], note: "Mesures en cm" } as never} />);
+    expect(sg).toContain('<p class="store-note" dir="auto">Mesures en cm</p>');
+    const rv = renderToStaticMarkup(<ReviewsSection reviews={{ ...rev, items: [{ ...rev.items[0], text: "Very nice" }] }} />);
+    expect(rv).toContain('dir="auto">Very nice</p>');
+  });
+});
+
 describe("reviews rendering", () => {
   test("a reviews block with 0 approved renders nothing", () => {
     expect(renderToStaticMarkup(<ReviewsSection reviews={{ avg: 0, count: 0, items: [] }} />)).toBe("");

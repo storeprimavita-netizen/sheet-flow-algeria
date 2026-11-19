@@ -15,6 +15,12 @@ describe("publicReviewName", () => {
     expect(publicReviewName("Amina\u00A0Benali")).toBe("Amina B.");
     expect(publicReviewName("Amina\u200BBenali")).toBe("Amina B.");
   });
+  test("comma, slash, apostrophe and Arabic comma never leak the full name", () => {
+    expect(publicReviewName("Amina,Benali")).toBe("Amina B.");
+    expect(publicReviewName("Ali/Benali")).toBe("Ali B.");
+    expect(publicReviewName("Amina'Benali")).toBe("Amina B.");
+    expect(publicReviewName("أمينة،علي")).toBe("أمينة ع.");
+  });
   test("a single long token is truncated", () => {
     expect(publicReviewName("Abcdefghijklmnopqrstuvwxyz")).toBe("Abcdefghijkl");
   });

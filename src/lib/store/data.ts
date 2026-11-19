@@ -139,13 +139,14 @@ export async function loadReviews(db: Db, workspaceId: string, productId: string
   ]);
   if (total.error) throw new Error(`reviews summary failed: ${total.error.message}`);
   if (latest.error) throw new Error(`reviews lookup failed: ${latest.error.message}`);
-  const count = total.count ?? 0;
+  const rows = total.count ?? 0;
   // PostgREST caps a response at max_rows (1000): page through the ratings so the average stays exact.
   let sum = 0;
-  for (let from = 0; from < count; from += 1000) {
+  let count = 0;
+  for (let from = 0; from < rows; from += 1000) {
     const { data, error } = await db
       .from("reviews")
-      .select("rating")
+      .select("rating, body")
       .eq("workspace_id", workspaceId)
       .eq("product_id", productId)
       .eq("approved", true)
@@ -153,7 +154,12 @@ export async function loadReviews(db: Db, workspaceId: string, productId: string
       .order("id")
       .range(from, from + 999);
     if (error) throw new Error(`reviews summary failed: ${error.message}`);
-    for (const r of data ?? []) sum += r.rating;
+    // Only reviews that render count, so the summary always matches the cards (emoji-only bodies are dropped).
+    for (const r of data ?? []) {
+      if (!stripEmoji(r.body)) continue;
+      sum += r.rating;
+      count += 1;
+    }
   }
   const avg = count ? sum / count : 0;
 

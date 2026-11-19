@@ -34,11 +34,10 @@ export function ReviewRowActions({ id, name, approved }: { id: string; name: str
 
   return (
     <div className="flex items-center justify-end gap-3">
-      <Switch aria-label={t("approveLabel", { name })} checked={on} onCheckedChange={toggle} disabled={pending} />
+      <Switch className="relative before:absolute before:-inset-2.5 before:content-['']" aria-label={t("approveLabel", { name })} checked={on} onCheckedChange={toggle} disabled={pending} />
       <DeleteButton
         id={id}
         action={deleteReview}
-        redirectTo="/app/store/reviews"
         label={t("deleteLabel", { name })}
         confirmText={t("deleteConfirm")}
       />

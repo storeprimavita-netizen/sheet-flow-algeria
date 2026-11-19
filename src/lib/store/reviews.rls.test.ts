@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { deleteWorkspaces } from "@/lib/test-cleanup";
 
+import { loadReviews } from "./data";
+
 /** Live STORE-7 checks: reviews grants, RLS and integrity. */
 const URL = process.env.LOCAL_SUPABASE_URL;
 const ANON_KEY =
@@ -130,5 +132,15 @@ describe.skipIf(!URL)("reviews (live DB)", () => {
     }
     const r = (await svc.from("reviews").insert(row(p)).select("id").single()).data!;
     expect((await svc.from("reviews").update({ workspace_id: ws2 }).eq("id", r.id)).error).not.toBeNull();
+  });
+
+  test("admin preview equals public: loadReviews gives the same result on a session client and on the service client", async () => {
+    const p = await product();
+    const o = (await svc.from("orders").insert({ workspace_id: ws, product_id: p, quantity: 1, confirmation_status: "confirmed" }).select("id").single()).data!.id as string;
+    expect((await svc.from("reviews").insert([row(p, { order_id: o, body: "Belle", approved: true }), row(p, { body: "✨", rating: 1, approved: true }), row(p, { body: "Top", rating: 4, approved: true })])).error).toBeNull();
+    const [pub, prev] = [await loadReviews(svc as never, ws, p), await loadReviews(adminA as never, ws, p)];
+    expect(prev).toEqual(pub);
+    expect(pub.count).toBe(pub.items.length);
+    expect(pub.items.some((r) => r.verified)).toBe(true);
   });
 });

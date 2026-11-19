@@ -225,6 +225,8 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect((await svc.from("reviews").insert([mk({ body: "✨💖", rating: 1 }), mk({ body: "ok", order_id: o })])).error).toBeNull();
     let r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
     expect(r.items.map((x) => x.text)).toEqual(["ok"]);
+    expect(r.count).toBe(r.items.length); // the summary never counts a card that is not shown
+    expect(r.avg).toBe(5);
     expect(r.items[0].verified).toBe(true);
     await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", o);
     r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
