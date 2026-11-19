@@ -5,13 +5,14 @@ import { z } from "zod";
 
 import { requireAdminProfile } from "@/lib/rbac";
 import { blocksSchema, seoSchema } from "@/lib/store/blocks";
+import { isVerifiedOrder } from "@/lib/store/reviews";
 import { invalidateStorePublic } from "@/lib/store/invalidate";
 import { storeSettingsSchema } from "@/lib/store/settings";
 import { slugSchema, storeSlugSchema } from "@/lib/store/url";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
-export type StoreResult = { ok: true; id?: string } | { ok: false; error: "invalid" | "slug_taken" | "product_taken" | "exists" | "needs_product" | "forbidden" | "failed" };
+export type StoreResult = { ok: true; id?: string } | { ok: false; error: "invalid" | "slug_taken" | "product_taken" | "exists" | "needs_product" | "order_not_found" | "order_not_verifiable" | "forbidden" | "failed" };
 
 const fail = (error: Extract<StoreResult, { ok: false }>["error"]): StoreResult => ({ ok: false, error });
 const dbFail = (e: { code?: string; message: string }): StoreResult =>
@@ -159,3 +160,77 @@ async function setPublished(pageId: string, publish: boolean): Promise<StoreResu
 }
 export const publishPage = async (pageId: string) => setPublished(pageId, true);
 export const unpublishPage = async (pageId: string) => setPublished(pageId, false);
+
+const createReviewSchema = z.object({
+  product_id: uuid,
+  name,
+  rating: z.coerce.number().int().min(1).max(5),
+  body: z.string().trim().min(1).max(1000),
+  order_seq: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.coerce.number().int().positive().max(2147483647).optional()),
+  // the admin confirms the customer agreed to be quoted; never prefilled from the order
+  agreed: z.literal("on"),
+});
+/** Records a review (not visible until approved). An order #, when given, must verify for this product or the review is refused. */
+export async function createReview(formData: FormData): Promise<StoreResult> {
+  const { workspaceId } = await requireAdminProfile();
+  const input = createReviewSchema.safeParse({
+    product_id: formData.get("product_id"),
+    name: formData.get("name"),
+    rating: formData.get("rating"),
+    body: formData.get("body"),
+    order_seq: formData.get("order_seq") ?? "",
+    agreed: formData.get("agreed"),
+  });
+  if (!input.success) return fail("invalid");
+  const supabase = await createClient();
+  let orderId: string | null = null;
+  if (input.data.order_seq !== undefined) {
+    const { data: order, error: orderErr } = await supabase
+      .from("orders")
+      .select("id, product_id, confirmation_status, excluded_reason")
+      .eq("order_seq", input.data.order_seq)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    if (orderErr) return fail("failed");
+    if (!order) return fail("order_not_found");
+    if (!isVerifiedOrder(order, input.data.product_id)) return fail("order_not_verifiable");
+    orderId = order.id;
+  }
+  const { data, error } = await supabase
+    .from("reviews")
+    .insert({ workspace_id: workspaceId, product_id: input.data.product_id, name: input.data.name, rating: input.data.rating, body: input.data.body, order_id: orderId })
+    .select("id")
+    .single();
+  if (error) return dbFail(error);
+  done("/app/store/reviews");
+  return { ok: true, id: data.id };
+}
+
+export async function setReviewApproved(reviewId: string, approved: boolean): Promise<StoreResult> {
+  const { workspaceId } = await requireAdminProfile();
+  const input = z.object({ id: uuid, approved: z.boolean() }).safeParse({ id: reviewId, approved });
+  if (!input.success) return fail("invalid");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .update({ approved: input.data.approved })
+    .eq("id", input.data.id)
+    .eq("workspace_id", workspaceId)
+    .select("id");
+  if (error) return dbFail(error);
+  if (!data?.length) return fail("failed");
+  done("/app/store/reviews");
+  return { ok: true, id: input.data.id };
+}
+
+export async function deleteReview(reviewId: string): Promise<StoreResult> {
+  const { workspaceId } = await requireAdminProfile();
+  const id = uuid.safeParse(reviewId);
+  if (!id.success) return fail("invalid");
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("reviews").delete().eq("id", id.data).eq("workspace_id", workspaceId).select("id");
+  if (error) return dbFail(error);
+  if (!data?.length) return fail("failed");
+  done("/app/store/reviews");
+  return { ok: true, id: id.data };
+}
