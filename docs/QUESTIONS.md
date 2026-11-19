@@ -8,6 +8,16 @@ owner may overturn").
 
 ## Open
 
+### Q-25 · STORE-7 · 2026-11-19 · answered-by-default
+Reviews on the store: you record them yourself in Store > Reviews (name, stars,
+text, optional order number) and approve the ones to show. Customers cannot
+send a review from the public page; there is no public form, so nothing can be
+spammed or faked. The "order confirmed" mark only appears when the linked order
+is for the same product, is confirmed and is not a test order. Names show as
+first name + initial. **Applied by default:** no public submission. If you want
+customers to submit reviews later, that is a new task with a form, spam
+protection and a moderation step.
+
 ### Q-24 · PRICE-4 · 2026-11-19 · answered-by-default
 The new Pricing page is finished and its numbers passed three reviews. The
 third review found one serious point, and it is not in the Pricing page: it is
