@@ -9,10 +9,11 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
+import { parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY, UUID_RE } from "@/lib/query-string";
+import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY } from "@/lib/query-string";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
@@ -52,8 +53,8 @@ export default async function AllOrdersPage({
   const communeKey = get("commune_key");
   // Statistics filters on this page: `category` (option uuid) and `conf_agent` (confirmation agent
   // only; `agent` keeps its confirmation-OR-delivery meaning). Same text comparison as kpi_order_set.
-  const category = UUID_RE.test(get("category").toLowerCase()) ? get("category").toLowerCase() : "";
-  const confAgent = UUID_RE.test(get("conf_agent").toLowerCase()) ? get("conf_agent").toLowerCase() : "";
+  const { filters: drillChecked, dropped: droppedDrill } = parseDrillFilters(get);
+  const { category, confAgent, deliveryType } = drillChecked;
   const drillFilters: Record<string, string> = {};
   if (category) drillFilters.category = category;
   if (confAgent) drillFilters.agent = confAgent;
@@ -74,7 +75,7 @@ export default async function AllOrdersPage({
       p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
       p_commune_key: communeKey && !communeUnknown ? communeKey : undefined,
       p_unknown: communeUnknown,
-      p_delivery_type: get("delivery_type") || undefined,
+      p_delivery_type: deliveryType || undefined,
       p_offset: (page - 1) * PAGE_SIZE,
       p_limit: PAGE_SIZE,
       p_filters: Object.keys(drillFilters).length ? drillFilters : undefined,
@@ -99,8 +100,7 @@ export default async function AllOrdersPage({
     // the id page is the whole filter in drill mode
     query = query.in("id", drillIds.length ? drillIds : ["00000000-0000-0000-0000-000000000000"]);
   } else {
-  if (get("delivery_type") === "home" || get("delivery_type") === "stopdesk")
-    query = query.eq("delivery_type", get("delivery_type") as Enums<"delivery_type">);
+  if (deliveryType) query = query.eq("delivery_type", deliveryType as Enums<"delivery_type">);
   if (get("confirmation_status")) {
     // one status, or a comma list (dashboard "To retry" = no_answer,closed_phone); unknown values are ignored
     const statuses = get("confirmation_status")
@@ -173,7 +173,7 @@ export default async function AllOrdersPage({
   // status history for the orders on this page → the detail-sheet timeline
   const orderIds = (orders ?? []).map((o) => o.id);
   const { workspaceId } = (await getProfile())!;
-  const [{ data: events }, { data: orderTags }, tagOptions] = await Promise.all([
+  const [{ data: events }, { data: orderTags }, tagOptions, categoryOptions] = await Promise.all([
     orderIds.length
       ? supabase
           .from("order_status_history")
@@ -184,6 +184,7 @@ export default async function AllOrdersPage({
       ? supabase.from("order_tags").select("order_id, option_id").in("order_id", orderIds)
       : Promise.resolve({ data: [] }),
     getOptionSet(workspaceId, "order_tag"),
+    getOptionSet(workspaceId, "product_category"),
   ]);
   const tagById = new Map(tagOptions.map((o) => [o.id, o]));
   const tagsByOrder = new Map<string, { id: string; label: string; token: (typeof tagOptions)[number]["color_token"] }[]>();
@@ -236,6 +237,7 @@ export default async function AllOrdersPage({
   const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
   const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
+  const categoryOpts: Opt[] = categoryOptions.map((o) => ({ value: o.id, label: o.label }));
   const isAdmin = await isCurrentUserAdmin();
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
   const clearQueryHref = `/app/orders/all${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
@@ -262,7 +264,14 @@ export default async function AllOrdersPage({
         </div>
       ) : null}
 
-      <OrdersFilterBar products={productOpts} wilayas={wilayaOpts} agents={agentOpts} />
+      <OrdersFilterBar
+        products={productOpts}
+        wilayas={wilayaOpts}
+        agents={agentOpts}
+        categories={categoryOpts}
+        drill={drillChecked}
+        dropped={droppedDrill}
+      />
 
       <OrdersAllTable
         rows={rows}

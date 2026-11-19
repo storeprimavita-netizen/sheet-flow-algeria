@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
+import { drillChips, type DrillFilters, type DrillKey } from "./_lib/drill-filters";
 import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses";
 
 export type Opt = { value: string; label: string; token?: StatusToken };
@@ -26,10 +27,17 @@ export function OrdersFilterBar({
   products,
   wilayas,
   agents,
+  categories,
+  drill,
+  dropped,
 }: {
   products: Opt[];
   wilayas: Opt[];
   agents: Opt[];
+  categories: Opt[];
+  /** Statistics-only filters, already checked by the page. */
+  drill: DrillFilters;
+  dropped: DrillKey[];
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -104,15 +112,27 @@ export function OrdersFilterBar({
     if (v) chips.push({ key: s.key, label: `${s.label}: ${s.opts.find((o) => o.value === v)?.label ?? v}` });
   }
   // statistics-only filters that orders/all applies: always visible, removable one by one
-  if (get("category")) chips.push({ key: "category", label: t("fields.category") });
-  if (get("conf_agent"))
-    chips.push({ key: "conf_agent", label: `${t("fields.agent")}: ${agents.find((o) => o.value === get("conf_agent"))?.label ?? get("conf_agent")}` });
-  if (get("delivery_type"))
-    chips.push({ key: "delivery_type", label: `${t("statistics.filters.deliveryType")}: ${get("delivery_type")}` });
+  chips.push(
+    ...drillChips(drill, {
+      category: t("fields.category"),
+      agent: t("fields.agent"),
+      deliveryType: t("statistics.filters.deliveryType"),
+      selected: t("statistics.compare.selected"),
+      deliveryTypeNames: { home: t("statistics.home"), stopdesk: t("statistics.stopdesk") },
+      categories,
+      agents,
+    }),
+  );
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
   if (get("q")) chips.push({ key: "q", label: `${t("orders.search")}: ${get("q")}` });
   if (dupOn) chips.push({ key: "duplicates", label: t("orders.duplicatesOnly") });
+
+  const droppedNames: Record<DrillKey, string> = {
+    category: t("fields.category"),
+    conf_agent: t("fields.agent"),
+    delivery_type: t("statistics.filters.deliveryType"),
+  };
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-4">
@@ -175,6 +195,11 @@ export function OrdersFilterBar({
           </>
         ) : null}
       </div>
+      {dropped.length > 0 ? (
+        <p className="text-xs text-muted-foreground" role="status">
+          {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
+        </p>
+      ) : null}
     </div>
   );
 }
