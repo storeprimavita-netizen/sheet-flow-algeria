@@ -38,4 +38,26 @@ describe("store schemas", () => {
     expect(storeSlugSchema.safeParse("luxe-1").success).toBe(true);
     expect(stripEmoji("عباية ✨ فاخرة 🌸")).toBe("عباية فاخرة");
   });
+
+  test("sizeguide: blank optional cells save, limits and strictness hold", () => {
+    const row = { size: "S", fits: "", chest: "  ", waist: "70" };
+    const r = blocksSchema.safeParse([{ type: "sizeguide", title: "", rows: [row], note: "" }]);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data[0]).toEqual({ type: "sizeguide", rows: [{ size: "S", waist: "70" }] });
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ size: `S${i}` }));
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: rows(12) }]).success).toBe(true);
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: rows(13) }]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: [] }]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: [{ size: "S", hips: "9" }] }]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: [{ size: "" }] }]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "sizeguide", rows: rows(1), extra: 1 }]).success).toBe(false);
+  });
+
+  test("at most one sizeguide and one reviews block", () => {
+    const sg = { type: "sizeguide", rows: [{ size: "S" }] };
+    expect(blocksSchema.safeParse([sg, { type: "reviews" }]).success).toBe(true);
+    expect(blocksSchema.safeParse([sg, sg]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "reviews" }, { type: "reviews" }]).success).toBe(false);
+    expect(blocksSchema.safeParse([{ type: "reviews", x: 1 }]).success).toBe(false);
+  });
 });

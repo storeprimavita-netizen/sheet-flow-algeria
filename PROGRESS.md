@@ -484,3 +484,26 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - PRICE-3-F ship gate failed once (`seasons.rls.test.ts`, leftover local test products); `scripts/db-reset.sh` on v3, then GATE OK. No code change.
 - Plan order: `analyse` passed over STORE-7 (todo, dep STORE-2 done, has `M`) for PRICE-2-F without giving a reason — check before the next pick.
 - Next `/auto`: STORE-7 if eligible, else STORE-1-F, STORE-2-F, ORD-1-F, P1-7-F.
+
+## STORE-7 — reviews + size guide blocks (2026-11-19) — built, awaiting /verify
+- Done: `reviews` table (00064, admin-only RLS), size guide + reviews blocks (max one each), cost-free DAL with verified rule and 60-cap, public sections (table, cards, rating line), review status kind, admin Store > Reviews page, editor size grid. Actions check row counts and invalidate the public cache. Q-25: no public submission.
+- Screenshots: only `/app/store/reviews` (EN, dark, no-store empty state, nav active) captured. Not captured: populated list, form, editor, preview and public page at 390/320/1280, light, AR, keyboard pass (needs a seeded live store and page).
+
+## STORE-7 review-1 FIX round 2 (2026-11-19)
+- Tests added: publicReviewName separators (hyphen, dot, NBSP, ZWSP, long token), emoji-only + verified-flip + >1000 ratings (live DAL), admin-session cross-workspace insert (live RLS), order lookup `workspace_id`/`order_seq` filters, render tests (size guide hides empty columns; reviews block with 0 approved / no block renders nothing). Not added: preview-equals-public (admin session client) test.
+- #7: reviews of products without a store page stay listed with a "No store page" label. #9: gold on white = 3.48:1 (light), dark gold on dark surface higher; no outline needed.
+- Screenshots (local seed: store luxe-demo, page with size guide + reviews, 12 reviews incl. 1000-char Arabic, hidden, orphan; in `docs/design/audit/STORE-7/`): reviews list EN dark 1280, AR light 390, public page 500 px (window floor, 320 not reachable) AR, public light reviews, editor EN dark 1280. Fixes from them: approve switch no longer shows a visible long label (aria-label only); review cell min width so the 390 px table scrolls instead of crushing text; review body `dir="auto"` so French punctuation sits correctly in RTL.
+- Not captured: EN light/AR dark admin combos, preview, full keyboard pass, true 320 px.
+
+## STORE-7 review-2 FIX (2026-11-19)
+- Fixed: admin list stacks into cards below `md` (switch + Delete visible at 390 px, no horizontal scroll); `.store-note` `dir="auto"`; summary count/avg only count reviews that render (matches cards); `publicReviewName` splits on any non-letter; `DeleteButton` is a discriminated union, action path refreshes in place and shows the error (logic in `runDelete`); order number in `<bdi>`; switch hit area enlarged (before:-inset-2.5).
+- Tests added: name separators, count==items with an emoji-only review, preview equals public (admin session vs service client, live), `runDelete` failure, `dir="auto"` render. Not unit-tested: `<bdi>` on the admin order link and 390 px reachability (async server page, no jsdom): verified on screen (switch x=115, scrollWidth 390, 12 rows).
+- Screenshots (chrome-devtools emulate, true viewports, `docs/design/audit/STORE-7/r3-*` + refreshed `public-320.png`): admin list AR light 390; public 6-column size guide AR light 320 (table scrolls, note LTR); public AR light 1280 size guide + reviews; admin preview (9 cards, 4.3 · 9, equals public); admin empty states no-match / none / no-pages, error (EN dark 1280); keyboard Tab switch -> Delete at 390. Local review/store_pages rows were backed up and restored for the empty/error shots.
+- Accepted/noted (low #8): verified mark up to 120 s stale; createReview accepts a product without a store page (list labels it).
+
+## STORE-7 — done (2026-11-19)
+- Done: reviews table (00064, admin-only RLS), size guide + reviews blocks, cost-free public DAL, admin Store > Reviews page, editor size grid. Reviews of products without a store page are labelled, not hidden.
+- Verify: review-3 `VERDICT: PASS` (risk high, surface ui,security). `scripts/gate.sh` GATE OK (797 passed, 3 skipped).
+- Evidence: screenshots in `docs/design/audit/STORE-7/`, EN/AR, light/dark, 390 and 1280 px; true 320 px public page checked in review-2.
+- Owner: none open from STORE-7. Known: verified mark may be up to 120 s stale (accepted, low).
+- Next: next `todo` task in docs/MASTER_PLAN.md.

@@ -18,7 +18,7 @@ describe("store admin guard", () => {
     for (const role of ["confirmation_agent", "delivery_agent"] as const) {
       expect(navLeaves(role).some((l) => l.href.startsWith("/app/store"))).toBe(false);
     }
-    expect(navLeaves("admin").filter((l) => l.href.startsWith("/app/store")).map((l) => l.key)).toEqual(["storeHub", "storePages", "storeSettings"]);
+    expect(navLeaves("admin").filter((l) => l.href.startsWith("/app/store")).map((l) => l.key)).toEqual(["storeHub", "storePages", "storeReviews", "storeSettings"]);
 
     const { default: Layout } = await import("@/app/(app)/app/store/layout");
     getProfile.mockResolvedValue({ role: "confirmation_agent", workspaceId: "w" });

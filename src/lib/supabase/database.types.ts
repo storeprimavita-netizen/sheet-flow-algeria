@@ -1045,6 +1045,62 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"reviews": {
+                  Row: {
+                    "approved": boolean,"body": string,"created_at": string,"id": string,"name": string,"order_id": string | null,"product_id": string,"rating": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved"?: boolean,"body": string,"created_at"?: string,"id"?: string,"name": string,"order_id"?: string | null,"product_id": string,"rating": number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "approved"?: boolean,"body"?: string,"created_at"?: string,"id"?: string,"name"?: string,"order_id"?: string | null,"product_id"?: string,"rating"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reviews_order_id_workspace_id_fkey"
+      columns: ["order_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "orders"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "reviews_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"rules_docs": {
                   Row: {
                     "category": string | null,"content": string,"created_at": string,"id": string,"position": number,"title": string,"updated_at": string,"updated_by": string | null,"workspace_id": string

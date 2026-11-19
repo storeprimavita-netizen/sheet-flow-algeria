@@ -76,6 +76,42 @@ body.store-root { margin: 0; }
 .store-card { background: var(--surface-200); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-3); text-decoration: none; display: flex; flex-direction: column; gap: var(--space-2); min-inline-size: 0; }
 .store-card span { overflow-wrap: anywhere; }
 
+/* Full-width sections (size guide, reviews), siblings of .store-related: never inside .store-blocks */
+.store-section { margin-block-start: var(--space-12); scroll-margin-block-start: calc(64px + var(--space-4)); }
+.store-section h2 { font-size: var(--text-section); margin-block-end: var(--space-4); }
+
+.store-table-wrap { overflow-x: auto; max-inline-size: 100%; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-200); }
+.store-table-wrap:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.store-table-wrap table { inline-size: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.store-table-wrap :is(th, td) { padding: var(--space-3) var(--space-4); text-align: start; white-space: nowrap; border-block-end: 1px solid var(--line); }
+.store-table-wrap thead th { color: var(--ink-muted); font-size: var(--text-small); font-weight: 500; background: var(--surface-300); }
+.store-table-wrap tbody th { font-weight: 700; }
+.store-table-wrap tbody tr:last-child :is(th, td) { border-block-end: 0; }
+.store-note { margin-block-start: var(--space-3); color: var(--ink-muted); font-size: var(--text-small); white-space: pre-line; }
+
+.store-stars { display: inline-flex; align-items: center; }
+.store-stars-icons { display: inline-flex; gap: 2px; color: var(--gold); }
+.store-stars-icons svg { fill: none; }
+.store-stars-icons svg[data-on="true"] { fill: currentColor; }
+.store-rating { display: inline-flex; align-items: center; gap: var(--space-2); min-block-size: var(--tap); color: var(--gold-text); text-decoration: none; font-size: var(--text-small); align-self: flex-start; }
+.store-rating:hover span:last-child { text-decoration: underline; }
+.store-rating-num { color: var(--gold-text); font-weight: 700; }
+.store-reviews-sum { display: flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); margin-block-end: var(--space-4); }
+.store-reviews-sum bdi { color: var(--gold-text); font-weight: 700; }
+
+.store-reviews-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+@media (min-width: 600px) { .store-reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 960px) { .store-reviews-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.store-review { background: var(--surface-200); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-inline-size: 0; }
+.store-review-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.store-review-name { font-weight: 700; overflow-wrap: anywhere; }
+.store-review-body { overflow-wrap: anywhere; line-height: var(--leading-ar); }
+.store-review-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); color: var(--ink-muted); font-size: var(--text-small); margin-block-start: auto; }
+.store-verified { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--success); }
+.store-more { margin-block-start: var(--space-4); }
+.store-more summary { display: flex; align-items: center; min-block-size: var(--tap); cursor: pointer; color: var(--brand); font-weight: 700; margin-block-end: var(--space-2); }
+.store-more summary:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
 .store-footer { background: var(--wine); color: var(--on-brand); padding-block: var(--space-8); font-size: var(--text-small); }
 .store-footer a { display: inline-flex; align-items: center; min-block-size: var(--tap); }
 .store-footer .store-wrap { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); align-items: center; justify-content: space-between; }
