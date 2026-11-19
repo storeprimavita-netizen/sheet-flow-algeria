@@ -87,7 +87,7 @@ export default async function DeliveryQueuePage({
       <QueueFilterBar
         statusKey="delivery_status"
         statusLabel={t("fields.delivery_status")}
-        statusOptions={DELIVERY_STATUSES.map((s) => ({ value: s, label: t(`status.delivery_status.${s}`) }))}
+        statusOptions={DELIVERY_STATUSES.filter((s) => showAll || (ACTIONABLE_DELIVERY as readonly string[]).includes(s)).map((s) => ({ value: s, label: t(`status.delivery_status.${s}`) }))}
         q={cfg.q ?? ""}
         status={cfg.delivery_status ?? ""}
         viewKeys={Object.keys(active?.config ?? {})}

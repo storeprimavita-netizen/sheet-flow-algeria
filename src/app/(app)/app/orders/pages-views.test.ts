@@ -60,3 +60,35 @@ describe("order pages and views", () => {
     expect(hasType(el, "InvalidViewNotice")).toBe(true);
   });
 });
+
+function findProps(node: unknown, name: string): Record<string, unknown> | null {
+  if (Array.isArray(node)) {
+    for (const n of node) {
+      const r = findProps(n, name);
+      if (r) return r;
+    }
+    return null;
+  }
+  if (!node || typeof node !== "object") return null;
+  const el = node as { type?: { name?: string }; props?: Record<string, unknown> };
+  if (el.type?.name === name) return el.props ?? null;
+  return findProps(el.props?.children, name);
+}
+
+describe("status filter options", () => {
+  const values = (el: unknown) => (findProps(el, "QueueFilterBar")!.statusOptions as { value: string }[]).map((o) => o.value);
+
+  test("confirmation offers only actionable statuses unless show=all", async () => {
+    const { default: Page } = await import("./confirmation/page");
+    const def = values(await Page({ searchParams: Promise.resolve({}) }));
+    expect(def).not.toContain("cancelled");
+    expect(def).toContain("no_answer");
+    expect(values(await Page({ searchParams: Promise.resolve({ show: "all" }) }))).toContain("cancelled");
+  });
+
+  test("delivery offers no terminal status unless show=all", async () => {
+    const { default: Page } = await import("./delivery/page");
+    expect(values(await Page({ searchParams: Promise.resolve({}) }))).not.toContain("delivered");
+    expect(values(await Page({ searchParams: Promise.resolve({ show: "all" }) }))).toContain("delivered");
+  });
+});

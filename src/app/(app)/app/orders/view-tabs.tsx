@@ -117,7 +117,7 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
                 </DropdownMenuItem>
               </>
             ) : null}
-            <DropdownMenuItem onSelect={() => setSaveAsFrom(v)}>{t("saveAsMine")}</DropdownMenuItem>
+            {v.shared ? <DropdownMenuItem onSelect={() => setSaveAsFrom(v)}>{t("saveAsMine")}</DropdownMenuItem> : null}
             <DropdownMenuItem onSelect={() => copyLink(v)}>{t("copyLink")}</DropdownMenuItem>
             {canEdit ? (
               <>

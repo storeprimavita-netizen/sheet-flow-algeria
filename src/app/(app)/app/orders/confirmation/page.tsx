@@ -125,7 +125,7 @@ export default async function ConfirmationQueuePage({
       <QueueFilterBar
         statusKey="confirmation_status"
         statusLabel={t("fields.confirmation_status")}
-        statusOptions={CONFIRMATION_STATUSES.filter((s) => s !== "confirmed").map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }))}
+        statusOptions={CONFIRMATION_STATUSES.filter((s) => s !== "confirmed" && (showAll || (ACTIONABLE_CONFIRMATION as readonly string[]).includes(s))).map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }))}
         q={cfg.q ?? ""}
         status={serializeConfig(cfg).get("confirmation_status") ?? ""}
         viewKeys={Object.keys(active?.config ?? {})}

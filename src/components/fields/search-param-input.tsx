@@ -6,6 +6,12 @@ import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
+/** Box text after the URL value changed: keep what the user typed when the URL
+ * merely echoes it (trimmed); otherwise adopt the URL (view switch, Reset). */
+export function syncedValue(current: string, fromUrl: string): string {
+  return current.trim() === fromUrl ? current : fromUrl;
+}
+
 /** Search-as-you-type bound to a URL param (default `q`), debounced 300ms;
  * the server page reads the param, so results stay shareable/bookmarkable. */
 export function SearchParamInput({
@@ -29,6 +35,10 @@ export function SearchParamInput({
     return u === null ? inherited : u === clearedMarker ? "" : u;
   };
   const [value, setValue] = React.useState(shown());
+  const fromUrl = shown();
+  React.useEffect(() => {
+    setValue((cur) => syncedValue(cur, fromUrl));
+  }, [fromUrl]);
 
   React.useEffect(() => {
     if (value === shown()) return;
