@@ -1673,5 +1673,14 @@
       "back_to_school": "Back to school",
       "winter": "Winter"
     }
+  },
+  "charts": {
+    "table": "Table",
+    "viewOrders": "View orders",
+    "error": "This chart could not load.",
+    "retry": "Retry",
+    "noValue": "No data",
+    "immature": "recent day, figures not final",
+    "other": "Other"
   }
 }
