@@ -317,3 +317,10 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - data-table.tsx: table outline off only while a row is current (ring is the single indicator; with no row current the table outline shows); frozen column divider is now an `after:` line on the sticky th/td (logical end, `border-strong`), border-collapse kept.
 - Tests in orders.order_seq.rls.test.ts: real fallback via psql, ON CONFLICT asserts, swap_order, manual insert (admin session), webhook replayEvent.
 - Browser check done (chrome-devtools): EN dark + AR light on orders/all, AR dark on delivery; orders/all `?product_id=x` error state + Retry in EN and AR. Screenshots `docs/design/audit/ORD-1/r4-*`.
+
+## ORD-1 — DONE
+- Done: per-workspace order number `#0001` (D57, migration 00050, DB-assigned running number, shown everywhere); frozen data-table cell follows row hover/selected/focus in both themes and RTL; round-4 focus and divider fixes (D59).
+- Verify: brief reviews 0–2 FIX, review-3 ESCALATE, review-4 PASS (qa-reviewer + ui-reviewer); full scripts/gate.sh GATE OK (523 tests, 3 skipped, live RLS suite).
+- Evidence: round-4 browser check and screenshots in docs/design/audit/ORD-1/r4-*; order_seq RLS tests cover fallback, ON CONFLICT, swap_order, manual insert, webhook replay.
+- Owner: production db push of migration 00050 is owner-only.
+- Next: ORD-1-F (review-3 #6 ring across frozen column, Tab walk, missing screenshots, error-path tests, lows).
