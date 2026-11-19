@@ -8,6 +8,22 @@ owner may overturn").
 
 ## Open
 
+### Q-19 · STATS-2 · 2026-11-19 · answered-by-default
+The new Statistics page shows, for each wilaya and commune, the orders
+received and the confirmation, delivery and return rates. Who may open it: you
+only, or your agents too? **Applied by default (D64):** admins only, like the
+dashboard, where this table and its map were until now. Agents keep their queue
+and see nothing new. Reason: an agent only has access to part of the orders
+(the waiting ones and their own), so the page would show them numbers that look
+like the wilaya's results but are not. On the test data the admin sees 59
+orders and 76% confirmed, while a delivery agent sees 38 orders and 100%. The
+other option: agents open the page too, limited to their own orders and
+labelled "your orders". It lets an agent see where their calls work, but most
+wilayas would say "not enough orders to judge" for a single agent, and the
+numbers would not open the list of orders behind them. Their own confirmation
+numbers are already planned on the agent home page ("My day"). Say so if you
+want agents to see this page as well. Nothing is blocked.
+
 ### Q-18 · CONF-1 · 2026-11-19
 Saved views for the orders pages (confirmation, delivery, all orders) are built
 and the database side has been clean since the second review. The fourth and
