@@ -8,6 +8,34 @@ owner may overturn").
 
 ## Open
 
+### Q-22 · PRICE-3 · 2026-11-19 · answered-by-default
+The price calculator gets a fourth column, "Real", filled with the product's
+actual results. Two points about what it shows. **Applied by default (D67):**
+1. **Delivery %.** Real uses the same delivery % as the dashboard: delivered
+   parcels out of the parcels that already have a final result (delivered or
+   returned). Parcels still on the road are not counted as failed. Example: 100
+   confirmed orders, 60 delivered, 15 returned, 25 still on the road → 80%, not
+   60%. When more than 20% of the orders are still open, the column says
+   "Preliminary". Same for the confirmation %: orders still waiting for a call
+   are left out. Reason: counting parcels on the road as lost made the column
+   ask for a third more orders than needed and showed a second, lower delivery
+   % next to the dashboard's. Known limit: returns come back slower than
+   deliveries, so the % can read a little high while parcels are on the road.
+   The other option: count only orders older than a number of days (for
+   example 15), when almost every parcel has its result. It is the most exact,
+   it needs a database change, and you would give the number of days. Say so if
+   you want it.
+2. **Ad cost per order in dollars.** Real shows your real ad spend in dinars
+   per order received, turned into dollars with the calculator's own rate (255),
+   with the dinar amount small under it and a note saying so. Finance uses
+   another rate, so the same spend can read $10.20 here and $10.83 there; the
+   dinar amount is the same in both. Reason: the calculator's other dollar
+   numbers (what you type, the maximum ad cost) use 255, so they stay
+   comparable. The other options: dinars only, or the Finance rate.
+
+This column is only your calculation aid: it changes no price, order or profit
+report. Nothing is blocked.
+
 ### Q-21 · STATS-3 · 2026-11-19 · answered-by-default
 Seasons and the new filters of the Statistics page are built. The fourth review
 found nothing serious and nothing wrong in the database, the money or the

@@ -17,7 +17,6 @@ import {
   type ScenarioResult,
   type ScenarioSlug,
 } from "@/lib/pricing";
-import type { RealPricing } from "@/lib/pricing-real";
 import { formatCurrency } from "@/lib/format";
 
 type Status = "idle" | "saving" | "saved" | "error";
@@ -28,12 +27,10 @@ export function ScenarioEngine({
   workspaceId,
   productId,
   initial,
-  real,
 }: {
   workspaceId: string;
   productId: string | null;
   initial: Record<ScenarioSlug, PricingInputs>;
-  real?: RealPricing;
 }) {
   const t = useTranslations();
   const [scenarios, setScenarios] = useState(initial);
@@ -92,9 +89,6 @@ export function ScenarioEngine({
             onChange={(k, v) => set(slug, k, v)}
           />
         ))}
-        {real ? (
-          <ScenarioCard id="real" title={t("pricing.real")} inputs={real.inputs} noData={!real.hasData} />
-        ) : null}
       </div>
     </div>
   );

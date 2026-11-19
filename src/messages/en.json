@@ -1119,7 +1119,8 @@
     "scenario": {
       "best": "Best",
       "medium": "Medium",
-      "worst": "Worst"
+      "worst": "Worst",
+      "real": "Real"
     },
     "missing": "Missing input",
     "notPossible": "Not possible",
@@ -1235,9 +1236,14 @@
       "table": "Pricing results by scenario",
       "quantityInvalid": "Enter a whole number from 0 to 1,000,000.",
       "adInvalid": "Enter an amount from 0 with at most 2 decimals.",
-      "priceInvalid": "Enter an amount above 0 with at most 2 decimals."
+      "priceInvalid": "Enter an amount above 0 with at most 2 decimals.",
+      "saleBelowBreakEven": "Sale price below break-even ({value})"
     },
     "rows": {
+      "groupInputs": "Rates and ad cost",
+      "confirmation": "Confirmation rate",
+      "delivery": "Delivery rate",
+      "adCostUsd": "Ad cost / order (USD)",
       "groupAds": "Ads",
       "groupCost": "Cost",
       "groupPrice": "Price",
@@ -1261,6 +1267,13 @@
       "dzd": "DA",
       "usd": "USD",
       "times": "×"
+    },
+    "real": {
+      "noData": "No orders yet",
+      "preliminary": "Preliminary",
+      "preliminaryHint": "Few decided orders or many still in flight: these figures can still move.",
+      "adCostHint": "Real ad spend ÷ orders received, converted at the calculator's rate ({rate} DA per $). Finance converts at its own rate, so its dollar figure can differ.",
+      "below": "below break-even"
     }
   },
   "errorPage": {

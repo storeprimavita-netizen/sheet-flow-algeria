@@ -375,6 +375,48 @@ export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | 
   return "missing";
 }
 
+/** Real column: strictly negative profit per piece is "below break-even" (0 is not). */
+export const realBelow = (profitPerPiece: number | null): boolean => profitPerPiece !== null && profitPerPiece < 0;
+
+/**
+ * Real column with data but a rate of exactly 0 (nothing confirmed / nothing delivered):
+ * the engine rejects 0 (null results), but the truth is "impossible", the worst loss.
+ * Scenario columns keep the engine's validation.
+ */
+export const realZeroRate = (hasData: boolean, input: { confirm: number | null; delivery: number | null }): boolean =>
+  hasData && (input.confirm === 0 || input.delivery === 0);
+
+/**
+ * How one Real-column row is drawn when a rate is exactly 0 (the engine rejects 0):
+ * "alt" = read it from the engine run with the zero rate set to 1 (the row does not depend
+ * on that rate: the final price echo, the zero rate's own break-even); "impossible" = every
+ * other dependent row; "normal" = no zero rate, an input row, or the rate-1 run has missing inputs.
+ */
+export function realZeroRowMode(
+  input: { confirm: number | null; delivery: number | null },
+  row: { key: string; breakEven?: BreakEvenKey; isInput?: boolean },
+  rateOneComplete: boolean,
+): "normal" | "impossible" | "alt" {
+  const dZero = input.delivery === 0;
+  const cZero = input.confirm === 0;
+  if (!(dZero || cZero) || row.isInput || !rateOneComplete) return "normal";
+  if (row.key === "finalPrice") return "alt";
+  if (dZero && !cZero && row.breakEven === "minDelivery") return "alt";
+  if (cZero && !dZero && row.breakEven === "minConfirmation") return "alt";
+  return "impossible";
+}
+
+/** Real column loses money: negative profit, or a zero rate with data. */
+export const realLosing = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  profitPerPiece: number | null,
+): boolean => hasData && (realZeroRate(hasData, input) || realBelow(profitPerPiece));
+
+/** Sale price strictly below the medium break-even selling price; null on either side -> no badge. */
+export const saleBelowBreakEven = (salePrice: number | null, minSellingPrice: number | null): boolean =>
+  salePrice !== null && minSellingPrice !== null && salePrice < minSellingPrice;
+
 export const TARGET_MODES: readonly TargetMode[] = ["profit", "markup"];
 
 /** Radio-group arrow keys: the mode to move to, or null when the key does nothing. Arrows mirror in RTL. */
