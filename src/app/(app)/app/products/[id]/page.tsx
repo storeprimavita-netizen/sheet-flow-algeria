@@ -12,6 +12,7 @@ import { KpiTile } from "@/components/stats/kpi-tile";
 import { ProductForm } from "../product-form";
 import { VariantsEditor } from "../_components/variants-editor";
 import { StatusPill } from "@/components/status-pill";
+import { isCurrentUserAdmin } from "@/lib/rbac";
 import { loadProductVariants } from "@/lib/catalog/variants-data";
 
 export default async function ProductDetailsPage({
@@ -33,6 +34,10 @@ export default async function ProductDetailsPage({
   ]);
 
   if (!product) notFound();
+  // size sets are admin-only (RLS); anyone else gets null and the button is hidden
+  const sizeSets = (await isCurrentUserAdmin())
+    ? ((await supabase.from("size_sets").select("id, name, items").order("position").order("name")).data ?? [])
+    : null;
 
   // Read-mode overview (all-time, one money model) above the edit form.
   const pnl = asPnl(pnlRaw);
@@ -97,6 +102,8 @@ export default async function ProductDetailsPage({
       <ProductForm product={product} cost={cost} />
       <VariantsEditor
         productId={product.id}
+        productCode={product.sku || product.name}
+        sizeSets={sizeSets}
         initialOptions={variantMap.get(id)?.options ?? []}
         initialVariants={(variantMap.get(id)?.variants ?? []).map((v) => ({
           id: v.id,

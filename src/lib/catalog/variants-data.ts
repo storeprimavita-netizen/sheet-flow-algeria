@@ -26,7 +26,7 @@ export async function loadProductVariants(supabase: Db, productIds?: string[]): 
   if (productIds && !productIds.length) return new Map();
   const optQ = supabase
     .from("product_options")
-    .select("id, product_id, name, position, values:product_option_values(id, label, position)")
+    .select("id, product_id, name, kind, position, values:product_option_values(id, label, position, swatch_color, swatch_image)")
     .order("position")
     .order("position", { referencedTable: "product_option_values" });
   const varQ = supabase
@@ -48,7 +48,10 @@ export async function loadProductVariants(supabase: Db, productIds?: string[]): 
     entry(o.product_id).options.push({
       id: o.id,
       name: o.name,
-      values: [...o.values].sort((a, b) => a.position - b.position).map((v) => ({ id: v.id, label: v.label })),
+      kind: o.kind === "color" ? "color" : "text",
+      values: [...o.values]
+        .sort((a, b) => a.position - b.position)
+        .map((v) => ({ id: v.id, label: v.label, swatchColor: v.swatch_color, swatchImage: v.swatch_image })),
     });
   }
   for (const v of vars ?? []) {

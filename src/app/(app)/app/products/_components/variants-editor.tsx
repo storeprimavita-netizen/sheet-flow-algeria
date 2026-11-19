@@ -3,14 +3,17 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, Power, PowerOff, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Plus, Power, PowerOff, Trash2, Wand2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { tableClass } from "@/components/field";
-import { missingCombos, variantLabel, type VariantOption } from "@/lib/variants";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SwatchDot, SwatchField } from "@/components/fields/swatch-field";
+import { mergeSizeSet, missingCombos, skuSuggestion, variantLabel, type OptionKind, type VariantOption } from "@/lib/variants";
+import { BackfillDialog, type OptionDraft, type SizeSetDTO } from "./backfill-dialog";
 import { saveVariantConfig, type VariantResult } from "../actions";
 
 type EditorVariant = { id: string; sku: string; isActive: boolean; stock: number; values: Record<string, string>; saved: boolean };
@@ -30,7 +33,12 @@ export function VariantsEditor({
   productId,
   initialOptions,
   initialVariants,
+  productCode,
+  sizeSets,
 }: {
+  productCode: string;
+  /** admin-scoped (RLS) list; null = the viewer is not an admin, so "Use size set" is hidden */
+  sizeSets: SizeSetDTO[] | null;
   productId: string;
   initialOptions: VariantOption[];
   initialVariants: { id: string; sku: string | null; isActive: boolean; stock: number; values: Record<string, string> }[];
@@ -42,6 +50,9 @@ export function VariantsEditor({
     initialVariants.map((v) => ({ ...v, sku: v.sku ?? "", saved: true })),
   );
   const [busy, setBusy] = React.useState(false);
+  const [backfill, setBackfill] = React.useState<Record<string, string>>({});
+  const [savedOptionIds, setSavedOptionIds] = React.useState(() => new Set(initialOptions.map((o) => o.id)));
+  const [adding, setAdding] = React.useState<{ kind: OptionKind; name: string } | null>(null);
   const [unsaved, setUnsaved] = React.useState(false);
   const [result, setResult] = React.useState<VariantResult | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = React.useState<number | null>(null);
@@ -59,8 +70,10 @@ export function VariantsEditor({
     setVariants((vs) => vs.map((x, k) => (k === i ? { ...x, isActive: !x.isActive } : x)));
   };
 
-  // option structure is fixed once a size exists (its value rows are immutable); values stay editable
-  const locked = variants.some((v) => v.saved);
+  // a saved option cannot be removed while saved sizes exist (stale); new options always can
+  const hasSaved = variants.some((v) => v.saved);
+  const hasColor = options.some((o) => o.kind === "color");
+  const lockedOption = (o: VariantOption) => hasSaved && savedOptionIds.has(o.id);
   const optName = (o: VariantOption, i: number) => o.name || t("optionFallback", { n: i + 1 });
 
   const setOption = (i: number, patch: Partial<VariantOption>) => {
@@ -79,21 +92,77 @@ export function VariantsEditor({
     setVariants((vs) => [...vs, ...combos.map((values) => ({ id: newId(), sku: "", isActive: true, stock: 0, values, saved: false }))]);
   }
 
+  const payload = (opts: VariantOption[], vars: EditorVariant[], back: Record<string, string>) => ({
+    options: opts.map((o) => ({
+      id: o.id,
+      name: o.name,
+      kind: o.kind ?? "text",
+      values: o.values.map((v) => ({ id: v.id, label: v.label, swatch_color: v.swatchColor ?? null, swatch_image: v.swatchImage ?? null })),
+    })),
+    variants: vars.map((v) => ({ id: v.id, sku: v.sku.trim() || null, is_active: v.isActive, existing: v.saved, values: v.values })),
+    // only options that are new to the database carry a backfill value
+    backfill: Object.fromEntries(Object.entries(back).filter(([id]) => opts.some((o) => o.id === id) && !savedOptionIds.has(id))),
+  });
+
+  function afterSave(opts: VariantOption[]) {
+    setUnsaved(false);
+    setBackfill({});
+    setSavedOptionIds(new Set(opts.map((o) => o.id)));
+    setVariants((vs) => vs.map((v) => ({ ...v, saved: true })));
+    router.refresh();
+  }
+
   async function save() {
     setBusy(true);
     setResult(null);
-    const res = await saveVariantConfig(productId, {
-      options,
-      variants: variants.map((v) => ({ id: v.id, sku: v.sku.trim() || null, is_active: v.isActive, values: v.values })),
-    });
+    const res = await saveVariantConfig(productId, payload(options, variants, backfill));
     setBusy(false);
     setResult(res);
-    if (res.ok) {
-      setUnsaved(false);
-      setVariants((vs) => vs.map((v) => ({ ...v, saved: true })));
-      router.refresh();
-    }
+    if (res.ok) afterSave(options);
   }
+
+  /** "+ Size" / "+ Color" / "Add option": straight in when no saved size exists, else through the backfill dialog. */
+  function startAdd(kind: OptionKind, name: string) {
+    if (hasSaved) return setAdding({ kind, name });
+    dirty();
+    setOptions([...options, { id: newId(), name, kind, values: [{ id: newId(), label: "" }] }]);
+  }
+
+  /** Dialog confirm: save with the new option and every existing size copied to the chosen value; state changes only on success. */
+  async function confirmAdd(d: OptionDraft): Promise<VariantResult> {
+    const opt: VariantOption = { id: newId(), name: d.name, kind: d.kind, values: d.values.map((v) => ({ ...v })) };
+    const nextOptions = [...options, opt];
+    const nextVariants = variants.map((v) => (v.saved ? { ...v, values: { ...v.values, [opt.id]: d.backfillId } } : v));
+    const nextBackfill = { ...backfill, [opt.id]: d.backfillId };
+    const res = await saveVariantConfig(productId, payload(nextOptions, nextVariants, nextBackfill));
+    if (res.ok) {
+      setOptions(nextOptions);
+      setVariants(nextVariants);
+      setResult(res);
+      afterSave(nextOptions);
+      setAdding(null);
+    }
+    return res;
+  }
+
+  const combos = options.reduce((n, o) => n * Math.max(o.values.filter((v) => v.label.trim()).length, 1), 1);
+  const comboFormula = options.map((o) => o.values.filter((v) => v.label.trim()).length).join(" × ");
+  const fillSkus = () => {
+    dirty();
+    const taken = new Set(variants.map((v) => v.sku.trim()).filter(Boolean));
+    setVariants(
+      variants.map((v) => {
+        if (v.sku.trim()) return v;
+        const parts = options.map((o) => {
+          const idx = o.values.findIndex((x) => x.id === v.values[o.id]);
+          return { label: o.values[idx]?.label ?? "", index: Math.max(idx, 0) };
+        });
+        const sku = skuSuggestion(productCode, parts, taken);
+        taken.add(sku);
+        return { ...v, sku };
+      }),
+    );
+  };
 
   const message = result
     ? result.ok
@@ -115,7 +184,7 @@ export function VariantsEditor({
     <section className="card-surface space-y-5 rounded-xl p-5" aria-labelledby="variants-title" aria-busy={busy}>
       <div className="space-y-1">
         <h2 id="variants-title" className="text-sm font-semibold">
-          {t("title")}
+          {options.length > 1 ? t("titleVariants") : t("titleSizes")}
         </h2>
         <p className="text-xs text-muted-foreground">{t("hint")}</p>
       </div>
@@ -140,13 +209,28 @@ export function VariantsEditor({
               <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionDown", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
                 <ArrowDown />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: optName(o, i) })} disabled={lockedOption(o)} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
                 <Trash2 />
               </Button>
             </div>
             <ul className="flex flex-wrap gap-2">
               {o.values.map((v, j) => (
                 <li key={v.id} className="flex items-center gap-0.5 rounded-md border border-border ps-1">
+                  {o.kind === "color" ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("editSwatch", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}>
+                          <SwatchDot swatch={{ color: v.swatchColor ?? null, image: v.swatchImage ?? null }} />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent>
+                        <SwatchField
+                          value={{ color: v.swatchColor ?? null, image: v.swatchImage ?? null }}
+                          onChange={(sw) => setOption(i, { values: o.values.map((x, k) => (k === j ? { ...x, swatchColor: sw.color, swatchImage: sw.image } : x)) })}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : null}
                   <Input
                     data-fk={v.id}
                     aria-label={t("valueNumbered", { n: j + 1, option: optName(o, i) })}
@@ -180,28 +264,78 @@ export function VariantsEditor({
                   {t("addValueShort")}
                 </Button>
               </li>
+              {sizeSets?.length && o.kind !== "color" ? (
+                <li>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">{t("useSizeSet")}</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 space-y-1">
+                      <p className="text-xs text-muted-foreground">{t("useSizeSetHint")}</p>
+                      {sizeSets.map((set) => (
+                        <Button
+                          key={set.id}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() =>
+                            setOption(i, {
+                              values: [...o.values.filter((x) => x.label.trim()), ...mergeSizeSet(o.values.map((x) => x.label), set.items).map((label) => ({ id: newId(), label }))],
+                            })
+                          }
+                        >
+                          {set.name}
+                        </Button>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
+                </li>
+              ) : null}
             </ul>
           </fieldset>
         ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" disabled={locked || options.length >= 3} onClick={() => { dirty(); setOptions([...options, { id: newId(), name: "", values: [{ id: newId(), label: "" }] }]); }}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3} onClick={() => startAdd("text", "")}>
           <Plus />
           {t("addOption")}
         </Button>
-        {locked ? <p className="text-xs text-muted-foreground">{t("optionsLocked")}</p> : null}
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || options.some((o) => o.name === t("sizeName"))} onClick={() => startAdd("text", t("sizeName"))}>
+          <Plus />
+          {t("addSize")}
+        </Button>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || hasColor} onClick={() => startAdd("color", t("colorName"))}>
+          <Plus />
+          {t("addColor")}
+        </Button>
+        {options.length >= 3 ? <p className="text-xs text-muted-foreground">{t("maxOptions")}</p> : null}
       </div>
 
       {options.length ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">{t("sizes")}</h3>
-            <Button type="button" variant="outline" size="sm" data-fk="add-missing" onClick={addMissing}>
-              <Plus />
-              {t("addMissing")}
-            </Button>
+            <h3 className="text-sm font-semibold">{options.length > 1 ? t("variantsList") : t("sizes")}</h3>
+            <div className="flex flex-wrap gap-2">
+              {variants.some((v) => !v.sku.trim()) ? (
+                <Button type="button" variant="outline" size="sm" onClick={fillSkus}>
+                  <Wand2 />
+                  {t("fillSkus")}
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" size="sm" data-fk="add-missing" onClick={addMissing}>
+                <Plus />
+                {t("addMissing")}
+              </Button>
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground">{t("skuHint")}</p>
+          {options.length > 1 ? (
+            <p className={combos > 50 ? "text-xs text-warning" : "text-xs text-muted-foreground"}>
+              <bdi dir="ltr">{comboFormula} = {combos}</bdi> {t("comboHint")}
+            </p>
+          ) : null}
           {!variants.length ? (
             <p className="text-sm text-muted-foreground">{t("noSizes")}</p>
           ) : (
@@ -275,6 +409,16 @@ export function VariantsEditor({
           </p>
         ) : null}
       </div>
+      {adding ? (
+        <BackfillDialog
+          kind={adding.kind}
+          defaultName={adding.name}
+          count={variants.filter((v) => v.saved).length}
+          sizeSets={sizeSets ?? []}
+          onCancel={() => setAdding(null)}
+          onConfirm={confirmAdd}
+        />
+      ) : null}
       <Dialog open={confirmDeactivate !== null} onOpenChange={(o) => !o && setConfirmDeactivate(null)}>
         <DialogContent
           className="max-w-sm"

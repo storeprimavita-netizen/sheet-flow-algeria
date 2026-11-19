@@ -97,7 +97,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     if (!svc) return;
     const wss = [ws, ws2].filter(Boolean);
     await svc.from("product_variant_values").delete().in("workspace_id", wss);
-    for (const t of ["product_option_values", "product_options", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
+    for (const t of ["product_option_values", "product_options", "size_sets", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
       await svc.from(t).delete().in("workspace_id", wss);
     }
     expect((await deleteWorkspaces(svc, wss)).error).toBeNull();
