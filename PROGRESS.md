@@ -361,3 +361,8 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 - Open: P1-7-F (review-5 lows, pre-existing swap medium on a typed wilaya name, reviews 3-4 leftovers, missing tests).
 - Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
 - Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.
+
+## CONF-1 built (branch v3-CONF-1, pending /verify)
+- Done: `order_views` (00056, RLS, seeds new/no_answer/duplicates), `src/lib/order-views.ts`, shared `orders/_lib/order-query.ts`, views strip + modified bar + dialogs on all / confirmation / delivery. Types generated with `--local`. Owner note: 00056 applies before the parked 00051 on a remote push.
+- Not done: screenshots (step 9) were not taken; no browser run in this session. Page-level tests (delivery stays confirmed-only, agent opening an admin view) and UI keyboard tests are not written.
+- Gate: GATE OK.
