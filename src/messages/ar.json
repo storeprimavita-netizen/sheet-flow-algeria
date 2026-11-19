@@ -226,6 +226,10 @@
       "draft": "مسودة",
       "live": "مباشر",
       "published": "منشور"
+    },
+    "review_status": {
+      "approved": "معتمد",
+      "hidden": "مخفي"
     }
   },
   "fields": {

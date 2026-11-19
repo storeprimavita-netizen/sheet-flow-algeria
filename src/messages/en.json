@@ -226,6 +226,10 @@
       "draft": "Draft",
       "live": "Live",
       "published": "Published"
+    },
+    "review_status": {
+      "approved": "Approved",
+      "hidden": "Hidden"
     }
   },
   "fields": {
