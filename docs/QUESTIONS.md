@@ -244,7 +244,7 @@ delivery, which costs you less. Say which one you want; it is then added
 together with the order form, the step that computes the delivery price.
 Nothing is blocked.
 
-### Q-13 · STORE-1 · 2026-11-18 · answered-by-default
+### Q-13 · STORE-1 · 2026-11-18 · overturned by the owner 2026-11-19 → D76 (task VAR-1)
 A product already has its sizes saved (S, M, L). Later you want to add a second
 option to it, for example the colour. **Applied by default (D55):** this is not
 possible on that product. Once sizes are saved you can still add or rename
