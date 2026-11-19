@@ -366,3 +366,5 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 - Done: `order_views` (00056, RLS, seeds new/no_answer/duplicates), `src/lib/order-views.ts`, shared `orders/_lib/order-query.ts`, views strip + modified bar + dialogs on all / confirmation / delivery. Types generated with `--local`. Owner note: 00056 applies before the parked 00051 on a remote push.
 - Not done: screenshots (step 9) were not taken; no browser run in this session. Page-level tests (delivery stays confirmed-only, agent opening an admin view) and UI keyboard tests are not written.
 - Gate: GATE OK.
+
+CONF-1 round 2: review-1 FIX. Save-as-view on Default, QueueFilterBar (q + status) on confirmation/delivery, 00057 hardening (trim/seed_key/position checks, DB cap trigger), URL parse leniency, rename prefill, clear-q marker, invalid ?view stripped via history API, duplicate error no longer Retry. Screenshot: delivery admin AR dark 390 only (r2-*); light/EN not retaken. No jsdom, so UI keyboard/focus tests not automated. Reviewer test views gone after db-reset.
