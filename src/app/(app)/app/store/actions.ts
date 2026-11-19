@@ -8,7 +8,7 @@ import { blocksSchema, seoSchema } from "@/lib/store/blocks";
 import { isVerifiedOrder } from "@/lib/store/reviews";
 import { invalidateStorePublic } from "@/lib/store/invalidate";
 import { storeSettingsSchema } from "@/lib/store/settings";
-import { slugSchema, storeSlugSchema } from "@/lib/store/url";
+import { slugSchema, storeSlugSchema, stripEmoji } from "@/lib/store/url";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -165,7 +165,7 @@ const createReviewSchema = z.object({
   product_id: uuid,
   name,
   rating: z.coerce.number().int().min(1).max(5),
-  body: z.string().trim().min(1).max(1000),
+  body: z.string().trim().min(1).max(1000).refine((v) => stripEmoji(v).trim().length > 0),
   order_seq: z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.coerce.number().int().positive().max(2147483647).optional()),
   // the admin confirms the customer agreed to be quoted; never prefilled from the order
   agreed: z.literal("on"),

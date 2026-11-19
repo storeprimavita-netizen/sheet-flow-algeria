@@ -77,7 +77,7 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
   
           <div className="store-buy">
             <h1 className="store-title">{dto.product.name}</h1>
-            {hasReviews && dto.reviews.count > 0 ? <RatingLine reviews={dto.reviews} /> : null}
+            {hasReviews && dto.reviews.count > 0 && dto.reviews.items.length > 0 ? <RatingLine reviews={dto.reviews} /> : null}
             <hr className="store-rule" />
             <p className="store-price store-price-row">{formatCurrency(dto.product.price, unit)}</p>
             {dto.variants.length > 0 ? (

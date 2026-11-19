@@ -2,9 +2,9 @@ import { stripEmoji } from "./url";
 
 /** Public review name: first name + initial of the last word ("Amina Benali" -> "Amina B."). Never the full name. */
 export function publicReviewName(raw: string): string {
-  const words = stripEmoji(raw).split(" ").filter(Boolean);
+  const words = stripEmoji(raw).split(/[\s\-._\u200B-\u200D\u00A0\u2060\uFEFF]+/u).filter(Boolean);
   if (words.length === 0) return "";
-  if (words.length === 1) return words[0];
+  if (words.length === 1) return Array.from(words[0]).slice(0, 12).join("");
   const initial = Array.from(words[words.length - 1])[0];
   return `${words[0]} ${initial}.`;
 }

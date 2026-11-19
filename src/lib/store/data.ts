@@ -125,8 +125,8 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
 
 /** Approved reviews only. Summary comes from every approved rating (plain fetch, no aggregate); the list is the latest 60. */
 export async function loadReviews(db: Db, workspaceId: string, productId: string): Promise<PublicReviews> {
-  const base = () => db.from("reviews").select("rating").eq("workspace_id", workspaceId).eq("product_id", productId).eq("approved", true);
-  const [ratings, latest] = await Promise.all([
+  const base = () => db.from("reviews").select("rating", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("product_id", productId).eq("approved", true);
+  const [total, latest] = await Promise.all([
     base(),
     db
       .from("reviews")
@@ -137,10 +137,25 @@ export async function loadReviews(db: Db, workspaceId: string, productId: string
       .order("created_at", { ascending: false })
       .limit(MAX_PUBLIC_REVIEWS),
   ]);
-  if (ratings.error) throw new Error(`reviews summary failed: ${ratings.error.message}`);
+  if (total.error) throw new Error(`reviews summary failed: ${total.error.message}`);
   if (latest.error) throw new Error(`reviews lookup failed: ${latest.error.message}`);
-  const count = ratings.data?.length ?? 0;
-  const avg = count ? (ratings.data ?? []).reduce((n, r) => n + r.rating, 0) / count : 0;
+  const count = total.count ?? 0;
+  // PostgREST caps a response at max_rows (1000): page through the ratings so the average stays exact.
+  let sum = 0;
+  for (let from = 0; from < count; from += 1000) {
+    const { data, error } = await db
+      .from("reviews")
+      .select("rating")
+      .eq("workspace_id", workspaceId)
+      .eq("product_id", productId)
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(`reviews summary failed: ${error.message}`);
+    for (const r of data ?? []) sum += r.rating;
+  }
+  const avg = count ? sum / count : 0;
 
   const orderIds = [...new Set((latest.data ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
   const orders = new Map<string, { product_id: string | null; confirmation_status: string; excluded_reason: string | null }>();

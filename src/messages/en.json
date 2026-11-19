@@ -100,6 +100,7 @@
     "prev": "Previous",
     "next": "Next",
     "viewAll": "View all",
+    "deleteFailed": "Could not delete. Try again.",
     "deleteInUse": "Cannot delete: other records still use this item. Delete or reassign them first."
   },
   "actions": {

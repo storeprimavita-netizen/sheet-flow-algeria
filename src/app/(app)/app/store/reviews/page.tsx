@@ -67,7 +67,6 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
   let q = supabase
     .from("reviews")
     .select("id, product_id, name, rating, body, approved, order_id, created_at")
-    .in("product_id", productIds)
     .order("created_at", { ascending: false })
     .limit(LIMIT);
   if (f.product) q = q.eq("product_id", f.product);
@@ -82,7 +81,8 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
   const orderIds = [...new Set((reviews ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
   const orders = new Map<string, number>();
   if (orderIds.length) {
-    const { data } = await supabase.from("orders").select("id, order_seq").in("id", orderIds);
+    const { data, error: ordErr } = await supabase.from("orders").select("id, order_seq").in("id", orderIds);
+    if (ordErr) throw new Error(ordErr.message);
     for (const o of data ?? []) orders.set(o.id, o.order_seq);
   }
   const filtered = !!(f.product || f.status);
@@ -141,7 +141,7 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
                     <StatusPill kind="review" status={r.approved ? "approved" : "hidden"} />
                   </td>
                   <td>
-                    <ReviewRowActions id={r.id} name={r.name} approved={r.approved} />
+                    <ReviewRowActions key={`${r.id}-${r.approved}`} id={r.id} name={r.name} approved={r.approved} />
                   </td>
                 </tr>
               ))}

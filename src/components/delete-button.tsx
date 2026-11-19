@@ -18,8 +18,9 @@ export function DeleteButton({
   label,
   confirmText,
   variant = "destructive",
+  action,
 }: {
-  table: DeletableTable;
+  table?: DeletableTable;
   id: string;
   redirectTo: string;
   className?: string;
@@ -27,6 +28,8 @@ export function DeleteButton({
   label?: string;
   confirmText?: string;
   variant?: "destructive" | "outline" | "ghost";
+  /** server action that deletes the row (used instead of the browser client, e.g. to refresh a public cache) */
+  action?: (id: string) => Promise<{ ok: boolean }>;
 }) {
   const router = useRouter();
   const t = useTranslations();
@@ -35,7 +38,22 @@ export function DeleteButton({
   async function del() {
     if (!window.confirm(confirmText ?? t("common.deleteConfirm"))) return;
     setBusy(true);
+    if (action) {
+      const r = await action(id);
+      setBusy(false);
+      if (!r.ok) {
+        window.alert(t("common.deleteFailed"));
+        return;
+      }
+      router.push(redirectTo);
+      router.refresh();
+      return;
+    }
     const supabase = createClient();
+    if (!table) {
+      setBusy(false);
+      return;
+    }
     const { error } = await supabase.from(table).delete().eq("id", id);
     setBusy(false);
     if (error) {
