@@ -213,7 +213,8 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       expect(ins.error).toBeNull();
       // move the row onto OUR workspace's product: composite FK (product_id, workspace_id) must refuse
       const upd = await ws2Admin.from("product_pricing").update({ product_id: productId }).eq("product_id", ws2Pid).select();
-      expect(upd.error !== null || (upd.data ?? []).length === 0).toBe(true);
+      expect(upd.error).not.toBeNull(); // composite FK (product_id, workspace_id) refuses the move
+      expect(upd.data ?? []).toHaveLength(0);
       const { data: still } = await admin.from("product_pricing").select("product_id, workspace_id").eq("product_id", productId);
       expect((still ?? []).every((r) => r.workspace_id === workspaceId)).toBe(true);
       const { data: mine } = await admin.from("product_pricing").select("product_id").eq("product_id", ws2Pid);

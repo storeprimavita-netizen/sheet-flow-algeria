@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import en from "@/messages/en.json";
+import ar from "@/messages/ar.json";
+
 import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
 
 import {
@@ -19,6 +22,7 @@ import {
   focusIdFor,
   rangeHint,
   rangeMessageKey,
+  PLATFORM_PCT_WARN,
   PRICING_FIELDS,
   nextApplied,
   type CalcApplied,
@@ -485,5 +489,25 @@ describe("range messages", () => {
   it("NaN reads as not a number", () => {
     expect(rangeMessageKey(Number.NaN)).toBe("notNumber");
     expect(rangeMessageKey(5)).toBe("range");
+  });
+});
+
+describe("range hint kinds and fee warning", () => {
+  it("covers gtLt and geUp", () => {
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: true, maxExcl: true, pct: false } as never)).toMatchObject({ kind: "gtLt", min: 1, max: 10 });
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: false, maxExcl: false, pct: false } as never)).toMatchObject({ kind: "geUp", min: 1, max: 10 });
+  });
+  it("every kind has a message key in en and ar", () => {
+    const kinds = new Set(PRICING_FIELDS.map((f) => rangeHint(f).kind));
+    for (const k of ["gt", "ge", "gtUp", "geUp", "gtLt", "geLt"]) kinds.add(k as never);
+    for (const file of [en, ar]) {
+      const field = (file as { pricingV2: { field: Record<string, string> } }).pricingV2.field;
+      for (const k of kinds) expect(field[`range${k[0].toUpperCase()}${k.slice(1)}`]).toBeTruthy();
+    }
+  });
+  it("platform fee warns strictly above 50", () => {
+    expect(PLATFORM_PCT_WARN).toBe(50);
+    expect(50 > PLATFORM_PCT_WARN).toBe(false);
+    expect(50.01 > PLATFORM_PCT_WARN).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 /**
  * Live (unmocked) saveProductPricing against the local stack: a real signed-in
  * workspace-1 admin session, a product id that belongs to workspace 2. Opt-in
- * via LOCAL_SUPABASE_URL like src/lib/rls.test.ts (which creates the ws2 fixtures).
+ * via LOCAL_SUPABASE_URL like src/lib/rls.test.ts .
  */
 const LOCAL_URL = process.env.LOCAL_SUPABASE_URL;
 const ANON_KEY =
@@ -22,35 +22,49 @@ vi.mock("@/lib/rbac", () => ({
   requireAdminProfile: async () => ({ workspaceId: live.workspaceId, role: "admin" }),
 }));
 
+import { deleteWorkspaces, deleteLeakedWorkspaces } from "@/lib/test-cleanup";
 import { saveProductPricing } from "./actions";
 
 describe.skipIf(!LOCAL_URL)("saveProductPricing (live)", () => {
   let admin: SupabaseClient;
+  const wsIds: string[] = [];
+  const userIds: string[] = [];
   let ws2ProductId: string;
   let ownProductId: string;
+  const tag = `pl-${crypto.randomUUID()}`;
 
   beforeAll(async () => {
     const opts = { auth: { persistSession: false, autoRefreshToken: false } };
     admin = createClient(LOCAL_URL!, SERVICE_KEY, opts);
+    await deleteLeakedWorkspaces(admin, "pl-");
+    const mk = async (name: string) => (await admin.from("workspaces").insert({ name }).select("id").single()).data!.id as string;
+    live.workspaceId = await mk(`${tag}-1`);
+    const ws2 = await mk(`${tag}-2`);
+    wsIds.push(live.workspaceId, ws2);
+    const email = `${tag}@test.mnw`;
+    const { data: created, error: cErr } = await admin.auth.admin.createUser({ email, password: "SeedDev!2026", email_confirm: true });
+    if (cErr) throw new Error(cErr.message);
+    userIds.push(created.user.id);
+    const up = await admin.from("profiles").update({ workspace_id: live.workspaceId, role: "admin", is_active: true }).eq("user_id", created.user.id);
+    if (up.error) throw new Error(up.error.message);
     const session = createClient(LOCAL_URL!, ANON_KEY, opts);
-    const { error } = await session.auth.signInWithPassword({ email: "admin@seed.mnw", password: "SeedDev!2026" });
+    const { error } = await session.auth.signInWithPassword({ email, password: "SeedDev!2026" });
     if (error) throw new Error(error.message);
     live.client = session;
-    const { data: u } = await session.auth.getUser();
-    const { data: profile } = await admin.from("profiles").select("workspace_id").eq("user_id", u.user!.id).single();
-    live.workspaceId = profile!.workspace_id!;
-    const { data: own } = await admin.from("products").select("id").eq("workspace_id", live.workspaceId).limit(1).single();
-    ownProductId = own!.id;
-    const { data: ws2 } = await admin.from("workspaces").select("id").eq("name", "RLS Test WS2").maybeSingle();
-    if (!ws2) throw new Error("run src/lib/rls.test.ts first (creates the ws2 fixtures)");
-    let { data: p } = await admin.from("products").select("id").eq("workspace_id", ws2.id).eq("name", "WS2-only product").maybeSingle();
-    if (!p) ({ data: p } = await admin.from("products").insert({ workspace_id: ws2.id, name: "WS2-only product" }).select("id").single());
-    ws2ProductId = p!.id;
-  });
+    const prod = async (workspace: string, name: string) =>
+      (await admin.from("products").insert({ workspace_id: workspace, name }).select("id").single()).data!.id as string;
+    ownProductId = await prod(live.workspaceId, `${tag}-own`);
+    ws2ProductId = await prod(ws2, `${tag}-ws2`);
+  }, 30000);
 
   afterAll(async () => {
-    await admin.from("product_pricing").delete().eq("product_id", ws2ProductId);
-    await (live.client as SupabaseClient).auth.signOut({ scope: "local" });
+    if (!admin) return;
+    await (live.client as SupabaseClient | null)?.auth.signOut({ scope: "local" });
+    // only rows this suite created (its own two workspaces)
+    await admin.from("product_pricing").delete().in("workspace_id", wsIds);
+    await admin.from("products").delete().in("workspace_id", wsIds);
+    await deleteWorkspaces(admin, wsIds);
+    for (const id of userIds) await admin.auth.admin.deleteUser(id);
   });
 
   const input = (productId: string) => ({
@@ -69,9 +83,8 @@ describe.skipIf(!LOCAL_URL)("saveProductPricing (live)", () => {
   });
 
   test("saveProductPricing saves an own product", async () => {
-    const { data: before } = await admin.from("product_pricing").select("*").eq("product_id", ownProductId).maybeSingle();
     expect(await saveProductPricing(input(ownProductId))).toEqual({ ok: true });
-    if (before) await admin.from("product_pricing").upsert(before, { onConflict: "product_id" });
-    else await admin.from("product_pricing").delete().eq("product_id", ownProductId);
+    const { data } = await admin.from("product_pricing").select("product_id").eq("product_id", ownProductId);
+    expect(data).toHaveLength(1);
   });
 });
