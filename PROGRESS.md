@@ -459,3 +459,17 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: `docs/briefs/PRICE-4-F.review-1.md` VERDICT PASS; screenshots noted above.
 - Owner: none for this task.
 - Next: the 1,000-product partial-totals warning and the non-captured theme/locale combos stay open for screenshot follow-up.
+
+## PRICE-2-F — PRICE-2 follow-up (2026-11-19) — DONE
+- Done: helpers `withTargetMode/closeFocusTarget/radioTabIndex/focusIdFor` in `pricing-form.ts` (unit-tested) and wired; reset focus only on keyboard activation (`e.detail === 0`); stale `didReset` cleared on dialog open; `nextApplied` pure logic so an invalid quantity only freezes the quantity (overrides/ads/price keep applying); per-field range / "not a number" messages; thousands separators (money inputs on blur, "Default:" placeholders); platform fee > 50% warning (still saves); tests: RLS audit INSERT/UPDATE/DELETE, cross-workspace product_id UPDATE, live `saveProductPricing` (`actions.live.test.ts`), AR PricingCell.
+- Skipped (verified on screen): #10 AR chip wrap (no wrap at 390 px, chips 20 px high); #11 sticky group rows (table sits in an x-scroll container, group rows already stick horizontally). Review-4 #4 (focus token contrast) stays a design-system note.
+- No jsdom/testing-library (unplanned dependency): helper tests + keyboard walk replace component DOM tests.
+- Screenshots (chrome-devtools, 390 px): AR light product page; EN dark invalid quantity + final price override; EN dark settings fee warning. Not captured: 1280 px, EN light, AR dark, reset dialog Escape walk.
+- Round 2 (review-1 FIX): `actions.live.test.ts` now owns its fixtures (two `pl-` workspaces, one admin, own products), cleaned through `test-cleanup.ts`, deletes only its rows; added `groupDigits`, `PLATFORM_PCT_WARN`, `rangeHint` kinds + en/ar key tests; cross-workspace UPDATE test pins error not null and 0 rows; number-field NBSP noted controlled-only. Dirty / `saveSnapshot` logic deliberately left in the component (behaviour verified on screen). #10 and #11 already fixed, verified on screen. Screenshots not re-captured this round (no UI change).
+
+## PRICE-2-F merged (ship)
+- Done: PRICE-2-F follow-up on v3-PRICE-2-F (focus helpers, nextApplied logic, range messages, fee warning, RLS/cross-ws/live action tests, AR cell test); task set to done.
+- Verify: `scripts/gate.sh` GATE OK on v3-PRICE-2-F (766 passed, 3 skipped); `scripts/gate.sh --fast` re-run after merge into v3.
+- Evidence: `docs/briefs/PRICE-2-F.review-2.md` VERDICT PASS.
+- Owner: none.
+- Next: review-2 lows (AR 1280 duplicate legend label) and non-captured screenshots (1280 px, EN light, AR dark) stay open.

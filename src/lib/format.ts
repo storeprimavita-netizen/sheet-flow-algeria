@@ -21,6 +21,13 @@ export function formatInt(value: number | null | undefined): string {
   return ltr(n.toLocaleString("en-US").replace(/,/g, NBSP));
 }
 
+/** Space-group the integer part of a plain numeric string, keeping decimals as typed: `10000.5` -> `10 000.5`. */
+export function groupDigits(text: string): string {
+  const [int, dec] = text.split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+  return dec === undefined ? grouped : `${grouped}.${dec}`;
+}
+
 /** US dollars, comma-grouped, isolated for RTL: `$1,234` (whole) or `$2.20` with `{ decimals: 2 }`. */
 export function formatUsd(value: number | string | null | undefined, opts: { decimals?: number } = {}): string {
   if (value === null || value === undefined || value === "") return "—";

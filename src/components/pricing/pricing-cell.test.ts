@@ -30,6 +30,22 @@ describe("PricingCell", () => {
   });
 });
 
+describe("PricingCell AR", () => {
+  const ar = (state: "value" | "missing" | "impossible") =>
+    renderToStaticMarkup(
+      createElement(PricingCell, { state, missingLabel: "مدخل ناقص", impossibleLabel: "غير ممكن" }, "٦٥٪"),
+    );
+  it("PricingCell AR", () => {
+    const missing = ar("missing");
+    expect(missing).toContain("—");
+    expect(missing).toContain('title="مدخل ناقص"');
+    const imp = ar("impossible");
+    expect(imp).toContain("غير ممكن");
+    expect(imp).not.toContain("—");
+    expect(ar("value")).toContain("٦٥٪");
+  });
+});
+
 describe("breakEvenState", () => {
   const base = { stockCostDzd: 81600, quantity: 50, adCostUsd: { medium: 2.2 } };
   it("complete inputs but price below cost -> Not possible", () => {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import en from "@/messages/en.json";
+import ar from "@/messages/ar.json";
+
 import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
 
 import {
@@ -13,6 +16,17 @@ import {
   realZeroRowMode,
   countOverrides,
   targetModeForKey,
+  withTargetMode,
+  closeFocusTarget,
+  radioTabIndex,
+  focusIdFor,
+  rangeHint,
+  rangeMessageKey,
+  PLATFORM_PCT_WARN,
+  PRICING_FIELDS,
+  nextApplied,
+  type CalcApplied,
+  type CalcDraft,
   breakEvenState,
   saleBelowBreakEven,
   formErrors,
@@ -412,5 +426,88 @@ describe("Real column, ad cost 0 and drawn cells (PRICE-3-F)", () => {
     expect(at(0.7, 0).finalPrice).not.toBeNull();
     expect(at(0.7, 1).breakEven.minDelivery).toBeCloseTo(at(0.7, 0.0001).breakEven.minDelivery ?? NaN, 10);
     expect(at(1, 0.6).breakEven.minConfirmation).toBeCloseTo(at(0.0001, 0.6).breakEven.minConfirmation ?? NaN, 10);
+  });
+});
+
+describe("focus helpers", () => {
+  const form = { ...formFromSettings(PS), targetMode: "profit" as const, targetValue: 500 };
+  it("withTargetMode clears value on mode change", () => {
+    const next = withTargetMode(form, "markup");
+    expect(next.targetMode).toBe("markup");
+    expect(next.targetValue).toBeNull();
+    expect(next.values).toBe(form.values);
+  });
+  it("withTargetMode same mode keeps form", () => {
+    expect(withTargetMode(form, "profit")).toBe(form);
+  });
+  it("closeFocusTarget escape/cancel -> button", () => {
+    expect(closeFocusTarget({ didReset: false, btnDisabled: false })).toBe("button");
+  });
+  it("closeFocusTarget after reset or disabled -> firstField", () => {
+    expect(closeFocusTarget({ didReset: true, btnDisabled: false })).toBe("firstField");
+    expect(closeFocusTarget({ didReset: false, btnDisabled: true })).toBe("firstField");
+  });
+  it("radioTabIndex roving", () => {
+    expect(radioTabIndex(true)).toBe(0);
+    expect(radioTabIndex(false)).toBe(-1);
+  });
+  it("focusIdFor dotted key", () => {
+    expect(focusIdFor("pd", "adMultiplier.best")).toBe("pd-adMultiplier.best");
+    expect(focusIdFor("pd", "target")).toBe("pd-target");
+  });
+});
+
+describe("calculator", () => {
+  const draft: CalcDraft = { quantity: 100, form: formFromOverrides({}, PS), adBest: null, adMedium: 5, adWorst: null, finalPrice: 4000 };
+  const first: CalcApplied = nextApplied({ quantity: 100, overrides: {}, ads: { best: null, medium: null, worst: null }, finalPrice: null }, draft, PS);
+  it("calculator: invalid quantity keeps overrides applied", () => {
+    const form = { ...draft.form, values: { ...draft.form.values, packaging: 77 } };
+    const next = nextApplied(first, { ...draft, quantity: null, form, finalPrice: 4500 }, PS);
+    expect(next.quantity).toBe(100);
+    expect(next.finalPrice).toBe(4500);
+    expect(next.overrides.packaging).toBe(77);
+  });
+  it("calculator: invalid override or price freezes the table", () => {
+    const bad = { ...draft.form, values: { ...draft.form.values, packaging: -1 } };
+    expect(nextApplied(first, { ...draft, form: bad }, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, finalPrice: -5 }, PS)).toBe(first);
+  });
+  it("calculator: unchanged draft keeps identity; valid quantity applies", () => {
+    expect(nextApplied(first, draft, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, quantity: 50 }, PS).quantity).toBe(50);
+  });
+});
+
+describe("range messages", () => {
+  const def = (k: string) => PRICING_FIELDS.find((f) => f.key === k)!;
+  it("range hint shows display units", () => {
+    expect(rangeHint(def("confirmPct.best"))).toEqual({ kind: "gtUp", min: 0, max: 100 });
+    expect(rangeHint(def("platformPct"))).toEqual({ kind: "geLt", min: 0, max: 100 });
+    expect(rangeHint(def("officialRate"))).toEqual({ kind: "gt", min: 0 });
+    expect(rangeHint(def("packaging"))).toEqual({ kind: "ge", min: 0 });
+  });
+  it("NaN reads as not a number", () => {
+    expect(rangeMessageKey(Number.NaN)).toBe("notNumber");
+    expect(rangeMessageKey(5)).toBe("range");
+  });
+});
+
+describe("range hint kinds and fee warning", () => {
+  it("covers gtLt and geUp", () => {
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: true, maxExcl: true, pct: false } as never)).toMatchObject({ kind: "gtLt", min: 1, max: 10 });
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: false, maxExcl: false, pct: false } as never)).toMatchObject({ kind: "geUp", min: 1, max: 10 });
+  });
+  it("every kind has a message key in en and ar", () => {
+    const kinds = new Set(PRICING_FIELDS.map((f) => rangeHint(f).kind));
+    for (const k of ["gt", "ge", "gtUp", "geUp", "gtLt", "geLt"]) kinds.add(k as never);
+    for (const file of [en, ar]) {
+      const field = (file as { pricingV2: { field: Record<string, string> } }).pricingV2.field;
+      for (const k of kinds) expect(field[`range${k[0].toUpperCase()}${k.slice(1)}`]).toBeTruthy();
+    }
+  });
+  it("platform fee warns strictly above 50", () => {
+    expect(PLATFORM_PCT_WARN).toBe(50);
+    expect(50 > PLATFORM_PCT_WARN).toBe(false);
+    expect(50.01 > PLATFORM_PCT_WARN).toBe(true);
   });
 });

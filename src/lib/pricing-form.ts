@@ -501,3 +501,96 @@ export function targetModeForKey(current: TargetMode, key: string, rtl: boolean)
   else return null;
   return TARGET_MODES[(n + TARGET_MODES.length) % TARGET_MODES.length];
 }
+
+// ---------- keyboard / focus helpers (D53) ----------
+
+/** Switching target mode clears the value (D52: DZD and percent are never reinterpreted); same mode keeps the form. */
+export function withTargetMode(form: PricingForm, mode: TargetMode): PricingForm {
+  return form.targetMode === mode ? form : { ...form, targetMode: mode, targetValue: null };
+}
+
+/**
+ * Where focus goes when the reset-confirm dialog closes: back to the opener button,
+ * unless a reset just happened or the button is disabled (built-in defaults) - then the first field.
+ */
+export function closeFocusTarget({ didReset, btnDisabled }: { didReset: boolean; btnDisabled: boolean }): "button" | "firstField" {
+  return didReset || btnDisabled ? "firstField" : "button";
+}
+
+/** Roving tabindex: only the checked radio is in the tab order. */
+export const radioTabIndex = (checked: boolean): 0 | -1 => (checked ? 0 : -1);
+
+/** DOM id of a field's input (keys may be dotted, e.g. `adMultiplier.best`). */
+export const focusIdFor = (idPrefix: string, key: FieldKey | string) => `${idPrefix}-${key}`;
+
+// ---------- product calculator draft ----------
+
+const centsOk = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
+export const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD && centsOk(v));
+export const MAX_QUANTITY = 1_000_000;
+export const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
+export const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE && centsOk(v));
+
+export type CalcDraft = {
+  quantity: number | null;
+  form: PricingForm;
+  adBest: number | null;
+  adMedium: number | null;
+  adWorst: number | null;
+  finalPrice: number | null;
+};
+
+export type CalcApplied = {
+  quantity: number;
+  overrides: DeepPartial<PricingSettings>;
+  ads: { best: number | null; medium: number | null; worst: number | null };
+  finalPrice: number | null;
+};
+
+/** Draft is saveable: form, ad and price fields valid (quantity is never saved). */
+export function draftSaveValid(d: CalcDraft, defaults: PricingSettings): boolean {
+  return (
+    Object.keys(formErrors(d.form, false, defaults.target.mode)).length === 0 &&
+    priceOk(d.finalPrice) &&
+    adOk(d.adBest) &&
+    adOk(d.adMedium) &&
+    adOk(d.adWorst)
+  );
+}
+
+/**
+ * What the table shows. An invalid draft keeps the last valid table, except that an
+ * invalid QUANTITY alone only freezes the quantity: overrides, ads and final price keep applying.
+ * Returns `prev` (same identity) when nothing changed.
+ */
+export function nextApplied(prev: CalcApplied, d: CalcDraft, defaults: PricingSettings): CalcApplied {
+  if (!draftSaveValid(d, defaults)) return prev;
+  const next: CalcApplied = {
+    quantity: qtyOk(d.quantity) ? (d.quantity as number) : prev.quantity,
+    overrides: overridesFromForm(d.form, defaults),
+    ads: { best: d.adBest, medium: d.adMedium, worst: d.adWorst },
+    finalPrice: d.finalPrice,
+  };
+  return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
+}
+
+// ---------- range messages ----------
+
+/** Platform fee above this percent still saves but shows a warning (typo guard). */
+export const PLATFORM_PCT_WARN = 50;
+
+/**
+ * Which range sentence a field needs, with bounds in DISPLAY units.
+ * kind = lower bound + upper bound: `g`reater-than / `a`t-least, then `l`ess-than / `u`p-to / none.
+ */
+export function rangeHint(def: FieldDef): { kind: "gt" | "ge" | "gtUp" | "geUp" | "gtLt" | "geLt"; min: number; max?: number } {
+  const lo = def.minExcl ? "gt" : "ge";
+  const min = toDisplay(def, def.min);
+  if (def.max === undefined) return { kind: lo, min };
+  const max = toDisplay(def, def.max);
+  return { kind: `${lo}${def.maxExcl ? "Lt" : "Up"}` as "gtUp" | "geUp" | "gtLt" | "geLt", min, max };
+}
+
+/** Message key under `pricingV2.field.` for a "range" error: not-a-number text vs the field's range. */
+export const rangeMessageKey = (typed: number | null | undefined) =>
+  typeof typed === "number" && Number.isNaN(typed) ? "notNumber" : "range";

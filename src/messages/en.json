@@ -1071,7 +1071,12 @@
     "title": "Pricing",
     "subtitle": "Every product at a glance: price, profit and capital in the best, medium or worst case.",
     "dzd": "DA",
-    "scenario": { "label": "Scenario", "best": "Best", "medium": "Medium", "worst": "Worst" },
+    "scenario": {
+      "label": "Scenario",
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
     "export": "Export CSV",
     "table": "Pricing by product",
     "totals": "Total",
@@ -1184,7 +1189,15 @@
       "overridden": "Overridden",
       "reset": "Reset {field} to the default",
       "required": "Required.",
-      "range": "Value out of range."
+      "range": "Value out of range.",
+      "notNumber": "Not a number.",
+      "rangeGt": "Enter a value above {min}.",
+      "rangeGe": "Enter a value of {min} or more.",
+      "rangeGtUp": "Enter a value above {min}, up to {max}.",
+      "rangeGeUp": "Enter a value from {min} to {max}.",
+      "rangeGtLt": "Enter a value above {min} and below {max}.",
+      "rangeGeLt": "Enter a value from {min} up to (not including) {max}.",
+      "feeHigh": "This fee is above {limit}. Check it is a percent. It still saves."
     },
     "settings": {
       "intro": "Defaults for every product. Each product can override any of them in its Pricing tab.",

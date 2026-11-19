@@ -15,14 +15,18 @@ import { NumberField } from "@/components/fields/number-field";
 import { PricingFieldGroups, TargetEditor } from "@/components/pricing/pricing-fields";
 import { formatCurrency, formatInt } from "@/lib/format";
 import {
-  MAX_AD_USD,
-  MAX_FINAL_PRICE,
+  adOk,
   countOverrides,
   formErrors,
   formFromOverrides,
+  nextApplied,
   overridesFromForm,
+  priceOk,
+  qtyOk,
   saleBelowBreakEven,
   stockCostTotal,
+  type CalcApplied,
+  type CalcDraft,
   type PricingForm,
 } from "@/lib/pricing-form";
 import { realScenarioInput, type RealKpiSlice } from "@/lib/pricing-real";
@@ -38,20 +42,8 @@ export type SavedPricing = {
   finalPrice: number | null;
 };
 
-type Draft = {
-  quantity: number | null;
-  form: PricingForm;
-  adBest: number | null;
-  adMedium: number | null;
-  adWorst: number | null;
-  finalPrice: number | null;
-};
+type Draft = CalcDraft;
 
-const centsOk = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
-const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD && centsOk(v));
-export const MAX_QUANTITY = 1_000_000;
-const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
-const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE && centsOk(v));
 /** Quantity only drives the table; it is never saved, so it stays out of dirty/save checks. */
 const saveSnapshot = (d: Draft) => JSON.stringify({ ...d, quantity: null });
 
@@ -89,24 +81,21 @@ export function PricingCalculator({
   const qtyErr = !qtyOk(draft.quantity);
   const adErr = { best: !adOk(draft.adBest), medium: !adOk(draft.adMedium), worst: !adOk(draft.adWorst) };
   const saveValid = Object.keys(errors).length === 0 && !priceErr && !adErr.best && !adErr.medium && !adErr.worst;
-  const valid = saveValid && !qtyErr;
   const dirty = saveSnapshot(draft) !== baseline;
   const dzd = t("unit.dzd");
 
   const overrides = React.useMemo(() => overridesFromForm(draft.form, defaults), [draft.form, defaults]);
 
-  // Invalid input keeps the last valid table: `applied` only follows valid drafts.
-  const toApplied = (d: Draft) => ({
+  // Invalid input keeps the last valid table; an invalid quantity alone only freezes the quantity.
+  const toApplied = (d: Draft): CalcApplied => ({
     quantity: d.quantity ?? 0,
     overrides: overridesFromForm(d.form, defaults),
     ads: { best: d.adBest, medium: d.adMedium, worst: d.adWorst },
     finalPrice: d.finalPrice,
   });
   const [applied, setApplied] = React.useState(() => toApplied(draft));
-  if (valid) {
-    const next = toApplied(draft);
-    if (JSON.stringify(next) !== JSON.stringify(applied)) setApplied(next);
-  }
+  const nextA = nextApplied(applied, draft, defaults);
+  if (nextA !== applied) setApplied(nextA);
 
   // sourcing_cost_dzd is PER PIECE; the engine wants the TOTAL and divides by sellable quantity itself
   const total = stockCostTotal(perPieceCost, applied.quantity);
