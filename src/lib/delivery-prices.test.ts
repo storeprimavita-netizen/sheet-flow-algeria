@@ -35,7 +35,7 @@ describe("parseDeliveryCsv", () => {
   });
   it("quoted comma and duplicate communes", () => {
     const r = parseDeliveryCsv(
-      `${H}DZ,1-Adrar,,,rate,,${HOME}:1\nDZ,1-Adrar,"Ain, X",,,,\nDZ,1-Adrar,  ain,  x ,,,,\nDZ,1-Adrar,"Ain,  X",,,,\n`,
+      `${H}DZ,1-Adrar,,,rate,,${HOME}:1\nDZ,1-Adrar,"Ain, X",,,,\nDZ,1-Adrar," ain,  x ",,,,\nDZ,1-Adrar,"Ain,  X",,,,\n`,
     );
     expect(r.wilayas[0].communes).toEqual(["Ain, X"]);
     expect(r.warnings.some((w) => w.type === "duplicate_commune")).toBe(true);
