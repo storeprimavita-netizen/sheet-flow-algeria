@@ -1374,7 +1374,7 @@
     "addColor": "+ Color",
     "maxOptions": "A product can have at most 3 options.",
     "fillSkus": "Fill empty SKUs",
-    "skuHint": "SKU: product code + value initials, for example ABA-M-RED. Only empty SKUs are filled; what you typed is never overwritten.",
+    "skuHint": "Your own stock code for this exact piece: optional, customers never see it. Auto-fill uses product code + value initials, for example ABA-M-RED. Only empty SKUs are filled; what you typed is never overwritten.",
     "comboHint": "combinations. \"Add missing\" creates all of them.",
     "useSizeSet": "Use size set",
     "useSizeSetHint": "Adds the names that are missing. Existing values are kept.",
