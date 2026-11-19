@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { resolveSeason, periodYears, type SeasonRow } from "./seasons";
+import { resolveSeason, periodYears, seasonYearInProgress, seasonYearState, type SeasonRow } from "./seasons";
 import {
   DASHBOARD_PERSIST_KEYS, STATS_PERSIST_KEYS, kpiFiltersJson, ordersQs, parseStatsFilters, pickParams,
   statsDrillFilters, drillHref,
@@ -94,5 +94,19 @@ describe("persisted filters", () => {
   test("dashboard restore ignores stats keys", () => {
     expect(pickParams(`from=2026-01-01&f_wilaya=16&season=${RAMADAN}&year=2025&product=${RAMADAN}`, DASHBOARD_PERSIST_KEYS))
       .toBe(`from=2026-01-01&product=${RAMADAN}`);
+  });
+});
+
+describe("season comparison year card", () => {
+  test("error, no-orders and data branches", () => {
+    expect(seasonYearState(null, false)).toBe("error");
+    expect(seasonYearState({ counts: { received: 3 } }, true)).toBe("error");
+    expect(seasonYearState({ counts: { received: 0 } }, false)).toBe("noOrders");
+    expect(seasonYearState({ counts: { received: 3 } }, false)).toBe("data");
+  });
+  test("in progress while date_to is today or later", () => {
+    expect(seasonYearInProgress("2026-03-31", "2026-03-31")).toBe(true);
+    expect(seasonYearInProgress("2026-04-01", "2026-03-31")).toBe(true);
+    expect(seasonYearInProgress("2026-03-30", "2026-03-31")).toBe(false);
   });
 });
