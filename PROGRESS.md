@@ -525,3 +525,8 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: partial 390 px screenshots in `docs/design/audit/STORE-1-F/`; full dark/light x EN/AR x 1280/390 set not captured.
 - Owner: none. Accepted low: 40P01 window between product delete and save (no delete-product action in app).
 - Next: follow-up task to revoke TRUNCATE/TRIGGER/REFERENCES from `authenticated` on the four variant tables; next `todo` task in docs/MASTER_PLAN.md.
+
+## STORE-2-F (v3-STORE-2-F)
+- Done: data errors throw, linkPageProduct publish guard, createStore loser delete check, liveStoreSlugs paginated, app not-found role home + title, editor root text-start, tests.
+- Verified on `next start`: `/s/nope/xx` returns 404 but the initial HTML has NO `<h1>` (html id=__next_error__, content only in the RSC payload, applied on the client). Tried a `[store]/not-found.tsx` and moving the guard into page.tsx: no change (page.tsx loses the 404 status). Unresolved, needs an owner/analyse follow-up. No stack paths seen in the payload.
+- Not verified (no logged-in browser session): 1280 px store layout, AR editor screenshots, agent HTTP test, store-http.test.ts against `next start`.
