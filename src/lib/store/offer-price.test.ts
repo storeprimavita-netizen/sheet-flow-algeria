@@ -45,7 +45,7 @@ describe("comparePrice", () => {
     expect(comparePrice(sz, unitPrice(sz))).toBeNull();
     // per_value: the size's delta moves the crossed-out price too (sale 5000, compare 6000, S -1000 -> 4000 vs 5000)
     const s = { ...base, mode: "per_value" as const, compareAt: 6000, valueDeltas: [-1000] };
-    expect(comparePrice(sz, unitPrice(sz))).toBe(5000);
+    expect(comparePrice(s, unitPrice(s))).toBe(5000);
   });
 });
 
