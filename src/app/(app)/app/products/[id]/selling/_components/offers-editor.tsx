@@ -56,7 +56,7 @@ export function OffersEditor({ productId, salePrice, offers, bump: initialBump, 
       setState({ kind: "error", reason: t("offers.incomplete") });
       return;
     }
-    if (bump && (!bump.productId || !bump.price || !bump.label.trim())) {
+    if (bump && bump.productId && (!bump.price || !bump.label.trim())) {
       setState({ kind: "error", reason: t("offers.bumpIncomplete") });
       return;
     }
