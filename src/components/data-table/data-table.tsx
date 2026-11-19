@@ -249,7 +249,7 @@ export function DataTable<T>({
       ) : (
         <div className="card-surface overflow-x-auto">
           <table
-            className="w-full border-collapse text-sm"
+            className={cn("w-full border-collapse text-sm", focus >= 0 && tableFocused && "focus-visible:outline-none")}
             tabIndex={0}
             onKeyDown={onKeyDown}
             onFocus={() => setTableFocused(true)}
@@ -274,7 +274,8 @@ export function DataTable<T>({
                       "px-3 py-2 font-medium text-muted-foreground",
                       colStart(c),
                       c.width,
-                      c.sticky && "sticky start-0 z-20 bg-surface",
+                      c.sticky && "sticky start-0 z-20 bg-surface "
+                        + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                     )}
                   >
                     {c.sortable ? (
@@ -327,8 +328,15 @@ export function DataTable<T>({
                           "border-b border-border transition-colors",
                           rowH,
                           renderSheet && "cursor-pointer",
-                          isSel ? "bg-primary/5" : "hover:bg-surface-raised",
-                          focus === i && "bg-surface-raised",
+                          // --row-bg is the single source for the row and its frozen cell
+                          "bg-(--row-bg)",
+                          isSel
+                            ? "[--row-bg:color-mix(in_oklab,var(--primary)_5%,var(--surface))] hover:[--row-bg:color-mix(in_oklab,var(--primary)_10%,var(--surface))]"
+                            : "[--row-bg:var(--surface)] hover:[--row-bg:var(--surface-raised)]",
+                          focus === i &&
+                            (isSel
+                              ? "[--row-bg:color-mix(in_oklab,var(--primary)_10%,var(--surface))]"
+                              : "[--row-bg:var(--surface-raised)]"),
                           focus === i && tableFocused && "ring-2 ring-inset ring-ring",
                         )}
                       >
@@ -349,7 +357,8 @@ export function DataTable<T>({
                               colStart(c),
                               c.width,
                               c.numeric && "num",
-                              c.sticky && "sticky start-0 z-10 bg-surface",
+                              c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors "
+                                + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                             )}
                           >
                             {c.cell(row)}

@@ -87,6 +87,7 @@ export function OrdersFilterBar({
   }
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
+  if (get("q")) chips.push({ key: "q", label: `${t("orders.search")}: ${get("q")}` });
   if (dupOn) chips.push({ key: "duplicates", label: t("orders.duplicatesOnly") });
 
   return (

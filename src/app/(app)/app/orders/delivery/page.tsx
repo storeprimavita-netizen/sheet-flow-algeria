@@ -23,7 +23,7 @@ export default async function DeliveryQueuePage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, swapped_to_order_id, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
+      "id, order_seq, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, swapped_to_order_id, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
     )
     .eq("confirmation_status", "confirmed")
     .order("created_at", { ascending: true });
@@ -33,7 +33,7 @@ export default async function DeliveryQueuePage({
   const swaps = await swapTargets(supabase, orders ?? []);
   const rows: DelivRow[] = (orders ?? []).map((o) => ({
     id: o.id,
-    order_number: o.order_number,
+    order_seq: o.order_seq,
     customer_name: o.customer_name,
     customer_phone: o.customer_phone,
     product_name: o.product?.name ?? null,

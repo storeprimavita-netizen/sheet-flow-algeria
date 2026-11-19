@@ -8,10 +8,11 @@ import { StatusPill } from "@/components/status-pill";
 import { currentStatus } from "@/lib/statuses";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
+import { OrderNo } from "@/components/order-no";
 
 export type ProductOrderRow = {
   id: string;
-  order_number: string | null;
+  order_seq: number;
   placed_at: string | null;
   customer_name: string | null;
   quantity: number;
@@ -25,12 +26,12 @@ export function ProductOrdersTable({ rows }: { rows: ProductOrderRow[] }) {
 
   const columns: Column<ProductOrderRow>[] = [
     {
-      id: "order_number",
-      header: t("orders.title"),
+      id: "order_seq",
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <Link href={`/app/orders/${r.id}`} className="num font-medium hover:underline">
-          {r.order_number ?? r.id.slice(0, 8)}
+          <OrderNo seq={r.order_seq} />
         </Link>
       ),
     },

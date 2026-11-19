@@ -111,7 +111,8 @@ async function ensureUser(admin: Admin, email: string): Promise<string> {
 }
 
 async function ensureWorkspace(admin: Admin): Promise<string> {
-  const { data: existing } = await admin.from("workspaces").select("id").limit(1).maybeSingle();
+  const { data: existing, error: selErr } = await admin.from("workspaces").select("id").limit(1).maybeSingle();
+  if (selErr) throw new Error(`select workspaces: ${selErr.message}`);
   if (existing) return existing.id;
 
   const { data, error } = await admin.rpc("bootstrap_workspace", {
@@ -500,7 +501,7 @@ async function seedOrders(
         .from("orders")
         .insert({
           workspace_id: ws,
-          order_number: `SEED-${String(i + 1).padStart(4, "0")}`,
+          order_number: i === 0 ? "#SH-1001" : null, // one platform ref for screenshots
           source,
           external_id: source === "manual" ? null : `seed-${source}-${i + 1}`,
           product_id: productId,
@@ -584,7 +585,7 @@ async function seedOrders(
     await must(
       await admin.from("orders").insert({
         workspace_id: ws,
-        order_number: `SEED-DUP-${k + 1}`,
+        order_number: null,
         source: "manual",
         product_id: dupProduct,
         quantity: 1,

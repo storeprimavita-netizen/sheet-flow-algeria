@@ -19,6 +19,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { getStatus } from "@/lib/statuses";
 import { pushOrdersToZRExpress, updateOrderStatus } from "../actions";
 import type { DelivRow } from "./delivery-view";
+import { OrderNo } from "@/components/order-no";
 
 /** Apply a delivery-status change; toast + refresh. Shared by table + kanban. */
 export function useAdvanceDelivery() {
@@ -66,15 +67,15 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
 
   const columns: Column<DelivRow>[] = [
     {
-      id: "order_number",
-      header: t("orders.title"),
+      id: "order_seq",
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <span className="flex items-center gap-2">
           <span className={"h-4 w-0.5 rounded " + (accent(r.delivery_status) || "bg-transparent")} aria-hidden />
           <span className="flex flex-col items-start gap-1">
             <Link href={`/app/orders/${r.id}`} onClick={(e) => e.stopPropagation()} className="num whitespace-nowrap font-medium hover:underline">
-              {r.order_number ?? r.id.slice(0, 8)}
+              <OrderNo seq={r.order_seq} />
             </Link>
             {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}
           </span>

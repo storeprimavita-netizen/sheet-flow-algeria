@@ -12,10 +12,11 @@ import type { Column } from "@/components/data-table/types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { NewOrdersPill } from "./new-orders-pill";
 import { ConfirmationSheet } from "./confirmation-sheet";
+import { OrderNo } from "@/components/order-no";
 
 export type ConfRow = {
   id: string;
-  order_number: string | null;
+  order_seq: number;
   customer_id: string | null;
   customer_name: string | null;
   customer_phone: string | null;
@@ -34,7 +35,7 @@ export type ConfRow = {
   delivery_rate: string;
   /** non-admin + already shipped: hide attempt logging */
   locked: boolean;
-  recent: { id: string; order_number: string | null; delivery_status: string; placed_at: string | null }[];
+  recent: { id: string; order_seq: number; delivery_status: string; placed_at: string | null }[];
 };
 
 export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
@@ -43,12 +44,12 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
 
   const columns: Column<ConfRow>[] = [
     {
-      id: "order_number",
-      header: t("orders.title"),
+      id: "order_seq",
+      header: t("orders.numberHeader"),
       sticky: true,
       cell: (r) => (
         <span className="flex items-center gap-1.5 whitespace-nowrap">
-          <span className="num font-medium">{r.order_number ?? r.id.slice(0, 8)}</span>
+          <span className="num font-medium"><OrderNo seq={r.order_seq} /></span>
           {r.is_duplicate_suspect ? (
             <Chip token="danger" size="sm">
               {t("orders.duplicate")}
@@ -106,7 +107,7 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
           action: <ButtonLink href="/app/orders/new" size="sm">{t("orders.new")}</ButtonLink>,
         }}
         renderSheet={(r) => ({
-          title: <span className="num">{r.order_number ?? r.id.slice(0, 8)}</span>,
+          title: <span className="num"><OrderNo seq={r.order_seq} /></span>,
           body: <ConfirmationSheet key={r.id} order={r} orderedKeys={orderedKeys} />,
         })}
       />

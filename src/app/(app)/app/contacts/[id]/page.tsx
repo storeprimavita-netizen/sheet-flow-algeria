@@ -15,6 +15,7 @@ import { Chip } from "@/components/ui/chip";
 import { StatusPill } from "@/components/status-pill";
 import { currentStatus } from "@/lib/statuses";
 import { CustomerForm } from "../customer-form";
+import { OrderNo } from "@/components/order-no";
 
 function Meta({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -42,7 +43,7 @@ export default async function CustomerDetailPage({
     supabase.from("wilayas").select("code, name").order("code"),
     supabase
       .from("orders")
-      .select("id, order_number, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)")
+      .select("id, order_seq, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)")
       .eq("customer_id", id)
       .order("placed_at", { ascending: false }),
     getSetting(profile.workspaceId, "risk_weights"),
@@ -144,7 +145,7 @@ export default async function CustomerDetailPage({
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td>
                         <Link href={`/app/orders/${o.id}`} className="num font-medium hover:underline">
-                          {o.order_number ?? o.id.slice(0, 8)}
+                          <OrderNo seq={o.order_seq} />
                         </Link>
                       </td>
                       <td className="text-muted-foreground">{o.product?.name ?? "—"}</td>

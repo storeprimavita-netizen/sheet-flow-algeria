@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
 import { OrderTabs } from "../order-tabs";
 import { recordCashCollection, markDeposited } from "./actions";
+import { OrderNo } from "@/components/order-no";
 
 export default async function CashPage() {
   const t = await getTranslations();
@@ -18,12 +19,12 @@ export default async function CashPage() {
   const [{ data: delivered }, { data: collections }] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, order_number, sale_price, quantity, customer_name")
+      .select("id, order_seq, sale_price, quantity, customer_name")
       .eq("delivery_status", "delivered")
       .order("created_at", { ascending: false }),
     supabase
       .from("cash_collections")
-      .select("*, order:orders(order_number, customer_name)")
+      .select("*, order:orders(order_seq, customer_name)")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -53,7 +54,7 @@ export default async function CashPage() {
                   className="card-surface flex flex-wrap items-end gap-3 rounded-xl p-3"
                 >
                   <div className="min-w-[12rem] flex-1">
-                    <div className="font-medium">{o.order_number ?? o.id.slice(0, 8)}</div>
+                    <div className="font-medium"><OrderNo seq={o.order_seq} /></div>
                     <div className="text-xs text-muted-foreground">
                       {o.customer_name ?? "—"} · {t("fields.total_amount")}: {formatCurrency(total)}
                     </div>
@@ -92,7 +93,7 @@ export default async function CashPage() {
                 className="card-surface flex flex-wrap items-end gap-3 rounded-xl p-3"
               >
                 <div className="min-w-[12rem] flex-1">
-                  <div className="font-medium">{c.order?.order_number ?? "—"}</div>
+                  <div className="font-medium"><OrderNo seq={c.order?.order_seq} /></div>
                   <div className="text-xs text-muted-foreground">
                     {c.order?.customer_name ?? "—"} · {formatCurrency(c.amount_dzd)} · {formatDate(c.collected_on)}
                   </div>
@@ -128,7 +129,7 @@ export default async function CashPage() {
                 <tbody>
                   {deposits.map((d) => (
                     <tr key={d.id}>
-                      <td className="font-medium">{d.order?.order_number ?? "—"}</td>
+                      <td className="font-medium"><OrderNo seq={d.order?.order_seq} /></td>
                       <td>
                         {d.reference ? <Badge variant="secondary">{d.reference}</Badge> : "—"}
                       </td>

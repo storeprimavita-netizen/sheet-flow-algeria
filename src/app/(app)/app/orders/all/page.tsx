@@ -10,13 +10,15 @@ import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
+import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
+import { Empty } from "@/components/empty";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
 
 // columns the DataTable exposes as sortable → real order-able DB columns
 const SORT_COLUMNS: Record<string, string> = {
-  order_number: "order_number",
+  order_seq: "order_seq",
   placed_at: "placed_at",
 };
 
@@ -45,7 +47,7 @@ export default async function AllOrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
+      "id, order_seq, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
       { count: "exact" },
     );
 
@@ -66,6 +68,19 @@ export default async function AllOrdersPage({
   const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
   if (agentId)
     query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
+  const q = get("q").trim().slice(0, 80);
+  const seq = q ? parseOrderSeqQuery(q) : null;
+  if (seq !== null) {
+    const digits = q.replace(/\D/g, "");
+    // 5+ digits may be a partial phone number as well as a running number.
+    query = digits.length >= 5
+      ? query.or(`order_seq.eq.${seq},customer_phone.ilike.%${digits}%`)
+      : query.eq("order_seq", seq);
+  } else if (q) {
+    const text = sanitizeOrderTextQuery(q);
+    if (text)
+      query = query.or(`customer_name.ilike.%${text}%,customer_phone.ilike.%${text}%,order_number.ilike.%${text}%`);
+  }
   if (get("from")) query = query.gte("placed_at", get("from"));
   if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
 
@@ -73,9 +88,28 @@ export default async function AllOrdersPage({
   const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
 
   const from = (page - 1) * PAGE_SIZE;
-  const { data: orders, count } = await query
+  const { data: orders, count, error: ordersError } = await query
     .order(sortCol, { ascending })
     .range(from, from + PAGE_SIZE - 1);
+
+  if (ordersError) {
+    console.error("orders/all", ordersError.message);
+    const retry = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
+    return (
+      <div className="space-y-6">
+        <PageHeader title={t("orders.title")} subtitle={t("orders.subtitle")} />
+        <OrderTabs active="all" />
+        <Empty>
+          <p className="font-medium text-foreground">{t("orders.loadError")}</p>
+          <div className="mt-4 flex justify-center">
+            <ButtonLink href={`/app/orders/all?${retry.toString()}`} size="sm">
+              {t("orders.retry")}
+            </ButtonLink>
+          </div>
+        </Empty>
+      </div>
+    );
+  }
 
   // status history for the orders on this page → the detail-sheet timeline
   const orderIds = (orders ?? []).map((o) => o.id);
@@ -113,6 +147,7 @@ export default async function AllOrdersPage({
   const swaps = await swapTargets(supabase, orders ?? []);
   const rows: AllRow[] = (orders ?? []).map((o) => ({
     id: o.id,
+    order_seq: o.order_seq,
     order_number: o.order_number,
     placed_at: o.placed_at,
     customer_name: o.customer_name,
@@ -143,6 +178,8 @@ export default async function AllOrdersPage({
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
   const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
   const isAdmin = await isCurrentUserAdmin();
+  const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
+  const clearQueryHref = `/app/orders/all${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -161,6 +198,8 @@ export default async function AllOrdersPage({
         showMoney={isAdmin}
         agents={agents}
         actorNames={actorNames}
+        query={q}
+        clearQueryHref={clearQueryHref}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { DELIVERY_STATUSES, MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
 import { useAdvanceDelivery } from "./delivery-table";
 import type { DelivRow } from "./delivery-view";
+import { OrderNo } from "@/components/order-no";
 
 /**
  * Delivery kanban (optional toggle). Columns are the delivery statuses; cards
@@ -65,7 +66,7 @@ export function DeliveryKanban({ rows }: { rows: DelivRow[] }) {
                   className="card-surface space-y-2 rounded-lg p-3 text-sm"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="num font-medium">{r.order_number ?? r.id.slice(0, 8)}</span>
+                    <span className="num font-medium"><OrderNo seq={r.order_seq} /></span>
                     <span className="num text-xs text-muted-foreground">{formatCurrency(r.delivery_fee ?? 0)}</span>
                   </div>
                   {r.swapped_to ? <SwapBadge to={r.swapped_to} /> : null}

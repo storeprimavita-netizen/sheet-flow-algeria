@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { PlusCircle, Package, Building2, Megaphone, Users } from "lucide-react";
+import { PlusCircle, Package, Building2, Megaphone, Users, Hash } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
 import {
@@ -86,7 +86,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
         <CommandList>
-          <CommandEmpty>{t("cmd.empty")}</CommandEmpty>
+          {query.trim() ? null : <CommandEmpty>{t("cmd.empty")}</CommandEmpty>}
           <CommandGroup heading={t("cmd.navigate")}>
             {navItems.map(({ leaf: n, groupKey }) => {
               const label = t(`nav.${n.key}`);
@@ -116,9 +116,20 @@ export function CommandPalette({ role, children }: { role: Role | null; children
             </CommandGroup>
           ) : null}
           {query.trim() ? (
-            <CommandGroup heading={t("cmd.search")}>
+            <CommandGroup heading={t("cmd.search")} forceMount>
+              {role === "admin" ? (
+                <CommandItem
+                  value={`orders:${query}`}
+                  forceMount
+                  onSelect={() => go(`/app/orders/all?q=${encodeURIComponent(query.trim())}`)}
+                >
+                  <Hash />
+                  {t("cmd.searchOrders", { q: query.trim() })}
+                </CommandItem>
+              ) : null}
               <CommandItem
                 value={`customers:${query}`}
+                forceMount
                 onSelect={() => go(`/app/contacts?q=${encodeURIComponent(query.trim())}`)}
               >
                 <Users />
