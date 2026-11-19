@@ -361,3 +361,5 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 - Open: P1-7-F (review-5 lows, pre-existing swap medium on a typed wilaya name, reviews 3-4 leftovers, missing tests).
 - Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
 - Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.
+
+STATS-2 build: screenshots taken in dark EN only (empty state, populated, drilled Alger) with chrome-devtools; light theme, AR and 390px NOT verified. Fixed Return column clipping by stacking the map below the table until 2xl.

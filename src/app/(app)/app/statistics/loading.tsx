@@ -8,13 +8,13 @@ export default function StatisticsLoading() {
         <div className={`${bar} h-4 w-80 max-w-full`} />
       </div>
       <div className="card-surface h-20 rounded-xl sm:w-[32rem]" />
-      <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 lg:grid-cols-[1fr_auto]">
+      <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 2xl:grid-cols-[1fr_auto]">
         <div className="space-y-2">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className={`${bar} h-9 w-full`} />
           ))}
         </div>
-        <div className={`${bar} h-72 w-full lg:w-[280px]`} />
+        <div className={`${bar} h-72 w-full 2xl:w-[280px]`} />
       </div>
     </div>
   );

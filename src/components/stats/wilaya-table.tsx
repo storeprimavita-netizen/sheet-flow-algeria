@@ -72,7 +72,7 @@ export function WilayaTable({
   return (
     <div className="relative">
     <div ref={scrollRef} onScroll={measure} className="overflow-x-auto">
-      <table className={cn(tableClass, "min-w-[30rem]")}>
+      <table className={cn(tableClass, "min-w-[32rem]")}>
         <thead>
           <tr>
             <th className="sticky start-0 z-[1] bg-surface">{t("fields.wilaya")}</th>
