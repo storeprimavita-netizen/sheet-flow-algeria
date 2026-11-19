@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { Chip } from "@/components/ui/chip";
-import { formatDate } from "@/lib/format";
+import { formatDate, ltr } from "@/lib/format";
 import { STATS_PERSIST_KEYS, pickParams } from "@/lib/query-string";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +99,7 @@ export function StatsFilterBar({
   if (get("from") || get("to"))
     chips.push({
       key: "period",
-      label: `${t("dates.period")}: ${get("from") ? formatDate(get("from")) : "…"} – ${get("to") ? formatDate(get("to")) : "…"}`,
+      label: `${t("dates.period")}: ${ltr(`${get("from") ? formatDate(get("from")) : "…"} – ${get("to") ? formatDate(get("to")) : "…"}`)}`,
       remove: (p) => { p.delete("from"); p.delete("to"); },
     });
   if (season)
