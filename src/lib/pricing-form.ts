@@ -522,3 +522,54 @@ export const radioTabIndex = (checked: boolean): 0 | -1 => (checked ? 0 : -1);
 
 /** DOM id of a field's input (keys may be dotted, e.g. `adMultiplier.best`). */
 export const focusIdFor = (idPrefix: string, key: FieldKey | string) => `${idPrefix}-${key}`;
+
+// ---------- product calculator draft ----------
+
+const centsOk = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
+export const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD && centsOk(v));
+export const MAX_QUANTITY = 1_000_000;
+export const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
+export const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE && centsOk(v));
+
+export type CalcDraft = {
+  quantity: number | null;
+  form: PricingForm;
+  adBest: number | null;
+  adMedium: number | null;
+  adWorst: number | null;
+  finalPrice: number | null;
+};
+
+export type CalcApplied = {
+  quantity: number;
+  overrides: DeepPartial<PricingSettings>;
+  ads: { best: number | null; medium: number | null; worst: number | null };
+  finalPrice: number | null;
+};
+
+/** Draft is saveable: form, ad and price fields valid (quantity is never saved). */
+export function draftSaveValid(d: CalcDraft, defaults: PricingSettings): boolean {
+  return (
+    Object.keys(formErrors(d.form, false, defaults.target.mode)).length === 0 &&
+    priceOk(d.finalPrice) &&
+    adOk(d.adBest) &&
+    adOk(d.adMedium) &&
+    adOk(d.adWorst)
+  );
+}
+
+/**
+ * What the table shows. An invalid draft keeps the last valid table, except that an
+ * invalid QUANTITY alone only freezes the quantity: overrides, ads and final price keep applying.
+ * Returns `prev` (same identity) when nothing changed.
+ */
+export function nextApplied(prev: CalcApplied, d: CalcDraft, defaults: PricingSettings): CalcApplied {
+  if (!draftSaveValid(d, defaults)) return prev;
+  const next: CalcApplied = {
+    quantity: qtyOk(d.quantity) ? (d.quantity as number) : prev.quantity,
+    overrides: overridesFromForm(d.form, defaults),
+    ads: { best: d.adBest, medium: d.adMedium, worst: d.adWorst },
+    finalPrice: d.finalPrice,
+  };
+  return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
+}

@@ -17,6 +17,9 @@ import {
   closeFocusTarget,
   radioTabIndex,
   focusIdFor,
+  nextApplied,
+  type CalcApplied,
+  type CalcDraft,
   breakEvenState,
   saleBelowBreakEven,
   formErrors,
@@ -444,5 +447,26 @@ describe("focus helpers", () => {
   it("focusIdFor dotted key", () => {
     expect(focusIdFor("pd", "adMultiplier.best")).toBe("pd-adMultiplier.best");
     expect(focusIdFor("pd", "target")).toBe("pd-target");
+  });
+});
+
+describe("calculator", () => {
+  const draft: CalcDraft = { quantity: 100, form: formFromOverrides({}, PS), adBest: null, adMedium: 5, adWorst: null, finalPrice: 4000 };
+  const first: CalcApplied = nextApplied({ quantity: 100, overrides: {}, ads: { best: null, medium: null, worst: null }, finalPrice: null }, draft, PS);
+  it("calculator: invalid quantity keeps overrides applied", () => {
+    const form = { ...draft.form, values: { ...draft.form.values, packaging: 77 } };
+    const next = nextApplied(first, { ...draft, quantity: null, form, finalPrice: 4500 }, PS);
+    expect(next.quantity).toBe(100);
+    expect(next.finalPrice).toBe(4500);
+    expect(next.overrides.packaging).toBe(77);
+  });
+  it("calculator: invalid override or price freezes the table", () => {
+    const bad = { ...draft.form, values: { ...draft.form.values, packaging: -1 } };
+    expect(nextApplied(first, { ...draft, form: bad }, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, finalPrice: -5 }, PS)).toBe(first);
+  });
+  it("calculator: unchanged draft keeps identity; valid quantity applies", () => {
+    expect(nextApplied(first, draft, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, quantity: 50 }, PS).quantity).toBe(50);
   });
 });
