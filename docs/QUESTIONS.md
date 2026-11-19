@@ -8,6 +8,21 @@ owner may overturn").
 
 ## Open
 
+### Q-20 · STATS-2 · 2026-11-19 · answered-by-default
+When the night run started its fifth batch, it found unfinished files of the
+Statistics page left over from an earlier run that was cut short, and saved
+them on the shared branch as they were. That draft was never tested or reviewed
+and needs a database change that is not there, so the page could not work.
+Meanwhile the Statistics page was rebuilt from its plan, tested and reviewed
+twice. **Applied by default (D65):** the draft is set aside and the reviewed
+version goes in. Nothing is deleted: the draft stays in the history and can be
+brought back. All 17 draft files belong to the Statistics page and each one has
+its reviewed replacement. If you had changed one of them by hand (the wilaya
+table, the map, the dashboard filter, the Statistics texts), say so and it will
+be put back on top. Worth a yes or no later: the night run could save leftover
+files on a side branch instead of the shared one, so this cannot happen again.
+Nothing is blocked.
+
 ### Q-19 · STATS-2 · 2026-11-19 · answered-by-default
 The new Statistics page shows, for each wilaya and commune, the orders
 received and the confirmation, delivery and return rates. Who may open it: you
