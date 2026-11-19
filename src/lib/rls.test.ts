@@ -346,11 +346,12 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     });
 
     test("D9/D10: legacy delivery agent is read-only and sees confirmed orders only", async () => {
-      const { data, error } = await delivAgent.from("orders").select("id, confirmation_status").eq("workspace_id", workspaceId);
+      const { data, error } = await delivAgent.from("orders").select("id, confirmation_status, delivery_status").eq("workspace_id", workspaceId);
       expect(error).toBeNull();
       expect(data!.length).toBeGreaterThan(0);
       expect(data!.every((o) => o.confirmation_status === "confirmed")).toBe(true);
-      const id = data![0].id;
+      // an order that is not delivered yet (row order is not guaranteed)
+      const id = (data!.find((o) => o.delivery_status !== "delivered") ?? data![0]).id;
       const upd = await delivAgent.from("orders").update({ delivery_status: "delivered" }).eq("id", id).select("id");
       expect(upd.error ?? upd.data!.length === 0 ? true : false).toBe(true); // error or 0 rows
       const { data: after } = await admin.from("orders").select("delivery_status").eq("id", id).single();

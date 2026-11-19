@@ -55,7 +55,7 @@ export function CountBySize({ productId, rows, notAssigned }: { productId: strin
           <label key={r.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">
             <span className="min-w-0 truncate">
               <bdi className="font-medium">{r.label}</bdi>
-              <span className="num ms-2 text-xs text-muted-foreground">{r.stock}</span>
+              <span className="num ms-2 text-xs text-muted-foreground">{t("countNow", { n: r.stock })}</span>
             </span>
             <NumberField
               className="w-24"

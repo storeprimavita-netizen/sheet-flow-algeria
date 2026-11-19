@@ -616,6 +616,7 @@
     "countTitle": "Count by size",
     "countHint": "Type what is on the shelf for each size. Leave a size empty to keep it as it is. The product total does not change.",
     "countSubmit": "Save count",
+    "countNow": "Now: {n}",
     "countInput": "Count for {label}",
     "countSaved": "{n, plural, =0 {Nothing changed} one {1 size updated} other {# sizes updated}}",
     "countLeft": "Left in not assigned: {n}",
