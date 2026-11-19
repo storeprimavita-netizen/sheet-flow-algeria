@@ -4,13 +4,16 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { asKpiGroup } from "@/lib/kpi";
 import { kpiFiltersJson, parseStatsFilters, statsDrillFilters } from "@/lib/query-string";
-import { resolveSeason, type SeasonRow } from "@/lib/seasons";
+import { periodYears, resolveSeason, seasonLabel, type SeasonRow } from "@/lib/seasons";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { WilayaSection, type StatsRow } from "@/components/stats/wilaya-section";
 import { CommunePanel, CommunePanelSkeleton } from "@/components/stats/commune-panel";
-import { DashboardFilterBar, type Opt } from "../dashboard/dashboard-filter-bar";
+import { StatsFilterBar, type StatsOpt } from "@/components/stats/stats-filter-bar";
+import { getOptionSet } from "@/lib/option-sets";
+import { getProfile } from "@/lib/rbac";
+import { ORDER_SOURCES, DELIVERY_TYPES } from "@/lib/enums";
 
 // Per-wilaya confirmation/delivery table + commune drill-down (STATS-2, D64).
 // Admin-only (layout guard). Every figure is a SQL rate (kpi_by_wilaya / kpi_by_commune
@@ -30,7 +33,20 @@ export default async function StatisticsPage({
   const { data: products } = await supabase.from("products").select("id, name").order("name");
   // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
   if (f.product && !(products ?? []).some((p) => p.id === f.product)) f.product = undefined;
-  const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
+  const productOpts: StatsOpt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
+  const { workspaceId } = (await getProfile())!;
+  const [categoryOptions, { data: wilayaRows }, { data: team }] = await Promise.all([
+    getOptionSet(workspaceId, "product_category"),
+    supabase.from("wilayas").select("code, name").order("code"),
+    supabase.from("profiles").select("user_id, display_name, role").eq("is_active", true),
+  ]);
+  const categoryOpts: StatsOpt[] = categoryOptions.filter((o) => !o.archived_at).map((o) => ({ value: o.id, label: o.label }));
+  const wilayaOpts: StatsOpt[] = (wilayaRows ?? []).map((w) => ({ value: String(w.code), label: `${w.code} — ${w.name}` }));
+  const agentOpts: StatsOpt[] = (team ?? [])
+    .filter((a) => a.role !== "delivery_agent")
+    .map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }));
+  const sourceOpts: StatsOpt[] = ORDER_SOURCES.map((s) => ({ value: s, label: t(`status.order_source.${s}`) }));
+  const deliveryOpts: StatsOpt[] = DELIVERY_TYPES.map((d) => ({ value: d, label: t(`statistics.${d}`) }));
 
   const { data: seasonData, error: seasonError } = await supabase
     .from("seasons")
@@ -42,6 +58,11 @@ export default async function StatisticsPage({
   }));
   const season = resolveSeason({ season: f.season, year: f.year, from: f.from, to: f.to }, seasons);
   const range = { from: season.from, to: season.to };
+  const seasonOpts = seasons.map((s) => ({ id: s.id, label: seasonLabel(t, s), years: periodYears(s) }));
+  const notes: string[] = [];
+  if (season.invalid.season) notes.push(t("statistics.filters.invalidSeason"));
+  if (season.invalid.year) notes.push(t("statistics.filters.invalidYear"));
+  if (season.invalid.noPeriods) notes.push(t("statistics.filters.noPeriods"));
   const pFilters = kpiFiltersJson(f);
   const filters = statsDrillFilters(f, range);
 
@@ -76,7 +97,17 @@ export default async function StatisticsPage({
     <div className="space-y-6">
       <PageHeader title={t("statistics.title")} subtitle={t("statistics.subtitle")} />
 
-      <DashboardFilterBar products={productOpts} />
+      <StatsFilterBar
+        products={productOpts}
+        categories={categoryOpts}
+        wilayas={wilayaOpts}
+        sources={sourceOpts}
+        agents={agentOpts}
+        deliveryTypes={deliveryOpts}
+        seasons={seasonOpts}
+        overridden={season.overridden}
+        notes={notes}
+      />
 
       {error ? (
         <Empty>

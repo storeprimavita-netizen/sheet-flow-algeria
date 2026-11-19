@@ -1469,6 +1469,21 @@
     "allOrders": "Open all orders",
     "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection.",
     "loadError": "Couldn't load the statistics.",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "filters": {
+      "season": "Season",
+      "year": "Year",
+      "latestYear": "Latest year",
+      "yearNeedsSeason": "Choose a season first.",
+      "more": "More filters ({n})",
+      "noCategories": "No product categories yet.",
+      "deliveryType": "Delivery type",
+      "overridden": "overridden",
+      "overriddenNote": "The dates in the period filter override the season.",
+      "invalidSeason": "That season no longer exists, so it was ignored.",
+      "invalidYear": "That year has no dates for this season, so the latest year is shown.",
+      "noPeriods": "This season has no dates yet. Add them in Settings > Seasons.",
+      "remove": "Remove filter: {name}"
+    }
   }
 }

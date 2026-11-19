@@ -12,7 +12,8 @@ import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY, ORDER_SOURCES, UUID_RE } from "@/lib/query-string";
+import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY, UUID_RE } from "@/lib/query-string";
+import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;

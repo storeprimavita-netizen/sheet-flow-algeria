@@ -1,3 +1,5 @@
+import { DELIVERY_TYPES, ORDER_SOURCES } from "@/lib/enums";
+
 /**
  * Builds a `?from=&to=&...` query string for drill-through links. Plain
  * server-safe helper — NOT in a `"use client"` file, so server components can
@@ -87,8 +89,6 @@ export const drillHref = (filters: DashboardFilters, metric: DrillMetric, extra:
 //   wilaya              the OPEN drill panel (not a filter; never persisted)
 // ---------------------------------------------------------------------------
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-export const ORDER_SOURCES = ["shopify", "lightfunnels", "manual"] as const;
-export const DELIVERY_TYPES = ["home", "stopdesk"] as const;
 
 export type StatsFilters = {
   from?: string;

@@ -53,3 +53,12 @@ export function resolveSeason(
   if (explicit) return { ...base, season, period, overridden: true, invalid };
   return { from: period?.date_from, to: period?.date_to, season, period, overridden: false, invalid };
 }
+
+/** Display name: the translated name of a seeded season (`name_key`), the stored name otherwise (admin-added). */
+export function seasonLabel(
+  t: { has: (key: string) => boolean; (key: string): string },
+  s: { name: string; name_key: string | null },
+): string {
+  const key = s.name_key ? `seasons.names.${s.name_key}` : null;
+  return key && t.has(key) ? t(key) : s.name;
+}
