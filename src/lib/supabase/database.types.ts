@@ -1620,6 +1620,11 @@ isOneToOne: false
               "extras": Json,"rates": Json,"wilaya_code": number,"wilaya_name": string
             }[]
                            },
+"kpi_drill_orders":
+{ Args: { "p_commune_key"?: string,"p_delivery_type"?: string,"p_from"?: string,"p_limit"?: number,"p_metric": string,"p_offset"?: number,"p_product"?: (string)[],"p_to"?: string,"p_unknown"?: boolean,"p_wilaya"?: number }; Returns: {
+              "id": string,"total": number
+            }[]
+                           },
 "kpi_group_extras":
 { Args: { "p_order_ids": (string)[] }; Returns: Json
                            },
