@@ -7,6 +7,8 @@ export type SearchSync = {
   type(text: string): void;
   seen(queryString: string, inherited: string): void;
   mergeInto(params: URLSearchParams): void;
+  /** the user activated something else on the page: give its address change time to arrive before the waiting write fires */
+  hold(): void;
   cancel(): void;
 };
 
@@ -18,6 +20,7 @@ type Options = {
   param?: string;
   clearedMarker?: string;
   delay?: number;
+  holdDelay?: number;
   initialText?: string;
 };
 
@@ -28,7 +31,7 @@ function pairKey(qs: string): string {
     .join("&");
 }
 
-export function createSearchSync({ write, onText, param = "q", clearedMarker, delay = 300, initialText = "" }: Options): SearchSync {
+export function createSearchSync({ write, onText, param = "q", clearedMarker, delay = 300, holdDelay = 5000, initialText = "" }: Options): SearchSync {
   let text = initialText;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let lastQs: string | null = null;
@@ -50,6 +53,16 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
     return true;
   }
 
+  const fire = () => {
+    timer = null;
+    const params = new URLSearchParams(lastQs ?? "");
+    if (!apply(params)) return;
+    params.delete("page");
+    const qs = params.toString();
+    sent.push(qs);
+    write(qs);
+  };
+
   const stop = () => {
     if (timer) clearTimeout(timer);
     timer = null;
@@ -59,15 +72,7 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
     type(next) {
       text = next;
       stop();
-      timer = setTimeout(() => {
-        timer = null;
-        const params = new URLSearchParams(lastQs ?? "");
-        if (!apply(params)) return;
-        params.delete("page");
-        const qs = params.toString();
-        sent.push(qs);
-        write(qs);
-      }, delay);
+      timer = setTimeout(fire, delay);
     },
     seen(queryString, inherited) {
       if (lastQs === null) {
@@ -94,6 +99,11 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
       params.delete("page");
       stop();
       sent.push(params.toString());
+    },
+    hold() {
+      if (!timer) return;
+      stop();
+      timer = setTimeout(fire, holdDelay);
     },
     cancel: stop,
   };

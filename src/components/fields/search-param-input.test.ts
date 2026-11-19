@@ -154,4 +154,34 @@ describe("search param sync", () => {
     expect(writes).toEqual([]);
     expect(texts).toEqual(["Amina"]);
   });
+
+  test("m: another control used while the write waits: an outside address arriving first wins, nothing is written", () => {
+    const { s, writes, texts } = setup({ qs: "view=a&delivery_status=x", inherited: "Karim", text: "Karim" });
+    s.type("Amina");
+    vi.advanceTimersByTime(100);
+    s.hold();
+    vi.advanceTimersByTime(2000); // slow network: the other change has not arrived yet
+    expect(writes).toEqual([]);
+    s.seen("view=b", "");
+    vi.advanceTimersByTime(10000);
+    expect(writes).toEqual([]);
+    expect(texts).toEqual([""]);
+  });
+
+  test("n: hold without an outside change still sends the text, later", () => {
+    const { s, writes } = setup();
+    s.type("Amina");
+    s.hold();
+    vi.advanceTimersByTime(4999);
+    expect(writes).toEqual([]);
+    vi.advanceTimersByTime(1);
+    expect(writes).toEqual(["view=a&q=Amina"]);
+  });
+
+  test("o: hold with nothing waiting does nothing", () => {
+    const { s, writes } = setup();
+    s.hold();
+    vi.advanceTimersByTime(10000);
+    expect(writes).toEqual([]);
+  });
 });

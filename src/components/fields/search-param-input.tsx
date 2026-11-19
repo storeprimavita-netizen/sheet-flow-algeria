@@ -47,9 +47,21 @@ export function SearchParamInput({
     sync.seen(query, inherited);
   }, [sync, query, inherited]);
   React.useEffect(() => () => sync.cancel(), [sync]);
+  const box = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    // a tap on another link or button (view pill, Reset, ...) starts an address change that may still be loading
+    const onDown = (e: PointerEvent) => {
+      const el = e.target instanceof Element ? e.target : null;
+      if (!el || box.current?.contains(el)) return;
+      if (el.closest("[role=combobox], [role=listbox], [role=option]")) return;
+      if (el.closest("a[href], button")) sync.hold();
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [sync]);
 
   return (
-    <div className="relative max-w-sm">
+    <div ref={box} className="relative max-w-sm">
       <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input type="search" value={value} onChange={(e) => {
           setValue(e.target.value);
