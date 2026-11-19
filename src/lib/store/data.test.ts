@@ -275,6 +275,11 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(dto.product).toMatchObject({ price: 5000, compareAt: 6000 });
   });
 
+  test("product without sizes at price 0 -> 404", async () => {
+    const { store } = await setup({ product: { sale_price: 0 } });
+    expect(await loadPublicProductPage(svc, store.slug, "abaya")).toBeNull();
+  });
+
   test("every size unsellable -> 404", async () => {
     const { store, product } = await setup();
     await svc.from("products").update({ pricing_mode: "per_value" }).eq("id", product.id);

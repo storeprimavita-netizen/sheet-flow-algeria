@@ -1479,6 +1479,7 @@
       "sizeLabel": "Size",
       "chooseSize": "Choose a size",
       "offersTitle": "Choose a quantity",
+      "offersInfoTitle": "Quantity offers",
       "single": "One piece",
       "offerSave": "Save {n}",
       "piece": "Piece {n}",

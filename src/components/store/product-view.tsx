@@ -94,7 +94,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
             ) : null}
             {!orderSlot && dto.offers.length > 0 ? (
               <div>
-                <p className="store-label">{st("order.offersTitle")}</p>
+                <p className="store-label">{st("order.offersInfoTitle")}</p>
                 <ul className="store-offers-info">
                   {dto.offers.map((o) => (
                     <li key={o.id}>

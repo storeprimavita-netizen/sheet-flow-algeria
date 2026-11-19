@@ -345,3 +345,6 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Local store: `scripts/seed-dev.ts` now seeds a live store `demo` with `/s/demo/abaya-luxe` (S/M/L, S out of stock, 2 offers, bump, compare 6500) and `/s/demo/hijab-soie` (plain). Re-run the seed command in docs/TOOLING.md (idempotent).
 - Screenshots (Chrome DevTools MCP): store page 390 light AR, 1280 dark AR, 860 light AR (2-column layout holds, container query ok); admin preview 1280 dark AR with the order form and the validation-error state. Not captured: EN locale, 390 dark, preview in light, the 4-column related grid (no related blocks in the seed), 0-offer page.
 - Not fixed (LOW, left for later): 6 non-atomic `saveOffers` (must be resolved before STORE-4 stores offer ids), 7, 8, 9, 10 .
+
+## STORE-3 — round 4 (D61)
+- Fixed review-3 #1, #3, #4, #5 (tests: price-0 sizeless 404, mixed-size piecesCharge). Screenshots: not captured here (no browser run); ui-reviewer to capture r4-* list. Follow-ups rewritten in docs/briefs/STORE-3.followups.md.

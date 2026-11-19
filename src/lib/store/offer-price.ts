@@ -8,9 +8,10 @@
  * - A unit price <= 0 (or not a finite number) means the size is NOT sellable: refused, never clamped.
  * - A quantity offer is a fixed total for `qty` pieces of the same size. It is capped at `qty * unit`
  *   (never dearer than buying the pieces one by one) and hidden when it saves nothing.
- * - Mixed sizes: STORE-4 prices each piece row with its own size's unit price and applies the offer to the
- *   total only when "same size" is on; otherwise the saving is computed per selected size
- *   (`offerSaving(unitOfThatSize, offer)`) and the lowest saving is shown.
+ * - Mixed sizes: an offer applies to its N pieces whatever their sizes (M + L as well as M + M). STORE-4 prices
+ *   each piece with its own size's unit price and charges the smaller of the offer total and that sum
+ *   (`piecesCharge`). "Same size" is only a shortcut that fills every piece row with one size; it never
+ *   decides whether the offer applies.
  * - Delivery is added by STORE-4 (D14, D60); nothing here knows about it.
  */
 

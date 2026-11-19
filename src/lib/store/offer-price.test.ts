@@ -87,3 +87,10 @@ describe("sizeInStock (D58)", () => {
     expect(sizeInStock(-1, 0, -1)).toBe(false);
   });
 });
+
+describe("piecesCharge mixed sizes", () => {
+  test("sum above the offer total -> offer total; below -> the sum", () => {
+    expect(piecesCharge([5000, 7000], { qty: 2, total: 9000 })).toEqual({ subtotal: 12000, charge: 9000, saving: 3000 });
+    expect(piecesCharge([4000, 4500], { qty: 2, total: 9000 })).toEqual({ subtotal: 8500, charge: 8500, saving: 0 });
+  });
+});

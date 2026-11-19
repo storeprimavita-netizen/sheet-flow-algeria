@@ -80,7 +80,7 @@ export function PricingEditor({
       productId,
       mode,
       compareAt,
-      deltas: mode === "per_value" || hasDeltas ? Object.entries(deltas).map(([valueId, delta]) => ({ valueId, delta: mode === "per_value" ? delta : 0 })) : [],
+      deltas: Object.entries(deltas).map(([valueId, delta]) => ({ valueId, delta: mode === "per_value" ? delta : 0 })),
       overrides: variants.map((v) => ({
         variantId: v.id,
         price: mode === "per_variant" ? (overrides[v.id]?.price ?? null) : null,

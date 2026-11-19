@@ -93,7 +93,7 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
   return (await buildProductPage(db, store, page, product, now)).dto;
 }
 
-/** `sellable` is false when sizes exist but none can be sold: visitors get a 404, the admin preview still renders. */
+/** `sellable` is false when nothing can be bought (no price, price <= 0, or no size can be sold): visitors get a 404, the admin preview still renders. */
 async function buildProductPage(
   db: Db,
   store: StoreRow,
@@ -157,7 +157,7 @@ async function buildProductPage(
     form,
     related,
   };
-  return { dto, sellable: !(hasSizes && unit === null) };
+  return { dto, sellable: unit !== null };
 }
 
 /** D54.4: stock rule lives in variant-stock.ts. A size whose price is <= 0 is refused (not offered). */
