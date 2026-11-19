@@ -8,7 +8,9 @@ import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
-import { effectiveConfig } from "@/lib/order-views";
+import { effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { listViews, resolveView } from "../_lib/views-data";
+import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { applyOrderConfig, orderSort } from "../_lib/order-query";
 import { Empty } from "@/components/empty";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
@@ -44,7 +46,9 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
-  const cfg = effectiveConfig(null, sp);
+  const viewsResult = await listViews("all");
+  const { active, invalid } = resolveView(viewsResult.views, sp.view);
+  const cfg = effectiveConfig(active?.config ?? null, sp);
   query = applyOrderConfig(query, cfg);
   const q = cfg.q ?? "";
   const { column: sortCol, ascending } = orderSort(cfg);
@@ -140,6 +144,7 @@ export default async function AllOrdersPage({
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
   const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
   const isAdmin = await isCurrentUserAdmin();
+  const restParams = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : [])));
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
   const clearQueryHref = `/app/orders/all${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
 
@@ -151,7 +156,25 @@ export default async function AllOrdersPage({
 
       <OrderTabs active="all" />
 
-      <OrdersFilterBar products={productOpts} wilayas={wilayaOpts} agents={agentOpts} />
+      <ViewTabs
+        scope="all"
+        views={viewsResult.views}
+        activeId={active?.id ?? null}
+        effective={cfg}
+        dirty={active ? isDirty(active.config, sp) : false}
+        isAdmin={isAdmin}
+        loadError={!!viewsResult.error}
+        keep=""
+      />
+      {invalid ? <InvalidViewNotice rest={restParams.toString()} /> : null}
+
+      <OrdersFilterBar
+        products={productOpts}
+        wilayas={wilayaOpts}
+        agents={agentOpts}
+        values={Object.fromEntries(serializeConfig(cfg))}
+        viewKeys={Object.keys(active?.config ?? {})}
+      />
 
       <OrdersAllTable
         rows={rows}
