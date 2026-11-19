@@ -8,6 +8,27 @@ owner may overturn").
 
 ## Open
 
+### Q-16 · STORE-3 · 2026-11-19 · answered-by-default
+A customer whose phone is in dark mode opens your store. Should she see the
+store in dark colours? **Applied by default (D61):** yes. The store is ivory
+and burgundy for everyone else, and switches to the dark version of your
+palette (dark wine background, rose prices) only when her phone asks for dark.
+This is what your approved colour table already says: it has a dark value for
+every colour. The other option: the store is always light, whatever the phone
+says, so every customer sees exactly the ivory brand look. It is a one-line
+change. Say so if you want it. Nothing is blocked.
+
+### Q-15 · STORE-3 · 2026-11-19 · answered-by-default
+You make an offer "2 pieces for 9,000 DZD". May the customer take two
+different sizes (one M and one L)? **Applied by default (D61):** yes. The offer
+is for any 2 pieces of that product. She pays 9,000, and never more than the
+two pieces would cost one by one. Example with a different price per size, S
+5,000 and XL 7,000: S + XL costs 9,000 instead of 12,000. Reason: two sizes in
+one order is the usual case (for her and her sister), and refusing the offer
+there loses the sale. The other option: the offer only counts when both pieces
+are the same size. Say so if you want it; it is decided before the order form
+goes live, so no customer has been charged either way. Nothing is blocked.
+
 ### Q-14 · STORE-3 · 2026-11-19 · answered-by-default
 An offer such as "2 pieces for 9,000 DZD" could also promise free delivery.
 Should your offers be able to do that? **Applied by default (D60):** not for
