@@ -351,3 +351,5 @@ select
        and f.priced and (f.home_fee <= 0 or (o.delivery_type = 'stopdesk' and f.stopdesk_available and f.stopdesk_fee <= 0))) as confirmed_unsent_orders;
 ```
 - Follow-up P1-7-F (D62 item 7) to be added as a plan row at ship.
+
+P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one medium. A home label priced 0 now still counts as "home seen", so Béchar's `home:0|home:720` gives stop-desk 720, home none, wilaya not priced (parser test on that exact row). Also `method="post"` on the grid, new-order and swap forms (no GET with personal data before hydration). Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Other lows left to P1-7-F.

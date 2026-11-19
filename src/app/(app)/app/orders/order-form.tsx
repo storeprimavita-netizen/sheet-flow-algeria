@@ -96,7 +96,7 @@ export function OrderForm({
   const wilayaOpts = wilayas.map((w) => ({ code: String(w.code), name: w.name }));
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form method="post" onSubmit={onSubmit} className="space-y-6">
       <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
         <Field label={`${t("fields.product")} *`} htmlFor="product_id">
           <ProductCombobox

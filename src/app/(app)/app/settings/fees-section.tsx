@@ -54,7 +54,7 @@ export function FeesSection({
         </p>
       </div>
 
-      <form key={gridKey} onSubmit={onSubmit} className="space-y-4">
+      <form method="post" key={gridKey} onSubmit={onSubmit} className="space-y-4">
         <input type="hidden" name="snapshot" value={snapshot} />
         <div className="md:max-h-[28rem] md:overflow-auto">
           <table className={cn(tableClass, "max-md:block [&_tbody]:max-md:block [&_tr]:max-md:block")}>

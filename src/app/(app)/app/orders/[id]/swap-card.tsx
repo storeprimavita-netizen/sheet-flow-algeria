@@ -51,7 +51,7 @@ export function SwapCard({
       {canSwap ? (
         <details>
           <summary className="cursor-pointer text-sm font-medium">{t("title")}</summary>
-          <form onSubmit={onSubmit} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <form method="post" onSubmit={onSubmit} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t("customerName")} htmlFor="swap-name">
               <Input id="swap-name" name="customer_name" required />
             </Field>
