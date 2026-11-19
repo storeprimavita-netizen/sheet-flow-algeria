@@ -19,3 +19,38 @@ describe("toCSV formula neutralisation", () => {
     expect(csv('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
   });
 });
+
+describe("toCSV foreign separators (D69)", () => {
+  it.each([
+    ["Ali;=1+1", `"Ali;'=1+1"`],
+    ["Ali\t=1+1", `"Ali\t'=1+1"`],
+    ["Ali\n=1+1", `"Ali\n'=1+1"`],
+    ["Ali; =1+1", `"Ali;' =1+1"`],
+    ['Ali;"=1+1;x', `"Ali;'""=1+1;x"`],
+    ["Ali;-x", `"Ali;'-x"`],
+    ["Ali;@SUM(A1)", `"Ali;'@SUM(A1)"`],
+    ["=a;=b", `"'=a;'=b"`],
+    ["-1500\n=1", `"-1500\n'=1"`],
+    ["\n=1", `"\n'=1"`],
+    ["Ali;Hydra", `"Ali;Hydra"`],
+    ["0555123456;+213555123456", `"0555123456;+213555123456"`],
+    ["-1500", "-1500"],
+    ["-0.5", "-0.5"],
+  ])("%j -> %j", (v, out) => {
+    expect(csv(v)).toBe(out);
+  });
+  it("keeps an orders-style row intact", () => {
+    const row = toCSV(
+      [
+        { key: "n", label: "n", value: () => "ORD-1" },
+        { key: "c", label: "c", value: () => "Ali;=1+1" },
+        { key: "p1", label: "p1", value: () => "+213555123456" },
+        { key: "p2", label: "p2", value: () => "0555123456" },
+        { key: "a", label: "a", value: () => "Rue 1, Alger" },
+        { key: "t", label: "t", value: () => 4500 },
+      ],
+      [1],
+    ).split("\r\n")[1];
+    expect(row).toBe(`ORD-1,"Ali;'=1+1",+213555123456,0555123456,"Rue 1, Alger",4500`);
+  });
+});

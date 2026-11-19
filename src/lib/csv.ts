@@ -1,6 +1,6 @@
 /**
  * Tiny CSV builder. Enough for the reports export — quotes fields that contain
- * a comma, quote, newline or leading/trailing space, and doubles internal
+ * a comma, semicolon, tab, quote, newline or leading/trailing space, and doubles internal
  * quotes per RFC 4180.
  */
 export type CsvColumn<T> = {
@@ -14,10 +14,15 @@ function esc(v: string | number | null | undefined): string {
   // Neutralise spreadsheet formulas: strings only, real numbers (e.g. -10274) stay numeric.
   // A leading +/- is safe only when the whole value is number-like (phones, amounts).
   if (typeof v === "string") {
-    const t = v.trimStart();
-    if (/^[\t\r]/.test(v) || /^[=@\uFF1D]/.test(t) || (/^[+-]/.test(t) && !/^[+-]?\d[\d .]*$/.test(t))) s = `'${s}`;
+    // Each segment (value start, and text after ; TAB CR LF) can open a cell in another reader.
+    s = v.replace(/(^|[;\t\r\n])([^;\t\r\n]*)/g, (_m, sep: string, seg: string) => {
+      const t = seg.replace(/^[\s"]+/, "");
+      const formula = /^[=@\uFF1D]/.test(t) || (/^[+-]/.test(t) && !/^[+-]?\d[\d .]*$/.test(t));
+      return formula ? `${sep}'${seg}` : sep + seg;
+    });
+    if (/^[\t\r]/.test(v)) s = `'${s}`;
   }
-  if (/[",\n\r]|^\s|\s$/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  if (/[",;\t\n\r]|^\s|\s$/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
 
