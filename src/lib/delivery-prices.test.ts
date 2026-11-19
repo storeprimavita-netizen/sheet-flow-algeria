@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { parseDeliveryCsv } from "./delivery-prices";
+import { diffDeliveryPrices, parseDeliveryCsv, toApplyPayload, type StoredWilayaFee } from "./delivery-prices";
 
 const H = "Country_code,Region,City,Area,Rate_or_extra,Cost,Custom_rates\r\n";
 const HOME = "توصيل للمنزل";
@@ -54,4 +54,24 @@ describe("parseDeliveryCsv", () => {
       expect(r.wilayas.filter((w) => !w.priced)).toHaveLength(4);
     },
   );
+});
+
+describe("diffDeliveryPrices", () => {
+  const stored = (o: Partial<StoredWilayaFee> = {}): StoredWilayaFee => ({
+    wilaya_code: 1, home_fee: 1400, stopdesk_fee: 970, priced: true, stopdesk_available: true, stop_shipping: false, communes: 1, ...o,
+  });
+  const parsed = parseDeliveryCsv(`${H}DZ,1-Adrar,,,rate,,${HOME}:1400|${DESK}:970\nDZ,1-Adrar,Adrar,,,,\nDZ,33-Illizi,,,extra,,\n`);
+  it("unchanged when equal; lists absent wilayas", () => {
+    const d = diffDeliveryPrices(parsed, [stored(), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: 0 }), stored({ wilaya_code: 5 })]);
+    expect(d.rows.map((r) => r.changed)).toEqual([false, false]);
+    expect(d.absent).toEqual([5]);
+  });
+  it("detects a changed fee and flags unpriced wilaya with stop_shipping off", () => {
+    const d = diffDeliveryPrices(parsed, [stored({ home_fee: 1 }), stored({ wilaya_code: 33 })]);
+    expect(d.rows[0].changed).toBe(true);
+    expect(d.unpricedNotStopped).toEqual([33]);
+  });
+  it("payload mirrors the parse", () => {
+    expect(toApplyPayload(parsed).wilayas[1]).toMatchObject({ code: 33, priced: false, home_fee: null });
+  });
 });

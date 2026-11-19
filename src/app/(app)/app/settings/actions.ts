@@ -15,6 +15,13 @@ import { fxRateFor } from "@/lib/fx";
 import { replayEvent, lightfunnelProvider, shopifyProvider } from "@/lib/webhook";
 import { searchZRTerritories, createZRWebhookEndpoint, getZRCredentials, getZRRates, zrErrorMessage } from "@/lib/integrations/zrexpress";
 import type { Database } from "@/lib/supabase/database.types";
+import {
+  diffDeliveryPrices,
+  parseDeliveryCsv,
+  toApplyPayload,
+  type DeliveryDiff,
+  type StoredWilayaFee,
+} from "@/lib/delivery-prices";
 
 const num = (fd: FormData, name: string) => Number(fd.get(name) ?? 0);
 
@@ -276,30 +283,148 @@ export async function syncZRFees(): Promise<{ ok: true; updated: number } | { ok
 // ---------------------------------------------------------------------------
 // Delivery fees (wilaya_fees bulk grid)
 // ---------------------------------------------------------------------------
-const feeAmount = z.coerce.number().min(0).catch(0);
+const feeAmount = z.coerce.number().min(0);
 
+/** Admin saves the grid. A disabled fee input is not submitted: keep the stored value.
+ * "No price" never becomes 0 (it is `priced=false`). Refuses to overwrite a CSV apply
+ * that landed after the grid was loaded (compares the snapshot's updated_at). */
 export async function saveWilayaFees(formData: FormData) {
   const { workspaceId } = await adminProfile();
   const supabase = await createClient();
 
-  const { data: codes } = await supabase
+  const { data: current } = await supabase
     .from("wilaya_fees")
-    .select("wilaya_code")
+    .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at")
     .eq("workspace_id", workspaceId);
+  const stored = current ?? [];
 
-  const rows = (codes ?? []).map(({ wilaya_code }) => ({
-    workspace_id: workspaceId,
-    wilaya_code,
-    home_fee: feeAmount.parse(formData.get(`home_${wilaya_code}`)),
-    stopdesk_fee: feeAmount.parse(formData.get(`stopdesk_${wilaya_code}`)),
-    stop_shipping: formData.get(`stop_${wilaya_code}`) === "on",
-  }));
+  const snapshot = String(formData.get("snapshot") ?? "");
+  const latest = stored.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
+  if (snapshot && latest && new Date(snapshot).getTime() !== new Date(latest).getTime()) {
+    throw new Error("Fees changed since this page loaded. Reload and try again.");
+  }
 
-  const { error } = await supabase
-    .from("wilaya_fees")
-    .upsert(rows, { onConflict: "workspace_id,wilaya_code" });
-  if (error) throw new Error(error.message);
+  const field = (name: string, fallback: number) => {
+    const raw = formData.get(name);
+    if (raw === null || raw === "") return fallback;
+    const r = feeAmount.safeParse(raw);
+    if (!r.success) throw new Error("Invalid fee amount");
+    return r.data;
+  };
+
+  const rows = stored
+    .map((r) => ({
+      workspace_id: workspaceId,
+      wilaya_code: r.wilaya_code,
+      home_fee: field(`home_${r.wilaya_code}`, r.home_fee),
+      stopdesk_fee: field(`stopdesk_${r.wilaya_code}`, r.stopdesk_fee),
+      stop_shipping: formData.get(`stop_${r.wilaya_code}`) === "on",
+      priced: formData.get(`priced_${r.wilaya_code}`) === "on",
+      stopdesk_available: formData.get(`desk_${r.wilaya_code}`) === "on",
+    }))
+    .filter((n) => {
+      const r = stored.find((x) => x.wilaya_code === n.wilaya_code)!;
+      return (
+        r.home_fee !== n.home_fee ||
+        r.stopdesk_fee !== n.stopdesk_fee ||
+        r.stop_shipping !== n.stop_shipping ||
+        r.priced !== n.priced ||
+        r.stopdesk_available !== n.stopdesk_available
+      );
+    });
+
+  if (rows.length) {
+    const { error } = await supabase.from("wilaya_fees").upsert(rows, { onConflict: "workspace_id,wilaya_code" });
+    if (error) throw new Error(error.message);
+  }
   revalidatePath("/app/settings");
+}
+
+// ---------------------------------------------------------------------------
+// Delivery prices CSV (preview, then apply). The file is parsed server-side both times.
+// ---------------------------------------------------------------------------
+const MAX_CSV_BYTES = 1024 * 1024;
+const csvFileSchema = z
+  .instanceof(File, { message: "No file" })
+  .refine((f) => f.size > 0, "The file is empty")
+  .refine((f) => f.size <= MAX_CSV_BYTES, "The file is larger than 1 MB");
+
+export type DeliveryPreview =
+  | { ok: true; diff: DeliveryDiff; snapshot: string; wilayaNames: Record<number, string> }
+  | { ok: false; error: string };
+
+async function readCsv(formData: FormData) {
+  const file = csvFileSchema.safeParse(formData.get("file"));
+  if (!file.success) return { parsed: null, error: file.error.issues[0]?.message ?? "Invalid file" };
+  let text: string;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(await file.data.arrayBuffer());
+  } catch {
+    return { parsed: null, error: "The file is not valid UTF-8" };
+  }
+  const parsed = parseDeliveryCsv(text);
+  if (!parsed.wilayas.length) return { parsed: null, error: "No wilaya rows found in this file" };
+  return { parsed, error: null };
+}
+
+async function loadStoredFees(supabase: Awaited<ReturnType<typeof createClient>>, workspaceId: string) {
+  const { data: fees } = await supabase
+    .from("wilaya_fees")
+    .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at")
+    .eq("workspace_id", workspaceId);
+  const counts = new Map<number, number>();
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase
+      .from("wilaya_communes")
+      .select("wilaya_code")
+      .eq("workspace_id", workspaceId)
+      .order("wilaya_code")
+      .order("name")
+      .range(from, from + 999);
+    for (const c of data ?? []) counts.set(c.wilaya_code, (counts.get(c.wilaya_code) ?? 0) + 1);
+    if ((data?.length ?? 0) < 1000) break;
+  }
+  const rows = fees ?? [];
+  const stored: StoredWilayaFee[] = rows.map((r) => ({ ...r, communes: counts.get(r.wilaya_code) ?? 0 }));
+  const snapshot = rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
+  return { stored, snapshot };
+}
+
+export async function previewDeliveryCsv(formData: FormData): Promise<DeliveryPreview> {
+  const { workspaceId } = await adminProfile();
+  const read = await readCsv(formData);
+  if (!read.parsed) return { ok: false, error: read.error };
+  const supabase = await createClient();
+  const [{ stored, snapshot }, { data: wilayas }] = await Promise.all([
+    loadStoredFees(supabase, workspaceId),
+    supabase.from("wilayas").select("code, name"),
+  ]);
+  return {
+    ok: true,
+    diff: diffDeliveryPrices(read.parsed, stored),
+    snapshot,
+    wilayaNames: Object.fromEntries((wilayas ?? []).map((w) => [w.code, w.name])),
+  };
+}
+
+export async function applyDeliveryCsv(
+  formData: FormData,
+): Promise<{ ok: true; changed: number } | { ok: false; error: string }> {
+  const { workspaceId } = await adminProfile();
+  const read = await readCsv(formData);
+  if (!read.parsed) return { ok: false, error: read.error };
+  const supabase = await createClient();
+  const { snapshot } = await loadStoredFees(supabase, workspaceId);
+  const expected = String(formData.get("snapshot") ?? "");
+  if (snapshot && new Date(expected).getTime() !== new Date(snapshot).getTime()) {
+    return { ok: false, error: "Fees changed since the preview. Upload the file again." };
+  }
+  const { data, error } = await supabase.rpc("apply_delivery_prices", { p: toApplyPayload(read.parsed) });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/app/settings");
+  revalidatePath("/app/orders");
+  const changed = (data as { fees_changed?: number } | null)?.fees_changed ?? 0;
+  return { ok: true, changed };
 }
 
 // ---------------------------------------------------------------------------

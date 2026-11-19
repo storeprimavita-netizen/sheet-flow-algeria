@@ -174,3 +174,93 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
   }
   return { wilayas: [...byCode.values()].sort((a, b) => a.code - b.code), warnings };
 }
+
+// ---------------------------------------------------------------------------
+// Diff against the stored fees (pure; the server action feeds it rows)
+// ---------------------------------------------------------------------------
+export type StoredWilayaFee = {
+  wilaya_code: number;
+  home_fee: number;
+  stopdesk_fee: number;
+  priced: boolean;
+  stopdesk_available: boolean;
+  stop_shipping: boolean;
+  /** Stored commune count. */
+  communes: number;
+};
+
+export type DeliveryDiffRow = {
+  code: number;
+  fileName: string;
+  changed: boolean;
+  before: Pick<StoredWilayaFee, "home_fee" | "stopdesk_fee" | "priced" | "stopdesk_available"> | null;
+  after: { home_fee: number | null; stopdesk_fee: number | null; priced: boolean; stopdesk_available: boolean };
+  communesBefore: number;
+  communesAfter: number;
+  warnings: DeliveryWarning[];
+};
+
+export type DeliveryDiff = {
+  rows: DeliveryDiffRow[];
+  /** Stored wilayas the file does not list; they keep their manual fees. */
+  absent: number[];
+  /** Warnings not tied to a wilaya row (malformed lines etc.). */
+  fileWarnings: DeliveryWarning[];
+  /** Unpriced in the file while the manual stop_shipping flag is still off. */
+  unpricedNotStopped: number[];
+};
+
+export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWilayaFee[]): DeliveryDiff {
+  const byCode = new Map(stored.map((s) => [s.wilaya_code, s]));
+  const unpricedNotStopped: number[] = [];
+  const rows = parsed.wilayas.map((w): DeliveryDiffRow => {
+    const cur = byCode.get(w.code) ?? null;
+    // An unpriced wilaya keeps its stored fees; home-only keeps the stop-desk fee.
+    const home = w.priced ? w.home : (cur?.home_fee ?? null);
+    const desk = w.priced && w.stopdeskAvailable ? w.stopdesk : (cur?.stopdesk_fee ?? null);
+    const changed =
+      !cur ||
+      cur.priced !== w.priced ||
+      cur.stopdesk_available !== w.stopdeskAvailable ||
+      (w.priced && cur.home_fee !== w.home) ||
+      (w.priced && w.stopdeskAvailable && cur.stopdesk_fee !== w.stopdesk) ||
+      cur.communes !== w.communes.length;
+    if (!w.priced && cur && !cur.stop_shipping) unpricedNotStopped.push(w.code);
+    return {
+      code: w.code,
+      fileName: w.fileName,
+      changed,
+      before: cur && {
+        home_fee: cur.home_fee,
+        stopdesk_fee: cur.stopdesk_fee,
+        priced: cur.priced,
+        stopdesk_available: cur.stopdesk_available,
+      },
+      after: { home_fee: home, stopdesk_fee: desk, priced: w.priced, stopdesk_available: w.stopdeskAvailable },
+      communesBefore: cur?.communes ?? 0,
+      communesAfter: w.communes.length,
+      warnings: parsed.warnings.filter((x) => x.code === w.code),
+    };
+  });
+  const listed = new Set(parsed.wilayas.map((w) => w.code));
+  return {
+    rows,
+    absent: stored.map((s) => s.wilaya_code).filter((c) => !listed.has(c)),
+    fileWarnings: parsed.warnings.filter((x) => x.code === null || !listed.has(x.code)),
+    unpricedNotStopped,
+  };
+}
+
+/** Shape the `apply_delivery_prices` RPC expects. */
+export function toApplyPayload(parsed: ParsedDeliveryCsv) {
+  return {
+    wilayas: parsed.wilayas.map((w) => ({
+      code: w.code,
+      priced: w.priced,
+      stopdesk_available: w.stopdeskAvailable,
+      home_fee: w.home,
+      stopdesk_fee: w.stopdesk,
+      communes: w.communes,
+    })),
+  };
+}
