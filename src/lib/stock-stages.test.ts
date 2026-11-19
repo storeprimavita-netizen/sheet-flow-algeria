@@ -265,7 +265,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const w = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     const wp = await product(w);
     await order(wp, { delivery_status: "delivered" }, w);
-    expect((await svc.from("workspaces").delete().eq("id", w)).error).toBeNull();
+    expect((await deleteWorkspaces(svc, [w])).error).toBeNull();
   });
 
   test("deleting a swap original reconciles its replacement (review-5 #2)", async () => {

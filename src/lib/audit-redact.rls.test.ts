@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { auditRedact } from "./audit-redact";
 import { PARITY_CASES, MASKED_NAMES } from "./audit-redact.cases";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { deleteWorkspaces } from "./test-cleanup";
 
 /** Live SEC-1: a secret written to integration_configs never reaches audit_log. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -43,7 +44,7 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     ];
     steps.forEach((r) => { if (r.error) throw r.error; });
     // Deleting audited children fires the audit trigger again; clear audit rows after the last audited delete.
-    const w = await svc.from("workspaces").delete().eq("id", ws);
+    const w = await deleteWorkspaces(svc, [ws]);
     if (w.error) throw w.error;
     await svc.from("audit_log").delete().eq("workspace_id", ws);
     const u = await svc.auth.admin.deleteUser(userId);
