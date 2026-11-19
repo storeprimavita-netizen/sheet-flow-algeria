@@ -11,7 +11,7 @@ create unique index product_options_one_color on public.product_options (product
 
 alter table public.product_option_values
   add column swatch_color text check (swatch_color ~ '^#[0-9a-fA-F]{6}$'),
-  add column swatch_image text check (swatch_image ~ '^https://[^\s"''()<>\\]{1,2040}$'),
+  add column swatch_image text check (swatch_image ~ '^https://[^\s"''()<>\\]+$' and char_length(swatch_image) <= 2048),
   add constraint product_option_values_one_swatch check (swatch_color is null or swatch_image is null);
 
 -- a swatch lives only on a value of a colour option

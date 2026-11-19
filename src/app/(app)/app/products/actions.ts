@@ -226,6 +226,8 @@ function variantFailure(error: { code?: string; message: string }): VariantResul
   if (error.code === "23505" && error.message.includes("product_option_values_label_uniq")) return { ok: false, code: "duplicate_value", error: error.message };
   if (error.message.includes("same values") || error.message.includes("already has these values")) return { ok: false, code: "duplicate_variant", error: error.message };
   if (error.message === "incomplete size") return { ok: false, code: "invalid", error: error.message };
+  if (error.message.includes("swatch needs a color option") || error.message.includes("product_options_one_color") || error.code === "23514")
+    return { ok: false, code: "invalid", error: error.message };
   if (error.message === "stale") return { ok: false, code: "stale", error: error.message };
   if (error.code === "23503") return { ok: false, code: "in_use", error: error.message };
   return { ok: false, code: "failed", error: error.message };
