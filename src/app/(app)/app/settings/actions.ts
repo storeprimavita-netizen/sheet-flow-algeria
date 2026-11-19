@@ -313,15 +313,19 @@ export async function saveWilayaFees(formData: FormData) {
   };
 
   const rows = stored
-    .map((r) => ({
+    .map((r) => {
+      const priced = formData.get(`priced_${r.wilaya_code}`) === "on";
+      return {
       workspace_id: workspaceId,
       wilaya_code: r.wilaya_code,
       home_fee: field(`home_${r.wilaya_code}`, r.home_fee),
       stopdesk_fee: field(`stopdesk_${r.wilaya_code}`, r.stopdesk_fee),
       stop_shipping: formData.get(`stop_${r.wilaya_code}`) === "on",
-      priced: formData.get(`priced_${r.wilaya_code}`) === "on",
-      stopdesk_available: formData.get(`desk_${r.wilaya_code}`) === "on",
-    }))
+      priced,
+      // the stop-desk switch is disabled (not posted) while unpriced: keep the stored value
+      stopdesk_available: priced ? formData.get(`desk_${r.wilaya_code}`) === "on" : r.stopdesk_available,
+      };
+    })
     .filter((n) => {
       const r = stored.find((x) => x.wilaya_code === n.wilaya_code)!;
       return (
