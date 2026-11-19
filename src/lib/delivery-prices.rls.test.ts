@@ -109,6 +109,10 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     expect((await admin.rpc("apply_delivery_prices", { p: { wilayas: [{ code: 99 }] } })).error).not.toBeNull();
     expect((await admin.rpc("apply_delivery_prices", { p: payload({ home_fee: -1 }) })).error).not.toBeNull();
     expect((await admin.rpc("apply_delivery_prices", { p: { wilayas: "x" } })).error).not.toBeNull();
+    expect((await admin.rpc("apply_delivery_prices", { p: {} })).error).not.toBeNull();
+    expect((await admin.rpc("apply_delivery_prices", { p: payload({ home_fee: null }) })).error).not.toBeNull();
+    expect((await admin.rpc("apply_delivery_prices", { p: payload({ stopdesk_fee: null }) })).error).not.toBeNull();
+    expect((await admin.rpc("apply_delivery_prices", { p: { wilayas: [{ code: 1, home_fee: "NaN", stopdesk_fee: 1 }] } })).error).not.toBeNull();
   });
 
   test("swap_order refuses a stop-desk order into a home-only wilaya, allows home", async () => {
@@ -119,7 +123,11 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     const swap = (id: string) => admin.rpc("swap_order", { p_order_id: id, p_customer_id: null, p_customer_name: "A", p_customer_phone: "0550000000", p_wilaya_code: 8, p_commune: "Bechar", p_address: "x" });
     const bad = await swap(await mk("stopdesk"));
     expect(bad.error?.message).toMatch(/not available/);
-    expect((await swap(await mk("home"))).error).toBeNull();
+    const ok = await swap(await mk("home"));
+    expect(ok.error).toBeNull();
+    // the new order carries the destination wilaya's fee, not the old order's
+    const b = (await svc.from("orders").select("delivery_fee").eq("id", ok.data as string).single()).data!;
+    expect(Number(b.delivery_fee)).toBe(700);
     await svc.from("orders").delete().eq("workspace_id", ws);
     await svc.from("products").delete().eq("id", prod);
   });

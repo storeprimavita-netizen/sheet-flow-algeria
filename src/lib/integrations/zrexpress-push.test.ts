@@ -9,6 +9,7 @@ const creds = { tenantId: "t", apiKey: "k" };
 let server: Server;
 let parcels: { id: string; externalId: string }[];
 let creates: number;
+let lastBody: Record<string, unknown> | null;
 let searchFails: boolean;
 let ignoreFilter: boolean; // simulates ZR silently ignoring an unknown filter
 
@@ -28,6 +29,7 @@ beforeAll(async () => {
       }
       if (req.url === "/parcels" && req.method === "POST") {
         creates++;
+        lastBody = JSON.parse(body);
         const p = { id: `p${creates}`, externalId: JSON.parse(body).externalId };
         parcels.push(p);
         return send(200, { id: p.id });
@@ -42,6 +44,7 @@ afterAll(() => server.close());
 beforeEach(() => {
   parcels = [];
   creates = 0;
+  lastBody = null;
   searchFails = false;
   ignoreFilter = false;
   vi.unstubAllEnvs();
@@ -49,21 +52,26 @@ beforeEach(() => {
 });
 
 // Chainable stub: filters return the builder, terminal calls resolve per table.
-function fakeSupabase(insertError: { code?: string; message: string } | null) {
+function fakeSupabase(
+  insertError: { code?: string; message: string } | null,
+  over: { order?: Record<string, unknown>; fees?: Record<string, unknown> | null } = {},
+) {
   const tables: Record<string, unknown> = {
     orders: {
       id: "o1", confirmation_status: "confirmed", wilaya_code: 16, delivery_type: "home", commune: "Bab",
       customer_phone: "0555000000", customer_name: "A", address: "x", quantity: 1, sale_price: 100,
-      delivery_fee: 0, product: { name: "P" },
+      delivery_fee: 0, product: { name: "P" }, ...over.order,
     },
+    wilaya_fees: over.fees ?? null,
     zr_shipments: null,
     integration_configs: { config: { tenant_id: "t", api_key: "k" } },
   };
   const inserts: unknown[] = [];
+  const filters: [string, string, unknown][] = [];
   const from = (t: string) => {
     const q: Record<string, unknown> = {};
     q.select = () => q;
-    q.eq = () => q;
+    q.eq = (c: string, v: unknown) => (filters.push([t, c, v]), q);
     q.maybeSingle = async () => ({ data: t === "zr_territories" ? { id: "w1" } : (tables[t] ?? null) });
     if (t === "zr_territories") {
       // commune list is awaited after .eq(): make the builder thenable
@@ -75,7 +83,7 @@ function fakeSupabase(insertError: { code?: string; message: string } | null) {
     };
     return q;
   };
-  return { client: { from } as never, inserts };
+  return { client: { from } as never, inserts, filters };
 }
 
 describe("zr base guard", () => {
@@ -145,6 +153,43 @@ describe("pushToZR", () => {
     expect(await pushToZR(client, "w", "o1")).toEqual({ ok: true });
     expect(creates).toBe(1);
     expect(inserts).toHaveLength(1);
+  });
+
+  const FEES = { home_fee: 600, stopdesk_fee: 400, priced: true, stopdesk_available: true };
+  const refused = async (fees: Record<string, unknown>, order: Record<string, unknown>) => {
+    const r = await pushToZR(fakeSupabase(null, { fees, order }).client, "w", "o1");
+    expect(creates).toBe(0);
+    return r;
+  };
+
+  it("refuses an order for an unpriced wilaya even when it already carries a fee (D27)", async () => {
+    const r = await refused({ ...FEES, priced: false }, { delivery_fee: 600 });
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("no delivery price") });
+  });
+
+  it("refuses a type the wilaya no longer ships when the order has no fee; keeps a fee-carrying stop-desk order", async () => {
+    const homeOnly = { ...FEES, stopdesk_available: false };
+    expect(await refused(homeOnly, { delivery_type: "stopdesk", delivery_fee: null, commune: null })).toMatchObject({ ok: false });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ok = await pushToZR(fakeSupabase(null, { fees: homeOnly, order: { delivery_type: "stopdesk", delivery_fee: 400, commune: null } }).client, "w", "o1", "hub1");
+    warn.mockRestore();
+    expect(ok).toEqual({ ok: true });
+    expect(creates).toBe(1);
+  });
+
+  it("COD amount = sale price x quantity + delivery fee (home and stop desk)", async () => {
+    await pushToZR(fakeSupabase(null, { fees: FEES, order: { quantity: 2, sale_price: 1000, delivery_fee: 600 } }).client, "w", "o1");
+    expect(lastBody).toMatchObject({ amount: 2600 });
+    parcels = [];
+    await pushToZR(fakeSupabase(null, { fees: FEES, order: { delivery_type: "stopdesk", quantity: 3, sale_price: 500, delivery_fee: 400, commune: null } }).client, "w", "o1", "hub1");
+    expect(lastBody).toMatchObject({ amount: 1900 });
+  });
+
+  it("scopes the order and fee reads to the caller's workspace (service-role guard)", async () => {
+    const f = fakeSupabase(null, { fees: FEES });
+    await pushToZR(f.client, "ws-A", "o1");
+    for (const t of ["orders", "wilaya_fees"]) expect(f.filters).toContainEqual([t, "workspace_id", "ws-A"]);
+    expect(f.filters.some(([, c, v]) => c === "workspace_id" && v !== "ws-A")).toBe(false);
   });
 
   it("push insert failure leaves orphan; retry adopts parcel by externalId, create endpoint hit once total", async () => {

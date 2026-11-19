@@ -9,17 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/copy-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listZRHubs, pushOrderToZRExpress, refreshZRShipmentStatus } from "../actions";
+import { listZRHubs, pushOrderToZRExpress, refreshZRShipmentStatus, switchOrderToHome } from "../actions";
 
 export function ZRShipmentCard({
   orderId,
   shipment,
   stopDesk,
+  canSwitchToHome,
 }: {
   orderId: string;
   shipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null;
   /** stop-desk order → parcel goes to a ZR hub (pickup point) */
   stopDesk: boolean;
+  /** stop-desk order in a wilaya that is now home-only: admin may switch it to home */
+  canSwitchToHome: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -112,6 +115,15 @@ export function ZRShipmentCard({
           </Button>
         </div>
       )}
+
+      {canSwitchToHome && !shipment ? (
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-sm text-muted-foreground">{t("orders.zrexpress.stopdeskGone")}</p>
+          <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => run(switchOrderToHome)}>
+            {t("orders.zrexpress.switchToHome")}
+          </Button>
+        </div>
+      ) : null}
 
       {error ? <p className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{error}</p> : null}
     </div>

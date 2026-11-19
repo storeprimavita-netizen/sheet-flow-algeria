@@ -375,7 +375,9 @@
       "pendingTracking": "assigned shortly",
       "state": "Status",
       "stateUnknown": "unknown",
-      "refresh": "Refresh status"
+      "refresh": "Refresh status",
+      "stopdeskGone": "This stop desk order cannot ship: stop desk is no longer available in this wilaya.",
+      "switchToHome": "Switch to home delivery"
     },
     "emptyHint": "No orders match these filters — widen the range or clear them.",
     "confirmationEmptyHint": "The confirmation queue is clear. New orders will land here.",

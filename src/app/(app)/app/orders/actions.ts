@@ -122,6 +122,35 @@ export async function pushOrderToZRExpress(orderId: string, hubId?: string | nul
   return res;
 }
 
+/**
+ * Admin override for an order stuck on a delivery type its wilaya no longer ships:
+ * switch it to home and re-seed the fee from the single fee source (D14).
+ */
+export async function switchOrderToHome(orderId: string): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const id = z.string().uuid().parse(orderId);
+  const supabase = await createClient();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("wilaya_code, delivery_type")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (!order?.wilaya_code) return { ok: false, error: "Order needs a wilaya first." };
+  const { data: sent } = await supabase.from("zr_shipments").select("order_id").eq("order_id", id).maybeSingle();
+  if (sent) return { ok: false, error: "This order was already sent to ZR Express." };
+  const { data: fee } = await supabase.rpc("delivery_fee_for", { p_ws: workspaceId, p_wilaya: order.wilaya_code, p_type: "home" });
+  if (fee === null || fee === undefined) return { ok: false, error: "Home delivery is not available in this wilaya." };
+  const { error } = await supabase
+    .from("orders")
+    .update({ delivery_type: "home", delivery_fee: Number(fee), delivery_fee_source: "wilaya_table" })
+    .eq("id", id)
+    .eq("workspace_id", workspaceId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/app/orders/${id}`);
+  return { ok: true };
+}
+
 /** Bulk "Send to ZR" from the delivery queue. Sequential (ZR rate limits) —
  * ponytail: switch to ZR's bulk endpoint (100/request) if volumes grow. */
 export async function pushOrdersToZRExpress(

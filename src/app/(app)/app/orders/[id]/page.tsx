@@ -98,6 +98,16 @@ export default async function OrderDetailPage({
   }
   // agents can't see the ZR card but still need to know the order was pushed (locks cancel-reason)
   const { data: zrExists } = await supabase.from("zr_shipments").select("order_id").eq("order_id", order.id).maybeSingle();
+  // admin escape hatch: a stop-desk order whose wilaya became home-only can be switched to home
+  let canSwitchToHome = false;
+  if (isAdmin && !zrExists && order.delivery_type === "stopdesk" && order.wilaya_code) {
+    const { data: fr } = await supabase
+      .from("wilaya_fees")
+      .select("priced, stopdesk_available")
+      .eq("wilaya_code", order.wilaya_code)
+      .maybeSingle();
+    canSwitchToHome = !!fr && fr.priced && !fr.stopdesk_available;
+  }
   if (isAdmin) {
     const { data: team } = await supabase
       .from("profiles")
@@ -235,7 +245,7 @@ export default async function OrderDetailPage({
         />
       ) : null}
 
-      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} /> : null}
+      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} canSwitchToHome={canSwitchToHome} /> : null}
 
       {isAdmin ? (
         <SwapCard
