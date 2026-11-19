@@ -1,4 +1,3 @@
-import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getTranslations } from "next-intl/server";
@@ -136,9 +135,11 @@ export async function CommunePanel({
                 const href = (m: Parameters<typeof drillHref>[1], deliveryType?: string) =>
                   linkable ? drillHref(filters, m, { wilaya, communeKey: r.key, communeLabel: r.name ?? undefined, deliveryType }) : undefined;
                 return (
-                  <React.Fragment key={r.key ?? "\u0000unknown"}>
-                  <tr>
-                    <td className="sticky start-0 z-[1] whitespace-nowrap bg-surface">{r.key === null ? <span className="text-muted-foreground">{t("statistics.unknownCommune")}</span> : <bdi>{r.name}</bdi>}</td>
+                  <tr key={r.key ?? "\u0000unknown"}>
+                    <td className="sticky start-0 z-[1] bg-surface">
+                      <div className="whitespace-nowrap">{r.key === null ? <span className="text-muted-foreground">{t("statistics.unknownCommune")}</span> : <bdi>{r.name}</bdi>}</div>
+                      <div className="mt-1 max-w-56 whitespace-normal"><ExtrasLine extras={r.g.extras} t={t} typeHref={(type) => href("shipped", type)} /></div>
+                    </td>
                     <td className="num text-end">
                       {counts.received > 0 && href("received") ? <Link href={href("received")!} className={DRILL_LINK}>{counts.received}</Link> : counts.received}
                     </td>
@@ -146,12 +147,6 @@ export async function CommunePanel({
                     <td className="sm:min-w-32"><MetricCell m={r.g.rates.delivery} numHref={href("delivered")} title={notEnough} /></td>
                     <td className="sm:min-w-32"><MetricCell m={r.g.rates.return} numHref={href("return")} title={notEnough} /></td>
                   </tr>
-                  <tr>
-                    <td colSpan={5} className="sticky start-0 !pt-0">
-                      <ExtrasLine extras={r.g.extras} t={t} typeHref={(type) => href("shipped", type)} />
-                    </td>
-                  </tr>
-                  </React.Fragment>
                 );
               })}
             </tbody>

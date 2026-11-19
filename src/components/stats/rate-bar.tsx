@@ -1,3 +1,5 @@
+import { Info } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 /** Success/warning/danger threshold bar for a 0-100 rate — shared by every
@@ -32,7 +34,7 @@ export function RateCell({
   matured?: boolean;
   sub?: React.ReactNode;
   title?: string;
-  /** visible muted text under the cell (the unmatured reason; `title` alone is invisible on touch) */
+  /** unmatured reason: a small visible info marker plus screen-reader text (`title` alone is invisible on touch) */
   hint?: string;
   /** below `sm`: no bar, label auto-width (narrow tables) */
   compact?: boolean;
@@ -46,7 +48,12 @@ export function RateCell({
           {sub ? <span className="block text-[11px] text-muted-foreground"><bdi dir="ltr">{sub}</bdi></span> : null}
         </span>
       </div>
-      {!matured && hint ? <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p> : null}
+      {!matured && hint ? (
+        <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+          <Info className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="sr-only">{hint}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

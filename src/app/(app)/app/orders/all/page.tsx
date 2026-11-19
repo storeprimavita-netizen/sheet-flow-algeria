@@ -13,7 +13,8 @@ import { parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { COMMUNE_UNKNOWN_PARAM, isRealIsoDate, MAX_COMMUNE_KEY } from "@/lib/query-string";
+import { DrillBanner } from "@/components/stats/drill-banner";
+import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY } from "@/lib/query-string";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
@@ -253,17 +254,15 @@ export default async function AllOrdersPage({
       <OrderTabs active="all" />
 
       {drillMetric ? (
-        <div className="card-surface flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm" role="status">
-          <p>
-            <span className="font-medium text-foreground">{t(`orders.drill.${drillMetric}`)}</span>
-            <span className="text-muted-foreground">
-              {" · "}
-              {wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code")}
-              {communeKey || communeUnknown ? ` · ${communeUnknown ? t("statistics.unknownCommune") : communeLabel || communeKey}` : ""}
-            </span>
-          </p>
-          <ButtonLink href="/app/orders/all" size="sm" variant="outline">{t("orders.drill.clear")}</ButtonLink>
-        </div>
+        <DrillBanner
+          metric={t(`orders.drill.${drillMetric}`)}
+          parts={[
+            wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code"),
+            deliveryType === "home" || deliveryType === "stopdesk" ? t(`statistics.${deliveryType}`) : "",
+            communeUnknown ? t("statistics.unknownCommune") : communeKey ? (communeLabel ? communeBannerLabel(communeKey, communeLabel) : communeKey) : "",
+          ]}
+          clearLabel={t("orders.drill.clear")}
+        />
       ) : null}
 
       <OrdersFilterBar

@@ -42,6 +42,12 @@ export function isRealIsoDate(v: string): boolean {
 export const MAX_COMMUNE_KEY = 120;
 /** A commune key can be a drill link only when the drill would accept it. */
 export const communeLinkable = (key: string) => key.length <= MAX_COMMUNE_KEY;
+/** Banner text for a commune drill: the original spelling only when it is the same commune as the key
+ * (lower(trim)); a mismatching label in a shared link falls back to the key. */
+export const communeBannerLabel = (key: string, label: string) =>
+  label.trim().toLowerCase() === key ? label.trim() : key;
+/** Params that only exist in statistics drill mode (the key filters are DRILL_FILTER_KEYS); any other filter change removes them all. */
+export const DRILL_PARAMS = ["drill", "commune_key", "commune_unknown", "commune_label"] as const;
 /** `commune_unknown=1` on /app/orders/all means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
 export const COMMUNE_UNKNOWN_PARAM = "commune_unknown";
 

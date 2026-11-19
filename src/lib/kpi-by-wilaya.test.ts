@@ -258,10 +258,28 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
     await order(p, { delivery_status: "returned", delivery_type: "home" });
     await order(p, { delivery_status: "delivered", delivery_type: "stopdesk", wilaya_code: 31 });
     await order(p, { delivery_status: "wait_for_deposit", delivery_type: "home" });
+    // after-pickup branch 1: cancelled with a ZR shipment
+    const zr = await order(p, { delivery_status: "cancelled", delivery_type: "home" });
+    expect((await svc.from("zr_shipments").insert({ order_id: zr, workspace_id: ws, parcel_id: crypto.randomUUID() })).error).toBeNull();
+    // after-pickup branch 2: cancelled after an in_transit history row
+    const hist = await order(p, { delivery_status: "in_transit", delivery_type: "stopdesk" });
+    expect((await svc.from("orders").update({ delivery_status: "cancelled" }).eq("id", hist)).error).toBeNull();
+    // swapped branch (original left in a non-shipped status)
+    const sw0 = await order(p, { delivery_status: "returning", delivery_type: "home" });
+    const swr = await admin.rpc("swap_order", {
+      p_order_id: sw0, p_customer_id: null as unknown as string, p_customer_name: "Swap Client", p_customer_phone: "0555000111",
+      p_wilaya_code: 16, p_commune: "Bab Ezzouar", p_address: "y",
+    });
+    expect(swr.error).toBeNull();
+    // never shipped: cancelled before pickup
+    const never = await order(p, { delivery_status: "cancelled", delivery_type: "home" });
     const drill = async (extra: Record<string, unknown>, c = admin) => {
       const { data, error } = await c.rpc("kpi_drill_orders", { p_metric: "shipped", p_from: DAY, p_to: DAY, p_product: [p], ...extra });
       return { data: (data ?? []) as { id: string; total: number }[], error };
     };
+    const ids = (await drill({ p_wilaya: 16 })).data.map((r) => r.id);
+    for (const id of [zr, hist, sw0]) expect(ids).toContain(id);
+    expect(ids).not.toContain(never);
     for (const w of await byWilaya(p)) {
       const all = await drill({ p_wilaya: w.wilaya_code });
       expect(Number(all.data[0]?.total ?? 0)).toBe(w.extras.shipped);
@@ -294,9 +312,13 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
       expect(Number((await drill("confirmed", extra))[0]?.total ?? 0)).toBe(c.rates.counts.confirmed);
       expect(Number((await drill("return", extra))[0]?.total ?? 0)).toBe(c.rates.return.num);
     }
-    // the swapped original is shipped but never sampled for avg days
-    const [w] = await byWilaya(p);
+    // the swapped original is delivered too (history row), yet never sampled for avg days
+    expect((await svc.from("orders").update({ delivery_status: "delivered" }).eq("id", b)).error).toBeNull();
+    const w = (await byWilaya(p)).find((r) => r.wilaya_code === 16)!;
     expect(w.extras.avg_days_sample).toBe(1);
-    expect(d).toBeTruthy();
+    const hist = await svc.from("order_status_history").select("id").eq("order_id", b).eq("stage", "delivery").eq("to_status", "delivered");
+    expect(hist.data?.length).toBeGreaterThan(0); // without the `not swapped` clause the sample would be 2
+    expect(w.extras.shipped).toBe(2); // d + the swapped original
+    void d;
   });
 });

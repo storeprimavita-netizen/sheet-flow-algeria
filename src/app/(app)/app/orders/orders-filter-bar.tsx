@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
+import { DRILL_PARAMS } from "@/lib/query-string";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
@@ -48,7 +49,7 @@ export function OrdersFilterBar({
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
   function leaveDrill(next: URLSearchParams) {
-    for (const k of ["drill", "commune_key", "commune_unknown", ...DRILL_FILTER_KEYS]) next.delete(k);
+    for (const k of [...DRILL_PARAMS, ...DRILL_FILTER_KEYS]) next.delete(k);
   }
 
   function setDates(from: string, to: string) {
