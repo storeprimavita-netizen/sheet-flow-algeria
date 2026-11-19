@@ -440,3 +440,10 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Fixed review-1: Real "losing" now uses the drawn profit (`realDrawnProfit`); `maxAdCostUsd` impossible at c=0/ad=0 (adCostPerDelivered stays "alt": 0); `realBothZero` helper + test; `v!==0` guard keyed on `mode==="alt"`; test filter removed.
 - Screenshots (chrome-devtools, `docs/design/audit/PRICE-3-F/`): c=0 ad=0 (dark EN 1280), both 0 ad>0 with footer line (dark EN 1280), both 0 ad=0 (light AR 1280), c=0 d null all missing and no footer (light AR 1280), d=0 (light EN 1280), normal (dark EN, window floored at 500 px: Real divider visible, Real column reachable by scroll). Real divider visible in dark and light. Edge data seeded as `P3F*` products locally; orders removed afterwards (stock_movements are append-only, so the P3F products remain: run `db reset` to clear them).
 - Not shot: other theme/locale/width combos. Review-4 L5 (Real column off-screen at 390) still open, tracked.
+
+## PRICE-3-F done
+- Done: PRICE-3 follow-up delivered on v3-PRICE-3-F (review-2 fixes; ad-cost-0 both-rates-zero case, stray footer, both-zero line EN/AR, U4 divider, listed tests).
+- Verify: `scripts/gate.sh` GATE OK on v3-PRICE-3-F (commit 3f7d7f0); local DB reset to 00063 and reseeded before run.
+- Evidence: `docs/briefs/PRICE-3-F.review-2.md` VERDICT PASS; screenshots in `docs/design/audit/PRICE-3-F/`.
+- Owner: none for this task.
+- Next: review-4 L5 (Real column off-screen at 390 px) still open, tracked under PRICE-3.
