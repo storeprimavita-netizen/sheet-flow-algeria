@@ -8,7 +8,7 @@ import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-type DeletableTable = "products" | "contacts" | "orders" | "expenses";
+type DeletableTable = "products" | "contacts" | "orders" | "expenses" | "seasons" | "season_periods";
 
 export function DeleteButton({
   table,

@@ -35,7 +35,8 @@
     "storeHub": "Store",
     "storePages": "Product pages",
     "storeSettings": "Store settings",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "seasons": "Seasons"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -676,7 +677,8 @@
     "tabs": {
       "overview": "Overview",
       "users": "Users",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "seasons": "Seasons"
     },
     "usersSubtitle": "Invite teammates & manage roles",
     "auditSubtitle": "Who changed what, when",
@@ -850,6 +852,34 @@
       "tooLarge": "The file is larger than 1 MB.",
       "chooseFile": "Choose file",
       "noFile": "No file chosen"
+    },
+    "seasons": {
+      "purpose": "Name the periods that matter to your sales (Ramadan, Eid, back to school) and set their dates for each year. Statistics uses them to compare the same season year over year.",
+      "loadError": "Couldn't load the seasons.",
+      "addSeason": "New season",
+      "namePlaceholder": "e.g. Black Friday",
+      "add": "Add season",
+      "name": "Season name",
+      "rename": "Rename",
+      "noDates": "No dates yet",
+      "addDates": "Add dates",
+      "addPeriod": "Add a year",
+      "editPeriod": "Edit dates",
+      "dateFrom": "First day",
+      "dateTo": "Last day",
+      "yearRule": "The year is the year of the first day. One period per year.",
+      "empty": "No seasons yet. Add the first one above.",
+      "err": {
+        "errForbidden": "Only an admin can change seasons.",
+        "errName": "Enter a name (80 characters at most).",
+        "errDuplicateName": "A season with this name already exists.",
+        "errDates": "Enter valid first and last days.",
+        "errRange": "The last day must be on or after the first day.",
+        "errDuplicateYear": "This season already has dates for that year. Edit them instead.",
+        "errDuplicate": "This already exists.",
+        "errMissing": "That season no longer exists. Reload the page.",
+        "errGeneric": "Could not save. Try again."
+      }
     }
   },
   "login": {
@@ -1492,6 +1522,16 @@
       "inProgress": "In progress",
       "yearError": "Couldn't load {year}.",
       "more": "Showing the latest {shown} of {total} years."
+    }
+  },
+  "seasons": {
+    "names": {
+      "ramadan": "Ramadan",
+      "eid_al_fitr": "Eid al-Fitr",
+      "eid_al_adha": "Eid al-Adha",
+      "summer": "Summer",
+      "back_to_school": "Back to school",
+      "winter": "Winter"
     }
   }
 }

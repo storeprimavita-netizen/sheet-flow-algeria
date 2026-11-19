@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   Settings as SettingsIcon,
   MapPinned,
+  CalendarRange,
 } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
@@ -115,6 +116,7 @@ export const GROUPS: NavGroup[] = [
     items: [
       { key: "settingsOverview", href: "/app/settings", icon: SettingsIcon, adminOnly: true },
       { key: "usersRoles", oldKey: "users", href: "/app/settings/users", icon: UserCog, adminOnly: true },
+      { key: "seasons", href: "/app/settings/seasons", icon: CalendarRange, adminOnly: true },
       { key: "audit", href: "/app/settings/audit", icon: ScrollText, adminOnly: true },
     ],
   },
