@@ -55,7 +55,8 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | STATS-2-F | Follow-up (review-2 PASS): the 12 lows in `docs/briefs/STATS-2.review-2.md` (home/stop-desk drill via `p_delivery_type`, Unknown-row hover, AR chevron direction, impossible `?from` dates, visible `not enough data` on touch, per-commune extras, banner spelling, 120-char commune key, `aria-controls` when closed, chevron hit area 44px, Latin names in AR as product question); missing brief tests listed there; review-1 findings 9 (home/stop-desk drill) and 14 (breadcrumb, none app-wide) | STATS | L | ui | – | stats | STATS-2 | todo |
 | STATS-3 | Seasons + unified filter bar | STATS | L | ui | M | stats | STATS-2 | done |
 | STATS-3-F | Follow-up (review-3/4/5 lows + missing tests in `docs/briefs/STATS-3.review-*.md`); Statistics chip removal also drops season/year from the URL; 5-second timeouts in `seasons.rls.test.ts` when the local DB holds leaked test workspaces (test-cleanup, 8f72ccb) | STATS | L | ui | – | stats | STATS-3 | todo |
-| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | claimed:claude |
+| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | done |
+| PRICE-3-F | Follow-up (review-4 PASS, `docs/briefs/PRICE-3.review-4.md` + reviews 1–3): ad-cost-0 case when both rates are 0 (c = 0 drawn "below" / "Not possible" although the engine gives a value); stray "not possible" footer when no cell shows it; both-zero explanation line (EN/AR); U4 divider; missing tests listed in review-4 | PRICE | L | ui | – | catalog | PRICE-3 | todo |
 | PRICE-4 | Portfolio view + CSV; retire BENZ screens | PRICE | L | ui | – | catalog | PRICE-3 | todo |
 | STORE-5 | Discount codes + abandoned checkouts | STORE | H | ui,sec | M | store | STORE-4 | todo |
 | STORE-7 | Reviews + size guide blocks | STORE | L | ui | M | store | STORE-2 | todo |
@@ -98,7 +99,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | P1-1 | KPI contract migration (`orders.excluded_reason`, `kpi_lines`, `product_stock_v`) + tests | STATS | H | – | M | stats | O-1 | done |
-| P1-1-F | Follow-up (D40, review-4): drill-down order list filters by UTC day — use Algiers days (D46); `pnl_by_product` cost grows with products × orders — set-based rewrite; review-4 lows | STATS | H | – | M | stats | P1-1 | todo |
+| P1-1-F | Follow-up (D40, review-4): drill-down order list filters by UTC day — use Algiers days (D46); `pnl_by_product` cost grows with products × orders — set-based rewrite; review-4 lows; review-1 Q6: `pnl_lines` ad spend window starts at the workspace's first order date, so spend logged before that day is dropped | STATS | H | – | M | stats | P1-1 | todo |
 | P1-2 | Dashboard v2 (STATS spec §Dashboard v2, D45): needs-action band, money band USD-first, order journey, profit waterfall, stock strip, product scorecard; move the rest to Statistics/Team/Money | STATS | L | ui | – | stats | P1-1 | done |
 | P1-2-F | Follow-up (review-2 lows): dashboard polish items + rendered tests for the bands | STATS | L | ui | – | stats | P1-2 | todo |
 | TEST-1 | Live test isolation: every live suite creates and cleans its own workspace/orders (cash.test uses up seed orders, so a second gate run fails without `db-reset.sh`); gate must pass twice in a row without a reset | – | L | – | – | shell | – | done |

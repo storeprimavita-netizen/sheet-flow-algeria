@@ -401,3 +401,10 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Q1 Real reads confirmation.value / delivery.value (+ own maturity flags); Q2 inputs rows + red below-break-even Real cells; Q3 USD/DZD cell with hint; U2 popover hint; U3 group labels stay sticky; U4 divider; Q4 RPC error throws to error.tsx; Q5 ceil.
 - Known limits (D67 item 8): confirmed-then-cancelled-before-pickup not in either rate; delivery % can read slightly high with <=20% parcels on the road. Not done: Q6, Q7 (no decision, out of scope).
 - PRICE-3 round 3: 390px screenshots EN dark and AR light (r3-en-dark-390.png overwritten by r3-*-390 final, r3-ar-light-390.png); ad-cost number now aligned with its column.
+
+## PRICE-3 done (review-4 PASS)
+- Done: Real column (4th) on the Pricing tab from kpi_summary via pricing-real.ts; below-break-even badge; zero-rate rows and final price fixed in review 4.
+- Verify: scripts/gate.sh GATE OK on v3-PRICE-3 (645 passed / 3 skipped, live RLS suite; local DB reseeded by coordinator via db-reset.sh).
+- Evidence: docs/briefs/PRICE-3.review-4.md PASS; screenshots docs/design/audit/PRICE-3/ and PRICE-3-r4review/.
+- Owner: none.
+- Next: PRICE-3-F (review-4 lows, missing tests); PRICE-4 unblocked.
