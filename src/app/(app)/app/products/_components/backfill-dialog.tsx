@@ -62,7 +62,7 @@ export function BackfillDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onCancel()}>
-      <DialogContent className="max-w-md" aria-busy={busy}>
+      <DialogContent className="max-w-md" aria-busy={busy} onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogTitle>{kind === "color" ? t("addColorTitle") : t("addOptionTitle")}</DialogTitle>
         <DialogDescription>{t("backfillIntro", { count })}</DialogDescription>
         <div className="space-y-4">

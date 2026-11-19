@@ -12,7 +12,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { tableClass } from "@/components/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SwatchDot, SwatchField } from "@/components/fields/swatch-field";
-import { mergeSizeSet, missingCombos, skuSuggestion, variantLabel, type OptionKind, type VariantOption } from "@/lib/variants";
+import { isSizeOption, mergeSizeSet, missingCombos, skuSuggestion, variantLabel, type OptionKind, type VariantOption } from "@/lib/variants";
 import { BackfillDialog, type OptionDraft, type SizeSetDTO } from "./backfill-dialog";
 import { saveVariantConfig, type VariantResult } from "../actions";
 
@@ -58,6 +58,7 @@ export function VariantsEditor({
   const [confirmDeactivate, setConfirmDeactivate] = React.useState<number | null>(null);
   const [focusKey, setFocusKey] = React.useState<string | null>(null);
   const lastDeactivated = React.useRef<string | null>(null);
+  const openerRef = React.useRef("add-missing");
   React.useEffect(() => {
     if (!focusKey) return;
     document.querySelector<HTMLElement>(`[data-fk="${focusKey}"]`)?.focus();
@@ -122,8 +123,11 @@ export function VariantsEditor({
   }
 
   /** "+ Size" / "+ Color" / "Add option": straight in when no saved size exists, else through the backfill dialog. */
-  function startAdd(kind: OptionKind, name: string) {
-    if (hasSaved) return setAdding({ kind, name });
+  function startAdd(kind: OptionKind, name: string, opener: string) {
+    if (hasSaved) {
+      openerRef.current = opener;
+      return setAdding({ kind, name });
+    }
     dirty();
     setOptions([...options, { id: newId(), name, kind, values: [{ id: newId(), label: "" }] }]);
   }
@@ -141,6 +145,7 @@ export function VariantsEditor({
       setResult(res);
       afterSave(nextOptions);
       setAdding(null);
+      setFocusKey("add-missing"); // the opener may be disabled now (size/color added)
     }
     return res;
   }
@@ -298,15 +303,15 @@ export function VariantsEditor({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved} onClick={() => startAdd("text", "")}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved} data-fk="open-option" onClick={() => startAdd("text", "", "open-option")}>
           <Plus />
           {t("addOption")}
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || options.some((o) => o.name.trim().toLowerCase() === t("sizeName").toLowerCase())} onClick={() => startAdd("text", t("sizeName"))}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || options.some(isSizeOption)} data-fk="open-size" onClick={() => startAdd("text", t("sizeName"), "open-size")}>
           <Plus />
           {t("addSize")}
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasColor} onClick={() => startAdd("color", t("colorName"))}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasColor} data-fk="open-color" onClick={() => startAdd("color", t("colorName"), "open-color")}>
           <Plus />
           {t("addColor")}
         </Button>
@@ -415,7 +420,7 @@ export function VariantsEditor({
           defaultName={adding.name}
           count={variants.filter((v) => v.saved).length}
           sizeSets={sizeSets ?? []}
-          onCancel={() => setAdding(null)}
+          onCancel={() => { setAdding(null); setFocusKey(openerRef.current); }}
           onConfirm={confirmAdd}
         />
       ) : null}

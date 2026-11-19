@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countBySizeSchema, mergeSizeSet, missingCombos, sizeSetSchema, skuSuggestion, notAssigned, variantConfigSchema, variantLabel, variantStatus, type VariantOption } from "./variants";
+import { countBySizeSchema, mergeSizeSet, missingCombos, sizeSetSchema, skuSuggestion, notAssigned, variantConfigSchema, variantLabel, variantStatus, isSizeOption, type VariantOption } from "./variants";
 
 const u = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const size: VariantOption = { id: u(1), name: "Size", values: [{ id: u(2), label: "S" }, { id: u(3), label: "M" }] };
@@ -134,5 +134,15 @@ describe("size sets", () => {
   });
   it("merge keeps existing values and appends only missing names", () => {
     expect(mergeSizeSet(["S", "m"], ["S", "M", "L", "l"])).toEqual(["L"]);
+  });
+});
+
+describe("isSizeOption (VAR-1)", () => {
+  it("treats legacy Variant and any-locale Size as the size option", () => {
+    for (const name of ["Variant", " size ", "المقاس", "SIZE"]) expect(isSizeOption({ name, kind: "text" })).toBe(true);
+  });
+  it("ignores colour options and other names", () => {
+    expect(isSizeOption({ name: "Size", kind: "color" })).toBe(false);
+    expect(isSizeOption({ name: "Material" })).toBe(false);
   });
 });

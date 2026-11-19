@@ -171,3 +171,9 @@ export function variantStatus(stocks: number[], notAssigned: number): "no_varian
 export function notAssigned(total: number, variantStocks: number[]): number {
   return total - variantStocks.reduce((n, s) => n + s, 0);
 }
+
+/** A text option whose name is "Size" / "Variant" / "المقاس" (any locale, any case) already is the size option. */
+const SIZE_NAMES = new Set(["size", "variant", "المقاس", "مقاس"]);
+export function isSizeOption(o: { name: string; kind?: OptionKind }): boolean {
+  return o.kind !== "color" && SIZE_NAMES.has(o.name.trim().toLowerCase());
+}
