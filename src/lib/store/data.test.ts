@@ -29,6 +29,8 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
   });
   afterAll(async () => {
     if (!svc) return;
+    await svc.from("reviews").delete().eq("workspace_id", ws);
+    await svc.from("orders").delete().eq("workspace_id", ws);
     await svc.from("store_pages").delete().eq("workspace_id", ws);
     await svc.from("stores").delete().eq("workspace_id", ws);
     await deleteWorkspaces(svc, [ws]);
@@ -42,7 +44,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
     const dto = await loadPublicProductPage(svc, store.slug, "abaya");
     expect(dto).not.toBeNull();
-    expect(Object.keys(dto!).sort()).toEqual(["page", "product", "related", "store", "variants"]);
+    expect(Object.keys(dto!).sort()).toEqual(["page", "product", "related", "reviews", "store", "variants"]);
     expect(Object.keys(dto!.store).sort()).toEqual(["name", "settings", "slug", "theme"]);
     expect(Object.keys(dto!.page).sort()).toEqual(["blocks", "seo", "slug", "title"]);
     expect(Object.keys(dto!.product).sort()).toEqual(["images", "name", "price"]);
@@ -172,6 +174,49 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     await svc.from("store_pages").update({ blocks: [{ type: "related", pageIds: [pg2, b.page.id, own.page.id] }] }).eq("id", a.page.id);
     const dto = await loadPublicProductPage(svc, a.store.slug, "abaya");
     expect(dto!.related.map((r) => r.slug)).toEqual(["two"]);
+  });
+  test("reviews: approved only, no ids, emoji-free, first name + initial, verified rules, summary vs list", async () => {
+    const { store, product, page } = await setup({ page: { blocks: [{ type: "reviews" }] } });
+    const other = (await svc.from("products").insert({ workspace_id: ws, name: tag(), sale_price: 1 }).select("id").single()).data!.id;
+    const ord = async (p: string, over: Record<string, unknown> = {}) =>
+      (await svc.from("orders").insert({ workspace_id: ws, product_id: p, quantity: 1, confirmation_status: "confirmed", ...over }).select("id").single()).data!.id;
+    const good = await ord(product.id);
+    const wrongProduct = await ord(other);
+    const excluded = await ord(product.id, { excluded_reason: "test" });
+    const cancelled = await ord(product.id, { confirmation_status: "cancelled" });
+    const mk = (over: Record<string, unknown>) => ({ workspace_id: ws, product_id: product.id, name: "Amina Benali", rating: 5, body: "Belle ✨", approved: true, ...over });
+    const { error } = await svc.from("reviews").insert([
+      mk({ order_id: good }),
+      mk({ order_id: wrongProduct, rating: 3 }),
+      mk({ order_id: excluded, rating: 3 }),
+      mk({ order_id: cancelled, rating: 3 }),
+      mk({ approved: false, rating: 1, body: "SECRET-HIDDEN" }),
+      mk({ name: "💖", rating: 4, body: "ok" }),
+    ]);
+    expect(error).toBeNull();
+    const dto = await loadPublicProductPage(svc, store.slug, "abaya");
+    const r = dto!.reviews;
+    expect(r.count).toBe(5);
+    expect(r.avg).toBe(3.6);
+    expect(r.items).toHaveLength(5);
+    expect(r.items.filter((x) => x.verified)).toHaveLength(1);
+    expect(r.items.some((x) => x.name === "")).toBe(true);
+    expect(new Set(r.items.map((x) => x.name))).toEqual(new Set(["Amina B.", ""]));
+    expect(r.items.every((x) => !/✨/.test(x.text))).toBe(true);
+    expect(Object.keys(r.items[0]).sort()).toEqual(["date", "name", "rating", "text", "verified"]);
+    expect(JSON.stringify(dto!.reviews)).not.toMatch(/SECRET-HIDDEN|Benali|order_id|workspace_id|product_id|"id"/);
+    // no reviews block: nothing is loaded
+    await svc.from("store_pages").update({ blocks: [] }).eq("id", page.id);
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews).toEqual({ avg: 0, count: 0, items: [] });
+  });
+  test("reviews: list is capped at 60 newest, summary counts all approved", async () => {
+    const { store, product } = await setup({ page: { blocks: [{ type: "reviews" }] } });
+    const rows = Array.from({ length: 62 }, (_, i) => ({ workspace_id: ws, product_id: product.id, name: "A B", rating: 4, body: `r${i}`, approved: true, created_at: new Date(Date.now() - i * 60000).toISOString() }));
+    expect((await svc.from("reviews").insert(rows)).error).toBeNull();
+    const r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
+    expect(r.count).toBe(62);
+    expect(r.items).toHaveLength(60);
+    expect(r.items[0].text).toBe("r0");
   });
   test("bad slug 404 no query", async () => {
     const from = vi.fn();

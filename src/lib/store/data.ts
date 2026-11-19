@@ -8,11 +8,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/database.types";
 
 import { blocksSchema, seoSchema, type Block, type Seo } from "./blocks";
+import { isVerifiedOrder, publicReviewName } from "./reviews";
 import { instagramLink, publicSettingsSchema, waLink } from "./settings";
 import { isHttps, slugSchema, storeSlugSchema, stripEmoji } from "./url";
 
 export type PublicVariant = { label: string; inStock: boolean };
 export type PublicRelated = { slug: string; title: string; image: string | null; price: number };
+/** No ids: nothing here can be traced back to a customer, an order or a workspace. `name` is "" when nothing is left to show. */
+export type PublicReview = { name: string; rating: number; text: string; date: string; verified: boolean };
+export type PublicReviews = { avg: number; count: number; items: PublicReview[] };
+export const MAX_PUBLIC_REVIEWS = 60;
 export type PublicProductPage = {
   store: {
     slug: string;
@@ -24,6 +29,7 @@ export type PublicProductPage = {
   product: { name: string; price: number | null; images: string[] };
   variants: PublicVariant[];
   related: PublicRelated[];
+  reviews: PublicReviews;
 };
 
 type Db = SupabaseClient<Database>;
@@ -85,9 +91,11 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
   const settings = publicSettingsSchema.safeParse(store.settings);
   const set = settings.success ? settings.data : {};
 
-  const [variants, related] = await Promise.all([
+  const list = blocks.success ? blocks.data : [];
+  const [variants, related, reviews] = await Promise.all([
     loadVariants(db, product.id, product.stock),
-    loadRelated(db, store.id, store.workspace_id, blocks.success ? blocks.data : [], page.id),
+    loadRelated(db, store.id, store.workspace_id, list, page.id),
+    list.some((b) => b.type === "reviews") ? loadReviews(db, store.workspace_id, product.id) : Promise.resolve({ avg: 0, count: 0, items: [] }),
   ]);
 
   return {
@@ -111,6 +119,56 @@ export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow
     },
     variants,
     related,
+    reviews,
+  };
+}
+
+/** Approved reviews only. Summary comes from every approved rating (plain fetch, no aggregate); the list is the latest 60. */
+export async function loadReviews(db: Db, workspaceId: string, productId: string): Promise<PublicReviews> {
+  const base = () => db.from("reviews").select("rating").eq("workspace_id", workspaceId).eq("product_id", productId).eq("approved", true);
+  const [ratings, latest] = await Promise.all([
+    base(),
+    db
+      .from("reviews")
+      .select("name, rating, body, order_id, created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("product_id", productId)
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .limit(MAX_PUBLIC_REVIEWS),
+  ]);
+  if (ratings.error) throw new Error(`reviews summary failed: ${ratings.error.message}`);
+  if (latest.error) throw new Error(`reviews lookup failed: ${latest.error.message}`);
+  const count = ratings.data?.length ?? 0;
+  const avg = count ? (ratings.data ?? []).reduce((n, r) => n + r.rating, 0) / count : 0;
+
+  const orderIds = [...new Set((latest.data ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
+  const orders = new Map<string, { product_id: string | null; confirmation_status: string; excluded_reason: string | null }>();
+  if (orderIds.length) {
+    const { data, error } = await db
+      .from("orders")
+      .select("id, product_id, confirmation_status, excluded_reason")
+      .in("id", orderIds)
+      .eq("workspace_id", workspaceId);
+    if (error) throw new Error(`reviews orders lookup failed: ${error.message}`);
+    for (const o of data ?? []) orders.set(o.id, o);
+  }
+  return {
+    avg: Math.round(avg * 10) / 10,
+    count,
+    items: (latest.data ?? []).flatMap((r) => {
+      const text = stripEmoji(r.body);
+      if (!text) return [];
+      return [
+        {
+          name: publicReviewName(r.name),
+          rating: r.rating,
+          text,
+          date: r.created_at,
+          verified: isVerifiedOrder(r.order_id ? orders.get(r.order_id) : null, productId),
+        },
+      ];
+    }),
   };
 }
 
