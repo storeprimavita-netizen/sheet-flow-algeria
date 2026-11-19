@@ -249,7 +249,7 @@ export function DataTable<T>({
       ) : (
         <div className="card-surface overflow-x-auto">
           <table
-            className="w-full border-collapse text-sm"
+            className={cn("w-full border-collapse text-sm", focus >= 0 && tableFocused && "focus-visible:outline-none")}
             tabIndex={0}
             onKeyDown={onKeyDown}
             onFocus={() => setTableFocused(true)}
@@ -274,7 +274,8 @@ export function DataTable<T>({
                       "px-3 py-2 font-medium text-muted-foreground",
                       colStart(c),
                       c.width,
-                      c.sticky && "sticky start-0 z-20 border-e border-border bg-surface",
+                      c.sticky && "sticky start-0 z-20 bg-surface "
+                        + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                     )}
                   >
                     {c.sortable ? (
@@ -356,7 +357,8 @@ export function DataTable<T>({
                               colStart(c),
                               c.width,
                               c.numeric && "num",
-                              c.sticky && "sticky start-0 z-10 border-e border-border bg-(--row-bg) transition-colors",
+                              c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors "
+                                + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                             )}
                           >
                             {c.cell(row)}

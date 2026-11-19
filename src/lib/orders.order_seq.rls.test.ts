@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
@@ -10,6 +11,13 @@ const SERVICE_KEY =
   process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const PASSWORD = "SeedDev!2026";
+
+const psql = (sql: string) =>
+  execFileSync("docker", ["exec", "-i", "supabase_db_mnw-erp", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"], {
+    input: sql,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+  });
 
 const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -47,6 +55,7 @@ describe.skipIf(!URL)("orders.order_seq (live DB)", () => {
     if (!svc) return;
     for (const ws of workspaces) {
       await svc.from("orders").delete().eq("workspace_id", ws);
+      await svc.from("customers").delete().eq("workspace_id", ws);
       await svc.from("audit_log").delete().eq("workspace_id", ws);
       await svc.from("workspaces").delete().eq("id", ws);
     }
@@ -120,22 +129,95 @@ describe.skipIf(!URL)("orders.order_seq (live DB)", () => {
     expect(await counter(ws)).toBe(1);
   });
 
-  test("counter stays max+1 after plain inserts (fallback not reachable over REST)", async () => {
+  test("fallback: with the counter row gone, the next numbers are max+1, max+2 and the counter max+3", async () => {
     const ws = await newWorkspace();
-    for (let i = 0; i < 2; i++) await svc.from("orders").insert({ workspace_id: ws });
-    // the service role cannot write the counter; drop it through a cascade-free path: delete via workspace-less SQL is not available,
-    // so assert the normal path stays consistent instead of probing the fallback over REST.
-    expect(await seqs(ws)).toEqual([1, 2]);
-    expect(await counter(ws)).toBe(3);
+    for (let i = 0; i < 3; i++) expect((await svc.from("orders").insert({ workspace_id: ws })).error).toBeNull();
+    psql(`delete from public.order_counters where workspace_id = '${ws}';`);
+    expect(await svc.from("order_counters").select("next_seq").eq("workspace_id", ws).maybeSingle().then((r) => r.data)).toBeNull();
+    for (let i = 0; i < 2; i++) expect((await svc.from("orders").insert({ workspace_id: ws })).error).toBeNull();
+    expect(await seqs(ws)).toEqual([1, 2, 3, 4, 5]);
+    expect(await counter(ws)).toBe(6);
   });
 
   test("ON CONFLICT DO NOTHING burns a number (documented: do not upsert orders)", async () => {
     const ws = await newWorkspace();
     const row = { workspace_id: ws, source: "manual", external_id: "dup-1" };
     expect((await svc.from("orders").insert(row)).error).toBeNull();
-    await svc.from("orders").upsert(row, { onConflict: "workspace_id,source,external_id", ignoreDuplicates: true });
+    const up = await svc.from("orders").upsert(row, { onConflict: "workspace_id,source,external_id", ignoreDuplicates: true });
+    expect(up.error).toBeNull();
     expect(await seqs(ws)).toEqual([1]);
-    expect(await counter(ws)).toBeGreaterThanOrEqual(2);
+    expect(await counter(ws)).toBe(3);
+  });
+
+  test("swap_order: the replacement gets the next number, the original keeps its own", async () => {
+    const ws = await newWorkspace();
+    const admin = await newSession(ws, "admin");
+    const p = await svc.from("products").insert({ workspace_id: ws, name: `ord1-${crypto.randomUUID()}` }).select("id").single();
+    expect(p.error).toBeNull();
+    const o = await svc
+      .from("orders")
+      .insert({ workspace_id: ws, product_id: p.data!.id, quantity: 1, confirmation_status: "confirmed", delivery_status: "returned" })
+      .select("id, order_seq")
+      .single();
+    expect(o.error).toBeNull();
+    expect(o.data!.order_seq).toBe(1);
+    const r = await admin.rpc("swap_order", {
+      p_order_id: o.data!.id, p_customer_id: null as unknown as string, p_customer_name: "Swap Client", p_customer_phone: "0555000111",
+      p_wilaya_code: 16, p_commune: "x", p_address: "y",
+    });
+    expect(r.error).toBeNull();
+    const b = await svc.from("orders").select("order_seq").eq("id", r.data as string).single();
+    expect(b.data?.order_seq).toBe(2);
+    expect((await svc.from("orders").select("order_seq").eq("id", o.data!.id).single()).data?.order_seq).toBe(1);
+    expect(await counter(ws)).toBe(3);
+    await svc.from("stock_movements").delete().eq("workspace_id", ws);
+    await svc.from("orders").delete().eq("workspace_id", ws);
+    await svc.from("products").delete().eq("id", p.data!.id);
+  });
+
+  test("manual order insert from an admin session (what createOrder does) gets its number", async () => {
+    const ws = await newWorkspace();
+    const admin = await newSession(ws, "admin");
+    for (let i = 1; i <= 2; i++) {
+      const r = await admin
+        .from("orders")
+        .insert({ workspace_id: ws, source: "manual", placed_at: new Date().toISOString(), quantity: 1 })
+        .select("order_seq")
+        .single();
+      expect(r.error).toBeNull();
+      expect(r.data?.order_seq).toBe(i);
+    }
+    expect(await counter(ws)).toBe(3);
+  });
+
+  test("webhook: replayEvent numbers a new order; replaying the same event keeps the number and the counter", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = URL;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
+    const { replayEvent } = await import("./webhook");
+    const ws = await newWorkspace();
+    const ext = `seq-${crypto.randomUUID()}`;
+    const payload = {
+      id: ext, order_number: 1, total_price: "4000", created_at: "2026-01-01T00:00:00Z",
+      customer: { first_name: "A", last_name: "B", phone: "0555123456" },
+      line_items: [{ quantity: 1, title: "no-such-product-zzz" }],
+    };
+    const ev = await svc.from("webhook_events").insert({ workspace_id: ws, provider: "shopify", payload, signature_ok: true }).select("id").single();
+    expect(ev.error).toBeNull();
+    try {
+      expect((await replayEvent(ev.data!.id, ws)).ok).toBe(true);
+      const sel = () => svc.from("orders").select("id, order_seq, customer_id").eq("workspace_id", ws).eq("external_id", ext).single();
+      const first = (await sel()).data!;
+      expect(first.order_seq).toBe(1);
+      const after = await counter(ws);
+      expect(after).toBe(2);
+      expect((await replayEvent(ev.data!.id, ws)).ok).toBe(true);
+      expect((await sel()).data!.order_seq).toBe(1);
+      expect(await counter(ws)).toBe(after);
+    } finally {
+      await svc.from("orders").delete().eq("workspace_id", ws);
+      await svc.from("customers").delete().eq("workspace_id", ws);
+      await svc.from("webhook_events").delete().eq("workspace_id", ws);
+    }
   });
 
   test("insert with an unknown workspace fails with the FK error", async () => {
