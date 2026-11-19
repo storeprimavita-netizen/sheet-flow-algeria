@@ -78,7 +78,7 @@ export async function SeasonCompare({
       return { period: p, rates, failed: !!error || !rates };
     }),
   );
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Algiers" });
   const notEnough = t("statistics.notEnoughData");
 
   return (
@@ -113,6 +113,8 @@ export async function SeasonCompare({
                   <p className="text-foreground">{t("statistics.compare.yearError", { year: period.year })}</p>
                   <ButtonLink href={retryHref} size="sm">{t("statistics.retry")}</ButtonLink>
                 </div>
+              ) : rates.counts.received === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("statistics.compare.noOrders")}</p>
               ) : (
                 <dl className="space-y-2 text-xs">
                   <div className="flex items-baseline justify-between gap-2">

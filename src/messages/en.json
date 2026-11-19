@@ -1528,6 +1528,7 @@
       "inProgress": "In progress",
       "selected": "Selected",
       "yearError": "Couldn't load {year}.",
+      "noOrders": "No orders",
       "more": "Showing the latest {shown} of {total} years."
     }
   },

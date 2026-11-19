@@ -102,6 +102,8 @@ function SeasonCard({ season }: { season: Season }) {
             <Pencil className="h-3.5 w-3.5" />{t("rename")}
           </Button>
           <DeleteButton
+            variant="outline"
+            className="text-danger"
             table="seasons"
             id={season.id}
             redirectTo="/app/settings/seasons"
@@ -132,6 +134,8 @@ function SeasonCard({ season }: { season: Season }) {
                     <Pencil className="h-3.5 w-3.5" />{t("editPeriod")}
                   </Button>
                   <DeleteButton
+            variant="outline"
+                    className="text-danger"
                     table="season_periods"
                     id={p.id}
                     redirectTo="/app/settings/seasons"

@@ -153,14 +153,19 @@ begin
   on conflict (workspace_id, name) do nothing;
 end; $$;
 
--- existing workspaces get the six names too (idempotent)
-do $$
-declare w record;
-begin
-  for w in select id from public.workspaces loop
-    perform public.seed_workspace(w.id);
-  end loop;
-end; $$;
+-- existing workspaces get ONLY the six season names (idempotent; nothing else is re-seeded)
+insert into public.seasons (workspace_id, name, name_key, sort)
+select w.id, v.name, v.name_key, v.sort
+  from public.workspaces w
+ cross join (values
+    ('Ramadan',        'ramadan',       0),
+    ('Eid al-Fitr',    'eid_al_fitr',   1),
+    ('Eid al-Adha',    'eid_al_adha',   2),
+    ('Summer',         'summer',        3),
+    ('Back to school', 'back_to_school',4),
+    ('Winter',         'winter',        5)
+ ) as v(name, name_key, sort)
+on conflict (workspace_id, name) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- kpi_order_set with p_filters. Keys: category (option uuid text), wilaya,

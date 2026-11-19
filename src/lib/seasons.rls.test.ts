@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -189,6 +190,69 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
     expect((await admin.rpc("dashboard_stats", { p_from: DAY, p_to: DAY })).error).toBeNull();
   });
 
+  test("kpi functions give the same numbers with p_filters null, {} and the STATS-2 figures", async () => {
+    const p = await product();
+    await order(p);
+    await order(p, { delivery_status: "delivered" });
+    const base = { p_from: DAY, p_to: DAY };
+    const rates = async (f: unknown) => (await admin.rpc("kpi_set_rates", { ...base, p_product: [p], p_filters: f as never })).data;
+    expect(await rates({})).toEqual(await rates(null));
+    const lines = async (f: unknown) => {
+      const ids = (await admin.rpc("kpi_order_set", { ...base, p_product: [p], p_filters: f as never })).data!.map((r: { id: string }) => r.id);
+      return (await admin.rpc("kpi_lines", { p_order_ids: ids, p_from: DAY, p_to: DAY, p_product: [p], p_filtered: true })).data;
+    };
+    expect(await lines({})).toEqual(await lines(null));
+    // STATS-2 figure: kpi_lines over the same ids equals kpi_rates over them
+    const ids = (await admin.rpc("kpi_order_set", { ...base, p_product: [p] })).data!.map((r: { id: string }) => r.id);
+    expect((await admin.rpc("kpi_rates", { p_order_ids: ids, p_from: DAY, p_to: DAY })).data).toEqual(await rates(null));
+    for (const fn of ["kpi_summary", "pnl_summary"] as const) {
+      const r = await admin.rpc(fn, { ...base, p_product: p });
+      expect(r.error).toBeNull();
+      expect(r.data).toEqual((await admin.rpc(fn, { ...base, p_product: p })).data);
+    }
+    const d1 = await admin.rpc("dashboard_stats", base);
+    expect(d1.error).toBeNull();
+    expect(d1.data).toEqual((await admin.rpc("dashboard_stats", base)).data);
+  });
+
+  test("drill with filters returns the same orders as a direct query (category, agent, delivery_type)", async () => {
+    const cat = (await svc.from("option_sets").select("id").eq("workspace_id", ws).eq("key", "product_category").single()).data!.id;
+    const opt = (await svc.from("options").select("id").eq("set_id", cat).limit(1).single()).data!.id as string;
+    const pc = await product({ category_option_id: opt });
+    const a = await order(pc, { assigned_confirmation_agent: agentId, delivery_type: "home" });
+    await order(pc, { delivery_type: "stopdesk" });
+    await order(await product(), { assigned_confirmation_agent: agentId, delivery_type: "home" });
+    const drill = await admin.rpc("kpi_drill_orders", {
+      p_metric: "received", p_from: DAY, p_to: DAY, p_product: [pc], p_delivery_type: "home",
+      p_filters: { category: opt, agent: agentId },
+    });
+    const direct = await admin.from("orders").select("id").eq("product_id", pc).eq("assigned_confirmation_agent", agentId).eq("delivery_type", "home");
+    expect((drill.data ?? []).map((r: { id: string }) => r.id).sort()).toEqual((direct.data ?? []).map((r: { id: string }) => r.id).sort());
+    expect(drill.data!.map((r: { id: string }) => r.id)).toEqual([a]);
+  });
+
+  test("the 00061 backfill seeds only the six seasons on an existing workspace", async () => {
+    const w3 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id as string;
+    try {
+      // a workspace with one option set but no product_category and no settings: the old backfill aborted here
+      expect((await svc.from("option_sets").insert({ workspace_id: w3, key: "order_tag", label: "Tags", allows_multi: true })).error).toBeNull();
+      const sql = readFileSync("supabase/migrations/00061_seasons.sql", "utf8");
+      const start = sql.indexOf("insert into public.seasons (workspace_id, name, name_key, sort)\nselect w.id");
+      const backfill = sql.slice(start, sql.indexOf(";", start) + 1);
+      expect(start).toBeGreaterThan(-1);
+      psql(backfill);
+      psql(backfill); // idempotent
+      expect((await svc.from("seasons").select("id").eq("workspace_id", w3)).data!.length).toBe(6);
+      expect((await svc.from("settings").select("key").eq("workspace_id", w3)).data).toEqual([]);
+      expect((await svc.from("wilaya_fees").select("wilaya_code").eq("workspace_id", w3)).data).toEqual([]);
+      expect((await svc.from("option_sets").select("key").eq("workspace_id", w3)).data!.length).toBe(1);
+    } finally {
+      await svc.from("seasons").delete().eq("workspace_id", w3);
+      await svc.from("option_sets").delete().eq("workspace_id", w3);
+      await deleteWorkspaces(svc, [w3]);
+    }
+  });
+
   test("seed_workspace twice leaves six seasons", async () => {
     const { data } = await admin.from("seasons").select("name, name_key");
     expect(data!.length).toBe(6);
@@ -233,7 +297,9 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
     const s = await season(tag());
     const r = await ws2Admin.from("season_periods").insert({ workspace_id: ws2, season_id: s.data!.id, year: 2026, date_from: "2026-01-01", date_to: "2026-01-02" });
     expect(r.error).not.toBeNull();
-    const r2 = await admin.from("season_periods").insert({ workspace_id: ws2, season_id: s.data!.id, year: 2026, date_from: "2026-01-01", date_to: "2026-01-02" });
+    const r2 = await svc.from("season_periods").insert({ workspace_id: ws2, season_id: s.data!.id, year: 2026, date_from: "2026-01-01", date_to: "2026-01-02" });
     expect(r2.error).not.toBeNull();
+    // FK violation (23503), not a unique clash (23505): guards the 00062 composite unique
+    expect(r2.error!.code).toBe("23503");
   });
 });

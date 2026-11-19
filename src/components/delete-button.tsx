@@ -17,6 +17,7 @@ export function DeleteButton({
   className,
   label,
   confirmText,
+  variant = "destructive",
 }: {
   table: DeletableTable;
   id: string;
@@ -25,6 +26,7 @@ export function DeleteButton({
   /** accessible name that tells identical buttons apart */
   label?: string;
   confirmText?: string;
+  variant?: "destructive" | "outline" | "ghost";
 }) {
   const router = useRouter();
   const t = useTranslations();
@@ -47,7 +49,7 @@ export function DeleteButton({
   return (
     <Button
       type="button"
-      variant="destructive"
+      variant={variant}
       size="sm"
       className={className}
       aria-label={label}

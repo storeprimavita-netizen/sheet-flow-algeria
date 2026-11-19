@@ -1528,6 +1528,7 @@
       "inProgress": "قيد التقدم",
       "selected": "المحدد",
       "yearError": "تعذّر تحميل {year}.",
+      "noOrders": "لا توجد طلبات",
       "more": "عرض أحدث {shown} من {total} سنوات."
     }
   },
