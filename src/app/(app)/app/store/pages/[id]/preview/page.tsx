@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { OrderForm } from "@/components/store/order-form";
+import { orderFormStrings } from "@/components/store/order-form-strings";
+import { WILAYAS } from "@/lib/store/wilayas";
+import { PreviewFrame } from "./preview-frame";
 import { ProductView } from "@/components/store/product-view";
 import { ButtonLink } from "@/components/button-link";
 import { assembleProductPage } from "@/lib/store/data";
@@ -29,6 +33,21 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
   ]);
   if (!store || !product) notFound();
   const dto = await assembleProductPage(supabase, store, page, product);
+  const form = (
+    <OrderForm
+      action={`/s/${dto.store.slug}/${dto.page.slug}/order`}
+      strings={orderFormStrings()}
+      variants={dto.variants}
+      basePrice={dto.product.price}
+      offers={dto.offers}
+      bump={dto.bump}
+      fields={dto.form.fields}
+      deliveryMethods={dto.form.deliveryMethods}
+      wilayas={WILAYAS}
+      pricingMode={dto.product.pricingMode}
+      stickyCta
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -39,9 +58,11 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
       <ButtonLink href={`/app/store/pages/${id}`} variant="outline" size="sm">
         {t("editor.title")}
       </ButtonLink>
-      <div className="store-root overflow-hidden rounded-xl border border-border" dir="rtl" lang="ar">
-        <ProductView dto={dto} />
-      </div>
+      <PreviewFrame>
+        <div className="store-root overflow-hidden rounded-xl border border-border" dir="rtl" lang="ar">
+          <ProductView dto={dto} orderSlot={form} />
+        </div>
+      </PreviewFrame>
     </div>
   );
 }

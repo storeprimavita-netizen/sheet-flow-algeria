@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { comparePrice, lowestPrice, offerCharge, offerSaving, unitPrice, visibleOffers, type SizePriceInput } from "./offer-price";
+import { comparePrice, lowestPrice, piecesCharge, offerCharge, offerSaving, unitPrice, visibleOffers, type SizePriceInput } from "./offer-price";
 import { sizeInStock } from "./variant-stock";
 
 const base: SizePriceInput = { mode: "uniform", basePrice: 5000, compareAt: null, valueDeltas: [], override: null, compareOverride: null };
@@ -58,6 +58,18 @@ describe("offers", () => {
   test("lowestPrice skips unsellable sizes", () => {
     expect(lowestPrice([null, 5200, 4800])).toBe(4800);
     expect(lowestPrice([null])).toBeNull();
+  });
+});
+
+describe("piecesCharge (mixed sizes)", () => {
+  const o = { qty: 2, total: 9000 };
+  test("pays the offer total, capped at the pieces one by one", () => {
+    expect(piecesCharge([5000, 5000], o)).toEqual({ subtotal: 10000, charge: 9000, saving: 1000 });
+    expect(piecesCharge([5000, 4000], o)).toEqual({ subtotal: 9000, charge: 9000, saving: 0 });
+    expect(piecesCharge([3000, 4000], o)).toEqual({ subtotal: 7000, charge: 7000, saving: 0 });
+  });
+  test("wrong number of pieces never applies the offer", () => {
+    expect(piecesCharge([5000], o)).toEqual({ subtotal: 5000, charge: 5000, saving: 0 });
   });
 });
 

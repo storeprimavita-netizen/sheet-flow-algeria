@@ -75,3 +75,15 @@ export function lowestPrice(prices: (number | null)[]): number | null {
   const ok = prices.filter((p): p is number => p !== null);
   return ok.length ? Math.min(...ok) : null;
 }
+
+/**
+ * Mixed sizes: `units` is the unit price of each of the offer's pieces (one entry per piece, each size's own
+ * price). The visitor pays the offer total, never more than the pieces one by one. Same rule as `offerCharge`
+ * when every piece costs the same.
+ */
+export function piecesCharge(units: number[], offer: Pick<OfferInput, "qty" | "total">): { subtotal: number; charge: number; saving: number } {
+  const subtotal = units.reduce((a, b) => a + b, 0);
+  if (units.length !== offer.qty) return { subtotal, charge: subtotal, saving: 0 };
+  const charge = Math.min(Math.round(offer.total), subtotal);
+  return { subtotal, charge, saving: subtotal - charge };
+}

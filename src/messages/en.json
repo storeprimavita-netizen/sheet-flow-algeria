@@ -1462,8 +1462,59 @@
             "stopdesk": "Stop desk pickup"
           },
           "deliveryHint": "At least one method stays on. Delivery prices are added when orders open."
+        },
+        "preview": {
+          "label": "Preview, not live",
+          "note": "Orders are not sent from this preview.",
+          "narrow": "Phone width (390)",
+          "wide": "Full width"
         }
       }
+    },
+    "order": {
+      "title": "Order now",
+      "lead": "Fill in your details and we will call you to confirm the order.",
+      "soonTitle": "Orders open soon",
+      "soonBody": "We are getting the order form ready. Come back shortly or contact us on WhatsApp.",
+      "sizeLabel": "Size",
+      "chooseSize": "Choose a size",
+      "offersTitle": "Choose a quantity",
+      "single": "One piece",
+      "offerSave": "Save {n}",
+      "piece": "Piece {n}",
+      "sameSize": "Same size for all pieces",
+      "startingFrom": "From {price}",
+      "savePct": "Save {pct}%",
+      "fields": {
+        "name": "Full name",
+        "phone": "Phone number",
+        "wilaya": "Wilaya",
+        "commune": "Commune",
+        "delivery": "Delivery method",
+        "note": "Note",
+        "email": "Email",
+        "chooseWilaya": "Choose your wilaya",
+        "home": "To your home",
+        "stopdesk": "To a delivery desk (Stop desk)",
+        "optional": "optional",
+        "choose": "Choose"
+      },
+      "errors": {
+        "required": "This field is required.",
+        "phone": "The phone number must start with 05, 06 or 07 and have 10 digits.",
+        "email": "The email address is not valid.",
+        "size": "Choose a size.",
+        "delivery": "Choose a delivery method."
+      },
+      "summary": {
+        "product": "Product price",
+        "saving": "Saving",
+        "total": "Total",
+        "deliveryNote": "The delivery price is added when the order is confirmed."
+      },
+      "bumpAdd": "Add {name}",
+      "submit": "Order now",
+      "cod": "Cash on delivery"
     }
   },
   "notFoundPage": {
