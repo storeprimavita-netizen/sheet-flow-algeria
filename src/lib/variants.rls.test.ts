@@ -437,7 +437,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     // the two-writer race is not reproducible in a single-connection test: the lock is covered by reasoning (same hashtext key in both functions)
   });
 
-  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option after sizes exist is refused", async () => {
+  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option without a backfill value is refused (VAR-1: was stale)", async () => {
     const p = await bare();
     const o = uid(), s = uid(), m = uid();
     const tabA: Cfg = { options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }], variants: [] };
@@ -459,7 +459,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect(await counts(p)).toEqual({ options: 2, variants: 2 });
     // a new option once sizes exist
     const extra: Cfg = { ...tabB, options: [...tabB.options, { id: uid(), name: "Fit", values: [{ id: uid(), label: "Slim" }] }] };
-    expect((await save(adminUser, p, extra)).error?.message).toBe("stale");
+    expect((await save(adminUser, p, extra)).error?.message).toBe("incomplete size");
     expect(await counts(p)).toEqual({ options: 2, variants: 2 });
   });
 

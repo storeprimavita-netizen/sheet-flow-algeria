@@ -677,14 +677,14 @@ isOneToOne: false
                   ]
                 },"product_option_values": {
                   Row: {
-                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"product_id": string,"swatch_color": string | null,"swatch_image": string | null,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"product_id": string,"swatch_color"?: string | null,"swatch_image"?: string | null,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"product_id"?: string,"swatch_color"?: string | null,"swatch_image"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -733,14 +733,14 @@ isOneToOne: false
                   ]
                 },"product_options": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                    "created_at": string,"id": string,"kind": string,"name": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"id"?: string,"kind"?: string,"name": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"id"?: string,"kind"?: string,"name"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1181,6 +1181,26 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "settings_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"size_sets": {
+                  Row: {
+                    "created_at": string,"id": string,"items": (string)[],"name": string,"position": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"items": (string)[],"name": string,"position"?: number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"items"?: (string)[],"name"?: string,"position"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "size_sets_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
@@ -1772,6 +1792,9 @@ isOneToOne: false
                            },
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined
+                           },
+"size_set_items_ok":
+{ Args: { "p_items": (string)[] }; Returns: boolean
                            },
 "stock_count_variants":
 { Args: { "p_counts": Json,"p_product": string }; Returns: number
