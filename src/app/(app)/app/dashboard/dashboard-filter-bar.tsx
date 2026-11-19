@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
+import { DASHBOARD_PERSIST_KEYS, pickParams } from "@/lib/query-string";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import type { StatusToken } from "@/lib/statuses";
@@ -34,7 +35,7 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
     if (restored.current) return;
     restored.current = true;
     if (sp.toString()) return; // explicit URL wins over the remembered one
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = pickParams(localStorage.getItem(STORAGE_KEY) ?? "", DASHBOARD_PERSIST_KEYS); // own keys only
     if (saved) router.replace(`${pathname}?${saved}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
