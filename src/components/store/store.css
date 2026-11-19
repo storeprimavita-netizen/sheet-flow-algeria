@@ -61,6 +61,9 @@ body.store-root { margin: 0; }
   min-block-size: var(--tap); min-inline-size: var(--tap); padding-inline: var(--space-4); display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--line-strong); border-radius: var(--radius-pill); background: var(--surface-200);
 }
+.store-size { gap: var(--space-2); }
+.store-dot { inline-size: 1.25rem; block-size: 1.25rem; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--swatch, var(--surface-300)); object-fit: cover; flex: none; }
+.store-size[data-out="true"] .store-dot { opacity: .5; }
 .store-size[data-out="true"] { color: var(--ink-muted); text-decoration: line-through; border-style: dashed; }
 .store-label { font-weight: 500; font-size: var(--text-small); color: var(--ink-muted); }
 

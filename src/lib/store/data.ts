@@ -12,7 +12,10 @@ import { isVerifiedOrder, publicReviewName } from "./reviews";
 import { instagramLink, publicSettingsSchema, waLink } from "./settings";
 import { isHttps, slugSchema, storeSlugSchema, stripEmoji } from "./url";
 
-export type PublicVariant = { label: string; inStock: boolean };
+export type PublicSwatch = { color: string | null; image: string | null };
+export type PublicOptionValue = { label: string; swatch: PublicSwatch | null; inStock: boolean };
+/** One chip row per option (Size, Color...). A value is in stock when any active size with it has stock. */
+export type PublicVariant = { name: string; kind: "text" | "color"; values: PublicOptionValue[] };
 export type PublicRelated = { slug: string; title: string; image: string | null; price: number };
 /** No ids: nothing here can be traced back to a customer, an order or a workspace. `name` is "" when nothing is left to show. */
 export type PublicReview = { name: string; rating: number; text: string; date: string; verified: boolean };
@@ -196,25 +199,35 @@ export async function loadReviews(db: Db, workspaceId: string, productId: string
 /** D54.4: a size is out only when its own count plus the product's not-assigned pieces are used up. */
 async function loadVariants(db: Db, productId: string, productStock: number): Promise<PublicVariant[]> {
   const [opts, vals, vars, joins] = await Promise.all([
-    db.from("product_options").select("id, position").eq("product_id", productId),
-    db.from("product_option_values").select("id, label").eq("product_id", productId),
+    db.from("product_options").select("id, name, kind, position").eq("product_id", productId).order("position"),
+    db.from("product_option_values").select("id, option_id, label, position, swatch_color, swatch_image").eq("product_id", productId).order("position"),
     db.from("product_variants").select("id, stock, is_active").eq("product_id", productId),
     db.from("product_variant_values").select("variant_id, option_id, value_id").eq("product_id", productId),
   ]);
   const failed = [opts, vals, vars, joins].find((r) => r.error);
   if (failed?.error) throw new Error(`variants lookup failed: ${failed.error.message}`);
-  const pos = new Map((opts.data ?? []).map((o) => [o.id, o.position]));
-  const label = new Map((vals.data ?? []).map((v) => [v.id, v.label]));
   const unassigned = productStock - (vars.data ?? []).reduce((n, v) => n + v.stock, 0);
-  return (vars.data ?? []).filter((v) => v.is_active).flatMap((v) => {
-    const parts = (joins.data ?? [])
-      .filter((j) => j.variant_id === v.id)
-      .sort((a, b) => (pos.get(a.option_id) ?? 0) - (pos.get(b.option_id) ?? 0))
-      .map((j) => label.get(j.value_id))
-      .filter((l): l is string => !!l);
-    return parts.length ? [{ label: parts.join(" / "), inStock: v.stock + Math.max(0, unassigned) > 0 }] : [];
+  // value id -> in stock, over active sizes that carry the value
+  const stockOf = new Map<string, boolean>();
+  for (const v of (vars.data ?? []).filter((x) => x.is_active)) {
+    const has = v.stock + Math.max(0, unassigned) > 0;
+    for (const j of (joins.data ?? []).filter((x) => x.variant_id === v.id)) stockOf.set(j.value_id, (stockOf.get(j.value_id) ?? false) || has);
+  }
+  return (opts.data ?? []).flatMap((o) => {
+    const values = (vals.data ?? [])
+      .filter((v) => v.option_id === o.id && stockOf.has(v.id))
+      .map((v): PublicOptionValue => {
+        // a photo swatch is only ever drawn as <img src>; both are re-validated here, never trusted from the row
+        const image = o.kind === "color" && v.swatch_image && isHttps(v.swatch_image) && SAFE_SWATCH_URL.test(v.swatch_image) ? v.swatch_image : null;
+        const color = o.kind === "color" && !image && v.swatch_color && HEX.test(v.swatch_color) ? v.swatch_color : null;
+        return { label: v.label, swatch: image || color ? { color, image } : null, inStock: stockOf.get(v.id) ?? false };
+      });
+    return values.length ? [{ name: o.name, kind: o.kind === "color" ? ("color" as const) : ("text" as const), values }] : [];
   });
 }
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const SAFE_SWATCH_URL = /^https:\/\/[^\s"'()<>\\]{1,2040}$/;
 
 async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks: Block[], selfId?: string): Promise<PublicRelated[]> {
   const ids = blocks.flatMap((b) => (b.type === "related" ? b.pageIds : [])).filter((id) => id !== selfId).slice(0, 6);

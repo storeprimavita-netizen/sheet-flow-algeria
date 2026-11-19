@@ -1,3 +1,4 @@
+import type * as React from "react";
 import Link from "next/link";
 
 import { formatCurrency } from "@/lib/format";
@@ -80,19 +81,25 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
             {hasReviews && dto.reviews.count > 0 && dto.reviews.items.length > 0 ? <RatingLine reviews={dto.reviews} /> : null}
             <hr className="store-rule" />
             <p className="store-price store-price-row">{formatCurrency(dto.product.price, unit)}</p>
-            {dto.variants.length > 0 ? (
-              <div>
-                <p className="store-label">{st("sizes")}</p>
+            {dto.variants.map((o) => (
+              <div key={o.name}>
+                <p className="store-label"><bdi>{o.name}</bdi></p>
                 <ul className="store-sizes">
-                  {dto.variants.map((v) => (
+                  {o.values.map((v) => (
                     <li key={v.label} className="store-size" data-out={!v.inStock}>
+                      {v.swatch?.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- plain img by design: never background-image
+                        <img className="store-dot" src={v.swatch.image} alt="" width={20} height={20} loading="lazy" />
+                      ) : v.swatch?.color ? (
+                        <span className="store-dot" aria-hidden="true" style={{ "--swatch": v.swatch.color } as React.CSSProperties} />
+                      ) : null}
                       <bdi>{v.label}</bdi>
                       {v.inStock ? null : <span className="store-sr">{st("outOfStock")}</span>}
                     </li>
                   ))}
                 </ul>
               </div>
-            ) : null}
+            ))}
             {/* order form slot (STORE-3) */}
             <div id="order" hidden />
           </div>

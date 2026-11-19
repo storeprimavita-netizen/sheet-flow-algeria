@@ -48,8 +48,9 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(Object.keys(dto!.store).sort()).toEqual(["name", "settings", "slug", "theme"]);
     expect(Object.keys(dto!.page).sort()).toEqual(["blocks", "seo", "slug", "title"]);
     expect(Object.keys(dto!.product).sort()).toEqual(["images", "name", "price"]);
-    expect(dto!.variants).toEqual([{ label: "M", inStock: false }]);
-    expect(Object.keys(dto!.variants[0]).sort()).toEqual(["inStock", "label"]);
+    expect(dto!.variants).toEqual([{ name: "Size", kind: "text", values: [{ label: "M", swatch: null, inStock: false }] }]);
+    expect(Object.keys(dto!.variants[0]).sort()).toEqual(["kind", "name", "values"]);
+    expect(Object.keys(dto!.variants[0].values[0]).sort()).toEqual(["inStock", "label", "swatch"]);
     expect(dto!.product.name).toBe("عباية");
     expect(dto!.product.images).toEqual(["https://x.com/a.jpg"]); // DAL drops non-https image
     expect(JSON.stringify(dto)).not.toMatch(/SECRET|workspace_id|cost|"id"/);
@@ -66,7 +67,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     };
     const m = await mk("M");
     await mk("L");
-    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
+    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.flatMap((o) => o.values).map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
     const move = async (delta: number, variantId?: string) => {
       const { error } = await svc.from("stock_movements").insert({ workspace_id: ws, product_id: product.id, variant_id: variantId ?? null, delta, reason: "purchase" });
       expect(error).toBeNull();
@@ -97,7 +98,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
       const { error } = await svc.from("stock_movements").insert({ workspace_id: ws, product_id: product.id, variant_id: variantId ?? null, delta, reason: "purchase" });
       expect(error).toBeNull();
     };
-    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
+    const stock = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.flatMap((o) => o.values).map((v) => [v.label, v.inStock]).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
     return { ids, move, stock, store };
   }
 
@@ -120,7 +121,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     await move(10, ids.L);
     await svc.from("product_variants").update({ is_active: false }).eq("id", ids.L);
     expect(await stock()).toEqual([["M", false]]);
-    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => v.label)).toEqual(["M"]);
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.flatMap((o) => o.values).map((v) => v.label)).toEqual(["M"]);
   });
 
   test("unpublished page 404", async () => {
@@ -249,5 +250,37 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
       expect(await loadPublicProductPage(fake, s, p)).toBeNull();
     }
     expect(from).not.toHaveBeenCalled();
+  });
+
+  test("colour option: swatch in the DTO, no cost field; a bad swatch URL is dropped; text option never carries a swatch", async () => {
+    const { store, product } = await setup();
+    const mkOpt = async (name: string, kind: string) => (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name, kind }).select("id").single()).data!.id as string;
+    const so = await mkOpt("Size", "text");
+    const co = await mkOpt("Color", "color");
+    const val = async (option_id: string, label: string, extra: Record<string, unknown> = {}) =>
+      (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id, label, ...extra }).select("id").single()).data!.id as string;
+    const m = await val(so, "M");
+    const red = await val(co, "Red", { swatch_color: "#ff0000", position: 0 });
+    const photo = await val(co, "Floral", { swatch_image: "https://cdn.example.com/f.jpg", position: 1 });
+    const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id, sku: "SECRET" }).select("id").single()).data!.id as string;
+    await svc.from("product_variant_values").insert([
+      { variant_id: x, option_id: so, value_id: m, product_id: product.id, workspace_id: ws },
+      { variant_id: x, option_id: co, value_id: red, product_id: product.id, workspace_id: ws },
+    ]);
+    const y = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id }).select("id").single()).data!.id as string;
+    await svc.from("product_variant_values").insert([
+      { variant_id: y, option_id: so, value_id: m, product_id: product.id, workspace_id: ws },
+      { variant_id: y, option_id: co, value_id: photo, product_id: product.id, workspace_id: ws },
+    ]);
+    const dto = await loadPublicProductPage(svc, store.slug, "abaya");
+    const color = dto!.variants.find((o) => o.kind === "color")!;
+    expect(color.values).toEqual([
+      { label: "Red", swatch: { color: "#ff0000", image: null }, inStock: false },
+      { label: "Floral", swatch: { color: null, image: "https://cdn.example.com/f.jpg" }, inStock: false },
+    ]);
+    expect(JSON.stringify(dto)).not.toMatch(/SECRET|workspace_id|cost|"id"/);
+    // the DB refuses a hostile URL; a swatch on a text option is refused too
+    expect((await svc.from("product_option_values").update({ swatch_image: "https://a/x.png);position:fixed" }).eq("id", photo)).error).not.toBeNull();
+    expect((await svc.from("product_option_values").update({ swatch_color: "#00ff00" }).eq("id", m)).error).not.toBeNull();
   });
 });
