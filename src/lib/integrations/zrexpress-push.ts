@@ -59,7 +59,7 @@ export async function pushToZR(
   if (feeRow) {
     if (!feeRow.priced) return { ok: false, error: "This wilaya has no delivery price, so orders cannot be sent." };
     if (deliveryFeeFor(feeRow, order.delivery_type) === null) {
-      if (order.delivery_fee == null) {
+      if (!(Number(order.delivery_fee) > 0)) {
         return { ok: false, error: "This delivery type is not available in this wilaya." };
       }
       console.warn(`pushToZR: order ${orderId} uses a delivery type no longer available in wilaya ${order.wilaya_code}`);

@@ -392,7 +392,7 @@ export type OrderFormState = { error: string } | undefined;
 
 export async function createOrder(formData: FormData): Promise<OrderFormState> {
   const { workspaceId } = await adminProfile();
-  const input = createOrderSchema.parse({
+  const parsed = createOrderSchema.safeParse({
     product_id: formData.get("product_id"),
     variant_id: formData.get("variant_id"),
     quantity: formData.get("quantity"),
@@ -406,6 +406,8 @@ export async function createOrder(formData: FormData): Promise<OrderFormState> {
     delivery_fee: formData.get("delivery_fee"),
     delivery_fee_source: formData.get("delivery_fee_source"),
   });
+  if (!parsed.success) return { error: "invalid" };
+  const input = parsed.data;
 
   const supabase = await createClient();
   const { data: feeRow } = await supabase

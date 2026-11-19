@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 import { useActionState } from "react";
+import { useSubmitAction } from "@/lib/use-submit-action";
 import { swapOrder } from "../actions";
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function SwapCard({
   const t = useTranslations("orders.swap");
   const tOrders = useTranslations("orders");
   const [state, formAction] = useActionState<{ error: string } | undefined, FormData>((_prev, fd) => swapOrder(orderId, fd), undefined);
+  const onSubmit = useSubmitAction(formAction);
   const canSwap = !swappedTo && SWAPPABLE.has(deliveryStatus);
   if (!swappedTo && !swappedFrom && !canSwap) return null; // nothing to show → no empty card
 
@@ -49,7 +51,7 @@ export function SwapCard({
       {canSwap ? (
         <details>
           <summary className="cursor-pointer text-sm font-medium">{t("title")}</summary>
-          <form action={formAction} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <form onSubmit={onSubmit} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t("customerName")} htmlFor="swap-name">
               <Input id="swap-name" name="customer_name" required />
             </Field>

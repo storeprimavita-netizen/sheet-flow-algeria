@@ -79,6 +79,14 @@ describe("createOrder availability guard (server side)", () => {
     expect(insert).not.toHaveBeenCalled();
   });
 
+  test("no product returns an error instead of throwing", async () => {
+    feeRow = row();
+    const f = form("home");
+    f.set("product_id", "");
+    expect(await createOrder(f)).toEqual({ error: "invalid" });
+    expect(insert).not.toHaveBeenCalled();
+  });
+
   test("allows home in a home-only wilaya", async () => {
     feeRow = row({ stopdesk_available: false });
     await expect(createOrder(form("home"))).rejects.toThrow("REDIRECT:/app/orders/new-order");

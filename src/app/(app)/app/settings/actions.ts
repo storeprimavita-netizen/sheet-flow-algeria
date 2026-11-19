@@ -248,7 +248,7 @@ export async function setZRAutoPush(enabled: boolean): Promise<{ ok: true } | { 
 
 /** Pull ZR's effective per-wilaya prices into wilaya_fees (home + stop desk).
  * Only wilaya-level territories with a code; missing prices keep the old fee. */
-export async function syncZRFees(): Promise<{ ok: true; updated: number } | { ok: false; error: string }> {
+export async function syncZRFees(): Promise<{ ok: true; updated: number; off: number } | { ok: false; error: string }> {
   const { workspaceId } = await adminProfile();
   const supabase = await createClient();
   let rates;
@@ -258,18 +258,21 @@ export async function syncZRFees(): Promise<{ ok: true; updated: number } | { ok
     return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
   }
   const [{ data: current }, { data: wilayas }] = await Promise.all([
-    supabase.from("wilaya_fees").select("wilaya_code, home_fee, stopdesk_fee").eq("workspace_id", workspaceId),
+    supabase.from("wilaya_fees").select("wilaya_code, home_fee, stopdesk_fee, priced").eq("workspace_id", workspaceId),
     supabase.from("wilayas").select("code"),
   ]);
   const byCode = new Map((current ?? []).map((r) => [r.wilaya_code, r]));
   const known = new Set((wilayas ?? []).map((w) => w.code)); // FK: codes ZR knows but our wilayas table doesn't are skipped
+  // D62: prices only, never `priced` / `stopdesk_available` / `stop_shipping`. A ZR price that is
+  // missing or not above 0 is ignored (0 is never a price) and the stored price is kept.
+  const positive = (n: number | null | undefined) => (n != null && n > 0 ? n : null);
   const rows = rates
-    .filter((r) => r.territoryCode != null && (!r.level || /wilaya|city|state/i.test(r.level)) && (r.home != null || r.stopdesk != null))
+    .filter((r) => r.territoryCode != null && (!r.level || /wilaya|city|state/i.test(r.level)) && (positive(r.home) !== null || positive(r.stopdesk) !== null))
     .map((r) => ({
       workspace_id: workspaceId,
       wilaya_code: r.territoryCode!,
-      home_fee: r.home ?? byCode.get(r.territoryCode!)?.home_fee ?? 0,
-      stopdesk_fee: r.stopdesk ?? byCode.get(r.territoryCode!)?.stopdesk_fee ?? 0,
+      home_fee: positive(r.home) ?? byCode.get(r.territoryCode!)?.home_fee ?? 0,
+      stopdesk_fee: positive(r.stopdesk) ?? byCode.get(r.territoryCode!)?.stopdesk_fee ?? 0,
     }))
     .filter((r) => known.has(r.wilaya_code));
   if (rows.length) {
@@ -277,7 +280,8 @@ export async function syncZRFees(): Promise<{ ok: true; updated: number } | { ok
     if (error) return { ok: false, error: error.message };
   }
   revalidatePath("/app/settings");
-  return { ok: true, updated: rows.length };
+  const off = rows.filter((r) => !byCode.get(r.wilaya_code)?.priced).length;
+  return { ok: true, updated: rows.length, off };
 }
 
 // ---------------------------------------------------------------------------
@@ -345,13 +349,8 @@ export async function saveWilayaFees(formData: FormData): Promise<FeesSaveState>
 
   if (invalid) return { error: "errInvalid" };
 
-  // Re-enabling a wilaya (or its stop desk) must not go live at the 0 DZD stored while it was off.
-  const zeroOn = rows.filter((n) => {
-    const r = stored.find((x) => x.wilaya_code === n.wilaya_code)!;
-    const homeOn = n.priced && !r.priced;
-    const deskOn = n.priced && n.stopdesk_available && (!r.priced || !r.stopdesk_available);
-    return (homeOn && n.home_fee <= 0) || (deskOn && n.stopdesk_fee <= 0);
-  });
+  // 0 is never a price (D62): every row about to be written is checked, not only a wilaya being switched on.
+  const zeroOn = rows.filter((n) => n.priced && (n.home_fee <= 0 || (n.stopdesk_available && n.stopdesk_fee <= 0)));
   if (zeroOn.length) return { error: "errNeedFee", codes: zeroOn.map((n) => n.wilaya_code) };
 
   if (rows.length) {

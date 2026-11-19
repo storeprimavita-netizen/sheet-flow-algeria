@@ -9,7 +9,8 @@ export type DeliveryWarningType =
   | "duplicate_commune"
   | "malformed_row"
   | "unknown_label"
-  | "duplicate_wilaya";
+  | "duplicate_wilaya"
+  | "zero_price";
 
 export type DeliveryWarning = {
   type: DeliveryWarningType;
@@ -128,6 +129,11 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
           const fee = Number(part.slice(i + 1).trim());
           if (!Number.isFinite(fee) || fee < 0 || part.slice(i + 1).trim() === "") {
             warnings.push({ type: "malformed_row", code, text: part });
+            continue;
+          }
+          if (fee <= 0) {
+            // 0 is never a price (D62): that type is not offered
+            warnings.push({ type: "zero_price", code, text: norm(label) });
             continue;
           }
           let k = labelKind(label);

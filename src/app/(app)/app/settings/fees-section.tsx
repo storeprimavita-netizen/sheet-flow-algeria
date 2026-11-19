@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { MoneyField } from "@/components/fields/money-field";
 import { tableClass } from "@/components/field";
 import { cn } from "@/lib/utils";
+import { useSubmitAction } from "@/lib/use-submit-action";
 import { saveWilayaFees, type FeesSaveState } from "./actions";
 import { FeesCsvDialog } from "./fees-csv-dialog";
 
@@ -37,6 +38,7 @@ export function FeesSection({
   // re-key rows after a CSV apply so uncontrolled inputs pick up new defaults
   const gridKey = snapshot + rows.length;
   const [state, formAction] = React.useActionState<FeesSaveState, FormData>((_prev, fd) => saveWilayaFees(fd), undefined);
+  const onSubmit = useSubmitAction(formAction);
   const nameOf = (code: number) => rows.find((r) => r.wilaya_code === code)?.wilaya?.name ?? String(code);
 
   return (
@@ -52,7 +54,7 @@ export function FeesSection({
         </p>
       </div>
 
-      <form key={gridKey} action={formAction} className="space-y-4">
+      <form key={gridKey} onSubmit={onSubmit} className="space-y-4">
         <input type="hidden" name="snapshot" value={snapshot} />
         <div className="md:max-h-[28rem] md:overflow-auto">
           <table className={cn(tableClass, "max-md:block [&_tbody]:max-md:block [&_tr]:max-md:block")}>

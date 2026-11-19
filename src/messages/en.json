@@ -446,7 +446,8 @@
         "type_unavailable": "This delivery type is not available in this wilaya."
       },
       "saveBlocked": "Choose another wilaya or delivery type to save.",
-      "createFailed": "The order could not be saved. Refresh the page and try again."
+      "createFailed": "The order could not be saved. Refresh the page and try again.",
+      "invalid": "Check the order: choose a product and fill in every required field."
     }
   },
   "expenses": {
@@ -748,7 +749,7 @@
       "autoPush": "Send to ZR automatically on confirm",
       "autoPushHint": "When an order is confirmed, create its ZR parcel right away (stop desk: only when the wilaya has a single hub).",
       "syncFees": "Sync delivery fees from ZR",
-      "feesSynced": "{n} wilaya fees updated from ZR",
+      "feesSynced": "{n, plural, one {# price updated from ZR.} other {# prices updated from ZR.}}{off, plural, =0 {} one { # wilaya still has shipping off: turn it on in Delivery fees or upload your price sheet.} other { # wilayas still have shipping off: turn them on in Delivery fees or upload your price sheet.}}",
       "noStates": "No ZR statuses seen yet — they appear here as parcels move.",
       "sendToZR": "Send to ZR",
       "bulkSent": "{sent} sent to ZR, {failed} failed",
@@ -790,7 +791,7 @@
       "autoStop": "Auto stop",
       "unavailable": "Not available",
       "errStale": "Fees changed since this page loaded. Reload the page and try again.",
-      "errNeedFee": "Enter a delivery fee above 0 DZD for {names} before turning it on.",
+      "errNeedFee": "Enter a delivery fee above 0 DZD for {names}, or switch that delivery type off. Nothing was saved.",
       "errInvalid": "One of the fees is not a valid amount.",
       "errSave": "The fees could not be saved. Try again.",
       "purpose": "Delivery price per wilaya. Upload the price CSV to update all wilayas and communes at once."
@@ -834,7 +835,8 @@
         "duplicate_commune": "Duplicate commune ignored: {text}",
         "malformed_row": "Row skipped: {text}",
         "unknown_label": "Unknown price label: {text}",
-        "duplicate_wilaya": "Wilaya listed twice, first one used: {text}"
+        "duplicate_wilaya": "Wilaya listed twice, first one used: {text}",
+        "zero_price": "Price is 0 or less, so this type is not offered: {text}"
       },
       "warnWilaya": "Wilaya {code}",
       "tooLarge": "The file is larger than 1 MB.",

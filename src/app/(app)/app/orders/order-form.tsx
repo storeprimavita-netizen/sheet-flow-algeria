@@ -16,6 +16,7 @@ import { MoneyField } from "@/components/fields/money-field";
 import { QuantityStepper } from "@/components/fields/quantity-stepper";
 import { DELIVERY_TYPES } from "@/lib/enums";
 import { deliveryFeeFor, newOrderBlock, type DeliveryType, type DeliveryFeeRow } from "@/lib/pricing-delivery";
+import { useSubmitAction } from "@/lib/use-submit-action";
 import { createOrder, type OrderFormState } from "./actions";
 
 type ProductOpt = {
@@ -51,6 +52,8 @@ export function OrderForm({
 }) {
   const t = useTranslations();
   const [state, formAction] = React.useActionState<OrderFormState, FormData>((_prev, fd) => createOrder(fd), undefined);
+
+  const onSubmit = useSubmitAction(formAction);
 
   const [productId, setProductId] = React.useState("");
   const [variantId, setVariantId] = React.useState(NONE);
@@ -93,9 +96,9 @@ export function OrderForm({
   const wilayaOpts = wilayas.map((w) => ({ code: String(w.code), name: w.name }));
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div className="card-surface grid grid-cols-1 gap-4 rounded-xl p-5 sm:grid-cols-2">
-        <Field label={t("fields.product")} htmlFor="product_id">
+        <Field label={`${t("fields.product")} *`} htmlFor="product_id">
           <ProductCombobox
             products={productOpts}
             value={productId}

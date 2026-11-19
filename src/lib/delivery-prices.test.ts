@@ -72,6 +72,19 @@ describe("parseDeliveryCsv", () => {
   );
 });
 
+describe("a price of 0 is never offered (D62)", () => {
+  it("home :0 means no price, with a warning", () => {
+    const r = parseDeliveryCsv(`${H}DZ,2-Chlef,,,rate,,${HOME}:0|${DESK}:400\n`);
+    expect(r.wilayas[0]).toMatchObject({ priced: false, stopdeskAvailable: false });
+    expect(r.warnings.some((w) => w.type === "zero_price" && w.code === 2)).toBe(true);
+  });
+  it("stop-desk :0 means home only, with a warning", () => {
+    const r = parseDeliveryCsv(`${H}DZ,2-Chlef,,,rate,,${HOME}:500|${DESK}:0\n`);
+    expect(r.wilayas[0]).toMatchObject({ priced: true, home: 500, stopdeskAvailable: false });
+    expect(r.warnings.some((w) => w.type === "zero_price")).toBe(true);
+  });
+});
+
 describe("diffDeliveryPrices", () => {
   const stored = (o: Partial<StoredWilayaFee> = {}): StoredWilayaFee => ({
     wilaya_code: 1, home_fee: 1400, stopdesk_fee: 970, priced: true, stopdesk_available: true, stop_shipping: false, communes: ["Adrar"], ...o,

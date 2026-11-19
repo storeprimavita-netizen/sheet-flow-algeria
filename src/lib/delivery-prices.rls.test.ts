@@ -102,6 +102,33 @@ describe.skipIf(!URL)("delivery prices (live DB)", () => {
     expect(r.data).toEqual([]);
   });
 
+  test("00055 flag updates turn off priced 0 rows and change no price (replayed in a rolled-back transaction)", () => {
+    // three rows that break the rule; the constraints are dropped inside the transaction only
+    const out = psql(`begin;
+      alter table wilaya_fees drop constraint wilaya_fees_priced_home_positive, drop constraint wilaya_fees_priced_desk_positive;
+      update wilaya_fees set priced=true, stopdesk_available=true, home_fee=0, stopdesk_fee=0 where workspace_id='${ws}' and wilaya_code=1;
+      update wilaya_fees set priced=true, stopdesk_available=true, home_fee=500, stopdesk_fee=0 where workspace_id='${ws}' and wilaya_code=8;
+      update wilaya_fees set priced=true, stopdesk_available=true, home_fee=0, stopdesk_fee=400 where workspace_id='${ws}' and wilaya_code=33;
+      update wilaya_fees set priced = false where priced and home_fee <= 0;
+      update wilaya_fees set stopdesk_available = false where priced and stopdesk_available and stopdesk_fee <= 0;
+      select string_agg(wilaya_code || ':' || priced || ':' || stopdesk_available || ':' || home_fee || ':' || stopdesk_fee, ',' order by wilaya_code)
+        from wilaya_fees where workspace_id='${ws}';
+      rollback;`);
+    expect(out).toMatch(/1:false:true:0\.00:0\.00,8:true:false:500\.00:0\.00,33:false:true:0\.00:400\.00/);
+  });
+
+  test("the constraints refuse a priced 0 fee written directly as service role", async () => {
+    const home = await svc.from("wilaya_fees").update({ priced: true, home_fee: 0 }).eq("workspace_id", ws).eq("wilaya_code", 1);
+    expect(home.error?.message).toMatch(/wilaya_fees_priced_home_positive/);
+    const desk = await svc.from("wilaya_fees").update({ priced: true, stopdesk_available: true, stopdesk_fee: 0 }).eq("workspace_id", ws).eq("wilaya_code", 1);
+    expect(desk.error?.message).toMatch(/wilaya_fees_priced_desk_positive/);
+  });
+
+  test("apply refuses a priced fee of 0 on either type", async () => {
+    expect((await admin.rpc("apply_delivery_prices", { p: payload({ home_fee: 0 }) })).error?.message).toMatch(/above 0/);
+    expect((await admin.rpc("apply_delivery_prices", { p: payload({ stopdesk_fee: 0 }) })).error?.message).toMatch(/above 0/);
+  });
+
   test("delivery_fee_for returns null when unavailable", async () => {
     const f = async (code: number, type: string) => (await admin.rpc("delivery_fee_for", { p_ws: ws, p_wilaya: code, p_type: type })).data;
     expect(Number(await f(1, "stopdesk"))).toBe(970);

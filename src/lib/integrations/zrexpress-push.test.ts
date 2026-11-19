@@ -171,6 +171,7 @@ describe("pushToZR", () => {
     const homeOnly = { ...FEES, stopdesk_available: false };
     expect(await refused(homeOnly, { delivery_type: "stopdesk", delivery_fee: null, commune: null })).toMatchObject({ ok: false });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await refused(homeOnly, { delivery_type: "stopdesk", delivery_fee: 0, commune: null })).toMatchObject({ ok: false });
     const ok = await pushToZR(fakeSupabase(null, { fees: homeOnly, order: { delivery_type: "stopdesk", delivery_fee: 400, commune: null } }).client, "w", "o1", "hub1");
     warn.mockRestore();
     expect(ok).toEqual({ ok: true });
