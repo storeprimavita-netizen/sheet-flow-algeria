@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { DateRangePicker } from "@/components/fields/date-field";
 import { Chip } from "@/components/ui/chip";
 import { formatDate, ltr } from "@/lib/format";
-import { STATS_PERSIST_KEYS, pickParams } from "@/lib/query-string";
+import { STATS_PERSIST_KEYS, pickParams, statsFiltersToParams, parseStatsFilters, type StatsFilters } from "@/lib/query-string";
 import { cn } from "@/lib/utils";
 
 export type StatsOpt = { value: string; label: string };
@@ -28,7 +28,7 @@ const SECONDARY = ["f_category", "f_wilaya", "f_source", "f_agent", "f_delivery"
  * (allow-listed keys, never the open drill `wilaya`).
  */
 export function StatsFilterBar({
-  products, categories, wilayas, sources, agents, deliveryTypes, seasons, overridden, seasonRange, notes,
+  products, categories, wilayas, sources, agents, deliveryTypes, seasons, overridden, seasonRange, notes, active,
 }: {
   products: StatsOpt[];
   categories: StatsOpt[];
@@ -43,13 +43,16 @@ export function StatsFilterBar({
   seasonRange: { from: string; to: string };
   /** translated notes for dropped values (unknown season / year) */
   notes: string[];
+  /** the server-normalized filters: chips and select values come from these, never the raw URL */
+  active: StatsFilters;
 }) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const restored = React.useRef(false);
-  const get = (k: string) => sp.get(k) ?? "";
+  const canon = statsFiltersToParams(active);
+  const get = (k: string) => canon.get(k) ?? "";
 
   React.useEffect(() => {
     if (restored.current) return;
@@ -60,19 +63,29 @@ export function StatsFilterBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function go(next: URLSearchParams) {
+  function go(raw: URLSearchParams) {
+    let next = raw;
+    // only values the server accepts are remembered or kept in the URL
+    const clean = statsFiltersToParams(parseStatsFilters((k) => next.get(k) ?? ""));
+    if (next.get("wilaya")) clean.set("wilaya", next.get("wilaya")!);
+    next = clean;
     const remembered = pickParams(next.toString(), STATS_PERSIST_KEYS);
     if (remembered) localStorage.setItem(STORAGE_KEY, remembered);
     else localStorage.removeItem(STORAGE_KEY);
     router.push(next.size ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   }
   function change(edit: (p: URLSearchParams) => void) {
-    const next = new URLSearchParams(sp.toString());
+    const next = new URLSearchParams(canon.toString());
+    if (sp.get("wilaya")) next.set("wilaya", sp.get("wilaya")!); // the open drill panel stays
     edit(next);
     go(next);
   }
   const setParam = (k: string, v: string | null) =>
-    change((p) => (!v || v === ALL ? p.delete(k) : p.set(k, v)));
+    change((p) => {
+      if (k === "year") { p.delete("from"); p.delete("to"); } // picking a year replaces the dates
+      if (!v || v === ALL) p.delete(k);
+      else p.set(k, v);
+    });
   const setDates = (from: string, to: string) =>
     change((p) => {
       for (const [k, v] of [["from", from], ["to", to]] as const) (v ? p.set(k, v) : p.delete(k));
@@ -117,6 +130,9 @@ export function StatsFilterBar({
 
   const secondaryActive = SECONDARY.filter((k) => get(k)).length;
   const [more, setMore] = React.useState(secondaryActive > 0);
+  React.useEffect(() => {
+    if (secondaryActive > 0) setMore(true); // restored/linked secondary filters must be visible
+  }, [secondaryActive]);
 
   const allOpt = { value: ALL, label: t("common.all") };
   const field = (label: string, node: React.ReactNode, cls?: string) => (

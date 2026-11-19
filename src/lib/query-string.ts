@@ -126,6 +126,16 @@ export function parseStatsFilters(get: (k: string) => string): StatsFilters {
   return out;
 }
 
+/** Typed filters -> canonical URL params (the inverse of parseStatsFilters; only valid values). */
+export function statsFiltersToParams(f: StatsFilters): URLSearchParams {
+  const p = new URLSearchParams();
+  const put = (k: string, v: string | number | undefined) => { if (v !== undefined && v !== "") p.set(k, String(v)); };
+  put("from", f.from); put("to", f.to); put("product", f.product); put("season", f.season); put("year", f.year);
+  put("f_category", f.category); put("f_wilaya", f.wilaya); put("f_source", f.source);
+  put("f_agent", f.agent); put("f_delivery", f.delivery);
+  return p;
+}
+
 /** The `p_filters` jsonb of kpi_order_set / kpi_by_* / kpi_drill_orders / kpi_set_rates (undefined = none). */
 export function kpiFiltersJson(f: StatsFilters): Record<string, string> | undefined {
   const j: Record<string, string> = {};

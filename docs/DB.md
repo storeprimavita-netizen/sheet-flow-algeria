@@ -76,7 +76,7 @@ Finally regenerate types:
 | `option_sets` | 00014 | user-editable taxonomies (key, label, allows_multi) — see `.claude/skills/cod-ui-polish/references/option-sets.md`. 5 seeded: `product_category`, `product_fabric`, `expense_subcategory`, `order_tag` (multi), `cancellation_reason` | all read, admin write |
 | `options` | 00014 | one row per value in a set (label, color_token, icon, sort_order, archived_at) — referencing tables store the option **id**, never the label | all read+insert (inline "+ Create"), admin update/delete (rename/recolor/reorder/archive/merge) |
 | `seasons` | 00061 | STATS-3: named seasons per workspace (name, `name_key` for the 6 seeded names, sort); unique (workspace, name) and (id, workspace); seeded by `seed_workspace` (Ramadan, Eid al-Fitr, Eid al-Adha, Summer, Back to school, Winter; no dates) | admin only |
-| `season_periods` | 00061 | one date range per season and year (`year` = year of `date_from`, `date_from <= date_to`); unique (season, year); composite FK (season, workspace) -> `seasons` so a period cannot point at another workspace's season | admin only |
+| `season_periods` | 00061 | one date range per season and year (`year` = year of `date_from`, `date_from <= date_to`); unique (workspace_id, season_id, year); composite FK (season, workspace) -> `seasons` so a period cannot point at another workspace's season | admin only |
 
 ## Order triggers (00004)
 

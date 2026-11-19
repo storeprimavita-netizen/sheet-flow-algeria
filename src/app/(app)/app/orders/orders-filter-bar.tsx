@@ -16,6 +16,9 @@ import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses"
 
 export type Opt = { value: string; label: string; token?: StatusToken };
 
+/** Statistics-only filters read by orders/all (with or without a drill metric). */
+export const DRILL_FILTER_KEYS = ["category", "conf_agent", "delivery_type"] as const;
+
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
 /** Filters that live in the URL and drive the All-orders server query. */
@@ -37,7 +40,7 @@ export function OrdersFilterBar({
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
   function leaveDrill(next: URLSearchParams) {
-    for (const k of ["drill", "commune_key", "commune_unknown", "category", "conf_agent"]) next.delete(k);
+    for (const k of ["drill", "commune_key", "commune_unknown", ...DRILL_FILTER_KEYS]) next.delete(k);
   }
 
   function setDates(from: string, to: string) {
@@ -56,6 +59,14 @@ export function OrdersFilterBar({
     else next.set(k, v);
     leaveDrill(next);
     next.delete("page"); // any filter change resets pagination
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  const DRILL_KEYS = new Set<string>(DRILL_FILTER_KEYS);
+  function dropOne(k: string) {
+    const next = new URLSearchParams(sp.toString());
+    next.delete(k);
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -92,6 +103,12 @@ export function OrdersFilterBar({
     const v = get(s.key);
     if (v) chips.push({ key: s.key, label: `${s.label}: ${s.opts.find((o) => o.value === v)?.label ?? v}` });
   }
+  // statistics-only filters that orders/all applies: always visible, removable one by one
+  if (get("category")) chips.push({ key: "category", label: t("fields.category") });
+  if (get("conf_agent"))
+    chips.push({ key: "conf_agent", label: `${t("fields.agent")}: ${agents.find((o) => o.value === get("conf_agent"))?.label ?? get("conf_agent")}` });
+  if (get("delivery_type"))
+    chips.push({ key: "delivery_type", label: `${t("statistics.filters.deliveryType")}: ${get("delivery_type")}` });
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
   if (get("q")) chips.push({ key: "q", label: `${t("orders.search")}: ${get("q")}` });
@@ -140,7 +157,7 @@ export function OrdersFilterBar({
         {chips.length > 0 ? (
           <>
             {chips.map((c) => (
-              <button key={c.key} type="button" onClick={() => setParam(c.key, null)} className="focus:outline-none">
+              <button key={c.key} type="button" onClick={() => (DRILL_KEYS.has(c.key) ? dropOne(c.key) : setParam(c.key, null))} className="focus:outline-none">
                 <Chip token="neutral" size="sm" className="gap-1 hover:bg-neutral-bg/70">
                   {c.label}
                   <X className="h-3 w-3" />

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE } from "./query-string";
+import { COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
+import { DRILL_FILTER_KEYS } from "@/app/(app)/app/orders/orders-filter-bar";
 
 describe("drillHref", () => {
   test("whole wilaya keeps period and product, no commune params", () => {
@@ -23,5 +24,22 @@ describe("drillHref", () => {
   test("ISO_DATE rejects compact and padded dates", () => {
     expect(ISO_DATE.test("2026-03-10")).toBe(true);
     expect(ISO_DATE.test("20260310")).toBe(false);
+  });
+});
+
+describe("normalized stats filters", () => {
+  const U = "0A1B2C3D-0000-4000-8000-00000000ABCD";
+  const read = (q: string) => { const p = new URLSearchParams(q); return parseStatsFilters((k) => p.get(k) ?? ""); };
+  test("uppercase uuid and f_wilaya=06 normalize to the canonical params and SQL filter", () => {
+    const f = read(`season=${U}&f_agent=${U}&f_wilaya=06&f_category=${U}&from=garbage`);
+    const p = statsFiltersToParams(f);
+    expect(p.get("season")).toBe(U.toLowerCase());
+    expect(p.get("f_wilaya")).toBe("6");
+    expect(p.has("from")).toBe(false);
+    expect(kpiFiltersJson(f)).toEqual({ category: U.toLowerCase(), wilaya: "6", agent: U.toLowerCase() });
+    expect(kpiFiltersJson(read(statsFiltersToParams(f).toString()))).toEqual(kpiFiltersJson(f));
+  });
+  test("leaving drill removes every statistics-only filter orders/all applies", () => {
+    expect([...DRILL_FILTER_KEYS]).toEqual(["category", "conf_agent", "delivery_type"]);
   });
 });

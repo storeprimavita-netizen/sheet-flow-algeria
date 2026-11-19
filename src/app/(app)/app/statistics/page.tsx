@@ -130,6 +130,7 @@ export default async function StatisticsPage({
         overridden={season.overridden}
         seasonRange={{ from: range.from ?? "", to: range.to ?? "" }}
         notes={notes}
+        active={f}
       />
 
       {season.season ? (
