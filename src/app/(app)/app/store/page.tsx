@@ -28,11 +28,12 @@ export default async function StoreHubPage() {
   }
 
   const supabase = await createClient();
-  const { data: pages } = await supabase
+  const { data: pages, error: pagesError } = await supabase
     .from("store_pages")
     .select("slug, status")
     .eq("store_id", store.id)
     .order("published_at", { ascending: false });
+  if (pagesError) throw new Error(`store hub pages: ${pagesError.message}`);
   const published = (pages ?? []).filter((p) => p.status === "published");
   const draft = (pages ?? []).length - published.length;
   const firstLive = store.status === "live" ? published[0] : undefined;

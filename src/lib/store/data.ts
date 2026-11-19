@@ -251,9 +251,15 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
 /** Live store slugs, cached once: random /s/<unknown>/<x> URLs 404 here without a per-URL cache entry or query. */
 const liveStoreSlugs = unstable_cache(
   async (): Promise<string[]> => {
-    const { data, error } = await (await createAdminClient()).from("stores").select("slug").eq("status", "live");
-    if (error) throw new Error(`live stores lookup failed: ${error.message}`);
-    return (data ?? []).map((r) => r.slug.toLowerCase());
+    const db = await createAdminClient();
+    const slugs: string[] = [];
+    // PostgREST caps a response at max_rows (1000): page through so no live store is missed.
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from("stores").select("slug").eq("status", "live").order("id").range(from, from + 999);
+      if (error) throw new Error(`live stores lookup failed: ${error.message}`);
+      slugs.push(...(data ?? []).map((r) => r.slug.toLowerCase()));
+      if ((data ?? []).length < 1000) return slugs;
+    }
   },
   ["store-live-slugs"],
   { tags: ["store-public"], revalidate: PUBLIC_REVALIDATE_S },

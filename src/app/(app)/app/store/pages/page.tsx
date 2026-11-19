@@ -35,10 +35,11 @@ export default async function StorePagesPage() {
   }
 
   const supabase = await createClient();
-  const [{ data: pages }, { data: products }] = await Promise.all([
+  const [{ data: pages, error: pagesError }, { data: products, error: productsError }] = await Promise.all([
     supabase.from("store_pages").select("id, title, slug, status, product_id").eq("store_id", store.id).order("created_at", { ascending: false }),
     supabase.from("products").select("id, name").order("name"),
   ]);
+  if (pagesError || productsError) throw new Error(`store pages list: ${(pagesError ?? productsError)?.message}`);
   const byId = new Map((products ?? []).map((p) => [p.id, p.name]));
   const used = new Set((pages ?? []).map((p) => p.product_id).filter(Boolean));
   const free = (products ?? []).filter((p) => !used.has(p.id));
