@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { deleteWorkspaces } from "@/lib/test-cleanup";
+import { deleteLeakedWorkspaces, deleteWorkspaces } from "@/lib/test-cleanup";
 
 /** Live STATS-3 checks (migration 00061): filter set, drop of old signatures, seasons RLS. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -83,6 +83,7 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
 
   beforeAll(async () => {
     svc = client(SERVICE_KEY);
+    await deleteLeakedWorkspaces(svc, "ss-"); // left by a crashed earlier run (tag() names)
     ws = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     ws2 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     admin = (await userIn(ws, "admin")).c;
@@ -93,7 +94,7 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
     ws2Admin = (await userIn(ws2, "admin")).c;
     psql(`select public.seed_workspace('${ws}'); select public.seed_workspace('${ws}');`);
     psql(`select public.seed_workspace('${ws2}');`);
-  });
+  }, 30000);
   afterAll(async () => {
     if (!svc) return;
     const wss = [ws, ws2].filter(Boolean);
@@ -184,6 +185,36 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
     expect((w.data![0].rates as unknown as Rates).counts.received).toBe(2);
   });
 
+  test("non-admin gets 0 rows from kpi_by_wilaya, kpi_by_commune, kpi_drill_orders", async () => {
+    const p = await product();
+    await order(p);
+    const args = { p_from: DAY, p_to: DAY, p_product: [p] };
+    expect((await admin.rpc("kpi_by_wilaya", args)).data!.length).toBeGreaterThan(0);
+    for (const a of [confAgent, delAgent]) {
+      expect((await a.rpc("kpi_by_wilaya", args)).data ?? []).toEqual([]);
+      expect((await a.rpc("kpi_by_commune", { ...args, p_wilaya: 16 })).data ?? []).toEqual([]);
+      expect((await a.rpc("kpi_drill_orders", { ...args, p_metric: "received" })).data ?? []).toEqual([]);
+    }
+  });
+
+  test("drill parity category/conf_agent: drill ids equal the direct orders query", async () => {
+    const cat = (await svc.from("option_sets").select("id").eq("workspace_id", ws).eq("key", "product_category").single()).data!.id;
+    const opt = (await svc.from("options").select("id").eq("set_id", cat).limit(1).single()).data!.id as string;
+    const pc = await product({ category_option_id: opt });
+    const po = await product();
+    const a = await order(pc, { assigned_confirmation_agent: agentId });
+    await order(pc);
+    await order(po, { assigned_confirmation_agent: agentId });
+    const ids = async (filters: Record<string, string>) =>
+      ((await admin.rpc("kpi_drill_orders", { p_metric: "received", p_from: DAY, p_to: DAY, p_product: [pc, po], p_filters: filters })).data ?? [])
+        .map((r: { id: string }) => r.id).sort();
+    const inCat = (await admin.from("orders").select("id").eq("product_id", pc)).data!.map((r) => r.id as string).sort();
+    expect(await ids({ category: opt })).toEqual(inCat);
+    const byAgent = (await admin.from("orders").select("id").in("product_id", [pc, po]).eq("assigned_confirmation_agent", agentId)).data!.map((r) => r.id as string).sort();
+    expect(await ids({ agent: agentId })).toEqual(byAgent);
+    expect(await ids({ category: opt, agent: agentId })).toEqual([a]);
+  });
+
   test("wilaya_stats and product_stats views still work", async () => {
     expect((await admin.from("wilaya_stats").select("wilaya_code").limit(1)).error).toBeNull();
     expect((await admin.from("product_stats").select("id").limit(1)).error).toBeNull();
@@ -205,14 +236,15 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
     // STATS-2 figure: kpi_lines over the same ids equals kpi_rates over them
     const ids = (await admin.rpc("kpi_order_set", { ...base, p_product: [p] })).data!.map((r: { id: string }) => r.id);
     expect((await admin.rpc("kpi_rates", { p_order_ids: ids, p_from: DAY, p_to: DAY })).data).toEqual(await rates(null));
-    for (const fn of ["kpi_summary", "pnl_summary"] as const) {
-      const r = await admin.rpc(fn, { ...base, p_product: p });
-      expect(r.error).toBeNull();
-      expect(r.data).toEqual((await admin.rpc(fn, { ...base, p_product: p })).data);
-    }
-    const d1 = await admin.rpc("dashboard_stats", base);
+    // direct counts: two orders in the day for this product, one delivered
+    const summary = (await admin.rpc("kpi_summary", { ...base, p_product: p })).data as unknown as Rates;
+    expect(summary.counts).toMatchObject({ received: 2, delivered: 1 });
+    const pnl = await admin.rpc("pnl_summary", { ...base, p_product: p });
+    expect(pnl.error).toBeNull();
+    expect(pnl.data).not.toBeNull();
+    const d1 = await admin.rpc("dashboard_stats", { ...base, p_product: [p] });
     expect(d1.error).toBeNull();
-    expect(d1.data).toEqual((await admin.rpc("dashboard_stats", base)).data);
+    expect((d1.data as unknown as { stage_counts: { received: number } }).stage_counts.received).toBe(2);
   });
 
   test("drill with filters returns the same orders as a direct query (category, agent, delivery_type)", async () => {

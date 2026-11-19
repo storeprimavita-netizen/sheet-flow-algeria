@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { communeLinkable, COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, isRealIsoDate, MAX_COMMUNE_KEY, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
-import { DRILL_FILTER_KEYS } from "@/app/(app)/app/orders/orders-filter-bar";
+import { dropOneKey, leaveDrillKeys } from "@/app/(app)/app/orders/_lib/drill-filters";
 
 describe("drillHref", () => {
   test("whole wilaya keeps period and product, no commune params", () => {
@@ -39,8 +39,17 @@ describe("normalized stats filters", () => {
     expect(kpiFiltersJson(f)).toEqual({ category: U.toLowerCase(), wilaya: "6", agent: U.toLowerCase() });
     expect(kpiFiltersJson(read(statsFiltersToParams(f).toString()))).toEqual(kpiFiltersJson(f));
   });
-  test("leaving drill removes every statistics-only filter orders/all applies", () => {
-    expect([...DRILL_FILTER_KEYS]).toEqual(["category", "conf_agent", "delivery_type"]);
+  const qs = "drill=received&commune_key=x&category=c&conf_agent=a&delivery_type=home&wilaya_code=16&page=2";
+  test("leaveDrill removes drill params and the three key filters in drill mode", () => {
+    expect(leaveDrillKeys(new URLSearchParams(qs), true).toString()).toBe("wilaya_code=16&page=2");
+  });
+  test("leaveDrill keeps drill filters outside drill mode", () => {
+    expect(leaveDrillKeys(new URLSearchParams("category=c&conf_agent=a&delivery_type=home&wilaya_code=16"), false).toString())
+      .toBe("category=c&conf_agent=a&delivery_type=home&wilaya_code=16");
+  });
+  test("dropOne removes exactly one key", () => {
+    expect(dropOneKey(new URLSearchParams(qs), "conf_agent").toString())
+      .toBe("drill=received&commune_key=x&category=c&delivery_type=home&wilaya_code=16");
   });
 });
 

@@ -83,9 +83,9 @@ export function Combobox({
           className,
         )}
       >
-        <span className="flex min-w-0 items-center gap-2 truncate">
+        <span className="flex min-w-0 items-center gap-2">
           {selected?.icon}
-          {selected ? selected.label : (placeholder ?? searchPlaceholder)}
+          <span dir="auto" className="truncate text-start">{selected ? selected.label : (placeholder ?? searchPlaceholder)}</span>
         </span>
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>

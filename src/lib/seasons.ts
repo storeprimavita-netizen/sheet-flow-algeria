@@ -62,3 +62,15 @@ export function seasonLabel(
   const key = s.name_key ? `seasons.names.${s.name_key}` : null;
   return key && t.has(key) ? t(key) : s.name;
 }
+
+/** What one year card of the season comparison shows: its own error, no orders, or the figures. */
+export function seasonYearState(
+  rates: { counts: { received: number } } | null,
+  failed: boolean,
+): "error" | "noOrders" | "data" {
+  if (failed || !rates) return "error";
+  return rates.counts.received === 0 ? "noOrders" : "data";
+}
+
+/** A year is "in progress" while its period has not ended (date_to is today or later, Algiers day). */
+export const seasonYearInProgress = (dateTo: string, today: string) => dateTo >= today;

@@ -9,17 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
-import { DRILL_PARAMS } from "@/lib/query-string";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
-import { drillChips, type DrillFilters, type DrillKey } from "./_lib/drill-filters";
+import { buildDrillLabels, dropOneKey, drillChips, DRILL_FILTER_KEYS, inDrillMode, leaveDrillKeys, type DrillFilters, type DrillKey } from "./_lib/drill-filters";
 import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses";
 
 export type Opt = { value: string; label: string; token?: StatusToken };
-
-/** Statistics-only filters read by orders/all (with or without a drill metric). */
-export const DRILL_FILTER_KEYS = ["category", "conf_agent", "delivery_type"] as const;
 
 const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
 
@@ -48,8 +44,9 @@ export function OrdersFilterBar({
   const get = (k: string) => sp.get(k) ?? "";
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
+  const inDrill = inDrillMode(sp);
   function leaveDrill(next: URLSearchParams) {
-    for (const k of [...DRILL_PARAMS, ...DRILL_FILTER_KEYS]) next.delete(k);
+    leaveDrillKeys(next, inDrill);
   }
 
   function setDates(from: string, to: string) {
@@ -73,9 +70,7 @@ export function OrdersFilterBar({
 
   const DRILL_KEYS = new Set<string>(DRILL_FILTER_KEYS);
   function dropOne(k: string) {
-    const next = new URLSearchParams(sp.toString());
-    next.delete(k);
-    next.delete("page");
+    const next = dropOneKey(new URLSearchParams(sp.toString()), k);
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -114,15 +109,7 @@ export function OrdersFilterBar({
   }
   // statistics-only filters that orders/all applies: always visible, removable one by one
   chips.push(
-    ...drillChips(drill, {
-      category: t("fields.category"),
-      agent: t("fields.agent"),
-      deliveryType: t("statistics.filters.deliveryType"),
-      selected: t("statistics.compare.selected"),
-      deliveryTypeNames: { home: t("statistics.home"), stopdesk: t("statistics.stopdesk") },
-      categories,
-      agents,
-    }),
+    ...drillChips(drill, buildDrillLabels(t, categories, agents)),
   );
   if (get("from")) chips.push({ key: "from", label: `${t("fields.from")}: ${formatDate(get("from"))}` });
   if (get("to")) chips.push({ key: "to", label: `${t("fields.to")}: ${formatDate(get("to"))}` });
@@ -174,32 +161,39 @@ export function OrdersFilterBar({
           <Copy className="h-3.5 w-3.5" />
           {t("orders.duplicatesOnly")}
         </Button>
-
-        {chips.length > 0 ? (
-          <>
-            {chips.map((c) => (
-              <button key={c.key} type="button" onClick={() => (DRILL_KEYS.has(c.key) ? dropOne(c.key) : setParam(c.key, null))} className="focus:outline-none">
-                <Chip token="neutral" size="sm" className="gap-1 hover:bg-neutral-bg/70">
-                  {c.label}
-                  <X className="h-3 w-3" />
-                </Chip>
-              </button>
-            ))}
-            <Button
+      </div>
+      {chips.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((c) => (
+            <button
+              key={c.key}
               type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(pathname, { scroll: false })}
+              aria-label={t("statistics.filters.remove", { name: c.label })}
+              onClick={() => (DRILL_KEYS.has(c.key) ? dropOne(c.key) : setParam(c.key, null))}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
+              <Chip token="neutral" size="sm" className="gap-1 hover:bg-neutral-bg/70">
+                <bdi>{c.label}</bdi>
+                <X className="h-3 w-3" aria-hidden />
+              </Chip>
+            </button>
+          ))}
+          <Button type="button" variant="ghost" size="sm" onClick={() => router.push(pathname, { scroll: false })}>
+            {t("orders.clearFilters")}
+          </Button>
+        </div>
+      ) : null}
+      {dropped.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.length === 0 ? (
+            <Button type="button" variant="ghost" size="sm" onClick={() => router.push(pathname, { scroll: false })}>
               {t("orders.clearFilters")}
             </Button>
-          </>
-        ) : null}
-      </div>
-      {dropped.length > 0 ? (
-        <p className="text-xs text-muted-foreground" role="status">
-          {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
-        </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground" role="status">
+            {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
+          </p>
+        </div>
       ) : null}
     </div>
   );

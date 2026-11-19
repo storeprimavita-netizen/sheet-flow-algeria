@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { asKpiGroup } from "@/lib/kpi";
-import { kpiFiltersJson, parseStatsFilters, statsDrillFilters } from "@/lib/query-string";
+import { kpiFiltersJson, parseStatsFilters, statsDrillFilters, statsFiltersToParams } from "@/lib/query-string";
 import { periodYears, resolveSeason, seasonLabel, type SeasonRow } from "@/lib/seasons";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -12,6 +12,7 @@ import { WilayaSection, type StatsRow } from "@/components/stats/wilaya-section"
 import { CommunePanel, CommunePanelSkeleton } from "@/components/stats/commune-panel";
 import { SeasonCompare, SeasonCompareSkeleton } from "@/components/stats/season-compare";
 import { StatsFilterBar, type StatsOpt } from "@/components/stats/stats-filter-bar";
+import { activeStatsFilters } from "@/components/stats/stats-filter-edit";
 import { getOptionSet } from "@/lib/option-sets";
 import { getProfile } from "@/lib/rbac";
 import { ORDER_SOURCES, DELIVERY_TYPES } from "@/lib/enums";
@@ -115,6 +116,9 @@ export default async function StatisticsPage({
   };
   const retryHref = open ? `${baseHref}${keep.size ? "&" : "?"}wilaya=${wantedWilaya}` : baseHref;
 
+  // the filter bar's own "Clear filters" is shown whenever it has chips: the empty state adds no second one
+  const activeParams = statsFiltersToParams(activeStatsFilters(f, season));
+
   const names = Object.fromEntries(rows.flatMap((r) => (r.code !== null && r.name ? [[r.code, r.name] as const] : [])));
 
   return (
@@ -132,7 +136,7 @@ export default async function StatisticsPage({
         overridden={season.overridden}
         seasonRange={{ from: range.from ?? "", to: range.to ?? "" }}
         notes={notes}
-        active={f}
+        active={activeStatsFilters(f, season)}
       />
 
       {season.season ? (
@@ -172,13 +176,15 @@ export default async function StatisticsPage({
         <Empty>
           <p className="font-medium text-foreground">{t("statistics.emptyTitle")}</p>
           <p className="mt-1">{t("statistics.emptyBody")}</p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {keep.size ? (
-              <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
-            ) : (
-              <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
-            )}
-          </div>
+          {activeParams.size ? null : (
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {keep.size ? (
+                <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
+              ) : (
+                <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
+              )}
+            </div>
+          )}
         </Empty>
       ) : (
         <WilayaSection

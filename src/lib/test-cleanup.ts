@@ -15,3 +15,19 @@ export async function deleteWorkspaces(svc: SupabaseClient, ids: string[]) {
   }
   return res;
 }
+
+/**
+ * Test-only: remove workspaces (and their users) a crashed or timed-out earlier run of a suite left
+ * behind. Matches the suite's name prefix and only rows older than `minAgeMs`, so a run in progress is safe.
+ */
+export async function deleteLeakedWorkspaces(svc: SupabaseClient, prefix: string, minAgeMs = 5 * 60_000) {
+  const cutoff = new Date(Date.now() - minAgeMs).toISOString();
+  const { data } = await svc.from("workspaces").select("id").like("name", `${prefix}%`).lt("created_at", cutoff);
+  const ids = (data ?? []).map((w) => w.id as string);
+  if (!ids.length) return 0;
+  const { data: members } = await svc.from("profiles").select("user_id").in("workspace_id", ids);
+  for (const m of members ?? []) await svc.auth.admin.deleteUser(m.user_id as string);
+  for (const t of ["options", "option_sets", "settings", "wilaya_fees"]) await svc.from(t).delete().in("workspace_id", ids);
+  await deleteWorkspaces(svc, ids);
+  return ids.length;
+}
