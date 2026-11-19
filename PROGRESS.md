@@ -473,3 +473,14 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: `docs/briefs/PRICE-2-F.review-2.md` VERDICT PASS.
 - Owner: none.
 - Next: review-2 lows (AR 1280 duplicate legend label) and non-captured screenshots (1280 px, EN light, AR dark) stay open.
+
+## Run report — /auto 5 (2026-11-19, batch after PRICE-4)
+- Shipped 5/5: STATS-2-F c5ca60a (review-2 PASS) · STATS-3-F c2ad69a (review-2 PASS) · PRICE-3-F ca68a74 (review-2 PASS) · PRICE-4-F 1aeb12f (review-1 PASS) · PRICE-2-F 2d637b9 (review-2 PASS).
+- Decided by Claude (owner may overturn): D70 — PRICE-4 review-4 lows 1–2 are not built; `csv.ts` quoting unchanged, D69 pins hold.
+- Open questions: Q-18 (CONF-1 search box) still needs the owner; the answered-by-default ones (Q-3 … Q-24) wait for a yes/no only.
+- Blocked, unchanged: STORE-3 (merge needs owner OK) holds STORE-4/5; CONF-1 (Q-18) holds CONF-2/3/4.
+- STATS-2-F added migration `00063_kpi_drill_shipped.sql` although its plan row had no `M`: local only; joins the owner's production push list (O-2).
+- Screenshot matrices are partial on all five tasks (missing combinations listed in each task's PROGRESS note and review file); reviews passed with that filed as low.
+- PRICE-3-F ship gate failed once (`seasons.rls.test.ts`, leftover local test products); `scripts/db-reset.sh` on v3, then GATE OK. No code change.
+- Plan order: `analyse` passed over STORE-7 (todo, dep STORE-2 done, has `M`) for PRICE-2-F without giving a reason — check before the next pick.
+- Next `/auto`: STORE-7 if eligible, else STORE-1-F, STORE-2-F, ORD-1-F, P1-7-F.
