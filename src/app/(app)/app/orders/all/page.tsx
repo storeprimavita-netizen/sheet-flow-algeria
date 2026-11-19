@@ -2,25 +2,18 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
-import type { Enums } from "@/lib/supabase/database.types";
-import { CONFIRMATION_STATUS } from "@/lib/statuses";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
-import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
+import { effectiveConfig } from "@/lib/order-views";
+import { applyOrderConfig, orderSort } from "../_lib/order-query";
 import { Empty } from "@/components/empty";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
-
-// columns the DataTable exposes as sortable → real order-able DB columns
-const SORT_COLUMNS: Record<string, string> = {
-  order_seq: "order_seq",
-  placed_at: "placed_at",
-};
 
 export default async function AllOrdersPage({
   searchParams,
@@ -51,41 +44,10 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
-  if (get("confirmation_status")) {
-    // one status, or a comma list (dashboard "To retry" = no_answer,closed_phone); unknown values are ignored
-    const statuses = get("confirmation_status")
-      .split(",")
-      .filter((x) => x in CONFIRMATION_STATUS) as Enums<"confirmation_status">[];
-    if (statuses.length) query = query.in("confirmation_status", statuses);
-  }
-  if (get("delivery_status"))
-    query = query.eq("delivery_status", get("delivery_status") as Enums<"delivery_status">);
-  if (get("product_id")) query = query.eq("product_id", get("product_id"));
-  if (get("wilaya_code")) query = query.eq("wilaya_code", Number(get("wilaya_code")));
-  if (get("source")) query = query.eq("source", get("source") as Enums<"order_source">);
-  if (get("duplicates")) query = query.eq("is_duplicate_suspect", true);
-  // .or() takes a raw PostgREST filter string — validate the shape first.
-  const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
-  if (agentId)
-    query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
-  const q = get("q").trim().slice(0, 80);
-  const seq = q ? parseOrderSeqQuery(q) : null;
-  if (seq !== null) {
-    const digits = q.replace(/\D/g, "");
-    // 5+ digits may be a partial phone number as well as a running number.
-    query = digits.length >= 5
-      ? query.or(`order_seq.eq.${seq},customer_phone.ilike.%${digits}%`)
-      : query.eq("order_seq", seq);
-  } else if (q) {
-    const text = sanitizeOrderTextQuery(q);
-    if (text)
-      query = query.or(`customer_name.ilike.%${text}%,customer_phone.ilike.%${text}%,order_number.ilike.%${text}%`);
-  }
-  if (get("from")) query = query.gte("placed_at", get("from"));
-  if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
-
-  const sortCol = SORT_COLUMNS[get("sort")] ?? "created_at";
-  const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
+  const cfg = effectiveConfig(null, sp);
+  query = applyOrderConfig(query, cfg);
+  const q = cfg.q ?? "";
+  const { column: sortCol, ascending } = orderSort(cfg);
 
   const from = (page - 1) * PAGE_SIZE;
   const { data: orders, count, error: ordersError } = await query
