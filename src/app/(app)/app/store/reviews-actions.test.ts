@@ -59,7 +59,7 @@ describe("review actions", () => {
   });
 
   test("rating 0/6, empty body, missing consent, bad product are invalid", async () => {
-    for (const over of [{ rating: "0" }, { rating: "6" }, { rating: "2.5" }, { body: "  " }, { name: " " }, { agreed: "" }, { product_id: "x" }, { body: "x".repeat(1001) }]) {
+    for (const over of <Record<string, string>[]>[{ rating: "0" }, { rating: "6" }, { rating: "2.5" }, { body: "  " }, { name: " " }, { agreed: "" }, { product_id: "x" }, { body: "x".repeat(1001) }]) {
       expect(await createReview(form(over)), JSON.stringify(over)).toEqual({ ok: false, error: "invalid" });
     }
     expect(writes).toEqual([]);

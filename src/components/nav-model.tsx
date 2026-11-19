@@ -1,4 +1,5 @@
 import {
+  Star,
   LayoutDashboard,
   ListChecks,
   PhoneCall,
@@ -85,6 +86,7 @@ export const GROUPS: NavGroup[] = [
     items: [
       { key: "storeHub", href: "/app/store", icon: Store, adminOnly: true },
       { key: "storePages", href: "/app/store/pages", icon: FileText, adminOnly: true },
+      { key: "storeReviews", href: "/app/store/reviews", icon: Star, adminOnly: true },
       { key: "storeSettings", href: "/app/store/settings", icon: SlidersHorizontal, adminOnly: true },
     ],
   },
