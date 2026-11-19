@@ -12,7 +12,7 @@ import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY } from "@/lib/query-string";
+import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY, ORDER_SOURCES, UUID_RE } from "@/lib/query-string";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
@@ -49,6 +49,14 @@ export default async function AllOrdersPage({
   // from kpi_drill_orders (same set, commune key and predicate as the table), one page at a time.
   const drillMetric = ["received", "confirmed", "delivered", "return"].find((m) => m === get("drill")) ?? null;
   const communeKey = get("commune_key");
+  // Statistics filters on this page: `category` (option uuid) and `conf_agent` (confirmation agent
+  // only; `agent` keeps its confirmation-OR-delivery meaning). Same text comparison as kpi_order_set.
+  const category = UUID_RE.test(get("category").toLowerCase()) ? get("category").toLowerCase() : "";
+  const confAgent = UUID_RE.test(get("conf_agent").toLowerCase()) ? get("conf_agent").toLowerCase() : "";
+  const drillFilters: Record<string, string> = {};
+  if (category) drillFilters.category = category;
+  if (confAgent) drillFilters.agent = confAgent;
+  if ((ORDER_SOURCES as readonly string[]).includes(get("source"))) drillFilters.source = get("source");
   const communeUnknown = get(COMMUNE_UNKNOWN_PARAM) === "1";
   let drillIds: string[] | null = null;
   let drillTotal = 0;
@@ -68,6 +76,7 @@ export default async function AllOrdersPage({
       p_delivery_type: get("delivery_type") || undefined,
       p_offset: (page - 1) * PAGE_SIZE,
       p_limit: PAGE_SIZE,
+      p_filters: Object.keys(drillFilters).length ? drillFilters : undefined,
     });
     if (drillError) {
       console.error("orders/all drill", drillError.message);
@@ -101,6 +110,11 @@ export default async function AllOrdersPage({
   if (get("delivery_status"))
     query = query.eq("delivery_status", get("delivery_status") as Enums<"delivery_status">);
   if (get("product_id")) query = query.eq("product_id", get("product_id"));
+  if (confAgent) query = query.eq("assigned_confirmation_agent", confAgent);
+  if (category) {
+    const { data: inCategory } = await supabase.from("products").select("id").eq("category_option_id", category);
+    query = query.in("product_id", (inCategory ?? []).map((p) => p.id).concat("00000000-0000-0000-0000-000000000000"));
+  }
   if (get("wilaya_code")) query = query.eq("wilaya_code", Number(get("wilaya_code")));
   if (get("source")) query = query.eq("source", get("source") as Enums<"order_source">);
   if (get("duplicates")) query = query.eq("is_duplicate_suspect", true);

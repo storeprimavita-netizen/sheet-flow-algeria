@@ -1464,11 +1464,11 @@
     "retry": "Try again",
     "errorTitle": "Statistics couldn't load",
     "emptyTitle": "No orders match these filters",
-    "emptyBody": "Widen the period or clear the product filter to see wilaya rates.",
-    "widenPeriod": "Clear the period",
-    "clearProduct": "Clear the product",
+    "emptyBody": "Clear the filters to see wilaya rates.",
     "unknownWilaya": "Unknown wilaya",
     "allOrders": "Open all orders",
-    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection."
+    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection.",
+    "loadError": "Couldn't load the statistics.",
+    "clearFilters": "Clear filters"
   }
 }
