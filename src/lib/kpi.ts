@@ -20,7 +20,7 @@ export type Kpi = {
   confirmation: KpiMetric;
   delivery: KpiMetric;
   return: KpiMetric;
-  /** delivered / (confirmed + swapped originals), one order set, never above 1 */
+  /** delivered / (confirmed + swapped originals); kept in the contract, not read by the app (D67) */
   delivered_of_confirmed: KpiMetric;
   counts: {
     received: number;

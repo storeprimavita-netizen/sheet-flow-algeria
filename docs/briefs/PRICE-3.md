@@ -5,7 +5,7 @@ Goal: the product Pricing tab shows a read-only fourth column "Real" (actual con
 
 ## Definition of done
 - `pricing-real.ts` returns v2 inputs: `{confirm, delivery, adCostUsd, ordersReceived, matured}` from `kpi_summary` (D4/D46, all-time, product filter). No rate is re-derived in TS.
-- confirm = `confirmation.of_received`; delivery = `delivered_of_confirmed.value` (denominator includes swapped originals, D47/D48); both fractions.
+- confirm = `confirmation.value`; delivery = `delivery.value` (D67; swapped originals count as returned parcels, D47/D48); both fractions.
 - adCostUsd = `ad_spend_dzd / counts.received / settings.parallelRate` (same set as the rates; same B as the engine so the Ads line equals real DZD spend per delivered). Unknown rate/0 received -> null.
 - Real column is the 4th header (neutral/info token, not best/green), same rows as the others; every null -> "—"; below `hasData` (received = 0) the whole column shows "—" + hint "No orders yet".
 - Not matured (kpi `matured` false on confirmation or delivery): column shows a "Preliminary" chip with tooltip (few orders / still in flight); numbers still shown.

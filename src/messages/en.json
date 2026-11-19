@@ -1240,6 +1240,10 @@
       "saleBelowBreakEven": "Sale price below break-even ({value})"
     },
     "rows": {
+      "groupInputs": "Rates and ad cost",
+      "confirmation": "Confirmation rate",
+      "delivery": "Delivery rate",
+      "adCostUsd": "Ad cost / order (USD)",
       "groupAds": "Ads",
       "groupCost": "Cost",
       "groupPrice": "Price",
@@ -1267,7 +1271,9 @@
     "real": {
       "noData": "No orders yet",
       "preliminary": "Preliminary",
-      "preliminaryHint": "Few decided orders or many still in flight: these figures can still move."
+      "preliminaryHint": "Few decided orders or many still in flight: these figures can still move.",
+      "adCostHint": "Real ad spend ÷ orders received, converted at the calculator's rate ({rate} DA per $). Finance converts at its own rate, so its dollar figure can differ.",
+      "below": "below break-even"
     }
   },
   "errorPage": {

@@ -378,23 +378,32 @@ export function resolveSettings(
   return mergeSettings(mergeSettings(DEFAULT_PRICING_SETTINGS, workspace), overrides);
 }
 
+/** The inputs each scenario column feeds the engine (also shown in the results table). */
+export function scenarioInputs(
+  settings: PricingSettings,
+  adCostUsd: PricingProduct["adCostUsd"],
+): Record<ScenarioName, ScenarioInput> {
+  const ads = resolveAdCosts(adCostUsd.medium, settings, adCostUsd);
+  const input = (n: ScenarioName): ScenarioInput => ({
+    confirm: settings.confirmPct[n],
+    delivery: settings.deliveryPct[n],
+    adCostUsd: ads[n],
+  });
+  return { best: input("best"), medium: input("medium"), worst: input("worst") };
+}
+
 /** Best / medium / worst. Medium first; its recommended price is the default P. */
 export function computeAll(
   workspace: DeepPartial<PricingSettings> | null | undefined,
   product: PricingProduct,
 ): Record<ScenarioName, ScenarioResult> {
   const settings = resolveSettings(workspace, product.overrides);
-  const ads = resolveAdCosts(product.adCostUsd.medium, settings, product.adCostUsd);
-  const input = (n: ScenarioName): ScenarioInput => ({
-    confirm: settings.confirmPct[n],
-    delivery: settings.deliveryPct[n],
-    adCostUsd: ads[n],
-  });
-  const medium = computeScenario(settings, product, input("medium"), product.finalPrice);
+  const input = scenarioInputs(settings, product.adCostUsd);
+  const medium = computeScenario(settings, product, input.medium, product.finalPrice);
   const dflt = medium.recommendedPrice;
   return {
-    best: computeScenario(settings, product, input("best"), product.finalPrice, dflt),
+    best: computeScenario(settings, product, input.best, product.finalPrice, dflt),
     medium,
-    worst: computeScenario(settings, product, input("worst"), product.finalPrice, dflt),
+    worst: computeScenario(settings, product, input.worst, product.finalPrice, dflt),
   };
 }

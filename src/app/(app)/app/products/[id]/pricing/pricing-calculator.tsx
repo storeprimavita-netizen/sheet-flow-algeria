@@ -27,7 +27,7 @@ import {
 } from "@/lib/pricing-form";
 import type { Kpi } from "@/lib/kpi";
 import { realScenarioInput } from "@/lib/pricing-real";
-import { computeAll, computeScenario, resolveSettings, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
+import { computeAll, computeScenario, resolveSettings, scenarioInputs, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
 import { saveProductPricing } from "./actions";
 import { PricingResults } from "./pricing-results";
 
@@ -133,8 +133,19 @@ export function PricingCalculator({
       applied.finalPrice,
       results.medium.recommendedPrice,
     );
-    return { result, hasData: scenario.hasData, matured: scenario.matured };
+    return {
+      result,
+      input: scenario.input,
+      adCostDzd: scenario.adCostDzd,
+      rate: settings.parallelRate,
+      hasData: scenario.hasData,
+      matured: scenario.matured,
+    };
   }, [defaults, applied, total, realKpi, results.medium.recommendedPrice]);
+  const inputs = React.useMemo(
+    () => scenarioInputs(resolveSettings(defaults, applied.overrides), applied.ads),
+    [defaults, applied],
+  );
   const hasCost = perPieceCost !== null && perPieceCost > 0;
 
   const update = (fn: (f: PricingForm) => PricingForm) => setDraft((d) => ({ ...d, form: fn(d.form) }));
@@ -233,7 +244,7 @@ export function PricingCalculator({
             </p>
             {belowBreakEven && minPrice !== null ? (
               <Chip token="danger" size="sm" className="mt-1" icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}>
-                {t("product.saleBelowBreakEven", { value: formatCurrency(minPrice, dzd) })}
+                {t("product.saleBelowBreakEven", { value: formatCurrency(Math.ceil(minPrice), dzd) })}
               </Chip>
             ) : null}
           </Field>
@@ -290,7 +301,7 @@ export function PricingCalculator({
       </section>
 
       {hasCost ? (
-        <PricingResults results={results} real={real} unit={dzd} />
+        <PricingResults results={results} inputs={inputs} real={real} unit={dzd} />
       ) : (
         <Empty className="space-y-3">
           <p className="font-medium text-foreground">{t("product.emptyTitle")}</p>
