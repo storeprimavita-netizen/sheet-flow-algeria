@@ -25,7 +25,7 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
   if (!page || !page.product_id) notFound();
   const [{ data: store }, { data: product }] = await Promise.all([
     supabase.from("stores").select("id, workspace_id, slug, name, theme, settings").eq("id", page.store_id).maybeSingle(),
-    supabase.from("products").select("id, name, sale_price, images, stock").eq("id", page.product_id).maybeSingle(),
+    supabase.from("products").select("id, name, sale_price, compare_at_price, pricing_mode, images, stock").eq("id", page.product_id).maybeSingle(),
   ]);
   if (!store || !product) notFound();
   const dto = await assembleProductPage(supabase, store, page, product);

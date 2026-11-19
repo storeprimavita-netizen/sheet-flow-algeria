@@ -29,6 +29,8 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
   });
   afterAll(async () => {
     if (!svc) return;
+    await svc.from("product_offers").delete().eq("workspace_id", ws);
+    await svc.from("product_forms").delete().eq("workspace_id", ws);
     await svc.from("store_pages").delete().eq("workspace_id", ws);
     await svc.from("stores").delete().eq("workspace_id", ws);
     await deleteWorkspaces(svc, [ws]);
@@ -42,15 +44,16 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
     const dto = await loadPublicProductPage(svc, store.slug, "abaya");
     expect(dto).not.toBeNull();
-    expect(Object.keys(dto!).sort()).toEqual(["page", "product", "related", "store", "variants"]);
+    expect(Object.keys(dto!).sort()).toEqual(["bump", "form", "offers", "page", "product", "related", "store", "variants"]);
     expect(Object.keys(dto!.store).sort()).toEqual(["name", "settings", "slug", "theme"]);
     expect(Object.keys(dto!.page).sort()).toEqual(["blocks", "seo", "slug", "title"]);
-    expect(Object.keys(dto!.product).sort()).toEqual(["images", "name", "price"]);
-    expect(dto!.variants).toEqual([{ label: "M", inStock: false }]);
-    expect(Object.keys(dto!.variants[0]).sort()).toEqual(["inStock", "label"]);
+    expect(Object.keys(dto!.product).sort()).toEqual(["compareAt", "images", "name", "price", "priceFrom", "pricingMode"]);
+    expect(dto!.variants).toEqual([{ id: x, label: "M", inStock: false, price: 5000, compareAt: null }]);
+    expect(Object.keys(dto!.variants[0]).sort()).toEqual(["compareAt", "id", "inStock", "label", "price"]);
+    expect(Object.keys(dto!.form).sort()).toEqual(["deliveryMethods", "fields"]);
     expect(dto!.product.name).toBe("عباية");
     expect(dto!.product.images).toEqual(["https://x.com/a.jpg"]); // DAL drops non-https image
-    expect(JSON.stringify(dto)).not.toMatch(/SECRET|workspace_id|cost|"id"/);
+    expect(JSON.stringify(dto)).not.toMatch(/SECRET|workspace_id|cost|free_delivery|"sku"|"stock"/);
   });
 
   test("variant stock change shows; uncounted product keeps every size in stock (D54.4)", async () => {
@@ -180,5 +183,66 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
       expect(await loadPublicProductPage(fake, s, p)).toBeNull();
     }
     expect(from).not.toHaveBeenCalled();
+  });
+
+  test("offers: inactive and expired are out, window respected, no free_delivery; capped saving; hidden when nothing saved", async () => {
+    const { store, product } = await setup();
+    const mk = (extra: Record<string, unknown>) =>
+      svc.from("product_offers").insert({ workspace_id: ws, product_id: product.id, kind: "quantity", label: "x2", qty: 2, total_price: 9000, ...extra }).select("id").single();
+    const live = (await mk({ position: 0 })).data!.id;
+    await mk({ qty: 3, total_price: 12000, is_active: false });
+    await mk({ qty: 4, total_price: 15000, active_to: "2020-01-01T00:00:00Z", active_from: "2019-01-01T00:00:00Z" });
+    await mk({ qty: 5, total_price: 16000, active_from: "2999-01-01T00:00:00Z" });
+    await mk({ qty: 6, total_price: 40000 }); // dearer than 6 x 5000 -> saves nothing -> hidden
+    const dto = await loadPublicProductPage(svc, store.slug, "abaya");
+    expect(dto!.offers).toEqual([{ id: live, label: "x2", qty: 2, total: 9000, saving: 1000 }]);
+    expect(Object.keys(dto!.offers[0]).sort()).toEqual(["id", "label", "qty", "saving", "total"]);
+    expect(JSON.stringify(dto)).not.toMatch(/free_delivery|"sku"|cost/);
+  });
+
+  test("bump: valid one shows, sized or inactive bump product is excluded", async () => {
+    const { store, product } = await setup();
+    const other = (await svc.from("products").insert({ workspace_id: ws, name: "Scarf \u2728", sale_price: 900 }).select("id").single()).data!.id;
+    const b = (await svc.from("product_offers").insert({ workspace_id: ws, product_id: product.id, kind: "bump", label: "bump", bump_product_id: other, bump_price: 700 }).select("id").single()).data!.id;
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.bump).toEqual({ id: b, name: "Scarf", price: 700 });
+    await svc.from("products").update({ is_active: false }).eq("id", other);
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.bump).toBeNull();
+    await svc.from("products").update({ is_active: true }).eq("id", other);
+    await svc.from("product_variants").insert({ workspace_id: ws, product_id: other });
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.bump).toBeNull();
+  });
+
+  test("form: invalid fields jsonb renders defaults; enabled fields only", async () => {
+    const { store, product } = await setup();
+    let dto = await loadPublicProductPage(svc, store.slug, "abaya");
+    expect(dto!.form.fields.map((f) => f.key)).toEqual(["name", "phone", "wilaya", "commune", "delivery", "note"]);
+    await svc.from("product_forms").insert({ workspace_id: ws, product_id: product.id, fields: [{ type: "bogus" }], delivery_methods: ["home"] });
+    dto = await loadPublicProductPage(svc, store.slug, "abaya");
+    expect(dto!.form.fields).toHaveLength(6);
+    expect(dto!.form.deliveryMethods).toEqual(["home"]);
+  });
+
+  test("per_value / per_variant prices, unsellable size excluded, lowest price on product", async () => {
+    const { store, product } = await setup({ product: { compare_at_price: 4000 } });
+    const o = (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name: "Size" }).select("id").single()).data!.id;
+    const ids: Record<string, string> = {};
+    for (const [label, delta] of [["S", -200], ["M", 0], ["L", 300], ["XL", -5000]] as const) {
+      const v = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id: o, label, price_delta: delta }).select("id").single()).data!.id;
+      const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id, price_override: label === "L" ? 7000 : null }).select("id").single()).data!.id;
+      await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
+      ids[label] = x;
+    }
+    const prices = async () => (await loadPublicProductPage(svc, store.slug, "abaya"))!;
+    let dto = await prices();
+    expect(dto.variants.map((v) => [v.label, v.price]).sort()).toEqual([["L", 5000], ["M", 5000], ["S", 5000], ["XL", 5000]]);
+    expect(dto.product.compareAt).toBeNull(); // compare 4000 is below the price
+    await svc.from("products").update({ pricing_mode: "per_value" }).eq("id", product.id);
+    dto = await prices();
+    expect(dto.variants.map((v) => [v.label, v.price]).sort()).toEqual([["L", 5300], ["M", 5000], ["S", 4800]]); // XL refused
+    expect(dto.product).toMatchObject({ price: 4800, priceFrom: true, pricingMode: "per_value" });
+    await svc.from("products").update({ pricing_mode: "per_variant" }).eq("id", product.id);
+    dto = await prices();
+    expect(dto.variants.find((v) => v.label === "L")!.price).toBe(7000);
+    expect(dto.variants.find((v) => v.label === "S")!.price).toBe(5000);
   });
 });

@@ -13,8 +13,9 @@ export const MAX_CUSTOM_FIELDS = 5;
 export const MAX_SELECT_OPTIONS = 10;
 
 export type BuiltinKey = (typeof CORE_KEYS)[number] | (typeof OPTIONAL_KEYS)[number];
+export type CoreField = { type: "core"; key: BuiltinKey; label?: string; required: boolean; enabled: boolean };
 export type FormField =
-  | { type: "core"; key: BuiltinKey; label?: string; required: boolean; enabled: boolean }
+  | CoreField
   | { type: "text"; key: string; label: string; required: boolean; enabled: boolean }
   | { type: "select"; key: string; label: string; required: boolean; enabled: boolean; options: string[] };
 
@@ -59,20 +60,22 @@ export const formFieldsSchema = z.array(formFieldSchema).max(CORE_KEYS.length + 
 export const DELIVERY_METHODS = ["home", "stopdesk"] as const;
 export const deliveryMethodsSchema = z.array(z.enum(DELIVERY_METHODS)).min(1).max(2);
 
-export function defaultFormFields(): FormField[] {
+function defaultCoreFields(): CoreField[] {
   return [
-    ...CORE_KEYS.map((key): FormField => ({ type: "core", key, required: true, enabled: true })),
+    ...CORE_KEYS.map((key): CoreField => ({ type: "core", key, required: true, enabled: true })),
     { type: "core", key: "note", required: false, enabled: true },
     { type: "core", key: "email", required: false, enabled: false },
   ];
 }
+
+export const defaultFormFields = (): FormField[] => defaultCoreFields();
 
 /**
  * Canonical list: the five core fields always present, enabled and required (the order cannot be
  * submitted without them); note/email optional; at most five custom fields with unique keys.
  */
 export function normalizeFormFields(input: FormField[]): FormField[] {
-  const out: FormField[] = defaultFormFields().map((def) => {
+  const out: FormField[] = defaultCoreFields().map((def): CoreField => {
     const found = input.find((f) => f.type === "core" && f.key === def.key);
     if (!found || found.type !== "core") return def;
     const forced = (CORE_KEYS as readonly string[]).includes(def.key);
