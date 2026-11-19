@@ -59,3 +59,38 @@ export const kpiPct = (m: Pick<KpiMetric, "value"> | null | undefined): number |
 /** ROAS to two decimals (display), or null. */
 export const kpiRoas = (k: Kpi | null | undefined): number | null =>
   k?.roas == null ? null : Math.round(k.roas * 100) / 100;
+
+/** Rates of one group (wilaya / commune): `kpi_rates` output, as `kpi_by_wilaya` returns it. */
+export type GroupRates = Pick<Kpi, "confirmation" | "delivery" | "return"> & {
+  counts: { received: number; confirmed: number; delivered: number; returned: number; swapped: number };
+};
+
+/** Extras of one group (migration 00058 `kpi_group_extras`); shares are over `shipped`. */
+export type GroupExtras = {
+  shipped: number;
+  home_count: number;
+  stopdesk_count: number;
+  /** null when no delivered non-swapped order has a delivery history entry */
+  avg_days_to_deliver: number | null;
+  avg_days_sample: number;
+};
+
+export type WilayaStat = { code: number | null; name: string | null; rates: GroupRates; extras: GroupExtras };
+export type CommuneStat = { key: string | null; name: string | null; rates: GroupRates; extras: GroupExtras };
+
+type RawWilaya = { wilaya_code: number | null; wilaya_name: string | null; rates: unknown; extras: unknown };
+type RawCommune = { commune_key: string | null; commune: string | null; rates: unknown; extras: unknown };
+
+/** Narrow `kpi_by_wilaya` rows; biggest wilaya first. */
+export function asWilayaStats(rows: unknown): WilayaStat[] {
+  return ((rows ?? []) as RawWilaya[])
+    .map((r) => ({ code: r.wilaya_code, name: r.wilaya_name, rates: r.rates as GroupRates, extras: r.extras as GroupExtras }))
+    .sort((a, b) => b.rates.counts.received - a.rates.counts.received || (a.code ?? 0) - (b.code ?? 0));
+}
+
+/** Narrow `kpi_by_commune` rows; biggest commune first, unknown (null key) last on ties. */
+export function asCommuneStats(rows: unknown): CommuneStat[] {
+  return ((rows ?? []) as RawCommune[])
+    .map((r) => ({ key: r.commune_key, name: r.commune, rates: r.rates as GroupRates, extras: r.extras as GroupExtras }))
+    .sort((a, b) => b.rates.counts.received - a.rates.counts.received || (a.name ?? "~").localeCompare(b.name ?? "~"));
+}

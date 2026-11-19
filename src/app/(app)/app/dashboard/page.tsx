@@ -11,7 +11,7 @@ import { MoneyBand, WaterfallBand } from "@/components/dashboard/money-band";
 import { OrderJourney } from "@/components/dashboard/order-journey";
 import { StockStrip, type StockRow } from "@/components/dashboard/stock-strip";
 import { ProductScorecard, type ScorecardRow } from "@/components/dashboard/product-scorecard";
-import { DashboardFilterBar, type Opt } from "./dashboard-filter-bar";
+import { DashboardFilterBar, type Opt } from "@/components/dashboard/dashboard-filter-bar";
 import { financeQs, ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { AT_COURIER, RETRY_CONFIRMATION, STUCK_DAYS } from "@/lib/statuses";
 

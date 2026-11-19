@@ -40,6 +40,12 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
   }, []);
 
   const get = (k: string) => sp.get(k) ?? "";
+  // only period + product are remembered; the statistics drill-down (?wilaya=) is not
+  const remember = (next: URLSearchParams) => {
+    const keep = new URLSearchParams(next.toString());
+    keep.delete("wilaya");
+    localStorage.setItem(STORAGE_KEY, keep.toString());
+  };
 
   function setDates(from: string, to: string) {
     const next = new URLSearchParams(sp.toString());
@@ -47,7 +53,7 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
       if (v) next.set(k, v);
       else next.delete(k);
     }
-        localStorage.setItem(STORAGE_KEY, next.toString());
+    remember(next);
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -55,7 +61,7 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
     const next = new URLSearchParams(sp.toString());
     if (!v || v === ALL) next.delete(k);
     else next.set(k, v);
-    localStorage.setItem(STORAGE_KEY, next.toString());
+    remember(next);
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
