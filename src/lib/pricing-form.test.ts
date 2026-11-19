@@ -17,6 +17,9 @@ import {
   closeFocusTarget,
   radioTabIndex,
   focusIdFor,
+  rangeHint,
+  rangeMessageKey,
+  PRICING_FIELDS,
   nextApplied,
   type CalcApplied,
   type CalcDraft,
@@ -468,5 +471,19 @@ describe("calculator", () => {
   it("calculator: unchanged draft keeps identity; valid quantity applies", () => {
     expect(nextApplied(first, draft, PS)).toBe(first);
     expect(nextApplied(first, { ...draft, quantity: 50 }, PS).quantity).toBe(50);
+  });
+});
+
+describe("range messages", () => {
+  const def = (k: string) => PRICING_FIELDS.find((f) => f.key === k)!;
+  it("range hint shows display units", () => {
+    expect(rangeHint(def("confirmPct.best"))).toEqual({ kind: "gtUp", min: 0, max: 100 });
+    expect(rangeHint(def("platformPct"))).toEqual({ kind: "geLt", min: 0, max: 100 });
+    expect(rangeHint(def("officialRate"))).toEqual({ kind: "gt", min: 0 });
+    expect(rangeHint(def("packaging"))).toEqual({ kind: "ge", min: 0 });
+  });
+  it("NaN reads as not a number", () => {
+    expect(rangeMessageKey(Number.NaN)).toBe("notNumber");
+    expect(rangeMessageKey(5)).toBe("range");
   });
 });

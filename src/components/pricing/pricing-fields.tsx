@@ -17,7 +17,10 @@ import {
   type TargetMode,
   focusIdFor,
   overridesFromForm,
+  PLATFORM_PCT_WARN,
   radioTabIndex,
+  rangeHint,
+  rangeMessageKey,
   withTargetMode,
   targetModeForKey,
   toPercent,
@@ -27,7 +30,7 @@ import {
   type FormErrors,
   type PricingForm,
 } from "@/lib/pricing-form";
-import { ltr } from "@/lib/format";
+import { groupDigits, ltr } from "@/lib/format";
 import type { PricingSettings, Rounding } from "@/lib/pricing-v2";
 import { MAX_MARKUP } from "@/lib/pricing-v2";
 
@@ -56,6 +59,16 @@ function defaultFor(def: FieldDef, defaults: PricingSettings): number {
 }
 
 const INHERIT = "__inherit__";
+
+/** "Not a number." or the field's own range sentence (bounds in display units). */
+function fieldRangeText(t: ReturnType<typeof useTranslations>, def: FieldDef, typed: number | null) {
+  const key = rangeMessageKey(typed);
+  if (key === "notNumber") return t("field.notNumber");
+  const h = rangeHint(def);
+  const unit = def.pct ? "%" : "";
+  const fmt = (n: number) => ltr(`${groupDigits(String(n))}${unit}`);
+  return t(`field.range${h.kind[0].toUpperCase()}${h.kind.slice(1)}`, { min: fmt(h.min), max: h.max === undefined ? "" : fmt(h.max) });
+}
 
 /** Groups of fields (target excluded: see TargetEditor). */
 export function PricingFieldGroups({
@@ -96,7 +109,7 @@ export function PricingFieldGroups({
               const err = errors[f.key];
               const label = t(`fields.${f.key}`);
               const dflt = defaultFor(f, defaults);
-              const dfltText = ltr(f.pct ? `${dflt}%` : `${dflt}`);
+              const dfltText = ltr(f.pct ? `${dflt}%` : groupDigits(String(dflt)));
               const value = form.values[f.key];
               const overridden = override && value !== null;
               const set = (v: number | null) => update((cur) => ({ ...cur, values: { ...cur.values, [f.key]: v } }));
@@ -143,13 +156,15 @@ export function PricingFieldGroups({
                     {f.pct ? (
                       <PercentField key={key} {...common} defaultValue={value} nullable decimals={2} max={100} />
                     ) : (
-                      <NumberField key={key} {...common} defaultValue={value} unit={UNIT[f.key] ? t(`unit.${UNIT[f.key]}`) : undefined} />
+                      <NumberField key={key} {...common} defaultValue={value} group={UNIT[f.key] === "dzd" || UNIT[f.key] === "usd"} unit={UNIT[f.key] ? t(`unit.${UNIT[f.key]}`) : undefined} />
                     )}
                   </div>
                   {err ? (
                     <p id={`${id}-err`} className="mt-1 text-xs text-destructive">
-                      {t(`field.${err}`)}
+                      {err === "range" ? fieldRangeText(t, f, value) : t(`field.${err}`)}
                     </p>
+                  ) : f.key === "platformPct" && value !== null && value > PLATFORM_PCT_WARN ? (
+                    <p className="mt-1 text-xs text-warning">{t("field.feeHigh", { limit: ltr(`${PLATFORM_PCT_WARN}%`) })}</p>
                   ) : null}
                 </div>
               );

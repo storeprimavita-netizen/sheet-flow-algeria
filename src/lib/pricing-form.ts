@@ -573,3 +573,24 @@ export function nextApplied(prev: CalcApplied, d: CalcDraft, defaults: PricingSe
   };
   return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
 }
+
+// ---------- range messages ----------
+
+/** Platform fee above this percent still saves but shows a warning (typo guard). */
+export const PLATFORM_PCT_WARN = 50;
+
+/**
+ * Which range sentence a field needs, with bounds in DISPLAY units.
+ * kind = lower bound + upper bound: `g`reater-than / `a`t-least, then `l`ess-than / `u`p-to / none.
+ */
+export function rangeHint(def: FieldDef): { kind: "gt" | "ge" | "gtUp" | "geUp" | "gtLt" | "geLt"; min: number; max?: number } {
+  const lo = def.minExcl ? "gt" : "ge";
+  const min = toDisplay(def, def.min);
+  if (def.max === undefined) return { kind: lo, min };
+  const max = toDisplay(def, def.max);
+  return { kind: `${lo}${def.maxExcl ? "Lt" : "Up"}` as "gtUp" | "geUp" | "gtLt" | "geLt", min, max };
+}
+
+/** Message key under `pricingV2.field.` for a "range" error: not-a-number text vs the field's range. */
+export const rangeMessageKey = (typed: number | null | undefined) =>
+  typeof typed === "number" && Number.isNaN(typed) ? "notNumber" : "range";
