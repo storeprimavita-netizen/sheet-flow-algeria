@@ -117,6 +117,16 @@ task. Worth a yes or no later:
    merged with its open points in a follow-up task, as that rule says, or keep
    waiting for your OK each time?
 
+The same case came up again on 19 November, on the store follow-ups task
+(STORE-2-F). Its third review found nothing serious, and three medium points:
+a test that could never pass, and screenshots taken on a leftover test product
+with no stock and a dead photo link. **Applied the same way (D79):** one last
+short round, merged only if the review passes; if not, it waits for your OK.
+One thing to know: a product page whose sizes are all out of stock shows the
+sizes crossed out and no "sold out" message until the store offers task is
+merged. That message is already built there, and that task waits for your OK.
+The store takes no orders yet, so no customer sees this today.
+
 Nothing is blocked.
 
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default
