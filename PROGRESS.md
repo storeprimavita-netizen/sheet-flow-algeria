@@ -333,3 +333,9 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Known issue: the fast gate failed once in 4 runs right after the STORE-1 merge (test clean-up deadlock, reduced not gone — STORE-1-F).
 - Owner: migrations 00039–00050 wait for the production push (O-2). Products with sizes show "Count needed" until counted once.
 - Next /auto: STORE-3 (pricing modes, offers, order form fields), then P1-7, STORE-4.
+
+## STORE-3 — build done (pending /verify)
+- Done: migration 00051 (pricing mode, compare price, per-value delta, per-size override, `product_offers` quantity + bump, `product_forms`); pure `offer-price.ts` (unit price, offer charge, mixed-size `piecesCharge`, "starting from") shared with STORE-4; `form-fields.ts` zod contract; public DTO with pricing, offers, bump and form fields (no cost, sku, stock count, free delivery); admin Selling tab (mode switch, offers + bump, form editor, "View on store"); `OrderForm` component rendered only in the admin preview (inert, `method="post"`); public page shows an honest "orders open soon" state, no button.
+- Moved: D58 stock rule into `variant-stock.ts` (same behaviour); store layout queries (`.store-top`, `.store-grid`) now use a container query on `.store-main` so the 390 preview frame lays out like a phone.
+- Tests: live RLS `offers.rls.test.ts`, DTO tests in `data.test.ts`, `offer-price`, `form-fields`, `selling-schemas`, order-form markup. Existing `variants.rls.test.ts` "no cost field" check now allows the three selling-price columns.
+- Screenshots: NOT done in this build session (no browser run); the ui review must take the 390 + 1280, light + dark, AR + EN set listed in the brief.
