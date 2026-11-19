@@ -30,7 +30,7 @@ async function signIn(email: string) {
 }
 
 type Metric = { num: number; den: number; value: number | null; matured: boolean };
-type Rates = { confirmation: Metric; delivery: Metric; return: Metric; counts: { received: number } };
+type Rates = { confirmation: Metric; delivery: Metric; return: Metric; counts: { received: number; confirmed: number; delivered: number } };
 type Extras = {
   shipped: number; home_count: number; stopdesk_count: number;
   avg_days_to_deliver: number | null; avg_days_sample: number;
@@ -210,5 +210,35 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
     const [w] = await byWilaya(p);
     expect(w.extras.avg_days_sample).toBe(1);
     expect(w.extras.avg_days_to_deliver).toBe(3);
+  });
+
+  test("kpi_drill_orders total equals the table count for every metric, commune key and the unknown token; agents get nothing", async () => {
+    const p = await product();
+    await order(p, { commune: "Bab Ezzouar", delivery_status: "delivered" });
+    await order(p, { commune: "  BAB ezzouar " });
+    await order(p, { commune: null });
+    await order(p, { commune: "", confirmation_status: "cancelled" });
+    await order(p, { commune: "Hydra", placed_at: `${DAY}T23:30:00Z` }); // 00:30 next day in Algiers: outside DAY
+    await order(p, { commune: "Hydra", excluded_reason: "test" });
+    const drill = async (metric: string, extra: Record<string, unknown> = {}, c = admin) => {
+      const { data, error } = await c.rpc("kpi_drill_orders", { p_metric: metric, p_from: DAY, p_to: DAY, p_product: [p], p_wilaya: 16, ...extra });
+      expect(error).toBeNull();
+      return (data ?? []) as { id: string; total: number }[];
+    };
+    const [w] = await byWilaya(p);
+    const total = async (metric: string, extra: Record<string, unknown> = {}) => Number((await drill(metric, extra))[0]?.total ?? 0);
+    expect(await total("received")).toBe(w.rates.counts.received);
+    expect(await total("confirmed")).toBe(w.rates.counts.confirmed);
+    expect(await total("delivered")).toBe(w.rates.counts.delivered);
+    expect(await total("return")).toBe(w.rates.return.num);
+    for (const c of await byCommune(p, 16)) {
+      const extra = c.commune_key === null ? { p_unknown: true } : { p_commune_key: c.commune_key };
+      expect(await total("received", extra)).toBe(c.rates.counts.received);
+      expect(await total("delivered", extra)).toBe(c.rates.counts.delivered);
+    }
+    expect((await drill("received", { p_limit: 2 })).length).toBe(2);
+    expect(await drill("received", {}, confAgent)).toEqual([]);
+    expect(await drill("received", {}, ws2Admin)).toEqual([]);
+    expect(await drill("nonsense")).toEqual([]);
   });
 });

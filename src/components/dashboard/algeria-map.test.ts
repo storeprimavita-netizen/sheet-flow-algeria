@@ -81,3 +81,11 @@ describe("wilaya table label structure", () => {
     expect(src).toContain("data-scroll-fade");
   });
 });
+
+describe("AlgeriaMap matured fill", () => {
+  const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
+  it("an unmatured datum takes the neutral fill, not a status fill", () => {
+    expect(src).toContain('if (!d.matured || d.deliveryRate === null) return "fill-neutral/30"');
+    expect(src).not.toContain("minOrders");
+  });
+});
