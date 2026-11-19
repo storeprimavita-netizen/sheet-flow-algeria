@@ -20,6 +20,7 @@ export async function getStore() {
     .from("stores")
     .select("id, slug, name, status, settings")
     .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(`getStore: ${error.message}`);
