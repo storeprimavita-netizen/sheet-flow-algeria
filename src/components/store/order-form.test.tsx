@@ -65,4 +65,14 @@ describe("public page has no live submit", () => {
     expect(html).not.toMatch(/<button|type="submit"|<form/);
     expect(html).toContain("store-soon");
   });
+
+  test("every size out of stock: sold-out state, no order form or offers", () => {
+    const v = (id: string) => ({ id, label: id, inStock: false, price: 5000, compareAt: null });
+    const out = { ...dto, variants: [v("M"), v("L")], offers: [{ id: "o", label: "x2", qty: 2, total: 9000, saving: 1000 }] } as PublicProductPage;
+    const html = renderToStaticMarkup(<ProductView dto={out} orderSlot={<form id="f" />} />);
+    expect(html).toContain("نفدت الكمية");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("store-offers-info");
+    expect(html).not.toContain("الطلب سيُفتح قريبًا");
+  });
 });

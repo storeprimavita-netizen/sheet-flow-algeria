@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { NumberField } from "@/components/fields/number-field";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
+import { buildPricingPayload } from "@/lib/store/selling-schemas";
 import { comparePrice, unitPrice, type PricingMode } from "@/lib/store/offer-price";
 
 import { savePricing } from "../actions";
@@ -76,17 +77,7 @@ export function PricingEditor({
 
   async function save() {
     setState({ kind: "saving" });
-    const res = await savePricing({
-      productId,
-      mode,
-      compareAt,
-      deltas: Object.entries(deltas).map(([valueId, delta]) => ({ valueId, delta: mode === "per_value" ? delta : 0 })),
-      overrides: variants.map((v) => ({
-        variantId: v.id,
-        price: mode === "per_variant" ? (overrides[v.id]?.price ?? null) : null,
-        compareAt: mode === "per_variant" ? (overrides[v.id]?.compare ?? null) : null,
-      })),
-    });
+    const res = await savePricing(buildPricingPayload({ productId, mode, compareAt, deltas, overrides, variantIds: variants.map((v) => v.id) }));
     if (res.ok) {
       setState({ kind: "saved" });
       setDirty(false);

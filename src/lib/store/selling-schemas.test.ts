@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { formInputSchema, offersInputSchema, pricingInputSchema } from "./selling-schemas";
+import { buildPricingPayload, formInputSchema, offersInputSchema, pricingInputSchema } from "./selling-schemas";
 
 const id = "4f1c9d8e-7a3b-4c2d-9e5f-1a2b3c4d5e6f";
 const offer = { id: null, label: "x2", qty: 2, total: 9000, isDefault: false, isActive: true, activeFrom: null, activeTo: null };
@@ -27,5 +27,19 @@ describe("selling schemas", () => {
   test("form: needs a delivery method", () => {
     expect(formInputSchema.safeParse({ productId: id, fields: [], deliveryMethods: [] }).success).toBe(false);
     expect(formInputSchema.safeParse({ productId: id, fields: [], deliveryMethods: ["home"] }).success).toBe(true);
+  });
+
+  test("pricing payload: only the active mode keeps its numbers", () => {
+    const base = { productId: id, compareAt: null, deltas: { [id]: 300 }, overrides: { [id]: { price: 4000, compare: 5000 } }, variantIds: [id] };
+    const pv = buildPricingPayload({ ...base, mode: "per_value" });
+    expect(pv.deltas).toEqual([{ valueId: id, delta: 300 }]);
+    expect(pv.overrides).toEqual([{ variantId: id, price: null, compareAt: null }]);
+    const pr = buildPricingPayload({ ...base, mode: "per_variant" });
+    expect(pr.deltas).toEqual([{ valueId: id, delta: 0 }]);
+    expect(pr.overrides).toEqual([{ variantId: id, price: 4000, compareAt: 5000 }]);
+    const un = buildPricingPayload({ ...base, mode: "uniform" });
+    expect(un.deltas.every((d) => d.delta === 0)).toBe(true);
+    expect(un.overrides.every((o) => o.price === null && o.compareAt === null)).toBe(true);
+    expect(pricingInputSchema.safeParse(un).success).toBe(true);
   });
 });

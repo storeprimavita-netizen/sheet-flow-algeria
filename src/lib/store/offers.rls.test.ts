@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
+import { buildPricingPayload } from "@/lib/store/selling-schemas";
 import { deleteWorkspaces } from "@/lib/test-cleanup";
 
 /** Live STORE-3 checks: offers, forms and price columns (grants, RLS, integrity). */
@@ -133,6 +134,23 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
     await svc.from("products").delete().eq("id", ok);
     const after = await svc.from("product_offers").select("bump_product_id").eq("id", row.id).single();
     expect(after.data).toEqual({ bump_product_id: null });
+  });
+
+  test("saving per_value with a delta, then uniform, leaves every price_delta at 0", async () => {
+    const p = await product();
+    const opt = (await svc.from("product_options").insert({ workspace_id: ws, product_id: p, name: "Size" }).select("id").single()).data!.id;
+    const val = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: p, option_id: opt, label: "XL" }).select("id").single()).data!.id;
+    // same writes as savePricing, on an admin session, with the editor's payload
+    const save = async (mode: "per_value" | "uniform") => {
+      const pl = buildPricingPayload({ productId: p, mode, compareAt: null, deltas: { [val]: 300 }, overrides: {}, variantIds: [] });
+      for (const d of pl.deltas) expect((await adminA.from("product_option_values").update({ price_delta: d.delta }).eq("id", d.valueId).eq("product_id", p)).error).toBeNull();
+      expect((await adminA.from("products").update({ pricing_mode: pl.mode }).eq("id", p)).error).toBeNull();
+    };
+    const deltas = async () => (await svc.from("product_option_values").select("price_delta").eq("product_id", p)).data!.map((r) => Number(r.price_delta));
+    await save("per_value");
+    expect(await deltas()).toEqual([300]);
+    await save("uniform");
+    expect(await deltas()).toEqual([0]);
   });
 
   test("forms: fields size, delivery methods", async () => {

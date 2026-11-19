@@ -26,6 +26,30 @@ export const pricingInputSchema = z
   })
   .strict();
 
+type PricingState = {
+  productId: string;
+  mode: "uniform" | "per_value" | "per_variant";
+  compareAt: number | null;
+  deltas: Record<string, number>;
+  overrides: Record<string, { price: number | null; compare: number | null }>;
+  variantIds: string[];
+};
+
+/** What the editor sends on save. Only the active mode keeps its numbers: every other delta/override goes out as 0/null so the DB never keeps a price the page no longer shows. */
+export function buildPricingPayload(s: PricingState): z.input<typeof pricingInputSchema> {
+  return {
+    productId: s.productId,
+    mode: s.mode,
+    compareAt: s.compareAt,
+    deltas: Object.entries(s.deltas).map(([valueId, delta]) => ({ valueId, delta: s.mode === "per_value" ? delta : 0 })),
+    overrides: s.variantIds.map((variantId) => ({
+      variantId,
+      price: s.mode === "per_variant" ? (s.overrides[variantId]?.price ?? null) : null,
+      compareAt: s.mode === "per_variant" ? (s.overrides[variantId]?.compare ?? null) : null,
+    })),
+  };
+}
+
 const quantityOffer = z
   .object({
     id: uuid.nullable(),

@@ -6,7 +6,7 @@
  * - uniform: every size costs `basePrice`. per_value: `basePrice` + the sum of the deltas of the size's
  *   option values. per_variant: the size's own override wins, else `basePrice`.
  * - A unit price <= 0 (or not a finite number) means the size is NOT sellable: refused, never clamped.
- * - A quantity offer is a fixed total for `qty` pieces of the same size. It is capped at `qty * unit`
+ * - A quantity offer is a fixed total for `qty` pieces of this product. It is capped at `qty * unit`
  *   (never dearer than buying the pieces one by one) and hidden when it saves nothing.
  * - Mixed sizes: an offer applies to its N pieces whatever their sizes (M + L as well as M + M). STORE-4 prices
  *   each piece with its own size's unit price and charges the smaller of the offer total and that sum

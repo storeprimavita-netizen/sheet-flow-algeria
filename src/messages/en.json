@@ -1554,6 +1554,8 @@
       "lead": "Fill in your details and we will call you to confirm the order.",
       "soonTitle": "Orders open soon",
       "soonBody": "We are getting the order form ready. Come back shortly or contact us on WhatsApp.",
+      "soldOutTitle": "Sold out",
+      "soldOutBody": "Every size is out of stock for now. Come back soon.",
       "sizeLabel": "Size",
       "chooseSize": "Choose a size",
       "offersTitle": "Choose a quantity",

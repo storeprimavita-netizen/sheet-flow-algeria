@@ -34,6 +34,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
   const unit = st("currency");
   const { price, compareAt } = dto.product;
   const pct = price !== null && compareAt !== null && compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+  const soldOut = dto.variants.length > 0 && dto.variants.every((v) => !v.inStock);
   return (
     <StoreShell store={dto.store}>
         <nav className="store-crumbs" aria-label="breadcrumb">
@@ -92,7 +93,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                 </ul>
               </div>
             ) : null}
-            {!orderSlot && dto.offers.length > 0 ? (
+            {!orderSlot && !soldOut && dto.offers.length > 0 ? (
               <div>
                 <p className="store-label">{st("order.offersInfoTitle")}</p>
                 <ul className="store-offers-info">
@@ -111,11 +112,18 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
             {/* sizes and offers above are shown only while the order form is absent: the form has its own pickers */}
             {/* no live submit until STORE-4: an honest state, never a button that does nothing */}
             <div id="order">
-              {orderSlot ?? (
-                <section className="store-soon" aria-labelledby="order-soon">
-                  <h2 id="order-soon">{st("order.soonTitle")}</h2>
-                  <p className="store-form-lead">{st("order.soonBody")}</p>
+              {soldOut ? (
+                <section className="store-soon" aria-labelledby="order-soldout">
+                  <h2 id="order-soldout">{st("order.soldOutTitle")}</h2>
+                  <p className="store-form-lead">{st("order.soldOutBody")}</p>
                 </section>
+              ) : (
+                (orderSlot ?? (
+                  <section className="store-soon" aria-labelledby="order-soon">
+                    <h2 id="order-soon">{st("order.soonTitle")}</h2>
+                    <p className="store-form-lead">{st("order.soonBody")}</p>
+                  </section>
+                ))
               )}
             </div>
           </div>
