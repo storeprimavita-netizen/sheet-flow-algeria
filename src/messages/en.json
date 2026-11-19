@@ -1119,7 +1119,8 @@
     "scenario": {
       "best": "Best",
       "medium": "Medium",
-      "worst": "Worst"
+      "worst": "Worst",
+      "real": "Real"
     },
     "missing": "Missing input",
     "notPossible": "Not possible",
@@ -1261,6 +1262,11 @@
       "dzd": "DA",
       "usd": "USD",
       "times": "×"
+    },
+    "real": {
+      "noData": "No orders yet",
+      "preliminary": "Preliminary",
+      "preliminaryHint": "Few decided orders or many still in flight: these figures can still move."
     }
   },
   "errorPage": {

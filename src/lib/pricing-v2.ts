@@ -370,13 +370,20 @@ export function computeScenario(
   };
 }
 
+/** defaults < workspace < product overrides, so a sparse workspace jsonb cannot throw. */
+export function resolveSettings(
+  workspace: DeepPartial<PricingSettings> | null | undefined,
+  overrides?: DeepPartial<PricingSettings> | null,
+): PricingSettings {
+  return mergeSettings(mergeSettings(DEFAULT_PRICING_SETTINGS, workspace), overrides);
+}
+
 /** Best / medium / worst. Medium first; its recommended price is the default P. */
 export function computeAll(
   workspace: DeepPartial<PricingSettings> | null | undefined,
   product: PricingProduct,
 ): Record<ScenarioName, ScenarioResult> {
-  // defaults < workspace < product, so a sparse workspace jsonb cannot throw
-  const settings = mergeSettings(mergeSettings(DEFAULT_PRICING_SETTINGS, workspace), product.overrides);
+  const settings = resolveSettings(workspace, product.overrides);
   const ads = resolveAdCosts(product.adCostUsd.medium, settings, product.adCostUsd);
   const input = (n: ScenarioName): ScenarioInput => ({
     confirm: settings.confirmPct[n],

@@ -24,7 +24,9 @@ import {
   stockCostTotal,
   type PricingForm,
 } from "@/lib/pricing-form";
-import { computeAll, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
+import type { Kpi } from "@/lib/kpi";
+import { realScenarioInput } from "@/lib/pricing-real";
+import { computeAll, computeScenario, resolveSettings, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
 import { saveProductPricing } from "./actions";
 import { PricingResults } from "./pricing-results";
 
@@ -59,6 +61,7 @@ export function PricingCalculator({
   perPieceCost,
   stock,
   salePrice,
+  realKpi,
   saved,
 }: {
   productId: string;
@@ -66,6 +69,7 @@ export function PricingCalculator({
   perPieceCost: number | null;
   stock: number;
   salePrice: number | null;
+  realKpi: Kpi | null;
   saved: SavedPricing;
 }) {
   const t = useTranslations("pricingV2");
@@ -117,6 +121,19 @@ export function PricingCalculator({
       }),
     [defaults, total, applied],
   );
+  // Real column: same merged settings, stock cost, quantity and final-price rule as the scenarios
+  const real = React.useMemo(() => {
+    const settings = resolveSettings(defaults, applied.overrides);
+    const scenario = realScenarioInput(realKpi, settings.parallelRate);
+    const result = computeScenario(
+      settings,
+      { stockCostDzd: total ?? Number.NaN, quantity: applied.quantity },
+      scenario.input,
+      applied.finalPrice,
+      results.medium.recommendedPrice,
+    );
+    return { result, hasData: scenario.hasData, matured: scenario.matured };
+  }, [defaults, applied, total, realKpi, results.medium.recommendedPrice]);
   const hasCost = perPieceCost !== null && perPieceCost > 0;
 
   const update = (fn: (f: PricingForm) => PricingForm) => setDraft((d) => ({ ...d, form: fn(d.form) }));
@@ -265,7 +282,7 @@ export function PricingCalculator({
       </section>
 
       {hasCost ? (
-        <PricingResults results={results} unit={dzd} />
+        <PricingResults results={results} real={real} unit={dzd} />
       ) : (
         <Empty className="space-y-3">
           <p className="font-medium text-foreground">{t("product.emptyTitle")}</p>

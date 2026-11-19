@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, Minus, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Chip } from "@/components/ui/chip";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
@@ -67,7 +67,17 @@ function format(v: number, fmt: Fmt, unit: string): string {
   }
 }
 
-export function PricingResults({ results, unit }: { results: Record<ScenarioName, ScenarioResult>; unit: string }) {
+export type RealColumn = { result: ScenarioResult; hasData: boolean; matured: boolean };
+
+export function PricingResults({
+  results,
+  real,
+  unit,
+}: {
+  results: Record<ScenarioName, ScenarioResult>;
+  real?: RealColumn;
+  unit: string;
+}) {
   const t = useTranslations("pricingV2");
   const losing = SCENARIOS.filter((s) => (results[s].profitPerPiece ?? 0) < 0);
   const anyImpossible = SCENARIOS.some((s) =>
@@ -82,7 +92,7 @@ export function PricingResults({ results, unit }: { results: Record<ScenarioName
         role="region"
         aria-label={t("product.table")}
       >
-        <table className="w-full min-w-[34rem] border-separate border-spacing-0 text-sm">
+        <table className="w-full min-w-[42rem] border-separate border-spacing-0 text-sm">
           <caption className="sr-only">{t("product.table")}</caption>
           <thead>
             <tr>
@@ -99,6 +109,25 @@ export function PricingResults({ results, unit }: { results: Record<ScenarioName
                   </th>
                 );
               })}
+              {real ? (
+                <th scope="col" className="px-3 py-2 text-end font-medium">
+                  <div className="flex flex-col items-end gap-1">
+                    <Chip token="info" size="sm" icon={<Activity className="h-3.5 w-3.5" aria-hidden />}>
+                      {t("scenario.real")}
+                    </Chip>
+                    {!real.hasData ? (
+                      <span className="text-xs font-normal text-muted-foreground">{t("real.noData")}</span>
+                    ) : !real.matured ? (
+                      <span title={t("real.preliminaryHint")}>
+                        <Chip token="neutral" size="sm">
+                          {t("real.preliminary")}
+                        </Chip>
+                        <span className="sr-only">{t("real.preliminaryHint")}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                </th>
+              ) : null}
             </tr>
           </thead>
           {GROUPS.map((g) => (
@@ -106,7 +135,7 @@ export function PricingResults({ results, unit }: { results: Record<ScenarioName
               <tr>
                 <th
                   scope="colgroup"
-                  colSpan={4}
+                  colSpan={real ? 5 : 4}
                   className="sticky start-0 border-t border-border bg-surface-raised px-3 py-1.5 text-start text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   {t(`rows.${g.id}`)}
@@ -129,6 +158,25 @@ export function PricingResults({ results, unit }: { results: Record<ScenarioName
                       </td>
                     );
                   })}
+                  {real ? (
+                    <td className="px-3 py-2 text-end">
+                      {(() => {
+                        const v = real.hasData ? row.get(real.result) : null;
+                        const state: PricingCellState = !real.hasData
+                          ? "missing"
+                          : row.breakEven
+                            ? breakEvenState(real.result, row.breakEven)
+                            : v === null
+                              ? "missing"
+                              : "value";
+                        return (
+                          <PricingCell state={state} missingLabel={real.hasData ? t("missing") : t("real.noData")} impossibleLabel={t("notPossible")}>
+                            {v === null ? null : format(v, row.fmt, unit)}
+                          </PricingCell>
+                        );
+                      })()}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
