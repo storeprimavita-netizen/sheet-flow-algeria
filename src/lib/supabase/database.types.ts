@@ -1429,16 +1429,42 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"wilaya_fees": {
+                },"wilaya_communes": {
                   Row: {
-                    "home_fee": number,"stop_shipping": boolean,"stopdesk_fee": number,"updated_at": string,"wilaya_code": number,"workspace_id": string
+                    "name": string,"updated_at": string,"wilaya_code": number,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "home_fee"?: number,"stop_shipping"?: boolean,"stopdesk_fee"?: number,"updated_at"?: string,"wilaya_code": number,"workspace_id": string
+                    "name": string,"updated_at"?: string,"wilaya_code": number,"workspace_id": string
                   }
                   Update: {
-                    "home_fee"?: number,"stop_shipping"?: boolean,"stopdesk_fee"?: number,"updated_at"?: string,"wilaya_code"?: number,"workspace_id"?: string
+                    "name"?: string,"updated_at"?: string,"wilaya_code"?: number,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "wilaya_communes_wilaya_code_fkey"
+      columns: ["wilaya_code"]
+isOneToOne: false
+      referencedRelation: "wilayas"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "wilaya_communes_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"wilaya_fees": {
+                  Row: {
+                    "home_fee": number,"priced": boolean,"stop_shipping": boolean,"stopdesk_available": boolean,"stopdesk_fee": number,"updated_at": string,"wilaya_code": number,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "home_fee"?: number,"priced"?: boolean,"stop_shipping"?: boolean,"stopdesk_available"?: boolean,"stopdesk_fee"?: number,"updated_at"?: string,"wilaya_code": number,"workspace_id": string
+                  }
+                  Update: {
+                    "home_fee"?: number,"priced"?: boolean,"stop_shipping"?: boolean,"stopdesk_available"?: boolean,"stopdesk_fee"?: number,"updated_at"?: string,"wilaya_code"?: number,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1679,7 +1705,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "apply_zr_state":
+            "apply_delivery_prices":
+{ Args: { "p": Json }; Returns: Json
+                           },
+"apply_zr_state":
 { Args: { "p_is_return": boolean,"p_live"?: boolean,"p_occurred": string,"p_parcel": string,"p_situation": string,"p_slug": string,"p_state": string,"p_ws": string }; Returns: string
                            },
 "audit_is_secret_key":
@@ -1704,6 +1733,9 @@ isOneToOne: false
                            },
 "dashboard_stats":
 { Args: { "p_agent"?: (string)[],"p_conf_agent"?: (string)[],"p_confirmation_status"?: (Database["public"]['Enums']["confirmation_status"])[],"p_deliv_agent"?: (string)[],"p_delivery_status"?: (Database["public"]['Enums']["delivery_status"])[],"p_from"?: string,"p_product"?: (string)[],"p_source"?: (Database["public"]['Enums']["order_source"])[],"p_to"?: string,"p_wilaya"?: (number)[] }; Returns: Json
+                           },
+"delivery_fee_for":
+{ Args: { "p_type": string,"p_wilaya": number,"p_ws": string }; Returns: number
                            },
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean

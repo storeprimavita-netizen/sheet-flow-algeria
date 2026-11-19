@@ -348,3 +348,31 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 
 ## STORE-3 — round 4 (D61)
 - Fixed review-3 #1, #3, #4, #5 (tests: price-0 sizeless 404, mixed-size piecesCharge). Screenshots: not captured here (no browser run); ui-reviewer to capture r4-* list. Follow-ups rewritten in docs/briefs/STORE-3.followups.md.
+- P1-7 screenshots (browser MCP, AR + light + 1280 only): CSV dialog preview, fee grid after apply, order form. Not covered: dark, EN, 390px, warning/failed/applying dialog states, commune picker open. Fixed from screenshots: before/after values forced LTR in the preview cards.
+- P1-7 round 2 (review 1 FIX): push refuses any unpriced wilaya; swap recomputes the fee (migration 00053, also hardens apply input); admin "switch to home" action; createOrder/swap/saveWilayaFees return inline i18n errors; alert under Wilaya; grid scrolls with the page on phones; CSV dialog follows page direction, translated file picker, client size check, 2-col footer, Apply off at 0 changes; re-enabling a wilaya needs a fee above 0. New tests: push guard/COD/workspace scope, createOrder block, saveWilayaFees, syncZRFees, swap fee, parser fixture. Screenshots in docs/design/audit/P1-7-r2 (grid EN dark 390, grid AR light 1280, dialog preview AR light 1280, order form unpriced EN dark 390). Not covered: dialog warning/failed/applying/oversize states, commune picker open, stop_shipping wilaya, other theme/locale combos. Known: a failed grid save resets unsaved edits (React form reset).
+
+P1-7 round 3: fixed review-2 mediums (stop_shipping switches controlled; order-form name/address controlled; commune-name diff; migration 00054 sets 0/0 wilayas priced=false, default priced=false, swap honours stop_shipping). Owner note: on remote this turns shipping off for wilayas still at 0 DZD until a CSV is imported. Grid fee inputs now have aria-labels.
+
+P1-7 round 4 (D62): migration 00055 (flags off where a priced type has fee <= 0, then two CHECKs; `apply_delivery_prices` raises on the same cases). Parser: a price <= 0 gives a `zero_price` warning and that type is not offered. `saveWilayaFees` checks every row it writes and writes nothing on refusal. ZR sync writes prices only, ignores a ZR price not above 0, returns `{updated, off}` and the toast says both (EN + AR plurals). Push guard: stop-desk exception in a home-only wilaya needs an order fee above 0. `createOrder` uses safeParse (`orders.form.invalid`), Product marked required. Form reset: grid, new order and swap card submit through `useSubmitAction` (`src/lib/use-submit-action.ts`: preventDefault + startTransition), no `action=`. Tests: parser `:0`, sync (unpriced row, ZR 0), grid save refused on cleared fee, no-product order, push fee 0, and in the live suite the 00055 updates replayed on three bad rows (psql transaction, constraints dropped, rolled back), direct service-role write refused, apply refused.
+- Not done: no browser tool in this session, so the `r4-*` screenshots and the live check of the three forms (grid case, refused new order, refused swap) were not taken. Left to ui-reviewer.
+- Owner note: after the production database update, a wilaya whose home price is 0 has shipping off, and a wilaya whose stop-desk price is 0 has stop-desk off, until the price sheet is uploaded or the switch is turned on. Confirmed orders not yet sent to ZR for a wilaya that is off are refused at "Send to ZR" until then. Run this read-only query before the update to count them:
+```sql
+select
+  (select count(*) from wilaya_fees where priced and home_fee <= 0) as wilayas_going_off,
+  (select count(*) from wilaya_fees where priced and stopdesk_available and stopdesk_fee <= 0 and home_fee > 0) as wilayas_losing_stopdesk,
+  (select count(*) from orders o join wilaya_fees f on f.workspace_id = o.workspace_id and f.wilaya_code = o.wilaya_code
+     where o.confirmation_status = 'confirmed'
+       and not exists (select 1 from zr_shipments z where z.order_id = o.id)
+       and f.priced and (f.home_fee <= 0 or (o.delivery_type = 'stopdesk' and f.stopdesk_available and f.stopdesk_fee <= 0))) as confirmed_unsent_orders;
+```
+- Follow-up P1-7-F (D62 item 7) to be added as a plan row at ship.
+
+P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one medium. A home label priced 0 now still counts as "home seen", so Béchar's `home:0|home:720` gives stop-desk 720, home none, wilaya not priced (parser test on that exact row). Also `method="post"` on the grid, new-order and swap forms (no GET with personal data before hydration). Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Other lows left to P1-7-F.
+
+## P1-7 done (review-5 PASS)
+- Done: delivery prices from the owner's CSV (wilaya fees, preview then apply, grid edits, ZR sync prices only, 0 is never a price, D62 rounds 1-5). Migrations 00052-00055.
+- Verify: `scripts/gate.sh` GATE OK (tsc, 572 passed / 3 skipped with live RLS suite, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/P1-7.review-5.md PASS (no high or medium in the round-5 diff); screenshots docs/design/audit/P1-7-r5/.
+- Open: P1-7-F (review-5 lows, pre-existing swap medium on a typed wilaya name, reviews 3-4 leftovers, missing tests).
+- Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
+- Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.

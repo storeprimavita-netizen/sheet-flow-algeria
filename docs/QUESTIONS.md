@@ -28,6 +28,28 @@ one order is the usual case (for her and her sister), and refusing the offer
 there loses the sale. The other option: the offer only counts when both pieces
 are the same size. Say so if you want it; it is decided before the order form
 goes live, so no customer has been charged either way. Nothing is blocked.
+### Q-17 · P1-7 · 2026-11-19 · answered-by-default
+(Q-15 and Q-16 belong to the store offers task and arrive when it is merged.)
+In Settings, "Sync delivery fees from ZR" copies ZR's prices into your delivery
+prices. Should it also switch shipping on for a wilaya that is off because it
+has no price? **Applied by default (D62):** no. The sync only updates prices. A
+wilaya ships only when your price sheet gives it a price, or when you turn its
+"Priced" switch on yourself; ZR's price is then already filled in. After a sync
+the app tells you how many wilayas are still off. Reason: your sheet leaves 4
+wilayas with no price (Illizi, Tindouf, Bordj Badji Mokhtar, Djanet) and gives
+2 home delivery only (In Guezzam, El Meghaier). ZR has a price for every place
+it serves, so a sync that switched wilayas on would put those back on sale at
+ZR's price in one click. The other option: a sync switches on every wilaya ZR
+gives a price for. It is faster the first time, but it overrides your sheet.
+Say so if you want it (it is one line to change).
+Also applied: a delivery price of 0 is never accepted for a wilaya that ships.
+A 0 in the sheet, in the price table or from ZR counts as "no price" (free
+delivery stays Q-14).
+To know before the production database update: a wilaya whose home price is
+still 0 will have shipping off, and a wilaya whose stop-desk price is 0 will
+lose stop-desk, until you upload your sheet or turn the switch on. Confirmed
+orders not yet sent to ZR for those wilayas cannot be sent until then. A count
+you can run before the update will be in PROGRESS.md. Nothing is blocked.
 
 ### Q-14 · STORE-3 · 2026-11-19 · answered-by-default
 An offer such as "2 pieces for 9,000 DZD" could also promise free delivery.

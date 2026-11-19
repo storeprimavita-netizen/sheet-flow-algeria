@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deliveryFeeFor } from "@/lib/pricing-delivery";
 import { upsertCustomerFromOrder } from "@/lib/customers";
 import { normalizeText, jsonResponse } from "@/lib/utils";
 import type { Database, Enums, Json, TablesInsert, TablesUpdate } from "@/lib/supabase/database.types";
@@ -224,12 +225,14 @@ async function applyMappedOrder(
   } else if (wilayaCode !== null) {
     const { data: fee } = await supabase
       .from("wilaya_fees")
-      .select("home_fee, stopdesk_fee")
+      .select("home_fee, stopdesk_fee, priced, stopdesk_available")
       .eq("workspace_id", workspaceId)
       .eq("wilaya_code", wilayaCode)
       .maybeSingle();
-    if (fee) {
-      deliveryFee = deliveryType === "stopdesk" ? fee.stopdesk_fee : fee.home_fee;
+    // null = this type is unavailable in the wilaya: no fee is seeded
+    const seeded = deliveryFeeFor(fee, deliveryType);
+    if (seeded !== null) {
+      deliveryFee = seeded;
       deliveryFeeSource = "wilaya_table";
     }
   }

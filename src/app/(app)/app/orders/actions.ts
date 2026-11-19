@@ -14,6 +14,7 @@ import { applyZRParcelState } from "@/lib/integrations/zrexpress-webhook";
 import { hubsForOrder, pushToZR } from "@/lib/integrations/zrexpress-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SETTINGS_SCHEMAS } from "@/lib/settings";
+import { newOrderBlock } from "@/lib/pricing-delivery";
 import {
   CONFIRMATION_STATUSES,
   MANUAL_DELIVERY_STATUSES,
@@ -119,6 +120,35 @@ export async function pushOrderToZRExpress(orderId: string, hubId?: string | nul
   const res = await pushToZR(await createClient(), workspaceId, orderId, hubId);
   if (res.ok) revalidatePath(`/app/orders/${orderId}`);
   return res;
+}
+
+/**
+ * Admin override for an order stuck on a delivery type its wilaya no longer ships:
+ * switch it to home and re-seed the fee from the single fee source (D14).
+ */
+export async function switchOrderToHome(orderId: string): Promise<UpdateResult> {
+  const { workspaceId } = await adminProfile();
+  const id = z.string().uuid().parse(orderId);
+  const supabase = await createClient();
+  const { data: order } = await supabase
+    .from("orders")
+    .select("wilaya_code, delivery_type")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (!order?.wilaya_code) return { ok: false, error: "Order needs a wilaya first." };
+  const { data: sent } = await supabase.from("zr_shipments").select("order_id").eq("order_id", id).maybeSingle();
+  if (sent) return { ok: false, error: "This order was already sent to ZR Express." };
+  const { data: fee } = await supabase.rpc("delivery_fee_for", { p_ws: workspaceId, p_wilaya: order.wilaya_code, p_type: "home" });
+  if (fee === null || fee === undefined) return { ok: false, error: "Home delivery is not available in this wilaya." };
+  const { error } = await supabase
+    .from("orders")
+    .update({ delivery_type: "home", delivery_fee: Number(fee), delivery_fee_source: "wilaya_table" })
+    .eq("id", id)
+    .eq("workspace_id", workspaceId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/app/orders/${id}`);
+  return { ok: true };
 }
 
 /** Bulk "Send to ZR" from the delivery queue. Sequential (ZR rate limits) —
@@ -357,9 +387,12 @@ const createOrderSchema = z.object({
   delivery_fee_source: z.enum(DELIVERY_FEE_SOURCES),
 });
 
-export async function createOrder(formData: FormData) {
+/** Form-level failure: `error` is an i18n key suffix under orders.form (never raw server text). */
+export type OrderFormState = { error: string } | undefined;
+
+export async function createOrder(formData: FormData): Promise<OrderFormState> {
   const { workspaceId } = await adminProfile();
-  const input = createOrderSchema.parse({
+  const parsed = createOrderSchema.safeParse({
     product_id: formData.get("product_id"),
     variant_id: formData.get("variant_id"),
     quantity: formData.get("quantity"),
@@ -373,8 +406,19 @@ export async function createOrder(formData: FormData) {
     delivery_fee: formData.get("delivery_fee"),
     delivery_fee_source: formData.get("delivery_fee_source"),
   });
+  if (!parsed.success) return { error: "invalid" };
+  const input = parsed.data;
 
   const supabase = await createClient();
+  const { data: feeRow } = await supabase
+    .from("wilaya_fees")
+    .select("home_fee, stopdesk_fee, priced, stopdesk_available, stop_shipping")
+    .eq("workspace_id", workspaceId)
+    .eq("wilaya_code", input.wilaya_code)
+    .maybeSingle();
+  const block = newOrderBlock(feeRow, input.delivery_type);
+  if (block) return { error: `blocked.${block}` };
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -411,7 +455,7 @@ export async function createOrder(formData: FormData) {
     })
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
+  if (error) return { error: "createFailed" };
 
   markStorePublicStale();
   revalidatePath("/app/orders/all");
@@ -456,7 +500,7 @@ const swapOrderSchema = z.object({
   address: optionalText,
 });
 
-export async function swapOrder(orderId: string, formData: FormData) {
+export async function swapOrder(orderId: string, formData: FormData): Promise<{ error: string } | undefined> {
   const { workspaceId } = await adminProfile();
   const id = z.string().uuid().parse(orderId);
   const input = swapOrderSchema.parse({
@@ -479,7 +523,10 @@ export async function swapOrder(orderId: string, formData: FormData) {
     p_commune: input.commune ?? "",
     p_address: input.address ?? "",
   });
-  if (swapErr || !newOrderId) throw new Error(swapErr?.message ?? "Swap failed.");
+  if (swapErr || !newOrderId) {
+    // the RPC refuses a delivery type the destination wilaya cannot ship; anything else is a generic failure
+    return { error: /not available/.test(swapErr?.message ?? "") ? "form.blocked.type_unavailable" : "swap.failed" };
+  }
 
   // only after the swap succeeded: link the customer record to the new order
   const customerId = await upsertCustomerFromOrder(supabase, {

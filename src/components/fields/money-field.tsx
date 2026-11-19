@@ -31,9 +31,11 @@ export function MoneyField({
   disabled,
   className,
   id,
+  ariaLabel,
   onChange,
 }: {
   name?: string;
+  ariaLabel?: string;
   defaultValue?: number;
   currency?: CurrencyCode;
   /** DZD per 1 unit of `currency` (ignored for DZD) */
@@ -55,6 +57,7 @@ export function MoneyField({
         {name ? <input type="hidden" name={name} value={value} /> : null}
         <input
           id={id}
+          aria-label={ariaLabel}
           type="text"
           inputMode="decimal"
           dir="ltr"

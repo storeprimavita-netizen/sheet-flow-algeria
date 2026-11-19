@@ -169,7 +169,7 @@ async function seedWilayaFees(admin: Admin, ws: string) {
     await must(
       await admin
         .from("wilaya_fees")
-        .update({ home_fee: 400 + i * 20, stopdesk_fee: 300 + i * 15 })
+        .update({ home_fee: 400 + i * 20, stopdesk_fee: 300 + i * 15, priced: true })
         .eq("workspace_id", ws)
         .eq("wilaya_code", TOP_WILAYAS[i]),
       "wilaya_fees update",

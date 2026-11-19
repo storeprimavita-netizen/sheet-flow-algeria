@@ -43,7 +43,8 @@ Finally regenerate types:
 | `profiles` | 00001 | user↔workspace↔role + duty + is_active; replaces v1 `user_roles`+`team_roles`. New signups: inactive, no workspace. Guard trigger: only admins change role/workspace/activation | team read; self/admin update |
 | `audit_log` | 00001 | generic who/what/old→new; written by `audit_row()` triggers on settings-ish tables + expenses + product_costs | admin read |
 | `wilayas` | 00002 | static 58-row national reference (no workspace_id) | all read |
-| `wilaya_fees` | 00002 | home/stopdesk fee + manual `stop_shipping` per wilaya | all read, admin write |
+| `wilaya_fees` | 00002 | home/stopdesk fee + manual `stop_shipping` per wilaya; 00052 adds `priced` (false = no price, shipping off) and `stopdesk_available` (false = home-only); 00055 adds CHECKs: `not priced or home_fee > 0` and `not (priced and stopdesk_available) or stopdesk_fee > 0` (0 is never a price, D62) | all read, admin write |
+| `wilaya_communes` | 00052 | commune names per wilaya, replaced by `apply_delivery_prices(jsonb)` (admin RPC, security invoker); fees read via `delivery_fee_for(ws, wilaya, type)` (null = unavailable) | all read, admin write |
 | `settings` | 00002 | key/value jsonb — keys listed below | admin only |
 | `fixed_fees` | 00002 | monthly fixed costs (label, amount, currency, fx, generated `amount_dzd`) | admin only |
 | `exchange_rates` | 00002 | manual date-stamped USD/EUR→DZD; latest wins | admin only |
