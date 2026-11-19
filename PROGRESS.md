@@ -395,3 +395,8 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - `pricing-real.ts` rewritten (v1 PricingInputs path and fixed_fees/product_stats queries dropped); `realScenarioInput` pure + tested; Real column (4th) in pricing results; badge via `saleBelowBreakEven`; `resolveSettings` exported from pricing-v2.
 - Removed the unused `real` prop from `scenario-engine.tsx` (never passed).
 - Screenshots NOT taken (no browser session/login in this run): needs /verify ui-reviewer pass.
+
+## PRICE-3 round 2 (review-1 fixes, D67)
+- U1 overflow fixed (sr-only hint span removed from th; `relative` wrapper). Browser, 390px, AR+EN x light+dark: documentElement.scrollWidth = 390 = viewport in all four. Screenshots docs/design/audit/PRICE-3/r2-*.
+- Q1 Real reads confirmation.value / delivery.value (+ own maturity flags); Q2 inputs rows + red below-break-even Real cells; Q3 USD/DZD cell with hint; U2 popover hint; U3 group labels stay sticky; U4 divider; Q4 RPC error throws to error.tsx; Q5 ceil.
+- Known limits (D67 item 8): confirmed-then-cancelled-before-pickup not in either rate; delivery % can read slightly high with <=20% parcels on the road. Not done: Q6, Q7 (no decision, out of scope).
