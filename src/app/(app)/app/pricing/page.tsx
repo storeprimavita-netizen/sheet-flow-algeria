@@ -8,6 +8,9 @@ import { getSetting } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioView } from "./portfolio-view";
 
+// PostgREST returns at most 1000 rows; reaching it means the list may be cut off.
+const PORTFOLIO_ROW_LIMIT = 1000;
+
 export default async function PricingPortfolioPage() {
   await requireAdmin("/app/orders"); // admin-only money: re-checked here, not only in the layout
   const t = await getTranslations("pricingPortfolio");
@@ -48,7 +51,7 @@ export default async function PricingPortfolioPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
-      <PortfolioView rows={rows} />
+      <PortfolioView rows={rows} partial={products.data.length >= PORTFOLIO_ROW_LIMIT} />
     </div>
   );
 }
