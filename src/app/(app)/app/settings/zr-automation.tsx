@@ -56,7 +56,7 @@ export function ZRAutomation({
     setBusy(null);
     if (!res.ok) toast.error(res.error);
     else {
-      toast.success(t("feesSynced", { n: res.updated }));
+      toast.success(t("feesSynced", { n: res.updated, off: res.off }));
       router.refresh();
     }
   }

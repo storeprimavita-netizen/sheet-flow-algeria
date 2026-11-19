@@ -118,7 +118,7 @@ async function SectionBody({ section }: { section: SectionId }) {
       const [wilayaFeesRes, wilayaStatsRes] = await Promise.all([
         supabase
           .from("wilaya_fees")
-          .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, wilaya:wilayas(name)")
+          .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at, wilaya:wilayas(name)")
           .eq("workspace_id", ws)
           .order("wilaya_code"),
         // stop-shipping auto flag (dashboard computes the same thing, filtered)
@@ -127,6 +127,7 @@ async function SectionBody({ section }: { section: SectionId }) {
       return (
         <FeesSection
           rows={wilayaFeesRes.data ?? []}
+          snapshot={(wilayaFeesRes.data ?? []).reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "")}
           autoFlagged={
             new Set(
               (wilayaStatsRes.data ?? [])
