@@ -114,6 +114,15 @@ describe.skipIf(!URL)("reviews (live DB)", () => {
     expect((await svc.from("reviews").insert(row(pa, { order_id: oa }))).error).toBeNull();
   });
 
+  test("admin session cannot insert with another workspace id or another workspace order", async () => {
+    const pa = await product();
+    const pb = await product(ws2);
+    const ob = await order(ws2, pb);
+    expect((await adminA.from("reviews").insert(row(pa, { workspace_id: ws2 }))).error).not.toBeNull();
+    expect((await adminA.from("reviews").insert(row(pa, { order_id: ob }))).error).not.toBeNull();
+    expect((await adminA.from("reviews").insert(row(pa))).error).toBeNull();
+  });
+
   test("checks: rating, blank, lengths; workspace immutable", async () => {
     const p = await product();
     for (const over of [{ rating: 0 }, { rating: 6 }, { body: "  " }, { name: " " }, { name: "x".repeat(81) }, { body: "x".repeat(1001) }]) {

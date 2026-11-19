@@ -9,6 +9,15 @@ describe("publicReviewName", () => {
     expect(publicReviewName("  Amina  ")).toBe("Amina");
     expect(publicReviewName("أمينة بن علي")).toBe("أمينة ع.");
   });
+  test("hyphen, dot, no-break and zero-width separators never leak the full name", () => {
+    expect(publicReviewName("Amina-Benali")).toBe("Amina B.");
+    expect(publicReviewName("Amina.Benali")).toBe("Amina B.");
+    expect(publicReviewName("Amina\u00A0Benali")).toBe("Amina B.");
+    expect(publicReviewName("Amina\u200BBenali")).toBe("Amina B.");
+  });
+  test("a single long token is truncated", () => {
+    expect(publicReviewName("Abcdefghijklmnopqrstuvwxyz")).toBe("Abcdefghijkl");
+  });
   test("emoji stripped, empty stays empty", () => {
     expect(publicReviewName("Amina ✨ Benali 💖")).toBe("Amina B.");
     expect(publicReviewName("✨💖")).toBe("");

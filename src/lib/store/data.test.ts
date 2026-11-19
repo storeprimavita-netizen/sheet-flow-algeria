@@ -218,6 +218,28 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(r.items).toHaveLength(60);
     expect(r.items[0].text).toBe("r0");
   });
+  test("reviews: emoji-only bodies are not listed; verified flips when the order is cancelled", async () => {
+    const { store, product } = await setup({ page: { blocks: [{ type: "reviews" }] } });
+    const o = (await svc.from("orders").insert({ workspace_id: ws, product_id: product.id, quantity: 1, confirmation_status: "confirmed" }).select("id").single()).data!.id;
+    const mk = (over: Record<string, unknown>) => ({ workspace_id: ws, product_id: product.id, name: "A B", rating: 5, body: "x", approved: true, ...over });
+    expect((await svc.from("reviews").insert([mk({ body: "✨💖", rating: 1 }), mk({ body: "ok", order_id: o })])).error).toBeNull();
+    let r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
+    expect(r.items.map((x) => x.text)).toEqual(["ok"]);
+    expect(r.items[0].verified).toBe(true);
+    await svc.from("orders").update({ confirmation_status: "cancelled" }).eq("id", o);
+    r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
+    expect(r.items[0].verified).toBe(false);
+    await svc.from("orders").update({ confirmation_status: "confirmed", excluded_reason: "test" }).eq("id", o);
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews.items[0].verified).toBe(false);
+  });
+  test("reviews: more than 1000 approved ratings keep an exact count and average", async () => {
+    const { store, product } = await setup({ page: { blocks: [{ type: "reviews" }] } });
+    const rows = Array.from({ length: 1003 }, (_, i) => ({ workspace_id: ws, product_id: product.id, name: "A B", rating: i < 1000 ? 5 : 1, body: `r${i}`, approved: true }));
+    for (let i = 0; i < rows.length; i += 500) expect((await svc.from("reviews").insert(rows.slice(i, i + 500))).error).toBeNull();
+    const r = (await loadPublicProductPage(svc, store.slug, "abaya"))!.reviews;
+    expect(r.count).toBe(1003);
+    expect(r.avg).toBe(Math.round(((1000 * 5 + 3) / 1003) * 10) / 10);
+  });
   test("bad slug 404 no query", async () => {
     const from = vi.fn();
     const fake = { from } as unknown as SupabaseClient<Database>;

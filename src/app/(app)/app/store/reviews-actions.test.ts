@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 let admin = true;
 let order: Record<string, unknown> | null;
 let affected: { id: string }[];
+let eqs: [string, unknown][];
 let writes: { table: string; op: string; row?: Record<string, unknown> }[];
 const invalidate = vi.fn();
 
@@ -19,7 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({
     from: (table: string) => {
       const q: Record<string, unknown> = {};
       q.select = () => q;
-      q.eq = () => q;
+      q.eq = (c: string, v: unknown) => (eqs.push([c, v]), q);
       q.maybeSingle = async () => ({ data: order, error: null });
       q.single = async () => ({ data: { id: "new" }, error: null });
       q.then = (ok: (v: unknown) => unknown) => ok({ data: affected, error: null });
@@ -47,6 +48,7 @@ describe("review actions", () => {
     order = null;
     affected = [{ id: R }];
     writes = [];
+    eqs = [];
     invalidate.mockClear();
   });
 
@@ -80,7 +82,10 @@ describe("review actions", () => {
     }
     expect(writes).toEqual([]);
     order = base;
+    eqs = [];
     expect(await createReview(form({ order_seq: "9" }))).toEqual({ ok: true, id: "new" });
+    expect(eqs).toContainEqual(["workspace_id", "ws-1"]);
+    expect(eqs).toContainEqual(["order_seq", 9]);
     expect(writes[0].row).toMatchObject({ order_id: "o1" });
   });
 
