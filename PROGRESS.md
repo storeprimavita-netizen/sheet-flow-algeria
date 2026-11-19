@@ -373,3 +373,6 @@ STATS-2 round 2 (review-1 FIX): fixed findings 1-8, 10-13 (drill error -> retry 
 - Open: STATS-2-F (12 lows, missing brief tests, review-1 findings 9 and 14).
 - Owner: migrations 00059-00060 need the production push; product call on Latin names in AR (STATS-2-F).
 - Next: STATS-2-F after the owner's priority rows; STATS-3 is unblocked once STATS-2 merges to v3.
+
+## STATS-3 UI self-critique
+Screenshots (light, EN): statistics with season + compare strip, Seasons tab at 390px. Dark theme, AR, other states not screenshotted.
