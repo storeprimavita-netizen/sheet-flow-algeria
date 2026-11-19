@@ -142,7 +142,7 @@ export function ChartPanel({
   const showTable = view === "table" && !!table && !empty;
   return (
     <Boundary title={title}>
-      <section className={cn("card-surface flex flex-col gap-3 rounded-xl p-4", className)} aria-label={title}>
+      <section className={cn("card-surface flex min-w-0 flex-col gap-3 rounded-xl p-4", className)} aria-label={title}>
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold">{title}</h3>
           {table && !empty ? (

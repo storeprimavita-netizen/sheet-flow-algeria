@@ -6,7 +6,6 @@ import { TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cumulative } from "@/lib/chart-math";
-import { formatCurrency } from "@/lib/format";
 import { LineChart, type LineSeries, type LineX } from "@/components/charts/line-chart";
 
 export type MoneyDay = {
@@ -40,9 +39,9 @@ export function MoneyChart({ days, total, emptyAction }: { days: MoneyDay[]; tot
     return cum ? cumulative(raw) : raw;
   };
   const series: LineSeries[] = [
-    { key: "revenue", label: t("revenue"), color: "var(--chart-1)", marker: "circle", values: pick((d) => d.revenue), format: (v) => formatCurrency(v) },
-    { key: "costs", label: t("costs"), color: "var(--chart-3)", dash: "6 4", marker: "square", values: pick((d) => d.costs), format: (v) => formatCurrency(v) },
-    { key: "net", label: t("net"), color: "var(--chart-2)", dash: "2 3", marker: "diamond", values: pick((d) => d.net), format: (v) => formatCurrency(v) },
+    { key: "revenue", label: t("revenue"), color: "var(--chart-1)", marker: "circle", values: pick((d) => d.revenue), format: "dzd" },
+    { key: "costs", label: t("costs"), color: "var(--chart-3)", dash: "6 4", marker: "square", values: pick((d) => d.costs), format: "dzd" },
+    { key: "net", label: t("net"), color: "var(--chart-2)", dash: "2 3", marker: "diamond", values: pick((d) => d.net), format: "dzd" },
   ];
 
   return (

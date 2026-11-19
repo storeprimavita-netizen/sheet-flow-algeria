@@ -21,6 +21,10 @@ describe("niceTicks", () => {
     expect(t.min).toBeLessThanOrEqual(-300);
     expect(t.max).toBeGreaterThanOrEqual(700);
   });
+  test("integer mode never steps below 1", () => {
+    const t = niceTicks(0, 2, 4, true);
+    expect(t.ticks.every(Number.isInteger)).toBe(true);
+  });
   test("all zero / empty gives a drawable domain", () => {
     expect(niceTicks(0, 0)).toEqual({ ticks: [0, 1], min: 0, max: 1 });
     expect(niceTicks(NaN, NaN).ticks).toContain(0);

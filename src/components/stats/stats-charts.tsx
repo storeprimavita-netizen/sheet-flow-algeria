@@ -57,18 +57,18 @@ async function DailyCharts({ scope }: { scope: Scope }) {
   }));
   const empty = days.length ? null : emptyOrders(t("emptyDaily"), t("allOrders"));
   const orders: LineSeries[] = [
-    { key: "received", label: t("received"), color: "var(--chart-1)", marker: "circle", values: days.map((d) => d.rates.counts.received), format: formatInt },
+    { key: "received", label: t("received"), color: "var(--chart-1)", marker: "circle", values: days.map((d) => d.rates.counts.received), format: "int" },
   ];
   const pct = (m: KpiGroupRates["confirmation"]) => kpiPct(m);
   const rates: LineSeries[] = [
-    { key: "confirmation", label: t("confirmation"), color: "var(--chart-1)", marker: "circle", values: days.map((d) => pct(d.rates.confirmation)), format: formatPercent },
-    { key: "delivery", label: t("delivery"), color: "var(--chart-2)", dash: "6 4", marker: "square", values: days.map((d) => pct(d.rates.delivery)), format: formatPercent },
+    { key: "confirmation", label: t("confirmation"), color: "var(--chart-1)", marker: "circle", values: days.map((d) => pct(d.rates.confirmation)), format: "percent" },
+    { key: "delivery", label: t("delivery"), color: "var(--chart-2)", dash: "6 4", marker: "square", values: days.map((d) => pct(d.rates.delivery)), format: "percent" },
   ];
   const note = days.some((d) => d.immature) ? t("immatureNote") : undefined;
   return (
     <>
       <LineChart title={t("ordersPerDay")} xs={xs} series={orders} empty={empty} note={note} />
-      <LineChart title={t("rates")} xs={xs} series={rates} empty={empty} note={note} axisFormat={(v) => `${v}%`} />
+      <LineChart title={t("rates")} xs={xs} series={rates} empty={empty} note={note} axis="percent" />
     </>
   );
 }

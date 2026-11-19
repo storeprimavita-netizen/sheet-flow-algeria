@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { formatCurrency, formatInt, formatPercent, ltr } from "@/lib/format";
 import { bandAt, compactNumber, lineSegments, linear, niceTicks, thinIndices, xAt } from "@/lib/chart-math";
 import { ChartBoundary, ChartPanel, ChartTooltip, LegendItem } from "./chart-panel";
 import { markerPath } from "./glyphs";
@@ -12,16 +13,19 @@ import { useChartNav, useChartWidth, useIsRtl } from "./use-chart";
 export type LineX = { key: string; label: string; short: string; immature?: boolean; href?: string };
 export type LineSeries = SeriesStyle & {
   values: (number | null)[];
-  /** full-precision text for tooltip and table; the axis uses compact numbers */
-  format: (v: number) => string;
+  /** how a value reads in the tooltip and table (full precision); serializable so server pages can pass it */
+  format: "int" | "percent" | "dzd";
 };
+const FORMATTERS = { int: formatInt, percent: formatPercent, dzd: (v: number) => formatCurrency(v) } as const;
+const fmt = (s: LineSeries, v: number) => FORMATTERS[s.format](v);
 type Props = {
   title: string;
   xs: LineX[];
   series: LineSeries[];
   empty?: ChartEmpty | null;
   note?: React.ReactNode;
-  axisFormat?: (v: number) => string;
+  /** axis label style: compact numbers or percent */
+  axis?: "compact" | "percent";
 };
 
 /** The table view of the plot: same formatted numbers, one row per x. */
@@ -29,7 +33,7 @@ export function lineTable(title: string, xs: LineX[], series: LineSeries[], noVa
   return {
     caption: title,
     head: [""].concat(series.map((s) => s.label)),
-    rows: xs.map((x, i) => [x.label, ...series.map((s) => (s.values[i] == null ? noValue : s.format(s.values[i] as number)))]),
+    rows: xs.map((x, i) => [x.label, ...series.map((s) => (s.values[i] == null ? noValue : fmt(s, s.values[i] as number)))]),
   };
 }
 
@@ -48,7 +52,7 @@ export function LineChart(props: Props) {
   );
 }
 
-function LineChartInner({ title, xs, series, empty, note, axisFormat = compactNumber }: Props) {
+function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Props) {
   const t = useTranslations("charts");
   const rtl = useIsRtl();
   const n = xs.length;
@@ -59,9 +63,9 @@ function LineChartInner({ title, xs, series, empty, note, axisFormat = compactNu
         ? null
         : {
             title: xs[i].label,
-            rows: series.map((o) => ({ label: o.label, value: o.values[i] == null ? t("noValue") : o.format(o.values[i] as number), color: o.color, dash: o.dash, marker: o.marker })),
+            rows: series.map((o) => ({ label: o.label, value: o.values[i] == null ? t("noValue") : fmt(o, o.values[i] as number), color: o.color, dash: o.dash, marker: o.marker })),
             href: xs[i].href,
-            aria: `${xs[i].label}: ${s.label} ${s.format(v)}${xs[i].immature ? `, ${t("immature")}` : ""}`,
+            aria: `${xs[i].label}: ${s.label} ${fmt(s, v)}${xs[i].immature ? `, ${t("immature")}` : ""}`,
           },
     ),
   );
@@ -69,7 +73,7 @@ function LineChartInner({ title, xs, series, empty, note, axisFormat = compactNu
   const width = useChartWidth(nav.boxRef);
 
   const all = series.flatMap((s) => s.values).filter((v): v is number => v != null);
-  const dom = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
+  const dom = niceTicks(Math.min(0, ...all), Math.max(0, ...all), 4, series.length > 0 && series.every((s) => s.format === "int"));
   const labelW = 40;
   const left = M.left + (rtl ? 0 : labelW);
   const right = width - M.right - (rtl ? labelW : 0);
@@ -90,13 +94,13 @@ function LineChartInner({ title, xs, series, empty, note, axisFormat = compactNu
   };
 
   const plot = (
-    <div ref={nav.boxRef} className="relative" onKeyDown={nav.onKeyDown}>
+    <div ref={nav.boxRef} className="relative w-full min-w-0" onKeyDown={nav.onKeyDown}>
       <svg width={width} height={H} role="group" aria-label={title} style={{ touchAction: "pan-y" }} className="block overflow-visible">
         {dom.ticks.map((tk) => (
           <g key={tk}>
             <line x1={left} x2={right} y1={y(tk)} y2={y(tk)} strokeWidth={1} className={tk === 0 ? "stroke-[var(--border-strong)]" : "stroke-[var(--border)]"} />
             <text x={rtl ? right + 6 : left - 6} y={y(tk)} dy="0.32em" textAnchor={rtl ? "start" : "end"} className="fill-[var(--text-muted)] text-[10px]">
-              {axisFormat(tk)}
+              {ltr(axis === "percent" ? `${tk}%` : compactNumber(tk))}
             </text>
           </g>
         ))}

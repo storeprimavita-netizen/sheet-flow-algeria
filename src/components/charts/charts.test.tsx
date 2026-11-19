@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 import { collapseSlices } from "@/lib/chart-math";
+import { formatCurrency } from "@/lib/format";
 import { BarChart } from "./bar-chart";
 import { ChartPanel, ChartTable } from "./chart-panel";
 import { DonutChart } from "./donut-chart";
@@ -20,11 +21,10 @@ const render = (node: React.ReactNode, locale: "en" | "ar" = "en") =>
   );
 
 const xs: LineX[] = ["01", "02", "03", "04"].map((d, i) => ({ key: `2026-01-${d}`, label: `${d}/01`, short: d, immature: i === 3, href: `/app/orders/all?from=2026-01-${d}` }));
-const fmt = (v: number) => `${v} DA`;
 const series: LineSeries[] = [
-  { key: "rev", label: "Revenue", color: "var(--chart-1)", marker: "circle", values: [100, 200, null, 300], format: fmt },
-  { key: "cost", label: "Costs", color: "var(--chart-2)", dash: "6 4", marker: "square", values: [50, 80, 90, 100], format: fmt },
-  { key: "net", label: "Net", color: "var(--chart-3)", dash: "2 3", marker: "diamond", values: [50, 120, null, 200], format: fmt },
+  { key: "rev", label: "Revenue", color: "var(--chart-1)", marker: "circle", values: [100, 200, null, 300], format: "dzd" },
+  { key: "cost", label: "Costs", color: "var(--chart-2)", dash: "6 4", marker: "square", values: [50, 80, 90, 100], format: "dzd" },
+  { key: "net", label: "Net", color: "var(--chart-3)", dash: "2 3", marker: "diamond", values: [50, 120, null, 200], format: "dzd" },
 ];
 const cx = (html: string) => [...html.matchAll(/<circle cx="([\d.]+)"[^>]*r="22"/g)].map((m) => Number(m[1]));
 
@@ -33,7 +33,7 @@ describe("LineChart", () => {
     const html = render(<LineChart title="Money" xs={xs} series={series} />);
     expect(html).toContain('role="group"');
     expect(html).toContain('href="/app/orders/all?from=2026-01-02"');
-    expect(html).toContain("01/01: Revenue 100 DA");
+    expect(html).toContain(`01/01: Revenue ${formatCurrency(100)}`);
     expect(html.match(/tabindex="0"/g)).toHaveLength(1);
     // revenue 3 points + costs 4 + net 3 (gaps skipped)
     expect(html.match(/data-pt=/g)).toHaveLength(10);
@@ -41,7 +41,7 @@ describe("LineChart", () => {
   test("a null value draws no point (gap, not 0)", () => {
     const html = render(<LineChart title="Money" xs={xs} series={series} />);
     expect(html).not.toContain("03/01: Revenue");
-    expect(html).toContain("03/01: Costs 90 DA");
+    expect(html).toContain(`03/01: Costs ${formatCurrency(90)}`);
   });
   test("each series differs by dash and marker, not colour only", () => {
     const html = render(<LineChart title="Money" xs={xs} series={series} />);

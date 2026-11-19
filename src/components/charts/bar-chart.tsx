@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { ltr } from "@/lib/format";
 import { bandAt, compactNumber, linear, niceTicks, thinIndices } from "@/lib/chart-math";
 import { cn } from "@/lib/utils";
 import { ChartBoundary, ChartPanel, ChartTooltip } from "./chart-panel";
@@ -67,7 +68,7 @@ function BarChartInner({ title, items, orientation = "v", valueHead, subHead, em
   if (orientation === "h") {
     const max = Math.max(1, ...items.map((i) => i.value));
     plot = (
-      <div ref={nav.boxRef} className="relative" onKeyDown={nav.onKeyDown}>
+      <div ref={nav.boxRef} className="relative w-full min-w-0" onKeyDown={nav.onKeyDown}>
         <div role="group" aria-label={title} className="flex flex-col">
           {items.map((it, i) => (
             <Link
@@ -95,18 +96,18 @@ function BarChartInner({ title, items, orientation = "v", valueHead, subHead, em
     const labelW = 40;
     const left = rtl ? 4 : labelW;
     const right = width - (rtl ? labelW : 4);
-    const dom = niceTicks(0, Math.max(0, ...items.map((i) => i.value)));
+    const dom = niceTicks(0, Math.max(0, ...items.map((i) => i.value)), 4, true);
     const y = linear(dom.min, dom.max, H - M.bottom, M.top);
     const n = items.length;
     const labelIdx = thinIndices(n, Math.max(2, Math.floor((right - left) / 44)));
     plot = (
-      <div ref={nav.boxRef} className="relative" onKeyDown={nav.onKeyDown}>
+      <div ref={nav.boxRef} className="relative w-full min-w-0" onKeyDown={nav.onKeyDown}>
         <svg width={width} height={H} role="group" aria-label={title} style={{ touchAction: "pan-y" }} className="block overflow-visible">
           {dom.ticks.map((tk) => (
             <g key={tk}>
               <line x1={left} x2={right} y1={y(tk)} y2={y(tk)} strokeWidth={1} className={tk === 0 ? "stroke-[var(--border-strong)]" : "stroke-[var(--border)]"} />
               <text x={rtl ? right + 6 : left - 6} y={y(tk)} dy="0.32em" textAnchor={rtl ? "start" : "end"} className="fill-[var(--text-muted)] text-[10px]">
-                {compactNumber(tk)}
+                {ltr(compactNumber(tk))}
               </text>
             </g>
           ))}

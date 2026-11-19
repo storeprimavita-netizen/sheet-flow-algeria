@@ -549,3 +549,8 @@ STORE-2-F round 4 screenshots (D79 f), chrome-devtools MCP, local stack (dev ser
 - Evidence: screenshots in docs/design/audit/STORE-2-F/ (r4-*); store-http.test.ts 5/5 against `next start` (local stack).
 - Owner: store 404 `<h1>` missing from initial HTML is a Next framework behaviour; needs an owner decision (see round 1 notes).
 - Next: STORE-2-G (review-3 lows 5 to 10, missing tests, photo-failure placeholder, EN store shots not taken).
+
+## CHART-1 (build)
+- Charts in `components/charts` (line, bar v/h, donut, stacked), migration 00068 (`kpi_daily`, `kpi_by_weekday_hour`, `kpi_by_product`, `kpi_outcomes`; `daily` dropped from `dashboard_stats`). Dashboard band 4 = money line + stacked cost bar; Statistics = Volume / Outcomes / Where / When.
+- Screenshots (chrome devtools): dashboard AR dark 1280, statistics AR dark 1280, dashboard EN light 390; table toggle and tooltip checked by script. Fixed from screenshots: grid min-width blowing out chart width, RTL negative axis labels, fractional count ticks, server-to-client function props. Not screenshotted: pinned touch tooltip, per-chart error/empty states, >90-day thinning (covered by unit tests only).
+- `pnl-waterfall.tsx` kept: finance/overview still uses it (only `WaterfallBand` removed).

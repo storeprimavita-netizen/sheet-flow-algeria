@@ -22,13 +22,14 @@ function niceStep(span: number, count: number): number {
 
 /**
  * Axis ticks over [min, max]. The domain always includes 0 (bars start there and
- * a negative profit needs the zero line), so ticks always include 0.
+ * a negative profit needs the zero line), so ticks always include 0. `integer` keeps
+ * counts on whole steps (never 0.5 orders).
  */
-export function niceTicks(min: number, max: number, count = 4): { ticks: number[]; min: number; max: number } {
+export function niceTicks(min: number, max: number, count = 4, integer = false): { ticks: number[]; min: number; max: number } {
   const lo = Math.min(0, Number.isFinite(min) ? min : 0);
   const hi = Math.max(0, Number.isFinite(max) ? max : 0);
   if (lo === 0 && hi === 0) return { ticks: [0, 1], min: 0, max: 1 };
-  const step = niceStep(hi - lo, count);
+  const step = integer ? Math.max(1, Math.round(niceStep(hi - lo, count))) : niceStep(hi - lo, count);
   const start = Math.floor(lo / step) * step;
   const end = Math.ceil(hi / step) * step;
   const ticks: number[] = [];
