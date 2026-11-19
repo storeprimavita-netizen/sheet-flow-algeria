@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 type Rows = Record<string, unknown>;
 let tables: Record<string, Rows | Rows[] | null>;
 let deleteResult: { data: { id: string }[] | null; error: { message: string } | null };
+let readError: { message: string } | null = null;
 let writes: { table: string; op: string }[];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
@@ -14,7 +15,7 @@ vi.mock("@/lib/supabase/server", () => ({
       let op = "select";
       const q: Record<string, unknown> = {};
       for (const m of ["select", "eq", "order", "limit"]) q[m] = () => q;
-      q.maybeSingle = async () => ({ data: tables[table] ?? null, error: null });
+      q.maybeSingle = async () => ({ data: readError ? null : (tables[table] ?? null), error: readError });
       q.single = async () => ({ data: { id: "new-store" }, error: null });
       q.insert = () => ((op = "insert"), writes.push({ table, op }), q);
       q.update = () => ((op = "update"), writes.push({ table, op }), q);
@@ -36,6 +37,7 @@ describe("store actions", () => {
     writes = [];
     deleteResult = { data: [{ id: "new-store" }], error: null };
     tables = {};
+    readError = null;
   });
 
   test("linkPageProduct to inactive or priceless product on a published page fails", async () => {
@@ -50,6 +52,15 @@ describe("store actions", () => {
     tables.store_pages = { status: "draft" }; // a draft page may link anything or unlink
     tables.products = { is_active: false, sale_price: null };
     expect(await linkPageProduct(PAGE, null)).toEqual({ ok: true, id: PAGE });
+  });
+
+  test("linkPageProduct fails closed when the page read fails or the page is missing", async () => {
+    tables = { store_pages: null, products: { is_active: true, sale_price: 100 } };
+    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "failed" });
+    tables.store_pages = { status: "published" };
+    readError = { message: "boom" };
+    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "failed" });
+    expect(writes).toEqual([]);
   });
 
   test("createStore loser deletes its row or fails", async () => {
