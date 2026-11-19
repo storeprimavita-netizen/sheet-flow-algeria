@@ -375,6 +375,10 @@ export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | 
   return "missing";
 }
 
+/** Sale price strictly below the medium break-even selling price; null on either side -> no badge. */
+export const saleBelowBreakEven = (salePrice: number | null, minSellingPrice: number | null): boolean =>
+  salePrice !== null && minSellingPrice !== null && salePrice < minSellingPrice;
+
 export const TARGET_MODES: readonly TargetMode[] = ["profit", "markup"];
 
 /** Radio-group arrow keys: the mode to move to, or null when the key does nothing. Arrows mirror in RTL. */

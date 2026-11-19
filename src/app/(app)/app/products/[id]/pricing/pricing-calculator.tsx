@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 
 import { Empty } from "@/components/empty";
 import { ButtonLink } from "@/components/button-link";
@@ -21,6 +21,7 @@ import {
   formErrors,
   formFromOverrides,
   overridesFromForm,
+  saleBelowBreakEven,
   stockCostTotal,
   type PricingForm,
 } from "@/lib/pricing-form";
@@ -163,6 +164,8 @@ export function PricingCalculator({
   const overrideCount = countOverrides(overrides);
   const qty = draft.quantity ?? 0;
   const recommended = results.medium.recommendedPrice;
+  const minPrice = results.medium.breakEven.minSellingPrice;
+  const belowBreakEven = saleBelowBreakEven(salePrice, minPrice);
   const adField = (key: "adBest" | "adMedium" | "adWorst", label: string, hint?: string) => (
     <Field label={label} htmlFor={`pp-${key}`}>
       <NumberField
@@ -228,6 +231,11 @@ export function PricingCalculator({
               {priceErr ? <span className="text-destructive">{t("product.priceInvalid")} </span> : null}
               {t("product.finalPriceHint", { sale: salePrice === null ? "—" : formatCurrency(salePrice, dzd) })}
             </p>
+            {belowBreakEven && minPrice !== null ? (
+              <Chip token="danger" size="sm" className="mt-1" icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}>
+                {t("product.saleBelowBreakEven", { value: formatCurrency(minPrice, dzd) })}
+              </Chip>
+            ) : null}
           </Field>
           {adField("adMedium", t("product.adMedium"))}
           {adField("adBest", t("product.adBest"), t("product.adDerived"))}

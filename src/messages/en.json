@@ -1236,7 +1236,8 @@
       "table": "Pricing results by scenario",
       "quantityInvalid": "Enter a whole number from 0 to 1,000,000.",
       "adInvalid": "Enter an amount from 0 with at most 2 decimals.",
-      "priceInvalid": "Enter an amount above 0 with at most 2 decimals."
+      "priceInvalid": "Enter an amount above 0 with at most 2 decimals.",
+      "saleBelowBreakEven": "Sale price below break-even ({value})"
     },
     "rows": {
       "groupAds": "Ads",

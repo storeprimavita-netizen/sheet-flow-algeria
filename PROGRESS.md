@@ -390,3 +390,8 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Open: STATS-3-F (review-3/4/5 lows, missing tests, chip removal drops season/year from URL, seasons.rls.test.ts 5s timeouts when leaked workspaces exist).
 - Owner: migrations 00061-00062 await the production push.
 - Next: STATS-3-F after the owner's priority rows; STATS-4 is unblocked once STATS-3 merges to v3.
+
+## PRICE-3: Real column + below-break-even badge
+- `pricing-real.ts` rewritten (v1 PricingInputs path and fixed_fees/product_stats queries dropped); `realScenarioInput` pure + tested; Real column (4th) in pricing results; badge via `saleBelowBreakEven`; `resolveSettings` exported from pricing-v2.
+- Removed the unused `real` prop from `scenario-engine.tsx` (never passed).
+- Screenshots NOT taken (no browser session/login in this run): needs /verify ui-reviewer pass.

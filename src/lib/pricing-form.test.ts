@@ -4,6 +4,7 @@ import {
   countOverrides,
   targetModeForKey,
   breakEvenState,
+  saleBelowBreakEven,
   formErrors,
   formFromOverrides,
   formFromSettings,
@@ -227,5 +228,14 @@ describe("targetModeForKey (radio group arrows)", () => {
   it("other keys do nothing", () => {
     expect(targetModeForKey("profit", "Enter", false)).toBeNull();
     expect(targetModeForKey("profit", "Tab", true)).toBeNull();
+  });
+});
+
+describe("saleBelowBreakEven", () => {
+  it("below / equal / null sale price / null break-even", () => {
+    expect(saleBelowBreakEven(3000, 3962)).toBe(true);
+    expect(saleBelowBreakEven(3962, 3962)).toBe(false);
+    expect(saleBelowBreakEven(null, 3962)).toBe(false);
+    expect(saleBelowBreakEven(3000, null)).toBe(false);
   });
 });
