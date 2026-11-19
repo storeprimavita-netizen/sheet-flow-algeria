@@ -14,6 +14,7 @@ This project's features work; its interface was generated without a design syste
 - **Navigation = five job-named workspaces** (Sell · Catalog · Store · Money · Team) + Home + Settings, groups always visible, breadcrumb + purpose line on every page — `references/navigation-ia.md`.
 - **Icons are Lucide; emoji only in user-authored content** (option labels, tags, task titles, saved view names) — same file.
 - **Confirmation queue** = saved views the agent chooses: table (default) or kanban by status, each with its own filters and columns; click a row or card to open the detail sheet. No separate call-mode screen. Spec: `docs/specs/CONF.md`.
+- **Orders show a Channel chip, not a Source** (D71): where the customer came from (Facebook, Instagram, TikTok, Google, WhatsApp, Direct, Manual…), with the platform's line icon; filterable and groupable. The old Shopify / Lightfunnels / manual "Source" column is gone from every table.
 - **Shipping view** = dense table by default, kanban as an optional toggle.
 - **Products list** = grid of cards with images by default (table is a secondary toggle).
 - **Dashboard per-wilaya** = table with in-cell rate bars, with a small map of Algeria beside it.

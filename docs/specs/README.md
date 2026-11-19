@@ -19,6 +19,7 @@ disagrees with it, v3 wins.
 | `NOTIF.md` | Notifications | in-app + Telegram for tasks, meetings, orders |
 | `STATS.md` | Statistics | customer score, wilaya confirmation/delivery, seasons |
 | `AI.md` | AI connector (MCP) | connect Claude, ChatGPT, Antigravity to analyse the data |
+| `GROW.md` | Channel, spam shield, SEO/AIEO, upsells, live visitors | order source = Facebook/TikTok/Google…, IP blocking, be found on Google and AI, upsell/downsell/mix, live visitors on the map |
 | `IDEAS.md` | Competitor-inspired features | "suggest me other features" |
 
 Facts taken from the web (competitors, carrier APIs, Meta/TikTok rules, MCP
