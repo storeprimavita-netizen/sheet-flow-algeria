@@ -484,3 +484,7 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - PRICE-3-F ship gate failed once (`seasons.rls.test.ts`, leftover local test products); `scripts/db-reset.sh` on v3, then GATE OK. No code change.
 - Plan order: `analyse` passed over STORE-7 (todo, dep STORE-2 done, has `M`) for PRICE-2-F without giving a reason — check before the next pick.
 - Next `/auto`: STORE-7 if eligible, else STORE-1-F, STORE-2-F, ORD-1-F, P1-7-F.
+
+## STORE-7 — reviews + size guide blocks (2026-11-19) — built, awaiting /verify
+- Done: `reviews` table (00064, admin-only RLS), size guide + reviews blocks (max one each), cost-free DAL with verified rule and 60-cap, public sections (table, cards, rating line), review status kind, admin Store > Reviews page, editor size grid. Actions check row counts and invalidate the public cache. Q-25: no public submission.
+- Screenshots: only `/app/store/reviews` (EN, dark, no-store empty state, nav active) captured. Not captured: populated list, form, editor, preview and public page at 390/320/1280, light, AR, keyboard pass (needs a seeded live store and page).
