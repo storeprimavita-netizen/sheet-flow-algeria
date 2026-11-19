@@ -518,3 +518,10 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Review-2: 00067 (deferred trigger refuses a value-less size from a signed-in user; value must belong to its option) + tests; editor uses `optName` everywhere, `dirty` hoisted, unsaved hint is `text-muted-foreground` (contrast safe); `workspaces.delete` in order_seq and zrexpress-sync tests now `deleteWorkspaces`; test renamed; DB.md updated.
 - Accepted: 40P01 window between a product delete and a save (low #2): no delete-product action exists in the app, so it is only reachable by direct DB access. Follow-up task to log: revoke TRUNCATE/TRIGGER/REFERENCES from `authenticated` on the four variant tables.
 - Not done: the full dark/light x EN/AR x 1280/390 screenshot set (only partial 390 sets exist).
+
+## STORE-1-F done (2026-11-19)
+- Done: review-3 PASS (risk high, surface ui,security) merged to v3 after the follow-up fixes listed above; task set to done.
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-1-F before merge (804 passed, 3 skipped).
+- Evidence: partial 390 px screenshots in `docs/design/audit/STORE-1-F/`; full dark/light x EN/AR x 1280/390 set not captured.
+- Owner: none. Accepted low: 40P01 window between product delete and save (no delete-product action in app).
+- Next: follow-up task to revoke TRUNCATE/TRIGGER/REFERENCES from `authenticated` on the four variant tables; next `todo` task in docs/MASTER_PLAN.md.
