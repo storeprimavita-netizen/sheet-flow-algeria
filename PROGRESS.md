@@ -507,3 +507,8 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: screenshots in `docs/design/audit/STORE-7/`, EN/AR, light/dark, 390 and 1280 px; true 320 px public page checked in review-2.
 - Owner: none open from STORE-7. Known: verified mark may be up to 120 s stale (accepted, low).
 - Next: next `todo` task in docs/MASTER_PLAN.md.
+
+## STORE-1-F (2026-11-19)
+- Done: migration 00065 (advisory lock in the completeness trigger, deletes before upserts so a label can be removed and re-added in one save, `incomplete size` refusal for a new size mapped to `invalid`), tests (re-add label, empty values, size change at wait_for_deposit), workspace deletes via `deleteWorkspaces`, Size card next to the order summary with a "Size" label, option fallback names, unsaved hint, product Save hint, new-product notice, "Now:" count label, no-wrap count-needed pill, `rls.test.ts` D9/D10 picks a not-yet-delivered order (was flaky).
+- Not done: order breadcrumb (PageHeader has no breadcrumb support). Two-writer race not reproducible in a test (reasoning only). At wait_for_deposit nothing is held in stock (reserved is derived), so the test asserts no stock change and the label rewrite.
+- Screenshots (chrome-devtools emulate, true 390 px, `docs/design/audit/STORE-1-F/`): order EN dark, order AR light, product edit AR dark (unsaved hint, unnamed-option labels), count-by-size EN light, stock hub EN dark, new product EN light. No 1280 or remaining theme/locale combos captured. No overflow (scrollWidth 390) on all.
