@@ -50,7 +50,9 @@ export function unitPrice(i: SizePriceInput): number | null {
 /** The crossed-out price, only when it is really higher than what the visitor pays. */
 export function comparePrice(i: SizePriceInput, price: number | null): number | null {
   if (price === null) return null;
-  const raw = i.mode === "per_variant" && i.compareOverride !== null ? i.compareOverride : i.compareAt;
+  let raw = i.mode === "per_variant" && i.compareOverride !== null ? i.compareOverride : i.compareAt;
+  // per_value: the size's deltas move the crossed-out price too, so the discount is not overstated
+  if (i.mode === "per_value" && raw !== null) raw += i.valueDeltas.reduce((a, b) => a + (whole(b) ?? 0), 0);
   const c = whole(raw);
   return c !== null && c > price ? c : null;
 }

@@ -245,4 +245,26 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     expect(dto.variants.find((v) => v.label === "L")!.price).toBe(7000);
     expect(dto.variants.find((v) => v.label === "S")!.price).toBe(5000);
   });
+
+  test("sized product shows the crossed-out price of its cheapest size", async () => {
+    const { store, product } = await setup({ product: { compare_at_price: 6000 } });
+    const o = (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name: "Size" }).select("id").single()).data!.id;
+    for (const label of ["S", "M"]) {
+      const v = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id: o, label }).select("id").single()).data!.id;
+      const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id }).select("id").single()).data!.id;
+      await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
+    }
+    const dto = (await loadPublicProductPage(svc, store.slug, "abaya"))!;
+    expect(dto.product).toMatchObject({ price: 5000, compareAt: 6000 });
+  });
+
+  test("every size unsellable -> 404", async () => {
+    const { store, product } = await setup();
+    await svc.from("products").update({ pricing_mode: "per_value" }).eq("id", product.id);
+    const o = (await svc.from("product_options").insert({ workspace_id: ws, product_id: product.id, name: "Size" }).select("id").single()).data!.id;
+    const v = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: product.id, option_id: o, label: "XL", price_delta: -5000 }).select("id").single()).data!.id;
+    const x = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: product.id }).select("id").single()).data!.id;
+    await svc.from("product_variant_values").insert({ variant_id: x, option_id: o, value_id: v, product_id: product.id, workspace_id: ws });
+    expect(await loadPublicProductPage(svc, store.slug, "abaya")).toBeNull();
+  });
 });

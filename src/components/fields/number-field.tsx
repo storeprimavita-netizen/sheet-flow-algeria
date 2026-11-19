@@ -9,6 +9,11 @@ export function parseNumberInput(text: string): number | null {
   return Number.isFinite(n) ? n : Number.NaN;
 }
 
+/** Integer mode: keep the digits before the decimal point; what follows is dropped, digits are never joined. */
+export function integerInput(raw: string): string {
+  return raw.split(".")[0].replace(/[^\d]/g, "");
+}
+
 /**
  * Plain non-negative number input with an optional unit suffix. Empty reports
  * `null` (never 0) so callers can mean "inherit". Uncontrolled: remount with a
@@ -63,7 +68,7 @@ export function NumberField({
         onChange={(e) => {
           const raw = e.target.value;
           const neg = allowNegative && raw.trimStart().startsWith("-") ? "-" : "";
-          const clean = neg + raw.replace(integer ? /[^\d]/g : /[^\d.]/g, "");
+          const clean = neg + (integer ? integerInput(raw) : raw.replace(/[^\d.]/g, ""));
           setValue(clean);
           onChange?.(parseNumberInput(clean));
         }}

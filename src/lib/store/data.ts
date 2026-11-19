@@ -80,7 +80,8 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
   if (productErr) throw new Error(`product lookup failed: ${productErr.message}`);
   if (!product || product.workspace_id !== store.workspace_id || product.sale_price === null) return null;
 
-  return assembleProductPage(db, store, page, product);
+  const built = await buildProductPage(db, store, page, product);
+  return built.sellable ? built.dto : null;
 }
 
 type StoreRow = Pick<Database["public"]["Tables"]["stores"]["Row"], "id" | "workspace_id" | "slug" | "name" | "theme" | "settings">;
@@ -88,13 +89,18 @@ type PageRow = Pick<Database["public"]["Tables"]["store_pages"]["Row"], "slug" |
 type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "compare_at_price" | "pricing_mode" | "images" | "stock">;
 
 /** Shared by the public page and the admin preview: the same DTO either way, so a preview shows what a visitor will see. */
-export async function assembleProductPage(
+export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow & { id?: string }, product: ProductRow, now: Date = new Date()): Promise<PublicProductPage> {
+  return (await buildProductPage(db, store, page, product, now)).dto;
+}
+
+/** `sellable` is false when sizes exist but none can be sold: visitors get a 404, the admin preview still renders. */
+async function buildProductPage(
   db: Db,
   store: StoreRow,
   page: PageRow & { id?: string },
   product: ProductRow,
   now: Date = new Date(),
-): Promise<PublicProductPage> {
+): Promise<{ dto: PublicProductPage; sellable: boolean }> {
   const blocks = blocksSchema.safeParse(page.blocks);
   const seo = seoSchema.safeParse(page.seo);
   const settings = publicSettingsSchema.safeParse(store.settings);
@@ -115,14 +121,15 @@ export async function assembleProductPage(
   const hasSizes = variants.sizes > 0;
   const unit = hasSizes ? lowestPrice(variants.list.map((v) => v.price)) : base !== null ? unitPrice({ mode: "uniform", basePrice: base, compareAt: null, valueDeltas: [], override: null, compareOverride: null }) : null;
   const priceFrom = hasSizes && new Set(variants.list.map((v) => v.price)).size > 1;
-  const compareAt = !hasSizes && unit !== null && compareBase !== null ? comparePrice({ mode: "uniform", basePrice: base ?? 0, compareAt: compareBase, valueDeltas: [], override: null, compareOverride: null }, unit) : null;
+  const cheapest = hasSizes ? variants.list.find((v) => v.price === unit) : undefined;
+  const compareAt = hasSizes ? (cheapest?.compareAt ?? null) : unit !== null && compareBase !== null ? comparePrice({ mode: "uniform", basePrice: base ?? 0, compareAt: compareBase, valueDeltas: [], override: null, compareOverride: null }, unit) : null;
   // an offer is shown when it saves something at the cheapest size (the saving is the smallest one)
   const offers: PublicOffer[] =
     unit === null
       ? []
       : visibleOffers(unit, offerRows).map((o) => ({ id: o.id, label: o.label, qty: o.qty, total: o.total, saving: offerSaving(unit, o) }));
 
-  return {
+  const dto: PublicProductPage = {
     store: {
       slug: store.slug,
       name: store.name,
@@ -150,6 +157,7 @@ export async function assembleProductPage(
     form,
     related,
   };
+  return { dto, sellable: !(hasSizes && unit === null) };
 }
 
 /** D54.4: stock rule lives in variant-stock.ts. A size whose price is <= 0 is refused (not offered). */
