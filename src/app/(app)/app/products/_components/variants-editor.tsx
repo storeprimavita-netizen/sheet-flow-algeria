@@ -53,6 +53,7 @@ export function VariantsEditor({
     setFocusKey(null);
   }, [focusKey]);
 
+  const dirty = () => { setResult(null); setUnsaved(true); };
   const toggleActive = (i: number) => {
     dirty();
     setVariants((vs) => vs.map((x, k) => (k === i ? { ...x, isActive: !x.isActive } : x)));
@@ -60,7 +61,6 @@ export function VariantsEditor({
 
   // option structure is fixed once a size exists (its value rows are immutable); values stay editable
   const locked = variants.some((v) => v.saved);
-  const dirty = () => { setResult(null); setUnsaved(true); };
   const optName = (o: VariantOption, i: number) => o.name || t("optionFallback", { n: i + 1 });
 
   const setOption = (i: number, patch: Partial<VariantOption>) => {
@@ -125,7 +125,7 @@ export function VariantsEditor({
       <div className="space-y-4">
         {options.map((o, i) => (
           <fieldset key={o.id} className="space-y-3 rounded-lg border border-border p-3">
-            <legend className="sr-only">{o.name || t("optionName")}</legend>
+            <legend className="sr-only">{optName(o, i)}</legend>
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 aria-label={t("optionName")}
@@ -149,20 +149,20 @@ export function VariantsEditor({
                 <li key={v.id} className="flex items-center gap-0.5 rounded-md border border-border ps-1">
                   <Input
                     data-fk={v.id}
-                    aria-label={t("valueNumbered", { n: j + 1, option: o.name || t("optionName") })}
+                    aria-label={t("valueNumbered", { n: j + 1, option: optName(o, i) })}
                     value={v.label}
                     maxLength={60}
                     dir="auto"
                     className="h-8 w-24 border-0 shadow-none"
                     onChange={(e) => setValue(i, j, e.target.value)}
                   />
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueEarlier", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })} disabled={j === 0} onClick={() => setOption(i, { values: move(o.values, j, -1) })}>
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueEarlier", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })} disabled={j === 0} onClick={() => setOption(i, { values: move(o.values, j, -1) })}>
                     <ChevronLeft className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueLater", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueLater", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
                     <ChevronRight className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("removeValue", { label: v.label || t("valueNumbered", { n: j + 1, option: o.name || t("optionName") }) })}
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("removeValue", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}
                     disabled={variants.some((x) => x.saved && x.values[o.id] === v.id)}
                     onClick={() => {
                       setVariants(variants.filter((x) => x.values[o.id] !== v.id));
@@ -268,7 +268,7 @@ export function VariantsEditor({
         <Button type="button" onClick={save} disabled={busy}>
           {t("save")}
         </Button>
-        {unsaved && !message ? <p className="text-xs text-warning">{t("unsavedHint")}</p> : null}
+        {unsaved && !message ? <p className="text-xs text-muted-foreground">{t("unsavedHint")}</p> : null}
         {message ? (
           <p role={result?.ok ? "status" : "alert"} className={result?.ok ? "text-sm text-success" : "rounded-md bg-danger-bg px-3 py-2 text-sm text-danger"}>
             {message}

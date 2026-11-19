@@ -386,7 +386,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect((await svc.from("product_variant_values").select("value_id").eq("variant_id", a.vs).single()).data!.value_id).toBe(a.s);
   });
 
-  test("re-adding a removed label in one save succeeds", async () => {
+  test("re-adding a label while the size using the old one still exists is refused", async () => {
     const p = await bare();
     const a = sizeCfg();
     expect((await save(adminUser, p, a.cfg)).error).toBeNull();
@@ -525,6 +525,32 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     // a new option after sizes have values
     expect((await svc.from("product_options").insert({ workspace_id: ws, product_id: p, name: "Fit" })).error?.message).toMatch(/exactly one value/);
     expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", v)).data).toHaveLength(2);
+  });
+
+  test("a signed-in admin cannot leave a size without values (direct insert, or deleting all its value rows)", async () => {
+    const p = await bare();
+    const a = sizeCfg();
+    expect((await save(adminUser, p, a.cfg)).error).toBeNull();
+    const before = await counts(p);
+    // a size row on its own is refused at commit
+    expect((await adminUser.from("product_variants").insert({ workspace_id: ws, product_id: p }).select("id")).error?.message).toMatch(/exactly one value/);
+    // removing every value row of a size is refused too
+    expect((await adminUser.from("product_variant_values").delete().eq("variant_id", a.vs).select("variant_id")).error?.message).toMatch(/exactly one value/);
+    expect(await counts(p)).toEqual(before);
+    expect((await svc.from("product_variant_values").select("variant_id").eq("variant_id", a.vs)).data).toHaveLength(1);
+  });
+
+  test("save_variant_config: a value taken from another option is an incomplete size, not in_use", async () => {
+    const p = await bare();
+    const o1 = uid(), s = uid(), o2 = uid(), red = uid();
+    const cfg: Cfg = {
+      options: [
+        { id: o1, name: "Size", values: [{ id: s, label: "S" }] },
+        { id: o2, name: "Color", values: [{ id: red, label: "Red" }] },
+      ],
+      variants: [{ id: uid(), sku: null, is_active: true, values: { [o1]: red, [o2]: s } }],
+    };
+    expect((await save(adminUser, p, cfg)).error?.message).toMatch(/incomplete size/);
   });
 
   // ---- order size changes -------------------------------------------------
