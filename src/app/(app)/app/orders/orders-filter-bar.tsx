@@ -162,7 +162,7 @@ export function OrdersFilterBar({
           {t("orders.duplicatesOnly")}
         </Button>
       </div>
-      {chips.length > 0 || dropped.length > 0 ? (
+      {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {chips.map((c) => (
             <button
@@ -184,9 +184,16 @@ export function OrdersFilterBar({
         </div>
       ) : null}
       {dropped.length > 0 ? (
-        <p className="text-xs text-muted-foreground" role="status">
-          {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.length === 0 ? (
+            <Button type="button" variant="ghost" size="sm" onClick={() => router.push(pathname, { scroll: false })}>
+              {t("orders.clearFilters")}
+            </Button>
+          ) : null}
+          <p className="text-xs text-muted-foreground" role="status">
+            {dropped.map((k) => t("statistics.filters.dropped", { name: droppedNames[k] })).join(" ")}
+          </p>
+        </div>
       ) : null}
     </div>
   );
