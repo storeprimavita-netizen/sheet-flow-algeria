@@ -42,6 +42,7 @@ export function VariantsEditor({
     initialVariants.map((v) => ({ ...v, sku: v.sku ?? "", saved: true })),
   );
   const [busy, setBusy] = React.useState(false);
+  const [unsaved, setUnsaved] = React.useState(false);
   const [result, setResult] = React.useState<VariantResult | null>(null);
   const [confirmDeactivate, setConfirmDeactivate] = React.useState<number | null>(null);
   const [focusKey, setFocusKey] = React.useState<string | null>(null);
@@ -53,13 +54,14 @@ export function VariantsEditor({
   }, [focusKey]);
 
   const toggleActive = (i: number) => {
-    setResult(null);
+    dirty();
     setVariants((vs) => vs.map((x, k) => (k === i ? { ...x, isActive: !x.isActive } : x)));
   };
 
   // option structure is fixed once a size exists (its value rows are immutable); values stay editable
   const locked = variants.some((v) => v.saved);
-  const dirty = () => setResult(null);
+  const dirty = () => { setResult(null); setUnsaved(true); };
+  const optName = (o: VariantOption, i: number) => o.name || t("optionFallback", { n: i + 1 });
 
   const setOption = (i: number, patch: Partial<VariantOption>) => {
     dirty();
@@ -87,6 +89,7 @@ export function VariantsEditor({
     setBusy(false);
     setResult(res);
     if (res.ok) {
+      setUnsaved(false);
       setVariants((vs) => vs.map((v) => ({ ...v, saved: true })));
       router.refresh();
     }
@@ -131,13 +134,13 @@ export function VariantsEditor({
                 className="max-w-56"
                 onChange={(e) => setOption(i, { name: e.target.value })}
               />
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionUp", { name: o.name })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionUp", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
                 <ArrowUp />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionDown", { name: o.name })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionDown", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
                 <ArrowDown />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: o.name })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
                 <Trash2 />
               </Button>
             </div>
@@ -172,7 +175,7 @@ export function VariantsEditor({
                 </li>
               ))}
               <li>
-                <Button type="button" variant="outline" size="sm" data-fk={`add-${o.id}`} aria-label={t("addValue", { name: o.name })} onClick={() => { const id = newId(); setOption(i, { values: [...o.values, { id, label: "" }] }); setFocusKey(id); }}>
+                <Button type="button" variant="outline" size="sm" data-fk={`add-${o.id}`} aria-label={t("addValue", { name: optName(o, i) })} onClick={() => { const id = newId(); setOption(i, { values: [...o.values, { id, label: "" }] }); setFocusKey(id); }}>
                   <Plus />
                   {t("addValueShort")}
                 </Button>
@@ -265,6 +268,7 @@ export function VariantsEditor({
         <Button type="button" onClick={save} disabled={busy}>
           {t("save")}
         </Button>
+        {unsaved && !message ? <p className="text-xs text-warning">{t("unsavedHint")}</p> : null}
         {message ? (
           <p role={result?.ok ? "status" : "alert"} className={result?.ok ? "text-sm text-success" : "rounded-md bg-danger-bg px-3 py-2 text-sm text-danger"}>
             {message}

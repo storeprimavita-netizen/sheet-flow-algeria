@@ -294,6 +294,8 @@
     "date": "Date"
   },
   "products": {
+    "sizesSaveSeparately": "Options and sizes are saved separately, with the Save button in their own section.",
+    "sizesAfterFirstSave": "Add options and sizes after the first save.",
     "title": "Products",
     "subtitle": "Catalog, costs & status lifecycle",
     "new": "New product",
@@ -1302,6 +1304,8 @@
     "redacted": "Secret value hidden; the code identifies the value without revealing it"
   },
   "variants": {
+    "optionFallback": "option {n}",
+    "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",
     "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",
     "empty": "No options yet. Add an option such as Size to track stock per size.",

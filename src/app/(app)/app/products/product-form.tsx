@@ -117,8 +117,9 @@ export async function ProductForm({
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit">{editing ? t("actions.save") : t("actions.create")}</Button>
+        <p className="text-xs text-muted-foreground">{editing ? t("products.sizesSaveSeparately") : t("products.sizesAfterFirstSave")}</p>
       </div>
     </form>
   );
