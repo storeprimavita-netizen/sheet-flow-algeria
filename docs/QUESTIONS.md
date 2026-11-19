@@ -8,6 +8,32 @@ owner may overturn").
 
 ## Open
 
+### Q-21 · STATS-3 · 2026-11-19 · answered-by-default
+Seasons and the new filters of the Statistics page are built. The fourth review
+found nothing serious and nothing wrong in the database, the money or the
+roles. Two medium points are left, both on the small filter labels above the
+All orders list when you open it from a Statistics number: the category label
+does not say which category, and the delivery type shows the raw word "home"
+instead of its translated name. The rule for a fifth review round is written
+two ways. One says: only while the number of serious and medium points keeps
+dropping (it went 6, 4, 2, 2, so not this time). The other says: while the list
+of findings keeps getting shorter (12, then 11). **Applied by default (D66):**
+one last short round for these two labels, then a normal review. If it passes,
+the task is merged. If it does not, there is no further round and no merge: the
+task waits for your OK, like the store offers task. The other options were to
+park it for you now, or to merge it now and send the two labels to a follow-up
+task. Worth a yes or no later:
+1. When the number is equal instead of lower, should the run do the last round
+   as here (recommended: the points left were new, small and in one place), or
+   stop there?
+2. Your rule of 18 November says a task that has used its rounds, with nothing
+   serious open, is merged. The merge step refuses without a passed review, so
+   today such a task waits for you (the store offers task does). Should it be
+   merged with its open points in a follow-up task, as that rule says, or keep
+   waiting for your OK each time?
+
+Nothing is blocked.
+
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default
 When the night run started its fifth batch, it found unfinished files of the
 Statistics page left over from an earlier run that was cut short, and saved
