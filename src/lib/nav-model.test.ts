@@ -17,6 +17,14 @@ describe("nav model", () => {
     expect(navLeaves("confirmation_agent").map((l) => l.key)).toEqual(["confirmation"]);
     expect(navLeaves("delivery_agent").map((l) => l.key)).toEqual(["shipping"]);
   });
+  it("statistics: admin-only, in Sell right after customers, never in an agent menu", () => {
+    const sell = GROUPS.find((g) => g.key === "groupSell")!.items.map((l) => l.key);
+    expect(sell.indexOf("statistics")).toBe(sell.indexOf("customers") + 1);
+    expect(navLeaves("admin").find((l) => l.key === "statistics")?.adminOnly).toBe(true);
+    for (const role of ["confirmation_agent", "delivery_agent"] as const)
+      expect(navLeaves(role).some((l) => l.key === "statistics")).toBe(false);
+    expect(activeLeafHref("admin", "/app/statistics")).toBe("/app/statistics");
+  });
   it("no role shows nothing", () => {
     expect(navLeaves(null)).toEqual([]);
   });

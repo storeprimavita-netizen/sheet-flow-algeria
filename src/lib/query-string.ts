@@ -23,6 +23,9 @@ export type DashboardFilters = {
   delivery_status?: string;
 };
 
+/** Reserved `commune_key` value on /app/orders/all meaning "no commune" (`is null`); a real key is lower(trim(commune)). */
+export const UNKNOWN_COMMUNE = "__unknown";
+
 /**
  * `/app/orders/all`'s URL-param shape (product_id/wilaya_code/agent/…). Takes
  * a plain filters object rather than a closure so client components (e.g. the
@@ -45,3 +48,10 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
   }
   return `/app/orders/all?${params.toString()}`;
 }
+
+/** Drill metric -> the orders behind a /app/statistics count (`kpi_drill_orders`, same predicate as the SQL count). */
+export type DrillMetric = "received" | "confirmed" | "delivered" | "return";
+
+/** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (UNKNOWN_COMMUNE = none). */
+export const drillHref = (filters: DashboardFilters, metric: DrillMetric, extra: { wilaya: number; communeKey?: string }) =>
+  ordersQs(filters, { drill: metric, wilaya_code: String(extra.wilaya), commune_key: extra.communeKey });

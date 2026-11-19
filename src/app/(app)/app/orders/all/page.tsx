@@ -12,6 +12,7 @@ import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
+import { UNKNOWN_COMMUNE } from "@/lib/query-string";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
@@ -44,6 +45,30 @@ export default async function AllOrdersPage({
     .map((a) => ({ id: a.user_id, name: a.display_name ?? a.user_id.slice(0, 8), role: a.role }));
   const nameByUser = new Map((team ?? []).map((a) => [a.user_id, a.display_name ?? a.user_id.slice(0, 8)]));
 
+  // Drill mode (from /app/statistics): the exact orders behind one SQL count. The id list comes
+  // from kpi_drill_orders (same set, commune key and predicate as the table), one page at a time.
+  const drillMetric = ["received", "confirmed", "delivered", "return"].find((m) => m === get("drill")) ?? null;
+  const communeKey = get("commune_key");
+  let drillIds: string[] | null = null;
+  let drillTotal = 0;
+  if (drillMetric) {
+    const { data: drill, error: drillError } = await supabase.rpc("kpi_drill_orders", {
+      p_metric: drillMetric,
+      p_from: /^\d{4}-\d{2}-\d{2}$/.test(get("from")) ? get("from") : undefined,
+      p_to: /^\d{4}-\d{2}-\d{2}$/.test(get("to")) ? get("to") : undefined,
+      p_product: /^[0-9a-f-]{36}$/i.test(get("product_id")) ? [get("product_id")] : undefined,
+      p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
+      p_commune_key: communeKey && communeKey !== UNKNOWN_COMMUNE ? communeKey.slice(0, 120) : undefined,
+      p_unknown: communeKey === UNKNOWN_COMMUNE,
+      p_delivery_type: get("delivery_type") || undefined,
+      p_offset: (page - 1) * PAGE_SIZE,
+      p_limit: PAGE_SIZE,
+    });
+    if (drillError) console.error("orders/all drill", drillError.message);
+    drillIds = (drill ?? []).map((r) => r.id);
+    drillTotal = Number(drill?.[0]?.total ?? 0);
+  }
+
   let query = supabase
     .from("orders")
     .select(
@@ -51,6 +76,13 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
+  const q = get("q").trim().slice(0, 80);
+  if (drillIds) {
+    // the id page is the whole filter in drill mode
+    query = query.in("id", drillIds.length ? drillIds : ["00000000-0000-0000-0000-000000000000"]);
+  } else {
+  if (get("delivery_type") === "home" || get("delivery_type") === "stopdesk")
+    query = query.eq("delivery_type", get("delivery_type") as Enums<"delivery_type">);
   if (get("confirmation_status")) {
     // one status, or a comma list (dashboard "To retry" = no_answer,closed_phone); unknown values are ignored
     const statuses = get("confirmation_status")
@@ -68,7 +100,6 @@ export default async function AllOrdersPage({
   const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
   if (agentId)
     query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
-  const q = get("q").trim().slice(0, 80);
   const seq = q ? parseOrderSeqQuery(q) : null;
   if (seq !== null) {
     const digits = q.replace(/\D/g, "");
@@ -84,13 +115,18 @@ export default async function AllOrdersPage({
   if (get("from")) query = query.gte("placed_at", get("from"));
   if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
 
+  }
+
   const sortCol = SORT_COLUMNS[get("sort")] ?? "created_at";
   const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
 
-  const from = (page - 1) * PAGE_SIZE;
-  const { data: orders, count, error: ordersError } = await query
+  const from = drillIds ? 0 : (page - 1) * PAGE_SIZE;
+  const { data: fetched, count: fetchedCount, error: ordersError } = await query
     .order(sortCol, { ascending })
     .range(from, from + PAGE_SIZE - 1);
+  const rank = new Map((drillIds ?? []).map((id, i) => [id, i]));
+  const orders = drillIds ? [...(fetched ?? [])].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)) : fetched;
+  const count = drillIds ? drillTotal : fetchedCount;
 
   if (ordersError) {
     console.error("orders/all", ordersError.message);

@@ -25,6 +25,9 @@ language sql stable security invoker set search_path = public as $$
                     where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id)
              when 'delivered' then o.delivery_status = 'delivered' and o.swapped_to_order_id is null
              when 'returned' then o.delivery_status = 'returned' and o.swapped_to_order_id is null
+             -- the return-rate numerator: returned parcels plus swap originals (D47)
+             when 'return' then (o.delivery_status = 'returned' and o.swapped_to_order_id is null)
+                                or o.swapped_to_order_id is not null
              else false end
   )
   select m.id, (select count(*) from m)

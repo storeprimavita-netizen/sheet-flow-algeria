@@ -59,3 +59,27 @@ export const kpiPct = (m: Pick<KpiMetric, "value"> | null | undefined): number |
 /** ROAS to two decimals (display), or null. */
 export const kpiRoas = (k: Kpi | null | undefined): number | null =>
   k?.roas == null ? null : Math.round(k.roas * 100) / 100;
+
+/** Rates of one group (kpi_rates jsonb): the three rates plus counts. No money keys. */
+export type KpiGroupRates = Pick<Kpi, "confirmation" | "delivery" | "return" | "counts">;
+
+/** Extras of one group (kpi_group_extras jsonb). Shares are over `shipped`, the delivery-rate denominator. */
+export type KpiGroupExtras = {
+  shipped: number;
+  home_count: number;
+  stopdesk_count: number;
+  /** delivered non-swapped orders, days from order date; null when none */
+  avg_days_to_deliver: number | null;
+  avg_days_sample: number;
+};
+
+/** One row of `kpi_by_wilaya` / `kpi_by_commune` after narrowing. */
+export type KpiGroup = { rates: KpiGroupRates; extras: KpiGroupExtras };
+
+const isObj = (j: unknown): j is Record<string, unknown> => !!j && typeof j === "object";
+
+/** Narrow the `rates` + `extras` jsonb of a group row; null when either is malformed. */
+export function asKpiGroup(rates: unknown, extras: unknown): KpiGroup | null {
+  if (!isObj(rates) || !isObj(extras) || !isObj(rates.counts) || !isObj(rates.delivery)) return null;
+  return { rates: rates as unknown as KpiGroupRates, extras: extras as unknown as KpiGroupExtras };
+}
