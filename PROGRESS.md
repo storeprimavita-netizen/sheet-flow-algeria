@@ -423,3 +423,10 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Next: PRICE-4-F (reviews 1–4 lows, missing tests, 1,000-product cap, agent-redirect test, "Pricing calculator" sidebar label, Excel leading zero).
 
 - STATS-2-F round 2: review-1 findings 1-9 fixed (unmatured marker = Info icon + sr-only reason; commune extras folded into the name cell; drill params share DRILL_PARAMS; banner label guarded). Screenshots via chrome-devtools: dark EN 1280 (table, unmatured markers) and light AR 390 (commune panel open) checked, no defects. Not shot: orders/all?drill=shipped banner, other theme/locale combos. #12 (Latin names in AR) still open.
+
+## STATS-2-F — done (review-2 PASS)
+- Done: STATS-2 review-2 lows and missing brief tests delivered on v3-STATS-2-F (commits 4a28fec..5d1a7a5).
+- Verify: `scripts/gate.sh` GATE OK on v3-STATS-2-F (698 passed / 3 skipped, live RLS suite).
+- Evidence: `docs/briefs/STATS-2-F.review-2.md` VERDICT PASS; screenshots noted in PROGRESS (STATS-2-F round 2).
+- Owner: Latin names in AR (product question) still open per MASTER_PLAN.
+- Next: merge to v3 by coordinator; no follow-up task queued here.
