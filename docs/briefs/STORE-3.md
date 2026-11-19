@@ -7,7 +7,7 @@ Goal: an admin sets how a product is priced, adds quantity offers and one bump, 
 - Migration 00051 + types + DB.md + RLS tests (D24 live suite).
 - One pure `offer-price.ts` owns unit price, offer charge, savings; STORE-4 reuses it. Integer DZD, never NaN; unit price <= 0 => size not sellable (refused, not clamped).
 - Public DTO: pricing, compare price, variant ids + per-size price, offers (id, label, qty, total, saving), bump (id, name, price), form fields. No cost, sku, stock count, NO free delivery (D60).
-- Public page: NO enabled submit (review #1/#2). Until STORE-4 the `#order` block shows fields read-only-looking? No: it shows an honest "orders open soon" state, no button. The same presentational form renders only in the admin preview (inert, `method="post"`, `action` = future STORE-4 endpoint, `preventDefault` after hydration).
+- Public page: NO enabled submit (review #1/#2). Until STORE-4 the `#order` block shows an honest "orders open soon" state, no button. The same presentational form renders only in the admin preview (inert, `method="post"`, `action` = future STORE-4 endpoint, `preventDefault` after hydration).
 - Every new mutation calls `updateTag('store-public')`. Gate green, EN/AR parity.
 
 ## Drift (real code)
