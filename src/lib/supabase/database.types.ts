@@ -1717,9 +1717,24 @@ isOneToOne: false
               "commune": string,"commune_key": string,"extras": Json,"rates": Json
             }[]
                            },
+"kpi_by_product":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "product_id": string,"product_name": string,"rates": Json
+            }[]
+                           },
+"kpi_by_weekday_hour":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "bucket": number,"kind": string,"rates": Json
+            }[]
+                           },
 "kpi_by_wilaya":
 { Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
               "extras": Json,"rates": Json,"wilaya_code": number,"wilaya_name": string
+            }[]
+                           },
+"kpi_daily":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "day": string,"immature": boolean,"money": Json,"rates": Json
             }[]
                            },
 "kpi_drill_orders":
@@ -1739,6 +1754,11 @@ isOneToOne: false
 "kpi_order_set":
 { Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
               "id": string
+            }[]
+                           },
+"kpi_outcomes":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "n": number,"outcome": string
             }[]
                            },
 "kpi_rates":
