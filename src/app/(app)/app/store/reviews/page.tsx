@@ -52,7 +52,39 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
   const { data: pages, error: pagesErr } = await supabase.from("store_pages").select("product_id").eq("store_id", store.id).not("product_id", "is", null);
   if (pagesErr) throw new Error(pagesErr.message);
   const productIds = [...new Set((pages ?? []).flatMap((p) => (p.product_id ? [p.product_id] : [])))];
-  if (productIds.length === 0) {
+  let q = supabase
+    .from("reviews")
+    .select("id, product_id, name, rating, body, approved, order_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(LIMIT);
+  if (f.product) q = q.eq("product_id", f.product);
+  if (f.status) q = q.eq("approved", f.status === "approved");
+  const [{ data: products, error: prodErr }, { data: reviews, error: revErr }] = await Promise.all([
+    productIds.length
+      ? supabase.from("products").select("id, name").in("id", productIds).order("name")
+      : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
+    q,
+  ]);
+  if (prodErr) throw new Error(prodErr.message);
+  if (revErr) throw new Error(revErr.message);
+  const names = new Map((products ?? []).map((p) => [p.id, p.name]));
+  // Reviews whose product no longer has a store page stay listed (so they can be hidden or deleted) with a label.
+  const orphanIds = [...new Set((reviews ?? []).map((r) => r.product_id).filter((id) => !names.has(id)))];
+  if (orphanIds.length) {
+    const { data, error } = await supabase.from("products").select("id, name").in("id", orphanIds);
+    if (error) throw new Error(error.message);
+    for (const p of data ?? []) names.set(p.id, p.name);
+  }
+  const hasPage = new Set(productIds);
+  const orderIds = [...new Set((reviews ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
+  const orders = new Map<string, number>();
+  if (orderIds.length) {
+    const { data, error: ordErr } = await supabase.from("orders").select("id, order_seq").in("id", orderIds);
+    if (ordErr) throw new Error(ordErr.message);
+    for (const o of data ?? []) orders.set(o.id, o.order_seq);
+  }
+  const filtered = !!(f.product || f.status);
+  if (productIds.length === 0 && (reviews ?? []).length === 0) {
     return (
       <div className="space-y-6">
         {head}
@@ -63,29 +95,6 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
       </div>
     );
   }
-
-  let q = supabase
-    .from("reviews")
-    .select("id, product_id, name, rating, body, approved, order_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(LIMIT);
-  if (f.product) q = q.eq("product_id", f.product);
-  if (f.status) q = q.eq("approved", f.status === "approved");
-  const [{ data: products, error: prodErr }, { data: reviews, error: revErr }] = await Promise.all([
-    supabase.from("products").select("id, name").in("id", productIds).order("name"),
-    q,
-  ]);
-  if (prodErr) throw new Error(prodErr.message);
-  if (revErr) throw new Error(revErr.message);
-  const names = new Map((products ?? []).map((p) => [p.id, p.name]));
-  const orderIds = [...new Set((reviews ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
-  const orders = new Map<string, number>();
-  if (orderIds.length) {
-    const { data, error: ordErr } = await supabase.from("orders").select("id, order_seq").in("id", orderIds);
-    if (ordErr) throw new Error(ordErr.message);
-    for (const o of data ?? []) orders.set(o.id, o.order_seq);
-  }
-  const filtered = !!(f.product || f.status);
 
   return (
     <div className="space-y-6">
@@ -113,7 +122,7 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
             <tbody>
               {(reviews ?? []).map((r) => (
                 <tr key={r.id} className="align-top">
-                  <td className="max-w-md">
+                  <td className="min-w-56 max-w-md">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1" aria-label={t("rated", { n: r.rating })} role="img">
                         <Star className="h-4 w-4 fill-current text-warning" aria-hidden="true" />
@@ -127,6 +136,7 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
                     <Link href={`/app/products/${r.product_id}`} className="hover:underline">
                       {names.get(r.product_id) ?? "—"}
                     </Link>
+                    {hasPage.has(r.product_id) ? null : <p className="text-xs text-muted-foreground">{t("noPage")}</p>}
                   </td>
                   <td>
                     {r.order_id && orders.has(r.order_id) ? (

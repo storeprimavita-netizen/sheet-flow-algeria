@@ -95,7 +95,7 @@ function ReviewCard({ r }: { r: PublicReview }) {
         <Stars value={r.rating} />
         <span className="store-review-name">{r.name ? <bdi>{r.name}</bdi> : st("reviews.anonymous")}</span>
       </div>
-      <p className="store-review-body">{r.text}</p>
+      <p className="store-review-body" dir="auto">{r.text}</p>
       <div className="store-review-foot">
         {r.verified ? (
           <span className="store-verified">

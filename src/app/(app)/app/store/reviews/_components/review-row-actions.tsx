@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { SettingSwitch } from "@/components/fields/setting-switch";
+import { Switch } from "@/components/ui/switch";
 import { DeleteButton } from "@/components/delete-button";
 
 import { deleteReview, setReviewApproved } from "../../actions";
@@ -34,7 +34,7 @@ export function ReviewRowActions({ id, name, approved }: { id: string; name: str
 
   return (
     <div className="flex items-center justify-end gap-3">
-      <SettingSwitch label={t("approveLabel", { name })} checked={on} onCheckedChange={toggle} disabled={pending} />
+      <Switch aria-label={t("approveLabel", { name })} checked={on} onCheckedChange={toggle} disabled={pending} />
       <DeleteButton
         id={id}
         action={deleteReview}

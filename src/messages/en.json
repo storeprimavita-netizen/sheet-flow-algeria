@@ -1462,6 +1462,7 @@
         "emptyNone": "No review yet. Add the first one above.",
         "emptyNoMatch": "No review matches these filters.",
         "clear": "Clear filters",
+        "noPage": "No store page",
         "emptyNoPages": "Create a product page first, reviews belong to a product.",
         "goPages": "Go to product pages"
       },
