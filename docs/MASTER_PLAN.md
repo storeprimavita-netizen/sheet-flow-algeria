@@ -55,7 +55,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | STATS-2-F | Follow-up (review-2 PASS): the 12 lows in `docs/briefs/STATS-2.review-2.md` (home/stop-desk drill via `p_delivery_type`, Unknown-row hover, AR chevron direction, impossible `?from` dates, visible `not enough data` on touch, per-commune extras, banner spelling, 120-char commune key, `aria-controls` when closed, chevron hit area 44px, Latin names in AR as product question); missing brief tests listed there; review-1 findings 9 (home/stop-desk drill) and 14 (breadcrumb, none app-wide) | STATS | L | ui | – | stats | STATS-2 | todo |
 | STATS-3 | Seasons + unified filter bar | STATS | L | ui | M | stats | STATS-2 | done |
 | STATS-3-F | Follow-up (review-3/4/5 lows + missing tests in `docs/briefs/STATS-3.review-*.md`); Statistics chip removal also drops season/year from the URL; 5-second timeouts in `seasons.rls.test.ts` when the local DB holds leaked test workspaces (test-cleanup, 8f72ccb) | STATS | L | ui | – | stats | STATS-3 | todo |
-| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | todo |
+| PRICE-3 | Real column (KPI contract + ad spend), below-break-even badge | PRICE | L | ui | – | catalog | PRICE-2, P1-1 | claimed:claude |
 | PRICE-4 | Portfolio view + CSV; retire BENZ screens | PRICE | L | ui | – | catalog | PRICE-3 | todo |
 | STORE-5 | Discount codes + abandoned checkouts | STORE | H | ui,sec | M | store | STORE-4 | todo |
 | STORE-7 | Reviews + size guide blocks | STORE | L | ui | M | store | STORE-2 | todo |
