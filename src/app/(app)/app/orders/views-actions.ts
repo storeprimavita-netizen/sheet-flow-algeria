@@ -50,7 +50,7 @@ export async function createView(input: unknown): Promise<ViewResult> {
   if (!user || !profile) return { ok: false, error: "forbidden" };
   const { name, emoji, scope, shared } = parsed.data;
   if (shared && profile.role !== "admin") return { ok: false, error: "forbidden" };
-  const config = parseViewConfig(parsed.data.config) as Json;
+  const config = parseViewConfig(parsed.data.config) as NonNullable<Json>;
 
   let count = supabase.from("order_views").select("position", { count: "exact" }).eq("scope", scope);
   count = shared ? count.is("owner_id", null) : count.eq("owner_id", user.id);
@@ -89,7 +89,7 @@ async function updateOne(id: string, patch: TablesUpdate<"order_views">): Promis
 }
 
 export async function saveView(id: string, config: unknown): Promise<ViewResult> {
-  return updateOne(id, { config: parseViewConfig(config) as Json });
+  return updateOne(id, { config: parseViewConfig(config) as NonNullable<Json> });
 }
 
 export async function renameView(id: string, input: unknown): Promise<ViewResult> {
