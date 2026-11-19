@@ -45,24 +45,3 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
   }
   return `/app/orders/all?${params.toString()}`;
 }
-
-/** Reserved `commune` value in a drill link: the orders whose commune is empty (`is null` key). */
-export const UNKNOWN_COMMUNE = "__unknown";
-
-/** Drill kinds of `/app/orders/all`: the exact orders behind a statistics count (SQL `kpi_drill_orders`). */
-export const DRILL_KINDS = ["received", "confirmed", "delivered", "returned", "shipped"] as const;
-export type DrillKind = (typeof DRILL_KINDS)[number];
-
-/** Link to the orders behind one statistics count. `communeKey` null = unknown commune. */
-export function drillQs(
-  filters: DashboardFilters,
-  d: { kind: DrillKind; wilaya: number; communeKey?: string | null; deliveryType?: "home" | "stopdesk" },
-): string {
-  const extra: Record<string, string | undefined> = {
-    kind: d.kind,
-    wilaya_code: String(d.wilaya),
-    delivery_type: d.deliveryType,
-  };
-  if (d.communeKey !== undefined) extra.commune = d.communeKey ?? UNKNOWN_COMMUNE;
-  return ordersQs({ from: filters.from, to: filters.to, product: filters.product }, extra);
-}

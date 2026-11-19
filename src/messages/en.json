@@ -34,8 +34,7 @@
     "usersRoles": "Users & roles",
     "storeHub": "Store",
     "storePages": "Product pages",
-    "storeSettings": "Store settings",
-    "statistics": "Statistics"
+    "storeSettings": "Store settings"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -1435,38 +1434,5 @@
     "title": "Page not found",
     "body": "This page doesn't exist, or you don't have access to it.",
     "back": "Back to the dashboard"
-  },
-  "statistics": {
-    "title": "Statistics",
-    "purpose": "Confirmation, delivery and return rates by wilaya and commune. Click a count to see the orders behind it.",
-    "wilayaTitle": "By wilaya",
-    "communeTitle": "Communes in {wilaya}",
-    "unknownWilaya": "Unknown wilaya",
-    "unknownCommune": "Unknown commune",
-    "received": "Received",
-    "confirmation": "Confirmation",
-    "delivery": "Delivery",
-    "return": "Return",
-    "ordersOf": "{n} of {d}",
-    "avgDays": "Avg. days to deliver",
-    "avgDaysSample": "{n, plural, one {# delivered order} other {# delivered orders}}",
-    "homeCount": "Home delivery",
-    "stopdeskCount": "Stop desk",
-    "shipped": "Shipped parcels",
-    "noShipped": "No parcels shipped yet",
-    "expand": "Show communes",
-    "collapse": "Hide communes",
-    "viewOrders": "View orders",
-    "notEnoughData": "Not enough data",
-    "mapLabel": "Delivery rate by wilaya",
-    "emptyTitle": "No orders in this period",
-    "emptyHint": "Nothing matches the current period and product.",
-    "widenPeriod": "Widen the period",
-    "clearProduct": "Clear the product filter",
-    "loadError": "Could not load the statistics.",
-    "communeError": "Could not load the communes.",
-    "retry": "Try again",
-    "communeEmpty": "No orders in this wilaya for the current filters.",
-    "commune": "Commune"
   }
 }
