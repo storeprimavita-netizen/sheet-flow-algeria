@@ -8,6 +8,38 @@ owner may overturn").
 
 ## Open
 
+### Q-26 · VAR-1 · 2026-11-19
+Product options are built: "+ Size" and "+ Color" buttons, a colour swatch per
+value, your own size names saved as reusable size sets, and adding an option to
+a product that already has sizes (you pick the value the existing sizes get;
+their stock and orders stay). The fourth and last allowed review found nothing
+serious and nothing wrong in the database, the roles or the store data. Both
+points of the third review are fixed: the store shows "المقاسات" and "اللون" in
+Arabic, and a failed save shows a plain sentence. The rule set before that
+round (D82) says the task then waits for you: no fifth round and no merge
+without your word. Two medium points are left, both on the screen only:
+1. **Deleting a size set** in Settings asks "are you sure?" with the browser's
+   own grey box instead of the app's dialog. It works, but it ignores the
+   theme and looks out of place in Arabic.
+2. **"+ Size" and "+ Color" turn grey with no explanation** when the product
+   already has a size or a colour option. Nothing breaks; you just do not see
+   why the button is off.
+
+How do you want to finish it?
+- **(a) Recommended: merge as it is.** The two points go first in the follow-up
+  task VAR-1-B with the smaller ones. Why: nothing touches stock, orders, money
+  or what a role can see; you asked for colours because you could not find
+  them, and this puts them in your hands now. It is your rule of 18 November
+  (nothing serious open after the allowed rounds: merge, and follow up).
+- **(b) One more short round for these two points**, then merge only if the
+  review passes. Both fixes are small, but each extra round on this task has
+  brought a new small point with it (4, then 2, then 2, then 2).
+- **(c) Keep it parked** until you have looked at it yourself.
+
+Blocked until you answer: VAR-1 is parked and not merged; only its follow-up
+VAR-1-B waits on it. Other work continues. Details:
+`docs/briefs/VAR-1.review-4.md` on branch `v3-VAR-1`.
+
 ### Q-25 · STORE-7 · 2026-11-19 · answered-by-default
 Reviews on the store: you record them yourself in Store > Reviews (name, stars,
 text, optional order number) and approve the ones to show. Customers cannot
@@ -126,6 +158,22 @@ One thing to know: a product page whose sizes are all out of stock shows the
 sizes crossed out and no "sold out" message until the store offers task is
 merged. That message is already built there, and that task waits for your OK.
 The store takes no orders yet, so no customer sees this today.
+
+It came up a third time on 19 November, on the product options task (VAR-1:
+colours, your own size names, adding an option to a product that already has
+sizes). Its third review found nothing serious and nothing wrong in the
+database. Two medium points are left. On the store, the words "Size" and
+"Color" above the choices show in English when the option was created from the
+English back office, although the store is in Arabic. And when a save fails for
+an unexpected reason, the screen shows a technical database message instead of
+a plain sentence. **Applied the same way (D82):** one last short round for
+these two points, merged only if the review passes; if not, it waits for your
+OK. One thing to know: a name you type yourself for an option (for example
+"Fit") is shown on the store exactly as you typed it, so type it in Arabic.
+The review also asked which of two written rules is right for a size saved
+with no option value. No screen can create such a size (only the tests do), so
+it was settled as a technical point in D82: such a size is never filled in by
+guessing.
 
 Nothing is blocked.
 
