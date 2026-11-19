@@ -7,14 +7,22 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
 import { OrderTabs } from "../order-tabs";
+import { effectiveConfig, isDirty } from "@/lib/order-views";
+import { applyOrderConfig, orderSort, ROW_LIMIT } from "../_lib/order-query";
+import { listViews, resolveView } from "../_lib/views-data";
+import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { ConfirmationTable, type ConfRow } from "./confirmation-table";
+
+const rest = (sp: Record<string, string | string[] | undefined>) =>
+  new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
 
 export default async function ConfirmationQueuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ show?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const showAll = (await searchParams).show === "all";
+  const sp = await searchParams;
+  const showAll = sp.show === "all";
   const t = await getTranslations();
   const supabase = await createClient();
   const isAdmin = await isCurrentUserAdmin();
@@ -25,8 +33,14 @@ export default async function ConfirmationQueuePage({
     .from("orders")
     .select(
       "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product:products(name), zr:zr_shipments(order_id)",
-    )
-    .order("created_at", { ascending: true });
+    );
+  const viewsResult = await listViews("confirmation");
+  const { active, invalid } = resolveView(viewsResult.views, sp.view);
+  const cfg = effectiveConfig(active?.config ?? null, sp);
+  query = applyOrderConfig(query, cfg);
+  // oldest first unless the view sorts; the page's own filter below is applied last, so a view can only narrow
+  const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
+  query = query.order(sort.column, { ascending: sort.ascending });
   query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
   const { data: orders } = await query;
 
@@ -95,6 +109,20 @@ export default async function ConfirmationQueuePage({
         </ButtonLink>
       </PageHeader>
       <OrderTabs active="confirmation" />
+      <ViewTabs
+        scope="confirmation"
+        views={viewsResult.views}
+        activeId={active?.id ?? null}
+        effective={cfg}
+        dirty={active ? isDirty(active.config, sp) : false}
+        isAdmin={isAdmin}
+        loadError={!!viewsResult.error}
+        keep={showAll ? "show=all" : ""}
+      />
+      {invalid ? <InvalidViewNotice rest={rest(sp)} /> : null}
+      {(orders ?? []).length >= ROW_LIMIT ? (
+        <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
+      ) : null}
       <ConfirmationTable rows={rows} />
     </div>
   );

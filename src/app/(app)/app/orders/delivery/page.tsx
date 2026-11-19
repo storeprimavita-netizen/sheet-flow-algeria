@@ -7,16 +7,23 @@ import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_DELIVERY } from "@/lib/statuses";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
+import { effectiveConfig, isDirty } from "@/lib/order-views";
+import { applyOrderConfig, orderSort, ROW_LIMIT } from "../_lib/order-query";
+import { listViews, resolveView } from "../_lib/views-data";
+import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { DeliveryView, type DelivRow } from "./delivery-view";
 
 export default async function DeliveryQueuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ show?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const showAll = (await searchParams).show === "all";
+  const sp = await searchParams;
+  const showAll = sp.show === "all";
   const t = await getTranslations();
   const supabase = await createClient();
+  const isAdmin = await isCurrentUserAdmin();
+  const rest = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
 
   // Confirmed orders still in flight (same list as the sidebar badge);
   // "show closed" adds delivered / returned / cancelled / swapped.
@@ -24,9 +31,14 @@ export default async function DeliveryQueuePage({
     .from("orders")
     .select(
       "id, order_seq, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, swapped_to_order_id, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
-    )
-    .eq("confirmation_status", "confirmed")
-    .order("created_at", { ascending: true });
+    );
+  const viewsResult = await listViews("shipping");
+  const { active, invalid } = resolveView(viewsResult.views, sp.view);
+  const cfg = effectiveConfig(active?.config ?? null, sp);
+  query = applyOrderConfig(query, cfg);
+  const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
+  // fixed page filter applied last: whatever the view says, only confirmed orders are listed here
+  query = query.order(sort.column, { ascending: sort.ascending }).eq("confirmation_status", "confirmed");
   if (!showAll) query = query.in("delivery_status", ACTIONABLE_DELIVERY);
   const { data: orders } = await query;
 
@@ -59,7 +71,21 @@ export default async function DeliveryQueuePage({
         </ButtonLink>
       </PageHeader>
       <OrderTabs active="delivery" />
-      <DeliveryView rows={rows} isAdmin={await isCurrentUserAdmin()} />
+      <ViewTabs
+        scope="shipping"
+        views={viewsResult.views}
+        activeId={active?.id ?? null}
+        effective={cfg}
+        dirty={active ? isDirty(active.config, sp) : false}
+        isAdmin={isAdmin}
+        loadError={!!viewsResult.error}
+        keep={showAll ? "show=all" : ""}
+      />
+      {invalid ? <InvalidViewNotice rest={rest} /> : null}
+      {(orders ?? []).length >= ROW_LIMIT ? (
+        <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
+      ) : null}
+      <DeliveryView rows={rows} isAdmin={isAdmin} />
     </div>
   );
 }
