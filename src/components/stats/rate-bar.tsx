@@ -1,3 +1,5 @@
+import { Info } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 /** Success/warning/danger threshold bar for a 0-100 rate — shared by every
@@ -23,6 +25,7 @@ export function RateCell({
   matured = true,
   sub,
   title,
+  hint,
   compact = false,
 }: {
   pct: number;
@@ -31,16 +34,26 @@ export function RateCell({
   matured?: boolean;
   sub?: React.ReactNode;
   title?: string;
+  /** unmatured reason: a small visible info marker plus screen-reader text (`title` alone is invisible on touch) */
+  hint?: string;
   /** below `sm`: no bar, label auto-width (narrow tables) */
   compact?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2" title={title}>
-      <RateBar pct={pct} matured={matured} className={compact ? "max-sm:hidden" : undefined} />
-      <span className={cn("num shrink-0 text-end text-xs", labelWidth, !matured && "text-muted-foreground")}>
-        {sub ? <bdi dir="ltr">{label}</bdi> : label}
-        {sub ? <span className="block text-[11px] text-muted-foreground"><bdi dir="ltr">{sub}</bdi></span> : null}
-      </span>
+    <div title={title}>
+      <div className="flex items-center gap-2">
+        <RateBar pct={pct} matured={matured} className={compact ? "max-sm:hidden" : undefined} />
+        <span className={cn("num shrink-0 text-end text-xs", labelWidth, !matured && "text-muted-foreground")}>
+          {sub ? <bdi dir="ltr">{label}</bdi> : label}
+          {sub ? <span className="block text-[11px] text-muted-foreground"><bdi dir="ltr">{sub}</bdi></span> : null}
+        </span>
+      </div>
+      {!matured && hint ? (
+        <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+          <Info className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="sr-only">{hint}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

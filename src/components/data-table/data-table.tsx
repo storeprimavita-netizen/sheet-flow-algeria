@@ -25,7 +25,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { DRILL_PARAMS } from "@/lib/query-string";
 import type { Column } from "./types";
+
+const DRILL_RESET = Object.fromEntries(DRILL_PARAMS.map((k) => [k, null]));
 
 type Density = "comfortable" | "compact";
 
@@ -136,8 +139,8 @@ export function DataTable<T>({
 
   function toggleSort(id: string) {
     // a sort change leaves statistics drill mode (the drill id page has its own order)
-    if (sortId === id) setParams({ dir: sortDir === "asc" ? "desc" : "asc", page: null, drill: null, commune_key: null, commune_unknown: null });
-    else setParams({ sort: id, dir: "asc", page: null, drill: null, commune_key: null, commune_unknown: null });
+    if (sortId === id) setParams({ dir: sortDir === "asc" ? "desc" : "asc", page: null, ...DRILL_RESET });
+    else setParams({ sort: id, dir: "asc", page: null, ...DRILL_RESET });
   }
 
   // a column shows unless its id is in `hidden` (seeded from defaultHidden on mount)

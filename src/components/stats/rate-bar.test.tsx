@@ -18,3 +18,10 @@ describe("RateBar / RateCell matured", () => {
     expect(renderToStaticMarkup(<RateBar pct={10} matured />)).toContain("bg-danger");
   });
 });
+
+describe("RateCell unmatured hint", () => {
+  test("renders a marker with the reason (sr-only) only when unmatured", () => {
+    expect(renderToStaticMarkup(<RateCell pct={0} label="—" matured={false} hint="Not enough data yet" />)).toContain(">Not enough data yet<");
+    expect(renderToStaticMarkup(<RateCell pct={50} label="50%" hint="Not enough data yet" />)).not.toContain("Not enough data yet");
+  });
+});

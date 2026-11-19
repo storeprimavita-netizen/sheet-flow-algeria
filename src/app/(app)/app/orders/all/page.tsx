@@ -13,7 +13,8 @@ import { parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
-import { COMMUNE_UNKNOWN_PARAM, ISO_DATE, MAX_COMMUNE_KEY } from "@/lib/query-string";
+import { DrillBanner } from "@/components/stats/drill-banner";
+import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY } from "@/lib/query-string";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
@@ -49,8 +50,10 @@ export default async function AllOrdersPage({
 
   // Drill mode (from /app/statistics): the exact orders behind one SQL count. The id list comes
   // from kpi_drill_orders (same set, commune key and predicate as the table), one page at a time.
-  const drillMetric = ["received", "confirmed", "delivered", "return"].find((m) => m === get("drill")) ?? null;
+  const drillMetric = ["received", "confirmed", "delivered", "return", "shipped"].find((m) => m === get("drill")) ?? null;
   const communeKey = get("commune_key");
+  // display only (original spelling for the banner); the key stays the filter
+  const communeLabel = get("commune_label").slice(0, MAX_COMMUNE_KEY);
   // Statistics filters on this page: `category` (option uuid) and `conf_agent` (confirmation agent
   // only; `agent` keeps its confirmation-OR-delivery meaning). Same text comparison as kpi_order_set.
   const { filters: drillChecked, dropped: droppedDrill } = parseDrillFilters(get);
@@ -69,8 +72,8 @@ export default async function AllOrdersPage({
   } else if (drillMetric) {
     const { data: drill, error: drillError } = await supabase.rpc("kpi_drill_orders", {
       p_metric: drillMetric,
-      p_from: ISO_DATE.test(get("from")) ? get("from") : undefined,
-      p_to: ISO_DATE.test(get("to")) ? get("to") : undefined,
+      p_from: isRealIsoDate(get("from")) ? get("from") : undefined,
+      p_to: isRealIsoDate(get("to")) ? get("to") : undefined,
       p_product: /^[0-9a-f-]{36}$/i.test(get("product_id")) ? [get("product_id")] : undefined,
       p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
       p_commune_key: communeKey && !communeUnknown ? communeKey : undefined,
@@ -144,8 +147,8 @@ export default async function AllOrdersPage({
   const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
 
   const from = drillIds ? 0 : (page - 1) * PAGE_SIZE;
-  const { data: fetched, count: fetchedCount, error: ordersError } = await query
-    .order(sortCol, { ascending })
+  // drill mode: the id page already has its order (re-ranked below), so no DB sort
+  const { data: fetched, count: fetchedCount, error: ordersError } = await (drillIds ? query : query.order(sortCol, { ascending }))
     .range(from, from + PAGE_SIZE - 1);
   const rank = new Map((drillIds ?? []).map((id, i) => [id, i]));
   const orders = drillIds ? [...(fetched ?? [])].sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)) : fetched;
@@ -251,17 +254,15 @@ export default async function AllOrdersPage({
       <OrderTabs active="all" />
 
       {drillMetric ? (
-        <div className="card-surface flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm" role="status">
-          <p>
-            <span className="font-medium text-foreground">{t(`orders.drill.${drillMetric}`)}</span>
-            <span className="text-muted-foreground">
-              {" · "}
-              {wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code")}
-              {communeKey || communeUnknown ? ` · ${communeUnknown ? t("statistics.unknownCommune") : communeKey}` : ""}
-            </span>
-          </p>
-          <ButtonLink href="/app/orders/all" size="sm" variant="outline">{t("orders.drill.clear")}</ButtonLink>
-        </div>
+        <DrillBanner
+          metric={t(`orders.drill.${drillMetric}`)}
+          parts={[
+            wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code"),
+            deliveryType === "home" || deliveryType === "stopdesk" ? t(`statistics.${deliveryType}`) : "",
+            communeUnknown ? t("statistics.unknownCommune") : communeKey ? (communeLabel ? communeBannerLabel(communeKey, communeLabel) : communeKey) : "",
+          ]}
+          clearLabel={t("orders.drill.clear")}
+        />
       ) : null}
 
       <OrdersFilterBar

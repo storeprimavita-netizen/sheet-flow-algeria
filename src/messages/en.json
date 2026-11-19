@@ -456,6 +456,7 @@
       "confirmed": "Confirmed orders",
       "delivered": "Delivered orders",
       "return": "Returned orders",
+      "shipped": "Shipped orders",
       "clear": "Show all orders"
     }
   },

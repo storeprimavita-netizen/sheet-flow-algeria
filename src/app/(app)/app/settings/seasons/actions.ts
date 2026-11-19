@@ -5,16 +5,13 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
-import { ISO_DATE } from "@/lib/query-string";
+import { isRealIsoDate } from "@/lib/query-string";
 
 /** Error values are i18n keys under `settings.seasons.err.*`; the client translates them. */
 export type SeasonState = { error: string } | { ok: true } | undefined;
 
 const name = z.string().trim().min(1).max(80);
-const isoDate = z
-  .string()
-  .regex(ISO_DATE)
-  .refine((d) => !Number.isNaN(Date.parse(`${d}T00:00:00Z`)) && new Date(`${d}T00:00:00Z`).toISOString().startsWith(d));
+const isoDate = z.string().refine(isRealIsoDate);
 
 const createSchema = z.object({ name });
 const renameSchema = z.object({ id: z.uuid(), name });

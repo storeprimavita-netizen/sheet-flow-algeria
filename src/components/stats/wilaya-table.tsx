@@ -93,21 +93,21 @@ export function WilayaTable({
             return (
               <React.Fragment key={code ?? "unknown"}>
                 <tr
-                  className={cn("transition-colors", (hovered === code || open) && "bg-surface-raised")}
+                  className={cn("transition-colors", ((code !== null && hovered === code) || open) && "bg-surface-raised")}
                   onMouseEnter={() => onHover(code)}
                   onMouseLeave={() => onHover(null)}
                 >
-                  <td className={cn("sticky start-0 z-[1]", hovered === code || open ? "bg-surface-raised" : "bg-surface")}>
+                  <td className={cn("sticky start-0 z-[1]", (code !== null && hovered === code) || open ? "bg-surface-raised" : "bg-surface")}>
                     <div className="flex items-center sm:gap-1">
-                      {code === null ? <span className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" /> : <Link
+                      {code === null ? <span className="h-7 w-7 shrink-0" /> : <Link
                         href={toggleHref(code)}
                         scroll={false}
                         aria-expanded={open}
-                        aria-controls={panelId}
+                        aria-controls={open ? panelId : undefined}
                         aria-label={t(open ? "statistics.collapse" : "statistics.expand", { name: w.name ?? String(code) })}
-                        className="relative inline-flex h-6 w-6 shrink-0 sm:h-7 sm:w-7 items-center justify-center rounded-md text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground after:absolute after:-inset-y-2 after:-inset-x-1.5 after:content-[''] hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        <ChevronRight className={cn("h-4 w-4 transition-transform rtl:-scale-x-100", open && "rotate-90 rtl:rotate-90")} />
+                        <ChevronRight className={cn("h-4 w-4 transition-transform", open ? "rotate-90" : "rtl:-scale-x-100")} />
                       </Link>}
                       <span className="sm:whitespace-nowrap">
                         {code === null ? t("statistics.unknownWilaya") : w.name ? <><bdi dir="ltr">{code}</bdi><span> · </span><bdi>{w.name}</bdi></> : <bdi dir="ltr">{code}</bdi>}

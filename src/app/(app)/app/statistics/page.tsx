@@ -65,6 +65,8 @@ export default async function StatisticsPage({
   const seasonOpts = seasons.map((s) => ({ id: s.id, label: seasonLabel(t, s), years: periodYears(s) }));
   const notes: string[] = [];
   const parsed: [string, string, unknown][] = [
+    ["from", t("fields.from"), f.from],
+    ["to", t("fields.to"), f.to],
     ["product", t("fields.product"), f.product],
     ["f_category", t("fields.category"), f.category],
     ["f_wilaya", t("fields.wilaya"), f.wilaya],
