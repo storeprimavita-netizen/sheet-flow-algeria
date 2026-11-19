@@ -689,6 +689,28 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", bare1)).data).toHaveLength(2);
   });
 
+  test("backfill: a value-less size given one of two options' values, another given {}, plus a new option, is refused and nothing changes (D80)", async () => {
+    const b = await bare();
+    const so = uid(), sv = uid(), po = uid(), pv = uid();
+    const ins = await svc.from("product_options").insert([{ id: so, workspace_id: ws, product_id: b, name: "Size", position: 0 }, { id: po, workspace_id: ws, product_id: b, name: "Fit", position: 1 }]);
+    expect(ins.error).toBeNull();
+    await svc.from("product_option_values").insert([{ id: sv, workspace_id: ws, product_id: b, option_id: so, label: "S" }, { id: pv, workspace_id: ws, product_id: b, option_id: po, label: "Slim" }]);
+    const v1 = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: b }).select("id").single()).data!.id as string;
+    const v2 = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: b }).select("id").single()).data!.id as string;
+    const k = colorOpt();
+    const cfg: Cfg = {
+      options: [{ id: so, name: "Size", values: [{ id: sv, label: "S" }] }, { id: po, name: "Fit", values: [{ id: pv, label: "Slim" }] }, k.opt],
+      variants: [
+        { id: v1, sku: null, is_active: true, values: { [so]: sv, [k.c]: k.red } },
+        { id: v2, sku: null, is_active: true, values: {} },
+      ],
+      backfill: { [k.c]: k.red },
+    };
+    expect((await save(adminUser, b, cfg)).error?.message).toMatch(/incomplete size|exactly one value/);
+    expect((await svc.from("product_options").select("id").eq("product_id", b)).data).toHaveLength(2);
+    expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", v1)).data).toHaveLength(0);
+  });
+
   test("removing a used VALUE is in_use (23503); removing an option on a product with sizes is stale; without sizes it is free", async () => {
     const a = await withSizes();
     const used: Cfg = { options: [{ ...a.cfg.options[0], values: [{ id: a.values.S, label: "S" }] }], variants: a.cfg.variants };

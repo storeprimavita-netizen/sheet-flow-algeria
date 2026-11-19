@@ -7,6 +7,8 @@ import type { PublicProductPage } from "@/lib/store/data";
 
 import { StoreShell } from "./chrome";
 import { RatingLine, ReviewsSection, SizeguideSection } from "./review-blocks";
+import { storeOptionHeadingKey } from "@/lib/variants";
+
 import { st } from "./t";
 
 function BlockView({ block }: { block: Block }) {
@@ -81,9 +83,11 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
             {hasReviews && dto.reviews.count > 0 && dto.reviews.items.length > 0 ? <RatingLine reviews={dto.reviews} /> : null}
             <hr className="store-rule" />
             <p className="store-price store-price-row">{formatCurrency(dto.product.price, unit)}</p>
-            {dto.variants.map((o, oi) => (
+            {dto.variants.map((o, oi) => {
+              const headingKey = storeOptionHeadingKey(o);
+              return (
               <div key={oi}>
-                <p className="store-label"><bdi>{o.name === "Variant" ? st("sizes") : o.name}</bdi></p>
+                <p className="store-label"><bdi>{headingKey ? st(headingKey) : o.name}</bdi></p>
                 <ul className="store-sizes">
                   {o.values.map((v, vi) => (
                     <li key={`${v.label}-${vi}`} className="store-size" data-out={!v.inStock}>
@@ -99,7 +103,8 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
             {/* order form slot (STORE-3) */}
             <div id="order" hidden />
           </div>

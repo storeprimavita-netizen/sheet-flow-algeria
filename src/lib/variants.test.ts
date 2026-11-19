@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countBySizeSchema, mergeSizeSet, missingCombos, sizeSetSchema, skuSuggestion, notAssigned, variantConfigSchema, variantLabel, variantStatus, isSizeOption, type VariantOption } from "./variants";
+import { countBySizeSchema, mergeSizeSet, missingCombos, sizeSetSchema, skuSuggestion, notAssigned, variantConfigSchema, variantLabel, variantStatus, isSizeOption, storeOptionHeadingKey, variantFailureCode, type VariantOption } from "./variants";
 
 const u = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const size: VariantOption = { id: u(1), name: "Size", values: [{ id: u(2), label: "S" }, { id: u(3), label: "M" }] };
@@ -144,5 +144,24 @@ describe("isSizeOption (VAR-1)", () => {
   it("ignores colour options and other names", () => {
     expect(isSizeOption({ name: "Size", kind: "color" })).toBe(false);
     expect(isSizeOption({ name: "Material" })).toBe(false);
+  });
+});
+
+describe("storeOptionHeadingKey (VAR-1)", () => {
+  it("sizes, colour, or the owner's own name", () => {
+    for (const name of ["Size", " size ", "Variant", "المقاس"]) expect(storeOptionHeadingKey({ name, kind: "text" })).toBe("sizes");
+    for (const kind of ["color", "text"] as const)
+      for (const name of ["Color", "Colour", "اللون"]) expect(storeOptionHeadingKey({ name, kind })).toBe("color");
+    for (const name of ["Material", "القماش"]) expect(storeOptionHeadingKey({ name, kind: "text" })).toBeNull();
+  });
+});
+
+describe("variantFailureCode (VAR-1)", () => {
+  it("maps database errors to codes only", () => {
+    expect(variantFailureCode({ message: "incomplete size" })).toBe("invalid");
+    expect(variantFailureCode({ message: "every size needs exactly one value for each option" })).toBe("invalid");
+    expect(variantFailureCode({ message: "stale" })).toBe("stale");
+    expect(variantFailureCode({ code: "23503", message: "fk" })).toBe("in_use");
+    expect(variantFailureCode({ message: "relation foo exploded" })).toBe("failed");
   });
 });

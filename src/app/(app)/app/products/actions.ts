@@ -9,7 +9,7 @@ import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { fxRateFor } from "@/lib/fx";
 import { invalidateStorePublic } from "@/lib/store/invalidate";
 import { isHttps } from "@/lib/store/url";
-import { countBySizeSchema, uuid, variantConfigSchema } from "@/lib/variants";
+import { countBySizeSchema, uuid, variantConfigSchema, variantFailureCode, type VariantFailureCode } from "@/lib/variants";
 import {
   PRODUCT_STATUSES,
   EXPENSE_CATEGORIES,
@@ -218,20 +218,7 @@ export async function addStockMovement(productId: string, formData: FormData) {
 // RLS (admin write, own workspace) and the composite FKs keep a foreign id from landing anywhere.
 // Variants are deactivated, never deleted; a value or option still used by a variant cannot be removed.
 // ---------------------------------------------------------------------------
-export type VariantResult =
-  | { ok: true }
-  | { ok: false; code: "invalid" | "duplicate_value" | "duplicate_variant" | "in_use" | "stale" | "failed"; error: string };
-
-function variantFailure(error: { code?: string; message: string }): VariantResult {
-  if (error.code === "23505" && error.message.includes("product_option_values_label_uniq")) return { ok: false, code: "duplicate_value", error: error.message };
-  if (error.message.includes("same values") || error.message.includes("already has these values")) return { ok: false, code: "duplicate_variant", error: error.message };
-  if (error.message === "incomplete size") return { ok: false, code: "invalid", error: error.message };
-  if (error.message.includes("swatch needs a color option") || error.message.includes("product_options_one_color") || error.code === "23514")
-    return { ok: false, code: "invalid", error: error.message };
-  if (error.message === "stale") return { ok: false, code: "stale", error: error.message };
-  if (error.code === "23503") return { ok: false, code: "in_use", error: error.message };
-  return { ok: false, code: "failed", error: error.message };
-}
+export type VariantResult = { ok: true } | { ok: false; code: VariantFailureCode };
 
 /** One transaction in `save_variant_config` (00048): any refusal rolls the whole save back. */
 export async function saveVariantConfig(productId: string, raw: unknown): Promise<VariantResult> {
@@ -240,11 +227,15 @@ export async function saveVariantConfig(productId: string, raw: unknown): Promis
   const parsed = variantConfigSchema.safeParse(raw);
   if (!pid.success || !parsed.success) {
     const msg = parsed.success ? "Invalid product" : (parsed.error.issues[0]?.message ?? "Invalid input");
-    return { ok: false, code: msg === "duplicate_value" ? "duplicate_value" : msg === "duplicate_variant" ? "duplicate_variant" : "invalid", error: msg };
+    return { ok: false, code: msg === "duplicate_value" ? "duplicate_value" : msg === "duplicate_variant" ? "duplicate_variant" : "invalid" };
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_variant_config", { p_product: pid.data, p_config: parsed.data });
-  if (error) return variantFailure(error);
+  if (error) {
+    const code = variantFailureCode(error);
+    if (code === "failed") console.error("save_variant_config failed", error.code, error.message);
+    return { ok: false, code };
+  }
 
   invalidateStorePublic();
   revalidatePath(`/app/products/${pid.data}`);

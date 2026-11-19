@@ -57,7 +57,7 @@ export function BackfillDialog({
     setError(null);
     const res = await onConfirm({ name: name.trim(), kind, values, backfillId });
     setBusy(false);
-    if (!res.ok) setError(res.code === "stale" ? t("stale") : res.code === "invalid" ? t("backfillInvalid") : res.code === "duplicate_variant" ? t("duplicateVariant") : t("failed", { reason: res.error }));
+    if (!res.ok) setError(res.code === "stale" ? t("stale") : res.code === "invalid" ? t("backfillInvalid") : res.code === "duplicate_variant" ? t("duplicateVariant") : t("failed"));
   }
 
   return (

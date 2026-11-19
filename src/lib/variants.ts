@@ -177,3 +177,23 @@ const SIZE_NAMES = new Set(["size", "variant", "المقاس", "مقاس"]);
 export function isSizeOption(o: { name: string; kind?: OptionKind }): boolean {
   return o.kind !== "color" && SIZE_NAMES.has(o.name.trim().toLowerCase());
 }
+
+const COLOR_NAMES = new Set(["color", "colour", "اللون", "لون"]);
+/** Which store text key a product-page option heading uses; null = the owner's own name, shown as typed. */
+export function storeOptionHeadingKey(o: { name: string; kind?: OptionKind }): "sizes" | "color" | null {
+  if (isSizeOption(o)) return "sizes";
+  return COLOR_NAMES.has(o.name.trim().toLowerCase()) ? "color" : null;
+}
+
+export type VariantFailureCode = "invalid" | "duplicate_value" | "duplicate_variant" | "in_use" | "stale" | "failed";
+/** Maps a database error to a code; the raw text never leaves the server. */
+export function variantFailureCode(error: { code?: string; message: string }): VariantFailureCode {
+  const m = error.message;
+  if (error.code === "23505" && m.includes("product_option_values_label_uniq")) return "duplicate_value";
+  if (m.includes("same values") || m.includes("already has these values")) return "duplicate_variant";
+  if (m === "incomplete size" || m.includes("every size needs exactly one value")) return "invalid";
+  if (m.includes("swatch needs a color option") || m.includes("product_options_one_color") || error.code === "23514") return "invalid";
+  if (m === "stale") return "stale";
+  if (error.code === "23503") return "in_use";
+  return "failed";
+}

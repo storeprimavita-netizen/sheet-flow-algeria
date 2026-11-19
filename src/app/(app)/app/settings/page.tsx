@@ -190,10 +190,11 @@ async function SectionBody({ section }: { section: SectionId }) {
         .select("id, name, items")
         .order("position")
         .order("name");
+      if (sizeSetsError) console.error("size_sets load failed", sizeSetsError.code, sizeSetsError.message);
       return (
         <div className="space-y-6">
           <OptionsSection sets={optionSets} usage={optionUsage} />
-          <SizeSetsSection sets={sizeSets ?? []} error={sizeSetsError?.message ?? null} />
+          <SizeSetsSection sets={sizeSets ?? []} error={!!sizeSetsError} />
         </div>
       );
     }

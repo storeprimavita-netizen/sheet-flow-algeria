@@ -18,7 +18,7 @@ export type SizeSetRow = { id: string; name: string; items: string[] };
 const parseItems = (text: string) => text.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
 
 /** Settings -> Options: reusable lists of size names ("Use size set" in a product's options merges one in). Admin only. */
-export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: string | null }) {
+export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: boolean }) {
   const t = useTranslations("settings.sizeSets");
   const router = useRouter();
   const [editing, setEditing] = React.useState<SizeSetRow | "new" | null>(null);
@@ -75,7 +75,7 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: st
 
       {error ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
-          <span>{t("loadFailed", { reason: error })}</span>
+          <span>{t("loadFailed")}</span>
           <Button type="button" size="sm" variant="outline" onClick={() => router.refresh()}>{t("retry")}</Button>
         </div>
       ) : !sets.length && editing === null ? (
