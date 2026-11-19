@@ -31,10 +31,13 @@ Lightfunnels, manual). The store is now inside the app, so that is noise.
 Settings → Store → Protection (admin):
 - On/off. Rule: more than **N orders from one IP in M minutes** (defaults 3 in
   10) → action.
-- Action: **block** new orders from that IP for **1 hour · 1 day · custom
-  (minutes/hours/days) · until I unblock**, or **hold for review** (orders are
-  accepted but flagged and kept out of the agents' queue until an admin
-  releases them).
+- Action (D80): **block** — that IP cannot order for **1 hour · 1 day · custom
+  (minutes/hours/days) · until I unblock**. This is the default. Every blocked
+  attempt is saved in the checkouts list (STORE-5) with a **"Blocked IP"**
+  label: what was typed (name, phone, wilaya, product), time, and the IP for
+  admins; it is not an order. From that row an admin can unblock the IP or
+  turn the attempt into a real order. Optional other action: **hold for
+  review** (order accepted but kept out of the agents' queue).
 - Manual list: block or unblock an IP by hand (from an order's detail or by
   typing it), with reason and expiry; list shows who blocked, when, how many
   orders were stopped.
@@ -42,7 +45,7 @@ Settings → Store → Protection (admin):
   error page, never "you are blocked".
 - **Warning shown in the settings:** Algerian mobile operators put many
   customers behind the same IP. A long block on a mobile IP can stop real
-  buyers; "hold for review" is the safe default, and blocks by phone number
+  buyers — keep the window short (minutes) and check the Blocked IP rows; blocks by phone number
   (CONF-5) are more precise. The rule counts distinct phone numbers too: many
   orders with the **same** phone are duplicates (already handled), many with
   **different** phones from one IP in minutes is the spam signal.
@@ -130,7 +133,16 @@ Store → Live (admin), like Shopify's live view:
 - Feeds abandoned checkouts (STORE-5) and the channel funnel (visits → form
   started → ordered) in Statistics.
 
+## 6. Microsoft Clarity (CLARITY-1, D81)
+
+Store → Tracking: paste the Clarity project id for a store. The script loads on
+public store pages only, after the page is interactive, so it never delays the
+order button. Fields the customer types (name, phone, address, note) carry
+Clarity's mask attribute so they do not appear in recordings or heatmaps. A
+link opens that store's Clarity dashboard. Off when the id is empty; no
+recordings from the back office.
+
 ## Tasks
 
-SRC-1 · SHIELD-1 · SEO-1 · SEO-2 · SELL-1 (bump, cross-sell, mix bundles) ·
+SRC-1 · SHIELD-1 · CLARITY-1 · SEO-1 · SEO-2 · SELL-1 (bump, cross-sell, mix bundles) ·
 SELL-2 (post-order upsell + downsell) · LIVE-1.
