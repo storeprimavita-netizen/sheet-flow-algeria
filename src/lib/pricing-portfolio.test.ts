@@ -7,8 +7,10 @@ import {
   portfolioRow,
   portfolioTotals,
   PORTFOLIO_COLUMNS,
+  portfolioCell,
+  portfolioRows,
+  rowBelowBreakEven,
   type PortfolioProduct,
-  type PortfolioRow,
 } from "@/lib/pricing-portfolio";
 
 const benz = (over: Partial<PortfolioProduct> = {}): PortfolioProduct => ({
@@ -77,9 +79,53 @@ describe("portfolio", () => {
     expect(t.included).toBe(1);
   });
 
-  it("zero total revenue gives a null margin, never NaN", () => {
+  it("no revenue gives a null margin, never NaN", () => {
     expect(portfolioTotals([], "medium").margin).toBeNull();
-    expect(portfolioTotals([noRevenueRow()], "medium").margin).toBeNull();
+    expect(portfolioTotals([row(benz({ pricing: null }))], "medium").margin).toBeNull();
+  });
+
+  it("inactive products are left out of the rows and totals", () => {
+    const rows = portfolioRows(null, [benz(), benz({ id: "gone", isActive: false })]);
+    expect(rows.map((r) => r.id)).toEqual(["p1"]);
+    expect(portfolioTotals(rows, "medium")).toEqual(portfolioTotals([row()], "medium"));
+  });
+
+  it("row capital = row stock cost + row ad DZD, and its column total equals the card", () => {
+    const rows = [row(), row(benz({ id: "p2", stock: 100, perPieceCost: 1000 }))];
+    for (const r of rows) {
+      expect(portfolioCell(r, "medium", "capital")).toBeCloseTo(r.stockCost! + r.results!.medium.totalAdDzd!, 6);
+    }
+    const sum = rows.reduce((a, r) => a + (portfolioCell(r, "medium", "capital") as number), 0);
+    expect(sum).toBeCloseTo(portfolioTotals(rows, "medium").capital!, 6);
+    expect(portfolioCell(row(benz({ perPieceCost: null })), "medium", "capital")).toBeNull();
+  });
+
+  it("worst-case capital with only the medium ad set uses the derived 2.71 (174,041), not the typed 2.70", () => {
+    const r = row(benz({ pricing: { adBest: null, adMedium: 2.2, adWorst: null, finalPrice: 4500 } }));
+    expect(Math.round(portfolioTotals([r], "worst").capital ?? 0)).toBe(174041);
+  });
+
+  it("a product with ad cost 0 is included with capital equal to its stock cost", () => {
+    const r = row(benz({ pricing: { adBest: 0, adMedium: 0, adWorst: 0, finalPrice: 4500 } }));
+    const t = portfolioTotals([r], "medium");
+    expect(t.included).toBe(1);
+    expect(t.capital).toBe(81600);
+  });
+
+  it("stock-only, cost-only and no-ad-cost rows are each excluded", () => {
+    const rows = [
+      row(benz({ id: "a", perPieceCost: null, stock: 10 })),
+      row(benz({ id: "b", stock: 0 })),
+      row(benz({ id: "c", pricing: null })),
+    ];
+    const t = portfolioTotals(rows, "medium");
+    expect([t.included, t.excluded, t.capital]).toEqual([0, 3, null]);
+  });
+
+  it("badge uses the medium break-even in every scenario; null sale price never flags", () => {
+    expect(rowBelowBreakEven(row(benz({ salePrice: null })))).toBe(false);
+    expect(rowBelowBreakEven(row(benz({ salePrice: 1 })))).toBe(true);
+    expect(rowBelowBreakEven(row(benz({ salePrice: 100000 })))).toBe(false);
   });
 
   it("a per-product override changes only that row", () => {
@@ -95,12 +141,6 @@ describe("portfolio", () => {
     const [head, a, b] = csv.split("\r\n");
     expect(head).toBe(PORTFOLIO_COLUMNS.join(","));
     expect(a.startsWith('"حذاء, ""رياضي""",50,81600,2.2,5500,5500,')).toBe(true);
-    expect(b).toBe("BENZ,50,,2.2,,5500,,,,,,");
+    expect(b).toBe("BENZ,50,,2.2,,5500,,,,,,,");
   });
 });
-
-function noRevenueRow(): PortfolioRow {
-  const r = row();
-  // a computing row whose final price is zero revenue: sellable x price forced to 0
-  return { ...r, results: { ...r.results!, medium: { ...r.results!.medium, finalPrice: 0, netProfit: 0 } } };
-}

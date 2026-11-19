@@ -18,6 +18,8 @@ export const SCENARIOS: readonly ScenarioName[] = ["best", "medium", "worst"];
 
 export type PortfolioProduct = {
   id: string;
+  /** Archived products (false) are left out of the portfolio and its totals. */
+  isActive?: boolean;
   name: string;
   salePrice: N;
   stock: number;
@@ -64,6 +66,11 @@ export function portfolioRow(workspaceDefaults: DeepPartial<PricingSettings> | n
         });
   return { id: p.id, name: p.name, stock: p.stock, salePrice: p.salePrice, stockCost, results, adCostUsd };
 }
+
+export const portfolioRows = (
+  workspaceDefaults: DeepPartial<PricingSettings> | null | undefined,
+  products: readonly PortfolioProduct[],
+): PortfolioRow[] => products.filter((p) => p.isActive !== false).map((p) => portfolioRow(workspaceDefaults, p));
 
 /** D68: stock cost + total ad spend (DZD); excludes per-order lines, fees and delivery. */
 export function capitalNeeded(stockCostTotalDzd: N, totalAdDzd: N): N {
@@ -121,6 +128,7 @@ export type PortfolioColumnKey =
   | "margin"
   | "totalAdUsd"
   | "totalAdDzd"
+  | "capital"
   | "minPrice";
 
 export const PORTFOLIO_COLUMNS: readonly PortfolioColumnKey[] = [
@@ -135,6 +143,7 @@ export const PORTFOLIO_COLUMNS: readonly PortfolioColumnKey[] = [
   "margin",
   "totalAdUsd",
   "totalAdDzd",
+  "capital",
   "minPrice",
 ];
 
@@ -164,14 +173,16 @@ export function portfolioCell(row: PortfolioRow, s: ScenarioName, key: Portfolio
       return r?.totalAdUsd ?? null;
     case "totalAdDzd":
       return r?.totalAdDzd ?? null;
+    case "capital":
+      return r ? capitalNeeded(row.stockCost, r.totalAdDzd) : null;
     case "minPrice":
       return r?.breakEven.minSellingPrice ?? null;
   }
 }
 
-/** Below-break-even badge for the product's current store price in this scenario. */
-export const rowBelowBreakEven = (row: PortfolioRow, s: ScenarioName): boolean =>
-  saleBelowBreakEven(row.salePrice, row.results?.[s].breakEven.minSellingPrice ?? null);
+/** Below-break-even badge: the store price against the MEDIUM break-even, as on the product Pricing tab. */
+export const rowBelowBreakEven = (row: PortfolioRow): boolean =>
+  saleBelowBreakEven(row.salePrice, row.results?.medium.breakEven.minSellingPrice ?? null);
 
 export function portfolioCsvColumns(s: ScenarioName, labels: Record<PortfolioColumnKey, string>): CsvColumn<PortfolioRow>[] {
   return PORTFOLIO_COLUMNS.map((key) => ({ key, label: labels[key], value: (row) => portfolioCell(row, s, key) }));

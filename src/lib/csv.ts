@@ -10,7 +10,9 @@ export type CsvColumn<T> = {
 };
 
 function esc(v: string | number | null | undefined): string {
-  const s = v == null ? "" : String(v);
+  let s = v == null ? "" : String(v);
+  // Neutralise spreadsheet formulas: strings only, real numbers (e.g. -10274) stay numeric.
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(v)) s = `'${s}`;
   if (/[",\n\r]|^\s|\s$/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

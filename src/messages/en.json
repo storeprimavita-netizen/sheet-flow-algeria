@@ -30,7 +30,7 @@
     "groupSettings": "Settings",
     "shipping": "Shipping",
     "courierCash": "Courier cash",
-    "pricing": "Pricing calculator",
+    "pricing": "Pricing",
     "usersRoles": "Users & roles",
     "storeHub": "Store",
     "storePages": "Product pages",
@@ -1086,6 +1086,7 @@
       "margin": "Margin",
       "totalAdUsd": "Total ads (USD)",
       "totalAdDzd": "Total ads (DA)",
+      "capital": "Capital (stock + ads)",
       "minPrice": "Break-even price"
     },
     "cards": {
@@ -1102,7 +1103,8 @@
     "emptyTitle": "No products yet",
     "emptyBody": "Add a product to see its pricing here.",
     "emptyAction": "Add a product",
-    "errorTitle": "The pricing could not load"
+    "errorTitle": "The pricing could not load",
+    "error": "Products, costs or pricing could not be read. Try again in a moment."
   },
   "pricingV2": {
     "title": "Pricing",

@@ -58,6 +58,7 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
     margin: (v) => (typeof v === "number" ? formatPercent(MARGIN(v)) : "—"),
     totalAdUsd: (v) => (typeof v === "number" ? formatUsd(v) : "—"),
     totalAdDzd: money,
+    capital: money,
     minPrice: (v) => (typeof v === "number" ? formatCurrency(Math.ceil(v), dzd) : "—"),
   };
 
@@ -134,7 +135,7 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
           <tbody>
             {rows.map((row) => {
               const incomplete = row.results === null || row.results[scenario].netProfit === null;
-              const below = rowBelowBreakEven(row, scenario);
+              const below = rowBelowBreakEven(row);
               return (
                 <tr key={row.id} className="border-t border-border hover:bg-accent/40">
                   {PORTFOLIO_COLUMNS.map((k) => {
@@ -152,7 +153,7 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
                       <td key={k} className="num whitespace-nowrap px-3 py-2 text-end">
                         {fmt[k](v)}
                         {k === "salePrice" && below ? (
-                          <Chip token="danger" size="sm" className="ms-2" icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}>
+                          <Chip token="danger" size="sm" className="mt-1 flex w-fit ms-auto" icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}>
                             {t("belowBreakEven")}
                           </Chip>
                         ) : null}
@@ -172,7 +173,8 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
                 <td key={k} className="num whitespace-nowrap px-3 py-2 text-end">
                   {k === "stockCost" && totals.included ? formatCurrency(totals.stockCost, dzd) : null}
                   {k === "netProfit" && totals.included ? formatCurrency(totals.netProfit, dzd) : null}
-                  {k === "margin" ? (totals.margin === null ? null : formatPercent(MARGIN(totals.margin))) : null}
+                  {k === "margin" ? (totals.margin === null ? "—" : formatPercent(MARGIN(totals.margin))) : null}
+                  {k === "capital" && totals.included ? formatCurrency(totals.capital, dzd) : null}
                   {k === "totalAdUsd" && totals.included ? formatUsd(totals.totalAdUsd) : null}
                   {k === "totalAdDzd" && totals.included ? formatCurrency(totals.totalAdDzd, dzd) : null}
                 </td>
