@@ -184,6 +184,17 @@ export function portfolioCell(row: PortfolioRow, s: ScenarioName, key: Portfolio
 export const rowBelowBreakEven = (row: PortfolioRow): boolean =>
   saleBelowBreakEven(row.salePrice, row.results?.medium.breakEven.minSellingPrice ?? null);
 
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** CSV cell: margin as a percent (12.34 = 12.34%), minPrice as the ceiling the table shows, everything rounded to 2 decimals. */
+function portfolioCsvCell(row: PortfolioRow, s: ScenarioName, key: PortfolioColumnKey): string | number | null {
+  const v = portfolioCell(row, s, key);
+  if (typeof v !== "number") return v;
+  if (key === "margin") return round2(v * 100);
+  if (key === "minPrice") return Math.ceil(v);
+  return round2(v);
+}
+
 export function portfolioCsvColumns(s: ScenarioName, labels: Record<PortfolioColumnKey, string>): CsvColumn<PortfolioRow>[] {
-  return PORTFOLIO_COLUMNS.map((key) => ({ key, label: labels[key], value: (row) => portfolioCell(row, s, key) }));
+  return PORTFOLIO_COLUMNS.map((key) => ({ key, label: labels[key], value: (row) => portfolioCsvCell(row, s, key) }));
 }

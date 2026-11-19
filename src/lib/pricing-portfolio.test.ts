@@ -154,4 +154,31 @@ describe("portfolio", () => {
     expect(a.startsWith('"حذاء, ""رياضي""",50,81600,2.2,5500,5500,')).toBe(true);
     expect(b).toBe("BENZ,50,,2.2,,5500,,,,,,,");
   });
+
+  const csvCell = (r: ReturnType<typeof row>, key: (typeof PORTFOLIO_COLUMNS)[number]) => {
+    const labels = Object.fromEntries(PORTFOLIO_COLUMNS.map((k) => [k, k])) as Record<(typeof PORTFOLIO_COLUMNS)[number], string>;
+    const cols = portfolioCsvColumns("medium", labels);
+    return cols.find((c) => c.key === key)!.value(r);
+  };
+
+  it("csv margin is percent", () => {
+    const r = row();
+    const m = r.results!.medium.margin!;
+    expect(csvCell(r, "margin")).toBe(Math.round(m * 10000) / 100);
+    expect(Math.abs(csvCell(r, "margin") as number)).toBeGreaterThan(Math.abs(m));
+  });
+
+  it("csv minPrice is the ceiling", () => {
+    const r = row();
+    const raw = r.results!.medium.breakEven.minSellingPrice!;
+    expect(csvCell(r, "minPrice")).toBe(Math.ceil(raw));
+  });
+
+  it("csv rounds to 2 decimals", () => {
+    const r = row();
+    for (const k of PORTFOLIO_COLUMNS) {
+      const v = csvCell(r, k);
+      if (typeof v === "number") expect(Math.abs(v * 100 - Math.round(v * 100))).toBeLessThan(1e-6);
+    }
+  });
 });
