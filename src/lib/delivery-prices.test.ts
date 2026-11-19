@@ -33,6 +33,11 @@ describe("parseDeliveryCsv", () => {
     expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: 720 });
     expect(r.warnings.map((w) => w.type)).toEqual(["repeated_label"]);
   });
+  it("first of two home labels at 0 never turns the second into the home price (Béchar)", () => {
+    const r = parseDeliveryCsv(`${H}DZ,8-Béchar,,,rate,,${HOME}:0|${HOME}:720\n`);
+    expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false, stopdeskAvailable: false });
+    expect(r.warnings.map((w) => w.type)).toEqual(["zero_price", "repeated_label"]);
+  });
   it("quoted comma and duplicate communes", () => {
     const r = parseDeliveryCsv(
       `${H}DZ,1-Adrar,,,rate,,${HOME}:1\nDZ,1-Adrar,"Ain, X",,,,\nDZ,1-Adrar," ain,  x ",,,,\nDZ,1-Adrar,"Ain,  X",,,,\n`,

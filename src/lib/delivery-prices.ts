@@ -122,6 +122,7 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
         communes: [],
       };
       if (kind === "rate") {
+        let homeSeen = false;
         for (const part of (r[6] ?? "").split("|")) {
           const i = part.lastIndexOf(":");
           if (i < 0) continue;
@@ -131,20 +132,21 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
             warnings.push({ type: "malformed_row", code, text: part });
             continue;
           }
-          if (fee <= 0) {
-            // 0 is never a price (D62): that type is not offered
-            warnings.push({ type: "zero_price", code, text: norm(label) });
-            continue;
-          }
           let k = labelKind(label);
           if (!k) {
             warnings.push({ type: "unknown_label", code, text: norm(label) });
             continue;
           }
-          if (k === "home" && w.home !== null) {
+          if (k === "home" && homeSeen) {
             // Same label twice (Béchar 1350|720): second one is stop-desk.
             k = "desk";
             warnings.push({ type: "repeated_label", code, text: norm(label) });
+          }
+          if (k === "home") homeSeen = true;
+          if (fee <= 0) {
+            // 0 is never a price (D62): that type is not offered
+            warnings.push({ type: "zero_price", code, text: norm(label) });
+            continue;
           }
           if (k === "home") w.home = fee;
           else w.stopdesk = fee;
