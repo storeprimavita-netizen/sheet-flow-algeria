@@ -440,6 +440,7 @@
     "sizeSaved": "تم تحديث المقاس",
     "sizeOldHint": "كُتب قبل وجود المقاسات",
     "chooseSize": "اختر مقاسًا",
+    "sizeLabel": "المقاس",
     "sizeTitle": "المقاس",
     "sizeFailed": "تعذّر تغيير المقاس: {reason}",
     "form": {

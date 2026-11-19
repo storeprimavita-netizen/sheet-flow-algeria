@@ -61,7 +61,7 @@ export function VariantCard({
         </p>
       ) : null}
       <div className="flex flex-wrap items-end gap-3">
-        <Field label={t("orders.chooseSize")} className="min-w-48">
+        <Field label={t("orders.sizeLabel")} className="min-w-48">
           <Select value={value} onValueChange={setValue} disabled={busy}>
             <SelectTrigger>
               <SelectValue placeholder={t("orders.chooseSize")} />

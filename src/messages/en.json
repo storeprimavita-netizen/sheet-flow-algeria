@@ -440,6 +440,7 @@
     "sizeSaved": "Size updated",
     "sizeOldHint": "Typed before sizes existed",
     "chooseSize": "Choose a size",
+    "sizeLabel": "Size",
     "sizeTitle": "Size",
     "sizeFailed": "Could not change the size: {reason}",
     "form": {
