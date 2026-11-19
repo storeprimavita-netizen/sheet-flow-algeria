@@ -48,7 +48,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | STORE-3 | Pricing modes, offers, form fields editor + public form rendering | STORE | H | ui | M | store | STORE-2 | blocked:merge needs owner OK — built, v3 merged in, gate OK, 5 review rounds used, review-5 ESCALATE with no high (2 mediums: test depth, a deferred Selling-tab hint) |
 | P1-7 | Delivery prices (D27): import the owner's sheet format (wilaya × home/stop-desk, Arabic labels) into `wilaya_fees`; fees editable in Settings → Delivery fees; upload a new CSV to replace them (preview of changes before applying); wilaya without a price = shipping off; home-only wilaya = no stop-desk; commune list from the same file; COD amount pushed = sale·qty + fee (D14) | CARRIER | H | ui | M | orders | P0-8, C-2 | done |
 | STORE-4 | Order submit endpoint (server pricing, idempotency, rate limit, bot guard) + thank-you page | STORE | H | ui,sec | M | store | STORE-3, P1-7 | todo |
-| CONF-1 | Saved views (table) for confirmation/shipping/all, tabs, URL state, seeded shared views | CONF | H | ui | M | orders | NAV-1 | claimed:claude |
+| CONF-1 | Saved views (table) for confirmation/shipping/all, tabs, URL state, seeded shared views | CONF | H | ui | M | orders | NAV-1 | blocked:Q-18 — built on v3-CONF-1, gate OK, review-4 ESCALATE (2 mediums in the search box); D63: no round 5 without the owner |
 | CONF-2 | Kanban layout for views (drag = transition RPC, keyboard equivalent) | CONF | L | ui | – | orders | CONF-1 | todo |
 | CONF-3 | Customer score hover card | CONF | L | ui | – | orders | CONF-1 | todo |
 | STATS-2 | Wilaya confirmation/delivery table + commune drill-down | STATS | L | ui | – | stats | P1-1 | todo |
