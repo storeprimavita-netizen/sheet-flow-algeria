@@ -85,10 +85,10 @@ describe("parseStatsFilters", () => {
 });
 
 describe("persisted filters", () => {
-  test("stats allow-list drops the open drill wilaya; season and year only together", () => {
+  test("stats allow-list drops the open drill wilaya; year needs a season", () => {
     expect(pickParams(`wilaya=16&f_wilaya=31&season=${RAMADAN}&year=2025&x=1`, STATS_PERSIST_KEYS))
       .toBe(`season=${RAMADAN}&year=2025&f_wilaya=31`);
-    expect(pickParams(`season=${RAMADAN}`, STATS_PERSIST_KEYS)).toBe("");
+    expect(pickParams(`season=${RAMADAN}`, STATS_PERSIST_KEYS)).toBe(`season=${RAMADAN}`);
     expect(pickParams("year=2025", STATS_PERSIST_KEYS)).toBe("");
   });
   test("dashboard restore ignores stats keys", () => {

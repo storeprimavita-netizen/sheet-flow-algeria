@@ -83,7 +83,7 @@ function RenameDialog({ season, open, onOpenChange }: { season: Season; open: bo
     <FormDialog open={open} onOpenChange={onOpenChange} title={t("rename")} action={renameSeason}>
       <input type="hidden" name="id" value={season.id} />
       <Field label={t("name")} htmlFor={`season-name-${season.id}`}>
-        <Input id={`season-name-${season.id}`} name="name" defaultValue={season.label} maxLength={80} required />
+        <Input id={`season-name-${season.id}`} name="name" defaultValue={season.name} maxLength={80} required />
       </Field>
     </FormDialog>
   );
@@ -101,7 +101,13 @@ function SeasonCard({ season }: { season: Season }) {
           <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setRenaming(true)}>
             <Pencil className="h-3.5 w-3.5" />{t("rename")}
           </Button>
-          <DeleteButton table="seasons" id={season.id} redirectTo="/app/settings/seasons" />
+          <DeleteButton
+            table="seasons"
+            id={season.id}
+            redirectTo="/app/settings/seasons"
+            label={t("deleteSeasonLabel", { name: season.label })}
+            confirmText={t("deleteSeasonConfirm", { name: season.label })}
+          />
         </div>
       </div>
 
@@ -125,7 +131,12 @@ function SeasonCard({ season }: { season: Season }) {
                   <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => setPeriod({ open: true, edit: p })}>
                     <Pencil className="h-3.5 w-3.5" />{t("editPeriod")}
                   </Button>
-                  <DeleteButton table="season_periods" id={p.id} redirectTo="/app/settings/seasons" />
+                  <DeleteButton
+                    table="season_periods"
+                    id={p.id}
+                    redirectTo="/app/settings/seasons"
+                    label={t("deletePeriodLabel", { name: season.label, year: p.year })}
+                  />
                 </span>
               </li>
             ))}

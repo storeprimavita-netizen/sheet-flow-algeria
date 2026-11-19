@@ -46,6 +46,9 @@ export default async function StatisticsPage({
   const agentOpts: StatsOpt[] = (team ?? [])
     .filter((a) => a.role !== "delivery_agent")
     .map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }));
+  // Values that match no option (deactivated agent, archived category) are dropped, never applied invisibly.
+  if (f.category && !categoryOpts.some((o) => o.value === f.category)) f.category = undefined;
+  if (f.agent && !agentOpts.some((o) => o.value === f.agent)) f.agent = undefined;
   const sourceOpts: StatsOpt[] = ORDER_SOURCES.map((s) => ({ value: s, label: t(`status.order_source.${s}`) }));
   const deliveryOpts: StatsOpt[] = DELIVERY_TYPES.map((d) => ({ value: d, label: t(`statistics.${d}`) }));
 
@@ -61,7 +64,18 @@ export default async function StatisticsPage({
   const range = { from: season.from, to: season.to };
   const seasonOpts = seasons.map((s) => ({ id: s.id, label: seasonLabel(t, s), years: periodYears(s) }));
   const notes: string[] = [];
-  if (season.invalid.season) notes.push(t("statistics.filters.invalidSeason"));
+  const parsed: [string, string, unknown][] = [
+    ["product", t("fields.product"), f.product],
+    ["f_category", t("fields.category"), f.category],
+    ["f_wilaya", t("fields.wilaya"), f.wilaya],
+    ["f_source", t("fields.source"), f.source],
+    ["f_agent", t("fields.agent"), f.agent],
+    ["f_delivery", t("statistics.filters.deliveryType"), f.delivery],
+  ];
+  for (const [param, label, value] of parsed)
+    if (get(param) && value === undefined) notes.push(t("statistics.filters.dropped", { name: label }));
+  if (seasonError) notes.push(t("statistics.filters.seasonsError"));
+  else if (season.invalid.season) notes.push(t("statistics.filters.invalidSeason"));
   if (season.invalid.year) notes.push(t("statistics.filters.invalidYear"));
   if (season.invalid.noPeriods) notes.push(t("statistics.filters.noPeriods"));
   const pFilters = kpiFiltersJson(f);
@@ -114,6 +128,7 @@ export default async function StatisticsPage({
         deliveryTypes={deliveryOpts}
         seasons={seasonOpts}
         overridden={season.overridden}
+        seasonRange={{ from: range.from ?? "", to: range.to ?? "" }}
         notes={notes}
       />
 
@@ -121,13 +136,24 @@ export default async function StatisticsPage({
         <Suspense fallback={<SeasonCompareSkeleton />}>
           <SeasonCompare
             season={season.season}
-            selectedYear={season.period?.year ?? null}
+            selectedYear={season.overridden ? null : season.period?.year ?? null}
             product={f.product}
             pFilters={pFilters}
             hrefForYear={yearHref}
             retryHref={baseHref}
           />
         </Suspense>
+      ) : null}
+
+      {seasonError ? (
+        <Empty>
+          <div role="alert">
+            <p className="font-medium text-foreground">{t("statistics.filters.seasonsError")}</p>
+            <div className="mt-4 flex justify-center">
+              <ButtonLink href={baseHref} size="sm">{t("statistics.retry")}</ButtonLink>
+            </div>
+          </div>
+        </Empty>
       ) : null}
 
       {error ? (

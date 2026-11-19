@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 let admin = true;
 let dbError: { code: string } | null;
+let matched = true;
 let writes: { table: string; op: string; row: Record<string, unknown> }[];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -18,9 +19,9 @@ vi.mock("@/lib/supabase/server", () => ({
       q.select = () => q;
       q.order = () => q;
       q.limit = () => q;
-      q.maybeSingle = async () => ({ data: { sort: 5 }, error: null });
+      q.maybeSingle = async () => ({ data: matched ? { sort: 5, name: "Ramadan" } : null, error: null });
       q.eq = () => q;
-      q.then = (ok: (v: unknown) => unknown) => ok({ error: dbError });
+      q.then = (ok: (v: unknown) => unknown) => ok({ data: matched ? [{ id: "p1" }] : [], error: dbError });
       q.insert = (row: Record<string, unknown>) => (writes.push({ table, op: "insert", row }), q);
       q.update = (row: Record<string, unknown>) => (writes.push({ table, op: "update", row }), q);
       return q;
@@ -41,6 +42,7 @@ describe("seasons actions", () => {
   beforeEach(() => {
     admin = true;
     dbError = null;
+    matched = true;
     writes = [];
   });
 
@@ -56,6 +58,17 @@ describe("seasons actions", () => {
     const res = await savePeriod(undefined, form({ season_id: SEASON, date_from: "2025-12-20", date_to: "2026-01-10" }));
     expect(res).toEqual({ ok: true });
     expect(writes[0].row).toMatchObject({ workspace_id: "ws-1", season_id: SEASON, year: 2025 });
+  });
+
+  test("editing a period that no longer exists is an error, not a false success", async () => {
+    matched = false;
+    const id = "22222222-2222-4222-8222-222222222222";
+    expect(await savePeriod(undefined, form({ season_id: SEASON, id, date_from: "2026-02-18", date_to: "2026-03-19" }))).toEqual({ error: "errMissing" });
+  });
+
+  test("renaming to the same name keeps the translated key (no write)", async () => {
+    expect(await renameSeason(undefined, form({ id: SEASON, name: "Ramadan" }))).toEqual({ ok: true });
+    expect(writes).toEqual([]);
   });
 
   test("a second period for the same year is refused with a translated key (no throw)", async () => {

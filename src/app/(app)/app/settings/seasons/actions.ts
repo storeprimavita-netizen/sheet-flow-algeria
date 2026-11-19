@@ -64,6 +64,14 @@ export async function renameSeason(_prev: SeasonState, fd: FormData): Promise<Se
   const input = renameSchema.safeParse({ id: text(fd, "id"), name: text(fd, "name") });
   if (!input.success) return { error: "errName" };
   const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("seasons")
+    .select("name")
+    .eq("id", input.data.id)
+    .eq("workspace_id", g.workspaceId)
+    .maybeSingle();
+  if (!current) return { error: "errMissing" };
+  if (current.name === input.data.name) return { ok: true }; // unchanged: keep the translated name
   // a renamed seeded season stops using its translated name (name_key) and shows what was typed
   const { error } = await supabase
     .from("seasons")
@@ -92,10 +100,11 @@ export async function savePeriod(_prev: SeasonState, fd: FormData): Promise<Seas
   if (year < 2000 || year > 2100) return { error: "errDates" };
 
   const supabase = await createClient();
-  const { error } = id
-    ? await supabase.from("season_periods").update({ year, date_from, date_to }).eq("id", id).eq("workspace_id", g.workspaceId)
-    : await supabase.from("season_periods").insert({ workspace_id: g.workspaceId, season_id, year, date_from, date_to });
+  const { data: saved, error } = id
+    ? await supabase.from("season_periods").update({ year, date_from, date_to }).eq("id", id).eq("workspace_id", g.workspaceId).select("id")
+    : await supabase.from("season_periods").insert({ workspace_id: g.workspaceId, season_id, year, date_from, date_to }).select("id");
   if (error) return error.code === "23505" ? { error: "errDuplicateYear" } : dbError(error);
+  if (!saved?.length) return { error: "errMissing" };
   revalidatePath("/app/settings/seasons");
   return { ok: true };
 }

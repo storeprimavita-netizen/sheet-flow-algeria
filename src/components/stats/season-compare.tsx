@@ -8,6 +8,7 @@ import { seasonLabel } from "@/lib/seasons";
 import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { MetricCell } from "@/components/stats/metric-cell";
+import { formatInt } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const MAX_YEARS = 5;
@@ -77,6 +78,7 @@ export async function SeasonCompare({
       return { period: p, rates, failed: !!error || !rates };
     }),
   );
+  const today = new Date().toISOString().slice(0, 10);
   const notEnough = t("statistics.notEnoughData");
 
   return (
@@ -100,7 +102,9 @@ export async function SeasonCompare({
                 >
                   <bdi dir="ltr">{period.year}</bdi>
                 </Link>
-                {rates && !rates.delivery.matured ? (
+                {current ? (
+                  <span className="text-xs font-medium text-primary">{t("statistics.compare.selected")}</span>
+                ) : rates && period.date_to >= today ? (
                   <span className="text-xs text-muted-foreground">{t("statistics.compare.inProgress")}</span>
                 ) : null}
               </div>
@@ -113,7 +117,7 @@ export async function SeasonCompare({
                 <dl className="space-y-2 text-xs">
                   <div className="flex items-baseline justify-between gap-2">
                     <dt className="text-muted-foreground">{t("statistics.received")}</dt>
-                    <dd className="num text-sm font-medium"><bdi dir="ltr">{rates.counts.received}</bdi></dd>
+                    <dd className="num text-sm font-medium"><bdi dir="ltr">{formatInt(rates.counts.received)}</bdi></dd>
                   </div>
                   {([
                     ["confirmation", rates.confirmation],

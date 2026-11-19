@@ -861,6 +861,9 @@
       "add": "Add season",
       "name": "Season name",
       "rename": "Rename",
+      "deleteSeasonLabel": "Delete season {name}",
+      "deleteSeasonConfirm": "Delete {name} and all its dates? This cannot be undone.",
+      "deletePeriodLabel": "Delete {year} dates of {name}",
       "noDates": "No dates yet",
       "addDates": "Add dates",
       "addPeriod": "Add a year",
@@ -1513,13 +1516,17 @@
       "invalidSeason": "That season no longer exists, so it was ignored.",
       "invalidYear": "That year has no dates for this season, so the latest year is shown.",
       "noPeriods": "This season has no dates yet. Add them in Settings > Seasons.",
-      "remove": "Remove filter: {name}"
+      "remove": "Remove filter: {name}",
+      "dropped": "The {name} filter was ignored: that value is not available.",
+      "seasonsError": "Couldn't load the seasons. Try again.",
+      "active": "Active filters"
     },
     "compare": {
       "title": "{name} across years",
       "noPeriods": "{name} has no dates yet.",
       "openSettings": "Add dates in Settings > Seasons",
       "inProgress": "In progress",
+      "selected": "Selected",
       "yearError": "Couldn't load {year}.",
       "more": "Showing the latest {shown} of {total} years."
     }

@@ -37,7 +37,7 @@ export function OrdersFilterBar({
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
   function leaveDrill(next: URLSearchParams) {
-    for (const k of ["drill", "commune_key", "commune_unknown"]) next.delete(k);
+    for (const k of ["drill", "commune_key", "commune_unknown", "category", "conf_agent"]) next.delete(k);
   }
 
   function setDates(from: string, to: string) {

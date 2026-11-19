@@ -28,7 +28,7 @@ const SECONDARY = ["f_category", "f_wilaya", "f_source", "f_agent", "f_delivery"
  * (allow-listed keys, never the open drill `wilaya`).
  */
 export function StatsFilterBar({
-  products, categories, wilayas, sources, agents, deliveryTypes, seasons, overridden, notes,
+  products, categories, wilayas, sources, agents, deliveryTypes, seasons, overridden, seasonRange, notes,
 }: {
   products: StatsOpt[];
   categories: StatsOpt[];
@@ -39,6 +39,8 @@ export function StatsFilterBar({
   seasons: StatsSeasonOpt[];
   /** explicit dates sit next to a season: the dates win */
   overridden: boolean;
+  /** the range the figures use (explicit dates, else the season's), shown in the Period field */
+  seasonRange: { from: string; to: string };
   /** translated notes for dropped values (unknown season / year) */
   notes: string[];
 }) {
@@ -161,7 +163,11 @@ export function StatsFilterBar({
       <div className={grid}>
         {field(
           t("dates.period"),
-          <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />,
+          <DateRangePicker
+            from={get("from") || get("to") ? get("from") : seasonRange.from}
+            to={get("from") || get("to") ? get("to") : seasonRange.to}
+            onChange={setDates}
+          />,
           "col-span-2 sm:col-span-1",
         )}
         {select("season", t("statistics.filters.season"), seasons.map((s) => ({ value: s.id, label: s.label })))}
@@ -217,7 +223,7 @@ export function StatsFilterBar({
       ) : null}
 
       {chips.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label={t("statistics.filters.active")} className="flex flex-wrap items-center gap-2">
           {chips.map((c) => (
             <button
               key={c.key}

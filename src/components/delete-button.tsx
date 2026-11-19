@@ -15,18 +15,23 @@ export function DeleteButton({
   id,
   redirectTo,
   className,
+  label,
+  confirmText,
 }: {
   table: DeletableTable;
   id: string;
   redirectTo: string;
   className?: string;
+  /** accessible name that tells identical buttons apart */
+  label?: string;
+  confirmText?: string;
 }) {
   const router = useRouter();
   const t = useTranslations();
   const [busy, setBusy] = useState(false);
 
   async function del() {
-    if (!window.confirm(t("common.deleteConfirm"))) return;
+    if (!window.confirm(confirmText ?? t("common.deleteConfirm"))) return;
     setBusy(true);
     const supabase = createClient();
     const { error } = await supabase.from(table).delete().eq("id", id);
@@ -45,6 +50,7 @@ export function DeleteButton({
       variant="destructive"
       size="sm"
       className={className}
+      aria-label={label}
       onClick={del}
       disabled={busy}
     >

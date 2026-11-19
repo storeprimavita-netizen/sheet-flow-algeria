@@ -155,7 +155,7 @@ export const STATS_PERSIST_KEYS = ["from", "to", "product", "season", "year", "f
 /** Keys the Dashboard bar may restore: its own three. Stats keys in an old/shared value are ignored. */
 export const DASHBOARD_PERSIST_KEYS = ["from", "to", "product"] as const;
 
-/** Allow-list a query string; `season` and `year` survive only together. */
+/** Allow-list a query string; `year` survives only with a `season`. */
 export function pickParams(qs: string, keys: readonly string[]): string {
   const src = new URLSearchParams(qs);
   const out = new URLSearchParams();
@@ -164,6 +164,5 @@ export function pickParams(qs: string, keys: readonly string[]): string {
     if (v) out.set(k, v);
   }
   if (!out.get("season")) out.delete("year");
-  if (!out.get("year")) out.delete("season");
   return out.toString();
 }
