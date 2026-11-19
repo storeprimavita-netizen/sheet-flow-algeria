@@ -652,6 +652,7 @@
           "duplicate": "A size set with this name already exists.",
           "failed": "Could not save. Try again.",
           "loadFailed": "Could not load size sets: {reason}",
+          "deleteConfirm": "Delete size set {name}?",
           "retry": "Retry"
     },
     "title": "Settings",
@@ -1325,6 +1326,7 @@
   },
   "variants": {
     "optionFallback": "option {n}",
+    "addOptionUnsaved": "Save or discard your changes first.",
     "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",
     "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",

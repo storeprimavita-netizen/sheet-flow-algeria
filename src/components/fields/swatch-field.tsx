@@ -61,7 +61,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
               onChange={(e) => {
                 setHex(e.target.value);
                 if (swatchHexSchema.safeParse(e.target.value).success) onChange({ color: e.target.value.toLowerCase(), image: null });
-                else if (!e.target.value) onChange({ color: null, image: null });
+                else onChange({ color: null, image: null });
               }}
             />
             <Input
@@ -107,7 +107,7 @@ export function SwatchField({ value, onChange }: { value: Swatch; onChange: (nex
             onChange={(e) => {
               setUrl(e.target.value);
               if (swatchImageSchema.safeParse(e.target.value).success) onChange({ color: null, image: e.target.value });
-              else if (!e.target.value) onChange({ color: null, image: null });
+              else onChange({ color: null, image: null });
             }}
           />
           {!urlOk ? <p id={urlErrId} role="alert" className="text-xs text-danger">{t("swatchUrlError")}</p> : null}

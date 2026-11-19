@@ -26,6 +26,7 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: st
   const [text, setText] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [fieldError, setFieldError] = React.useState<string | null>(null);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   function open(row: SizeSetRow | "new") {
     setEditing(row);
@@ -48,11 +49,13 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: st
   }
 
   async function remove(row: SizeSetRow) {
+    if (!window.confirm(t("deleteConfirm", { name: row.name }))) return;
+    setDeleteError(null);
     setBusy(true);
     const res = await deleteSizeSet(row.id);
     setBusy(false);
     if (res.ok) router.refresh();
-    else setFieldError(t("failed"));
+    else setDeleteError(t("failed"));
   }
 
   return (
@@ -104,6 +107,8 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: st
         </ul>
       )}
 
+      {deleteError ? <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p> : null}
+
       {editing !== null ? (
         <form onSubmit={submit} className="space-y-3 rounded-lg border border-border p-3">
           <label className="block space-y-1 text-sm">
@@ -112,7 +117,7 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: st
           </label>
           <label className="block space-y-1 text-sm">
             <span className="font-medium">{t("items")}</span>
-            <Textarea value={text} rows={3} dir="ltr" placeholder="S, M, L, XL" onChange={(e) => { setText(e.target.value); setFieldError(null); }} />
+            <Textarea value={text} rows={3} dir="auto" placeholder="S, M, L, XL" onChange={(e) => { setText(e.target.value); setFieldError(null); }} />
             <span className="text-xs text-muted-foreground">{t("itemsHint")}</span>
           </label>
           {fieldError ? <p id="size-set-error" role="alert" className="text-xs text-danger">{fieldError}</p> : null}

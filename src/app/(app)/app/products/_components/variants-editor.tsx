@@ -298,19 +298,19 @@ export function VariantsEditor({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3} onClick={() => startAdd("text", "")}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved} onClick={() => startAdd("text", "")}>
           <Plus />
           {t("addOption")}
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || options.some((o) => o.name === t("sizeName"))} onClick={() => startAdd("text", t("sizeName"))}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || options.some((o) => o.name.trim().toLowerCase() === t("sizeName").toLowerCase())} onClick={() => startAdd("text", t("sizeName"))}>
           <Plus />
           {t("addSize")}
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || hasColor} onClick={() => startAdd("color", t("colorName"))}>
+        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasColor} onClick={() => startAdd("color", t("colorName"))}>
           <Plus />
           {t("addColor")}
         </Button>
-        {options.length >= 3 ? <p className="text-xs text-muted-foreground">{t("maxOptions")}</p> : null}
+        {options.length >= 3 ? <p className="text-xs text-muted-foreground">{t("maxOptions")}</p> : unsaved ? <p className="text-xs text-muted-foreground">{t("addOptionUnsaved")}</p> : null}
       </div>
 
       {options.length ? (

@@ -81,12 +81,12 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
             {hasReviews && dto.reviews.count > 0 && dto.reviews.items.length > 0 ? <RatingLine reviews={dto.reviews} /> : null}
             <hr className="store-rule" />
             <p className="store-price store-price-row">{formatCurrency(dto.product.price, unit)}</p>
-            {dto.variants.map((o) => (
-              <div key={o.name}>
-                <p className="store-label"><bdi>{o.name}</bdi></p>
+            {dto.variants.map((o, oi) => (
+              <div key={oi}>
+                <p className="store-label"><bdi>{o.name === "Variant" ? st("sizes") : o.name}</bdi></p>
                 <ul className="store-sizes">
-                  {o.values.map((v) => (
-                    <li key={v.label} className="store-size" data-out={!v.inStock}>
+                  {o.values.map((v, vi) => (
+                    <li key={`${v.label}-${vi}`} className="store-size" data-out={!v.inStock}>
                       {v.swatch?.image ? (
                         // eslint-disable-next-line @next/next/no-img-element -- plain img by design: never background-image
                         <img className="store-dot" src={v.swatch.image} alt="" width={20} height={20} loading="lazy" />
