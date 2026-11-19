@@ -324,3 +324,12 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Evidence: round-4 browser check and screenshots in docs/design/audit/ORD-1/r4-*; order_seq RLS tests cover fallback, ON CONFLICT, swap_order, manual insert, webhook replay.
 - Owner: production db push of migration 00050 is owner-only.
 - Next: ORD-1-F (review-3 #6 ring across frozen column, Tab walk, missing screenshots, error-path tests, lows).
+
+## Run report — /auto 5 (2026-11-18 → 19)
+- Shipped 5: PRICE-1 (4158505), PRICE-2 (88b7be8), STORE-1 (afef55e), STORE-2 (3be4795), ORD-1 (d77e828). PRICE-1 and ORD-1 ended on a PASS review; PRICE-2, STORE-1, STORE-2 merged under D40 (last review ESCALATE, no high finding) — the ship stage refuses those, so the coordinator ran its steps by hand.
+- Decided by Claude (owner may overturn): D51 markup % is on the product's own cost per piece · D52 PRICE-1 edge rules (share up to 100%, target needs its mode, markup max 1000%) · D53 a final price below break-even saves without a confirm · D54 sizes start uncounted, existing stock "not assigned", admin counts per size · D55 options and sizes save in one transaction; no new option once sizes exist · D56 test clean-up retries after a deadlock · D58 a negative "not assigned" never hides a size that has pieces (D57 on the branch; renumbered, D57 is the owner's order number) · D59 ORD-1 last round.
+- Questions: none waiting; Q-8…Q-13 are answered by default in docs/QUESTIONS.md and can be overturned.
+- Blocked: none. Follow-ups added: PRICE-2-F, STORE-1-F, STORE-2-F, ORD-1-F (placed after the owner priority rows).
+- Known issue: the fast gate failed once in 4 runs right after the STORE-1 merge (test clean-up deadlock, reduced not gone — STORE-1-F).
+- Owner: migrations 00039–00050 wait for the production push (O-2). Products with sizes show "Count needed" until counted once.
+- Next /auto: STORE-3 (pricing modes, offers, order form fields), then P1-7, STORE-4.
