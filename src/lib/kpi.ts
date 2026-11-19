@@ -83,3 +83,17 @@ export function asKpiGroup(rates: unknown, extras: unknown): KpiGroup | null {
   if (!isObj(rates) || !isObj(extras) || !isObj(rates.counts) || !isObj(rates.delivery)) return null;
   return { rates: rates as unknown as KpiGroupRates, extras: extras as unknown as KpiGroupExtras };
 }
+
+/** One day of `kpi_daily` (00068, admin only). `money` is null when a non-product filter is set. */
+export type KpiDailyMoney = { revenue: number; cogs: number; return_fees: number; ad_spend: number; expenses: number; fixed: number; costs: number; net_profit: number };
+export type KpiDailyRow = { day: string; rates: KpiGroupRates; money: KpiDailyMoney | null; immature: boolean };
+
+/** Narrow `kpi_daily` rows; malformed rows are dropped. */
+export function asKpiDaily(rows: unknown): KpiDailyRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap((r) =>
+    isObj(r) && typeof r.day === "string" && isObj(r.rates) && isObj(r.rates.counts)
+      ? [{ day: r.day, rates: r.rates as unknown as KpiGroupRates, money: isObj(r.money) ? (r.money as unknown as KpiDailyMoney) : null, immature: r.immature === true }]
+      : [],
+  );
+}

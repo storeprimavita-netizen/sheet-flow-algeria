@@ -946,7 +946,6 @@
         "cashWithZrHint": "Cash the courier holds for you. Not tracked yet.",
         "rateLabel": "Rate {rate} DA per $ on {date}",
         "noRate": "Set a USD rate",
-        "waterfallTitle": "Where the money goes",
         "noData": "No data for this period yet.",
         "wf": {
           "revenue": "Revenue",
@@ -957,7 +956,22 @@
           "net": "Net profit"
         },
         "profitSub": "On {revenue} revenue",
-        "profitPrev": "Previous period {amount}"
+        "profitPrev": "Previous period {amount}",
+        "chart": {
+          "title": "Money per day",
+          "revenue": "Revenue",
+          "costs": "Total costs",
+          "net": "Net profit",
+          "periodTotal": "Net profit for the period:",
+          "cumulative": "Cumulative",
+          "empty": "No orders or costs in this period yet.",
+          "emptyAction": "New order",
+          "immatureNote": "Dashed recent days are not final yet. Revenue counts by order date and ads by spend date, so the right edge dips.",
+          "costsTitle": "Where the money goes",
+          "costHead": "Cost",
+          "amountHead": "Amount",
+          "shareHead": "Share"
+        }
       },
       "journey": {
         "title": "Order journey",
