@@ -58,7 +58,7 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
   }, [activeId]);
 
   async function copyLink(v: OrderViewDto) {
-    const qs = v.shared ? `view=${v.id}` : serializeConfig(v.config).toString();
+    const qs = v.shared ? `view=${v.id}` : serializeConfig(v.id === activeId ? effective : v.config).toString();
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${href(qs)}`);
       setNote(t("linkCopied"));
@@ -116,9 +116,8 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
                   {t("moveLater")}
                 </DropdownMenuItem>
               </>
-            ) : (
-              <DropdownMenuItem onSelect={() => setSaveAsFrom(v)}>{t("saveAsMine")}</DropdownMenuItem>
-            )}
+            ) : null}
+            <DropdownMenuItem onSelect={() => setSaveAsFrom(v)}>{t("saveAsMine")}</DropdownMenuItem>
             <DropdownMenuItem onSelect={() => copyLink(v)}>{t("copyLink")}</DropdownMenuItem>
             {canEdit ? (
               <>
@@ -157,9 +156,6 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
             {shared.map(renderView)}
             {shared.length && personal.length ? <li aria-hidden className="mx-1 h-5 w-px shrink-0 bg-border" /> : null}
             {personal.map(renderView)}
-            {!personal.length && !loadError ? (
-              <li className="shrink-0 px-2 text-xs text-muted-foreground">{t("emptyPersonal")}</li>
-            ) : null}
           </ul>
         </nav>
       </div>
@@ -183,7 +179,7 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
           open
           onOpenChange={(o) => !o && setRename(null)}
           title={t("rename")}
-          initial={{ name: label(rename), emoji: rename.emoji ?? "" }}
+          initial={{ name: rename.name, emoji: rename.emoji ?? "" }}
           canShare={false}
           submitLabel={t("save")}
           returnFocus={() => triggers.current.get(rename.id) ?? null}
@@ -255,9 +251,13 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
 /** Shown when `?view` cannot be used (junk, other scope, someone else's, deleted): no existence leak. */
 export function InvalidViewNotice({ rest }: { rest: string }) {
   const t = useTranslations("orderViews");
-  const router = useRouter();
   const path = usePathname();
   const [open, setOpen] = useState(true);
+  // strip the unusable ?view from the URL right away; the notice stays until dismissed
+  useEffect(() => {
+    // history API only: a router navigation would re-render the page and drop the notice
+    window.history.replaceState(null, "", `${path}${rest ? `?${rest}` : ""}`);
+  }, [path, rest]);
   if (!open) return null;
   return (
     <p role="status" className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
@@ -267,10 +267,7 @@ export function InvalidViewNotice({ rest }: { rest: string }) {
         size="sm"
         variant="ghost"
         className="ms-auto"
-        onClick={() => {
-          setOpen(false);
-          router.replace(`${path}${rest ? `?${rest}` : ""}`);
-        }}
+        onClick={() => setOpen(false)}
       >
         {t("dismiss")}
       </Button>

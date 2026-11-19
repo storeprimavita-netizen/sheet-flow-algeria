@@ -49,6 +49,13 @@ export function SavedViewBar({
       <p role="status" className="sr-only">
         {status}
       </p>
+      {!view ? (
+        <div className="flex justify-end">
+          <Button ref={saveAsRef} type="button" size="sm" variant="outline" onClick={() => setSaveAs(true)}>
+            {t("saveAsView")}
+          </Button>
+        </div>
+      ) : null}
       {dirty && view ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
           <span aria-hidden className="size-2 rounded-full bg-warning" />
@@ -81,7 +88,7 @@ export function SavedViewBar({
         <ViewNameDialog
           open
           onOpenChange={setSaveAs}
-          title={isAdmin ? t("saveAs") : t("saveAsMine")}
+          title={!view ? t("saveAsView") : isAdmin ? t("saveAs") : t("saveAsMine")}
           initial={{ name: "", emoji: "" }}
           canShare={isAdmin}
           submitLabel={t("save")}

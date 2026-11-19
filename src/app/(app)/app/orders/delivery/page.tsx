@@ -11,6 +11,8 @@ import { effectiveConfig, isDirty } from "@/lib/order-views";
 import { applyOrderConfig, orderSort, ROW_LIMIT } from "../_lib/order-query";
 import { listViews, resolveView } from "../_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../view-tabs";
+import { QueueFilterBar } from "../queue-filter-bar";
+import { DELIVERY_STATUSES } from "@/lib/enums";
 import { DeliveryView, type DelivRow } from "./delivery-view";
 
 export default async function DeliveryQueuePage({
@@ -82,6 +84,14 @@ export default async function DeliveryQueuePage({
         keep={showAll ? "show=all" : ""}
       />
       {invalid ? <InvalidViewNotice rest={rest} /> : null}
+      <QueueFilterBar
+        statusKey="delivery_status"
+        statusLabel={t("fields.delivery_status")}
+        statusOptions={DELIVERY_STATUSES.map((s) => ({ value: s, label: t(`status.delivery_status.${s}`) }))}
+        q={cfg.q ?? ""}
+        status={cfg.delivery_status ?? ""}
+        viewKeys={Object.keys(active?.config ?? {})}
+      />
       {(orders ?? []).length >= ROW_LIMIT ? (
         <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
       ) : null}

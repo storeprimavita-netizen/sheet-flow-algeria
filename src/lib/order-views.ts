@@ -29,7 +29,7 @@ const keySchemas = {
   source: z.enum(ORDER_SOURCES),
   agent: z.string().regex(UUID),
   duplicates: z.literal("1"),
-  q: z.string().max(80).transform((s) => s.trim()).pipe(z.string().min(1)),
+  q: z.string().transform((s) => s.trim().slice(0, 80)).pipe(z.string().min(1)),
   from: z.string().refine(isRealDate),
   to: z.string().refine(isRealDate),
   sort: z.enum(Object.keys(SORT_COLUMNS) as [string, ...string[]]),
@@ -69,7 +69,11 @@ const first = (v: string | string[] | undefined) => (typeof v === "string" ? v :
 function parseUrlValue(key: FilterKey, s: string): unknown {
   if (!s) return undefined;
   let raw: unknown = s;
-  if (key === "confirmation_status") raw = s.split(",").map((x) => x.trim());
+  if (key === "confirmation_status") {
+    // one bad value must not drop the whole filter
+    const ok = new Set<string>(CONFIRMATION_STATUSES);
+    raw = [...new Set(s.split(",").map((x) => x.trim()).filter((x) => ok.has(x)))];
+  }
   if (key === "wilaya_code") raw = /^\d{1,2}$/.test(s) ? Number(s) : NaN;
   const r = keySchemas[key].safeParse(raw);
   return r.success ? r.data : undefined;

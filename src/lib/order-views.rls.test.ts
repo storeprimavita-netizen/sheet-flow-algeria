@@ -155,4 +155,32 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     expect((await admin.from("order_views").insert(view(ids.admin, "dup"))).error).toBeNull();
     expect((await admin.from("order_views").insert(view(ids.admin, "DUP"))).error?.code).toBe("23505");
   });
+
+  test("backfill: a workspace that existed before seeding has the seeds", async () => {
+    const { data } = await svc.from("workspaces").select("id").not("id", "in", `(${ws},${ws2})`).limit(1);
+    if (!data?.length) return; // fresh stack without a pre-existing workspace
+    const r = await svc.from("order_views").select("seed_key").eq("workspace_id", data[0].id).not("seed_key", "is", null);
+    expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["duplicates", "new", "no_answer"]);
+  });
+
+  test("seed_order_views called twice as service role stays at 3 rows", async () => {
+    for (let i = 0; i < 2; i++) expect((await svc.rpc("seed_order_views" as never, { ws: ws2 } as never)).error).toBeNull();
+    const r = await svc.from("order_views").select("id").eq("workspace_id", ws2).not("seed_key", "is", null);
+    expect(r.data).toHaveLength(3);
+  });
+
+  test("padded names, seed_key on personal rows and negative positions are refused", async () => {
+    const bad = [{ name: "x" + " ".repeat(50) }, { name: " lead" }, { seed_key: "zzz" }, { position: -5 }];
+    for (const over of bad) {
+      const r = await agent.from("order_views").insert(view(ids.agent, `pad-${crypto.randomUUID().slice(0, 8)}`, over));
+      expect(r.error, JSON.stringify(over)).not.toBeNull();
+    }
+  });
+
+  test("the cap of 20 views per group holds at the database", async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => view(ids.agent2, `cap-${i}`, { scope: "shipping", position: i }));
+    expect((await agent2.from("order_views").insert(rows)).error).toBeNull();
+    const over = await agent2.from("order_views").insert(view(ids.agent2, "cap-21", { scope: "shipping" }));
+    expect(over.error?.message).toMatch(/limit/);
+  });
 });

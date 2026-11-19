@@ -1461,7 +1461,7 @@
     "linkCopied": "Link copied",
     "copyLink": "Copy link",
     "menuFor": "Actions for view {name}",
-    "emptyPersonal": "Save current filters as a view",
+    "saveAsView": "Save as view",
     "loadError": "Could not load views",
     "notAvailable": "That view is not available",
     "dismiss": "Dismiss",

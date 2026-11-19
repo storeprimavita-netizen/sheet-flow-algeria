@@ -71,7 +71,7 @@ export function ViewNameDialog({
             {hint ? <DialogDescription>{hint}</DialogDescription> : null}
           </DialogHeader>
           <Field label={t("nameLabel")} htmlFor={`${id}-name`} hint={`${name.trim().length}/60`}>
-            <Input id={`${id}-name`} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus required />
+            <Input id={`${id}-name`} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus required aria-invalid={!!error} aria-describedby={error ? `${id}-err` : undefined} />
           </Field>
           <Field label={t("emojiLabel")} htmlFor={`${id}-emoji`}>
             <Input id={`${id}-emoji`} value={emoji} maxLength={16} onChange={(e) => setEmoji(e.target.value)} className="w-24" aria-invalid={emojiBad} />
@@ -93,7 +93,7 @@ export function ViewNameDialog({
               ))}
             </div>
           ) : null}
-          <p role="alert" className={cn("text-sm text-danger", !error && "hidden")}>
+          <p id={`${id}-err`} role="alert" className={cn("text-sm text-danger", !error && "hidden")}>
             {error}
           </p>
           <DialogFooter>
@@ -101,7 +101,7 @@ export function ViewNameDialog({
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={invalid || busy}>
-              {error ? t("retry") : submitLabel}
+              {submitLabel}
             </Button>
           </DialogFooter>
         </form>

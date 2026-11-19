@@ -39,8 +39,11 @@ function refresh() {
   for (const p of ["all", "confirmation", "delivery"]) revalidatePath(`/app/orders/${p}`);
 }
 
-function fail(error: { code?: string } | null): ViewResult {
-  return { ok: false, error: error?.code === DUPLICATE ? "duplicateName" : "failed" };
+function fail(error: { code?: string; message?: string } | null): ViewResult {
+  if (error?.code === DUPLICATE) return { ok: false, error: "duplicateName" };
+  // DB cap trigger (00057) backs up the check in createView
+  if (error?.code === "23514" && error.message?.includes("limit")) return { ok: false, error: "capReached" };
+  return { ok: false, error: "failed" };
 }
 
 export async function createView(input: unknown): Promise<ViewResult> {
@@ -118,16 +121,18 @@ export async function moveView(id: string, direction: "earlier" | "later"): Prom
   if (!user) return { ok: false, error: "forbidden" };
   const { data: row } = await supabase.from("order_views").select("scope, owner_id").eq("id", id).maybeSingle();
   if (!row) return { ok: false, error: "notFound" };
-  let group = supabase.from("order_views").select("id").eq("scope", row.scope);
+  let group = supabase.from("order_views").select("id, position").eq("scope", row.scope);
   group = row.owner_id === null ? group.is("owner_id", null) : group.eq("owner_id", row.owner_id);
   const { data: rows, error } = await group.order("position").order("created_at");
   if (error || !rows) return { ok: false, error: "failed" };
   const ids = rows.map((r) => r.id);
+  const current = new Map(rows.map((r) => [r.id, r.position]));
   const i = ids.indexOf(id);
   const j = direction === "earlier" ? i - 1 : i + 1;
   if (i < 0 || j < 0 || j >= ids.length) return { ok: true, id };
   [ids[i], ids[j]] = [ids[j], ids[i]];
   for (let p = 0; p < ids.length; p++) {
+    if (current.get(ids[p]) === p) continue; // only rows that actually move are written
     const { data, error: e } = await supabase.from("order_views").update({ position: p }).eq("id", ids[p]).select("id");
     if (e) return fail(e);
     if (data?.length !== 1) return { ok: false, error: "forbidden" };

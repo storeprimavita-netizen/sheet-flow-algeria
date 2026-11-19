@@ -1461,7 +1461,7 @@
     "linkCopied": "تم نسخ الرابط",
     "copyLink": "نسخ الرابط",
     "menuFor": "إجراءات العرض {name}",
-    "emptyPersonal": "احفظ الفلاتر الحالية كعرض",
+    "saveAsView": "حفظ كعرض",
     "loadError": "تعذّر تحميل العروض",
     "notAvailable": "هذا العرض غير متاح",
     "dismiss": "إغلاق",

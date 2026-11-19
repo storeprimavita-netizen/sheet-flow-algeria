@@ -8,7 +8,7 @@ import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
-import { effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { CLEARED, effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
 import { listViews, resolveView } from "../_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { applyOrderConfig, orderSort } from "../_lib/order-query";
@@ -146,6 +146,7 @@ export default async function AllOrdersPage({
   const isAdmin = await isCurrentUserAdmin();
   const restParams = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : [])));
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
+  if (active?.config.q) withoutQ.set("q", CLEARED); // the view's own q must be cleared too
   const clearQueryHref = `/app/orders/all${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
 
   return (

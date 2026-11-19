@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
 import { OrderTabs } from "../order-tabs";
-import { effectiveConfig, isDirty } from "@/lib/order-views";
+import { effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
 import { applyOrderConfig, orderSort, ROW_LIMIT } from "../_lib/order-query";
 import { listViews, resolveView } from "../_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../view-tabs";
+import { QueueFilterBar } from "../queue-filter-bar";
+import { CONFIRMATION_STATUSES } from "@/lib/enums";
 import { ConfirmationTable, type ConfRow } from "./confirmation-table";
 
 const rest = (sp: Record<string, string | string[] | undefined>) =>
@@ -120,6 +122,14 @@ export default async function ConfirmationQueuePage({
         keep={showAll ? "show=all" : ""}
       />
       {invalid ? <InvalidViewNotice rest={rest(sp)} /> : null}
+      <QueueFilterBar
+        statusKey="confirmation_status"
+        statusLabel={t("fields.confirmation_status")}
+        statusOptions={CONFIRMATION_STATUSES.filter((s) => s !== "confirmed").map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }))}
+        q={cfg.q ?? ""}
+        status={serializeConfig(cfg).get("confirmation_status") ?? ""}
+        viewKeys={Object.keys(active?.config ?? {})}
+      />
       {(orders ?? []).length >= ROW_LIMIT ? (
         <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
       ) : null}

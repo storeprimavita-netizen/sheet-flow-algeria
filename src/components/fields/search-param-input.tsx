@@ -8,22 +8,40 @@ import { Input } from "@/components/ui/input";
 
 /** Search-as-you-type bound to a URL param (default `q`), debounced 300ms;
  * the server page reads the param, so results stay shareable/bookmarkable. */
-export function SearchParamInput({ placeholder, param = "q" }: { placeholder: string; param?: string }) {
+export function SearchParamInput({
+  placeholder,
+  param = "q",
+  inherited = "",
+  clearedMarker,
+}: {
+  placeholder: string;
+  param?: string;
+  /** value that applies when the URL has none (e.g. from a saved view) */
+  inherited?: string;
+  /** written instead of deleting the param, so a saved view's own value is cleared too */
+  clearedMarker?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const [value, setValue] = React.useState(sp.get(param) ?? "");
+  const shown = () => {
+    const u = sp.get(param);
+    return u === null ? inherited : u === clearedMarker ? "" : u;
+  };
+  const [value, setValue] = React.useState(shown());
 
   React.useEffect(() => {
-    if (value === (sp.get(param) ?? "")) return;
+    if (value === shown()) return;
     const id = setTimeout(() => {
       const next = new URLSearchParams(sp.toString());
       if (value.trim()) next.set(param, value.trim());
+      else if (inherited && clearedMarker) next.set(param, clearedMarker);
       else next.delete(param);
+      next.delete("page");
       router.replace(`${pathname}?${next.toString()}`, { scroll: false });
     }, 300);
     return () => clearTimeout(id);
-  }, [value, sp, param, pathname, router]);
+  }, [value, sp, param, pathname, router, inherited, clearedMarker]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative max-w-sm">

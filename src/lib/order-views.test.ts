@@ -64,4 +64,11 @@ describe("order views config", () => {
     expect(viewInputSchema.safeParse({ name: "ok", emoji: "x".repeat(20) }).success).toBe(false);
     expect(viewInputSchema.parse({ name: " ok ", emoji: "🔥" })).toEqual({ name: "ok", emoji: "🔥" });
   });
+  test("a long q is cut to 80 characters, not dropped", () => {
+    expect(parseUrlConfig({ q: "a".repeat(200) }).values.q).toBe("a".repeat(80));
+  });
+  test("one bad status keeps the valid ones", () => {
+    expect(parseUrlConfig({ confirmation_status: "no_answer,bogus" }).values.confirmation_status).toEqual(["no_answer"]);
+    expect(parseUrlConfig({ confirmation_status: "bogus" }).values.confirmation_status).toBeUndefined();
+  });
 });
