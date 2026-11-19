@@ -268,7 +268,7 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
   if (!productIds.length) return [];
   const { data: products, error: productsErr } = await db
     .from("products")
-    .select("id, name, sale_price, images")
+    .select("id, name, sale_price, compare_at_price, pricing_mode, images, stock")
     .in("id", productIds)
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
@@ -277,11 +277,23 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
   const order = new Map(ids.map((id, i) => [id, i]));
   const ordered = [...(pages ?? [])].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  return ordered.flatMap((pg) => {
-    const pr = pg.product_id ? byId.get(pg.product_id) : undefined;
-    if (!pr || pr.sale_price === null) return [];
-    return [{ slug: pg.slug, title: stripEmoji(pr.name) || pg.title, image: (pr.images ?? []).find(isHttps) ?? null, price: Number(pr.sale_price) }];
-  });
+  // same price rule as the product page: lowest sellable size; products nobody can buy are dropped (their link would 404)
+  const cards = await Promise.all(
+    ordered.map(async (pg): Promise<PublicRelated | null> => {
+      const pr = pg.product_id ? byId.get(pg.product_id) : undefined;
+      if (!pr || pr.sale_price === null) return null;
+      const mode: PricingMode = pr.pricing_mode === "per_value" || pr.pricing_mode === "per_variant" ? pr.pricing_mode : "uniform";
+      const base = Number(pr.sale_price);
+      const { list, sizes } = await loadVariants(db, pr, mode, base, pr.compare_at_price === null ? null : Number(pr.compare_at_price));
+      const price =
+        sizes > 0
+          ? lowestPrice(list.map((v) => v.price))
+          : unitPrice({ mode: "uniform", basePrice: base, compareAt: null, valueDeltas: [], override: null, compareOverride: null });
+      if (price === null) return null;
+      return { slug: pg.slug, title: stripEmoji(pr.name) || pg.title, image: (pr.images ?? []).find(isHttps) ?? null, price };
+    }),
+  );
+  return cards.filter((c): c is PublicRelated => c !== null);
 }
 
 /** Live store slugs, cached once: random /s/<unknown>/<x> URLs 404 here without a per-URL cache entry or query. */

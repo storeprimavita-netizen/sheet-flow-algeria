@@ -79,7 +79,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                 </>
               ) : null}
             </p>
-            {dto.variants.length > 0 ? (
+            {!orderSlot && dto.variants.length > 0 ? (
               <div>
                 <p className="store-label">{st("sizes")}</p>
                 <ul className="store-sizes">
@@ -92,7 +92,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                 </ul>
               </div>
             ) : null}
-            {dto.offers.length > 0 ? (
+            {!orderSlot && dto.offers.length > 0 ? (
               <div>
                 <p className="store-label">{st("order.offersTitle")}</p>
                 <ul className="store-offers-info">
@@ -108,6 +108,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                 </ul>
               </div>
             ) : null}
+            {/* sizes and offers above are shown only while the order form is absent: the form has its own pickers */}
             {/* no live submit until STORE-4: an honest state, never a button that does nothing */}
             <div id="order">
               {orderSlot ?? (

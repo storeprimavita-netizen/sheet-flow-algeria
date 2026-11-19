@@ -176,6 +176,23 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     const dto = await loadPublicProductPage(svc, a.store.slug, "abaya");
     expect(dto!.related.map((r) => r.slug)).toEqual(["two"]);
   });
+  test("related cards use the page price rule and drop unsellable products", async () => {
+    const a = await setup();
+    const mk = async (slug: string, mode: string, override: number | null) => {
+      const pid = (await svc.from("products").insert({ workspace_id: ws, name: slug, sale_price: 5000, pricing_mode: mode }).select("id").single()).data!.id;
+      const pgid = (await svc.from("store_pages").insert({ workspace_id: ws, store_id: a.store.id, product_id: pid, slug, title: slug, status: "published" }).select("id").single()).data!.id;
+      const opt = (await svc.from("product_options").insert({ workspace_id: ws, product_id: pid, name: "Size", position: 0 }).select("id").single()).data!.id;
+      const val = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: pid, option_id: opt, label: "S", position: 0 }).select("id").single()).data!.id;
+      const v = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: pid, price_override: override }).select("id").single()).data!.id;
+      await svc.from("product_variant_values").insert({ workspace_id: ws, product_id: pid, variant_id: v, option_id: opt, value_id: val });
+      return pgid;
+    };
+    const dear = await mk("dear", "per_variant", 7000);
+    const free = await mk("free", "per_variant", 0);
+    await svc.from("store_pages").update({ blocks: [{ type: "related", pageIds: [dear, free] }] }).eq("id", a.page.id);
+    const dto = await loadPublicProductPage(svc, a.store.slug, "abaya");
+    expect(dto!.related.map((r) => [r.slug, r.price])).toEqual([["dear", 7000]]);
+  });
   test("bad slug 404 no query", async () => {
     const from = vi.fn();
     const fake = { from } as unknown as SupabaseClient<Database>;
