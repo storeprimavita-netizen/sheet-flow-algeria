@@ -8,6 +8,50 @@ owner may overturn").
 
 ## Open
 
+### Q-18 · CONF-1 · 2026-11-19
+Saved views for the orders pages (confirmation, delivery, all orders) are built
+and the database side has been clean since the second review. The fourth and
+last allowed review still did not pass, because of the search box on the
+confirmation and delivery pages. The rule set before that round (D63) says the
+task then waits for you: no fifth round and no merge without your word. Nothing
+here touches orders, money or what a role can see; it is only about filters on
+the screen. Two problems are left:
+1. **Status filter lost.** You pick a status (for example "No answer") and type
+   in the search box while the list is still loading: the search arrives, but
+   the status goes back to what it was and you have to pick it again. On a slow
+   connection this can happen every day. The fix is known: one line and one test.
+2. **Search arrives 5 seconds late.** You type a search and press any button
+   (Compact rows, Columns, theme, Refresh, the menu) less than a third of a
+   second after the last letter: the list is filtered about 5 seconds later
+   instead of at once, and a view saved inside those seconds is saved without
+   the typed search. With the keyboard only (Tab, then Enter on a view), the
+   typed search can follow you into the view you open, which then shows
+   "Modified". This needs a press right after typing, so it is rare. Its fix
+   touches the Save buttons, and this kind of change is what reopened a problem
+   in each of the last three rounds.
+
+How do you want to finish it?
+- **(a) Recommended: one last short round for problem 1 only, then merge.**
+  Problem 2 is accepted for now and written into the follow-up task CONF-1-F
+  with the other small points (search that finds nothing says "Queue is empty"
+  instead of "no match", and the open points of reviews 2 and 3). The review of
+  that round judges problem 1 and its tests; if it passes, the task is merged.
+  If it does not, it comes back to you and there is no further round. Why: the
+  daily problem is fixed with the smallest possible change, and the rare one
+  does not hold the three tasks waiting behind it.
+- **(b) One more full round for both problems**, then merge only if the review
+  passes. Everything is closed before the merge, but it is the larger change,
+  it may fail a fifth review, and the next tasks wait longer.
+- **(c) Merge as it is.** Both problems go to CONF-1-F. The fastest, but your
+  agents meet problem 1 until the follow-up is done, although its fix is one line.
+- Anything else you prefer, for example the search starts only on Enter instead
+  of while typing (it removes this whole family of timing problems, but it is a
+  change of behaviour on these pages).
+
+Blocked until you answer: CONF-1 is parked and not merged, and CONF-2 (kanban),
+CONF-3 (customer score card) and CONF-4 (call attempts and callbacks) wait on
+it. Other work continues. Details: `docs/briefs/CONF-1.review-4.md`.
+
 ### Q-17 · P1-7 · 2026-11-19 · answered-by-default
 (Q-15 and Q-16 belong to the store offers task and arrive when it is merged.)
 In Settings, "Sync delivery fees from ZR" copies ZR's prices into your delivery
