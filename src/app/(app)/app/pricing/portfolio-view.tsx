@@ -7,7 +7,6 @@ import { AlertTriangle, Download } from "lucide-react";
 
 import { ButtonLink } from "@/components/button-link";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import { formatCurrency, formatInt, formatPercent, formatUsd } from "@/lib/format";
 import {
@@ -25,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 const MARGIN = (m: number | null) => (m === null ? null : Math.round(m * 1000) / 10);
 
-export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
+export function PortfolioView({ rows, partial = false }: { rows: PortfolioRow[]; partial?: boolean }) {
   const t = useTranslations("pricingPortfolio");
   const dzd = t("dzd");
   const [scenario, setScenario] = React.useState<ScenarioName>("medium");
@@ -112,9 +111,10 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
           </div>
         ))}
       </div>
+      {partial ? <p role="status" className="text-sm text-warning">{t("partialWarning")}</p> : null}
       {totals.excluded > 0 ? <p className="text-sm text-muted-foreground">{t("notIncluded", { count: totals.excluded })}</p> : null}
 
-      <div className="card-surface overflow-x-auto rounded-xl">
+      <div className="card-surface scroll-edge-x overflow-x-auto rounded-xl">
         <table className="w-full min-w-max text-sm">
           <caption className="sr-only">{t("table")}</caption>
           <thead className="bg-surface text-xs text-muted-foreground">
@@ -144,7 +144,7 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
                     if (k === "name")
                       return (
                         <th key={k} scope="row" className="sticky start-0 z-10 max-w-56 bg-surface px-3 py-2 text-start font-medium">
-                          <Link href={`/app/products/${row.id}/pricing`} className="block truncate hover:underline">
+                          <Link href={`/app/products/${row.id}/pricing`} className="block truncate hover:underline max-sm:flex max-sm:min-h-11 max-sm:items-center">
                             {row.name}
                           </Link>
                           {incomplete ? <span className="block text-xs font-normal text-muted-foreground">{t("missing")}</span> : null}
@@ -154,9 +154,14 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
                       <td key={k} className="num whitespace-nowrap px-3 py-2 text-end">
                         {fmt[k](v)}
                         {k === "salePrice" && below ? (
-                          <Chip token="danger" size="sm" className="mt-1 flex w-fit ms-auto" icon={<AlertTriangle className="h-3.5 w-3.5" aria-hidden />}>
-                            {t("belowBreakEven")}
-                          </Chip>
+                          <span
+                            role="img"
+                            aria-label={t("belowBreakEven")}
+                            title={t("belowBreakEven")}
+                            className="mt-1 flex size-6 items-center justify-center rounded-full ms-auto text-danger bg-danger-bg"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                          </span>
                         ) : null}
                       </td>
                     );

@@ -1098,6 +1098,7 @@
       "margin": "Blended margin"
     },
     "capitalHint": "stock + ads",
+    "partialWarning": "Only the first 1,000 products are shown, so the totals are partial.",
     "notIncluded": "{count, plural, one {# product is} other {# products are}} not included in the totals: stock cost, stock or ad cost is missing.",
     "missing": "Missing cost, stock or ad cost",
     "belowBreakEven": "Below break-even",

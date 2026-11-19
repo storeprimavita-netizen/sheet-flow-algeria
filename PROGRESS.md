@@ -447,3 +447,15 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Evidence: `docs/briefs/PRICE-3-F.review-2.md` VERDICT PASS; screenshots in `docs/design/audit/PRICE-3-F/`.
 - Owner: none for this task.
 - Next: review-4 L5 (Real column off-screen at 390 px) still open, tracked under PRICE-3.
+
+## PRICE-4-F
+- csv.ts untouched (D70); new csv/orders-row tests pin real behaviour. CSV: margin exported as percent, minPrice ceiling, 2-decimal rounding. Partial-totals warning at 1000 products. Tap target, icon chip, scroll-edge cue. Agent-redirect tests (pricing-guard.test.ts).
+- Screenshots (chrome-devtools, 390 emulated + 1280; dark EN, light AR, dark EN desktop): scroll cue, icon chip, cards OK. Not captured: every theme x locale combo, empty state, partial warning (needs 1000 products).
+- Left open: review-4 lows 1-2 (D69), accepted limits D69 (6). Observed: "-1 500,50" (comma decimal) gets an apostrophe, not pinned.
+
+## PRICE-4-F done
+- Done: PRICE-4-F follow-up delivered on v3-PRICE-4-F (CSV margin percent, minPrice ceiling, 2-decimal rounding, partial-totals warning, tap target, icon chip, scroll cue, agent-redirect tests).
+- Verify: `scripts/gate.sh` GATE OK on v3-PRICE-4-F (commit 478dad8); 745 tests passed, 3 skipped.
+- Evidence: `docs/briefs/PRICE-4-F.review-1.md` VERDICT PASS; screenshots noted above.
+- Owner: none for this task.
+- Next: the 1,000-product partial-totals warning and the non-captured theme/locale combos stay open for screenshot follow-up.
