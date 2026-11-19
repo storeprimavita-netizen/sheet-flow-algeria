@@ -54,3 +54,31 @@ describe("toCSV foreign separators (D69)", () => {
     expect(row).toBe(`ORD-1,"Ali;'=1+1",+213555123456,0555123456,"Rue 1, Alger",4500`);
   });
 });
+
+describe("toCSV edge cases (PRICE-4-F)", () => {
+  // Body after the header line, safe for values that contain CRLF.
+  const csv = (v: string | number) => toCSV([{ key: "a", label: "a", value: () => v }], [1]).slice("a\r\n".length);
+  it.each([
+    ["Ali\r\n=1", `"Ali\r\n'=1"`],
+    ["a\rb", `"a\rb"`],
+    [";=1", `";'=1"`],
+    ["\r=1", `"'\r'=1"`],
+    ["Ali;\t=1", `"Ali;\t'=1"`],
+    ["Ali;\u00a0=1", `"Ali;'\u00a0=1"`],
+    ["Ali;-1500", `"Ali;-1500"`],
+    ["-1500.50", "-1500.50"],
+  ])("%j -> %j", (v, out) => {
+    expect(csv(v)).toBe(out);
+  });
+  it("keeps a leading apostrophe on a value starting with CR", () => {
+    expect(csv("\r=1").replace(/^"/, "").startsWith("'")).toBe(true);
+  });
+  it("renders null and undefined as empty and non-finite numbers as text", () => {
+    const one = (v: number | null | undefined) => toCSV([{ key: "a", label: "a", value: () => v }], [1]).split("\r\n")[1];
+    expect(one(null)).toBe("");
+    expect(one(undefined)).toBe("");
+    expect(one(Number.NaN)).toBe("NaN");
+    expect(one(Number.POSITIVE_INFINITY)).toBe("Infinity");
+    expect(one(Number.NEGATIVE_INFINITY)).toBe("-Infinity");
+  });
+});
