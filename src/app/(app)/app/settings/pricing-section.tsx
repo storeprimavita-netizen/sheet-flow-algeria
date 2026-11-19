@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PricingFieldGroups, TargetEditor } from "@/components/pricing/pricing-fields";
-import { formErrors, formFromSettings, settingsFromForm, type PricingForm } from "@/lib/pricing-form";
+import { closeFocusTarget, focusIdFor, formErrors, formFromSettings, settingsFromForm, type PricingForm } from "@/lib/pricing-form";
 import { DEFAULT_PRICING_SETTINGS, type PricingSettings } from "@/lib/pricing-v2";
 import { resetPricingDefaults, savePricingDefaults } from "./actions";
 
@@ -98,7 +98,11 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
         <Button type="button" onClick={save} disabled={!valid || pending || !dirty}>
           {pending ? tc("actions.saving") : tc("actions.save")}
         </Button>
-        <Button ref={resetBtn} type="button" variant="outline" onClick={() => setConfirmOpen(true)} disabled={pending || usingBuiltIn}>
+        <Button ref={resetBtn} type="button" variant="outline" onClick={() => {
+            didReset.current = false;
+            setConfirmOpen(true);
+          }}
+          disabled={pending || usingBuiltIn}>
           {t("settings.reset")}
         </Button>
         {dirty ? <span className="text-xs text-muted-foreground">{t("settings.unsaved")}</span> : null}
@@ -116,11 +120,11 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
             // Radix would focus the (trigger-less) dialog opener: do it ourselves.
             e.preventDefault();
             const btn = resetBtn.current;
-            if (didReset.current || !btn || btn.disabled) {
-              // after a reset the button is disabled (built-in defaults): go to the section's first field
-              didReset.current = false;
-              document.getElementById("pd-target")?.focus();
-            } else btn.focus();
+            const where = closeFocusTarget({ didReset: didReset.current, btnDisabled: !btn || btn.disabled });
+            didReset.current = false;
+            // after a reset the button is disabled (built-in defaults): go to the section's first field
+            if (where === "firstField") document.getElementById(focusIdFor("pd", "target"))?.focus();
+            else btn?.focus();
           }}
         >
           <DialogHeader>

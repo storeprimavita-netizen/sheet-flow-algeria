@@ -15,7 +15,10 @@ import {
   ROUNDING_OPTIONS,
   TARGET_MODES,
   type TargetMode,
+  focusIdFor,
   overridesFromForm,
+  radioTabIndex,
+  withTargetMode,
   targetModeForKey,
   toPercent,
   type FieldDef,
@@ -89,7 +92,7 @@ export function PricingFieldGroups({
           </legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PRICING_FIELDS.filter((f) => f.group === g).map((f) => {
-              const id = `${idPrefix}-${f.key}`;
+              const id = focusIdFor(idPrefix, f.key);
               const err = errors[f.key];
               const label = t(`fields.${f.key}`);
               const dflt = defaultFor(f, defaults);
@@ -123,11 +126,12 @@ export function PricingFieldGroups({
                           className="h-6 w-6"
                           aria-label={t("field.reset", { field: label })}
                           title={t("field.reset", { field: label })}
-                          onClick={() => {
+                          onClick={(e) => {
                             set(null);
                             setGens((s) => ({ ...s, [f.key]: (s[f.key] ?? 0) + 1 }));
-                            // the reset button unmounts; keep keyboard focus on the field
-                            requestAnimationFrame(() => document.getElementById(id)?.focus());
+                            // the reset button unmounts; keep keyboard focus on the field.
+                            // detail 0 = keyboard activation; touch/mouse must not open the phone keyboard
+                            if (e.detail === 0) requestAnimationFrame(() => document.getElementById(id)?.focus());
                           }}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
@@ -192,14 +196,14 @@ export function TargetEditor({
         : t("target.defaultProfit", { value: ltr(String(dv)) })
       : undefined;
   const overridden = override && overridesFromForm(form, defaults).target !== undefined;
-  const id = `${idPrefix}-target`;
+  const id = focusIdFor(idPrefix, "target");
   const valueKey = `${form.targetMode}-${resetKey}-${gen}`;
   const setValue = (v: number | null) => update((cur) => ({ ...cur, targetValue: v }));
 
   function chooseMode(m: TargetMode) {
     if (form.targetMode === m) return;
     // switching mode resets the value: DZD and percent are never reinterpreted
-    update((cur) => ({ ...cur, targetMode: m, targetValue: null }));
+    update((cur) => withTargetMode(cur, m));
     setGen((g) => g + 1);
   }
 
@@ -228,10 +232,10 @@ export function TargetEditor({
                   className="h-6 w-6"
                   aria-label={t("field.reset", { field: t("target.label") })}
                   title={t("field.reset", { field: t("target.label") })}
-                  onClick={() => {
+                  onClick={(e) => {
                     update((cur) => ({ ...cur, targetMode: defaults.target.mode, targetValue: null }));
                     setGen((g) => g + 1);
-                    requestAnimationFrame(() => radioRefs.current[defaults.target.mode]?.focus());
+                    if (e.detail === 0) requestAnimationFrame(() => radioRefs.current[defaults.target.mode]?.focus());
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -262,7 +266,7 @@ export function TargetEditor({
                   type="button"
                   role="radio"
                   aria-checked={form.targetMode === m}
-                  tabIndex={form.targetMode === m ? 0 : -1}
+                  tabIndex={radioTabIndex(form.targetMode === m)}
                   onClick={() => chooseMode(m)}
                   className={`rounded px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     form.targetMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
