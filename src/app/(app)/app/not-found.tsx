@@ -3,6 +3,7 @@ import { FileQuestion } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { ButtonLink } from "@/components/button-link";
+import { DocumentTitle } from "@/components/document-title";
 import { Empty } from "@/components/empty";
 import { getProfile } from "@/lib/rbac";
 
@@ -18,6 +19,7 @@ export default async function AppNotFound() {
   const home = profile?.role === "admin" ? "/app/dashboard" : "/app/orders";
   return (
     <Empty className="mx-auto max-w-md space-y-4">
+      <DocumentTitle title={t("title")} />
       <FileQuestion className="mx-auto h-8 w-8 text-faint" aria-hidden />
       <div className="space-y-1">
         <h1 className="text-base font-semibold text-foreground">{t("title")}</h1>

@@ -26,6 +26,7 @@ describe("app not-found", () => {
       getProfile.mockResolvedValue({ role, workspaceId: "w" });
       const tree = await AppNotFound();
       expect(find(tree, (p) => typeof p.href === "string")?.href).toBe(href);
+      expect(find(tree, (p, type) => p.title === "t:title")).not.toBeNull();
       expect(find(tree, (p, type) => type === "h1" && p.children === "t:title")).not.toBeNull();
     }
   });
