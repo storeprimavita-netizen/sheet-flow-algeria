@@ -88,6 +88,7 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
               key={s}
               type="button"
               size="sm"
+              className="max-sm:min-h-11"
               variant={scenario === s ? "default" : "ghost"}
               aria-pressed={scenario === s}
               onClick={() => setScenario(s)}
@@ -96,13 +97,13 @@ export function PortfolioView({ rows }: { rows: PortfolioRow[] }) {
             </Button>
           ))}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
+        <Button type="button" variant="outline" size="sm" className="max-sm:min-h-11" onClick={exportCsv}>
           <Download />
           {t("export")}
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5 [&>:last-child]:col-span-2 lg:[&>:last-child]:col-span-1">
         {cards.map((c) => (
           <div key={c.key} className="card-surface min-w-0 rounded-xl p-4">
             <p className="text-xs text-muted-foreground">{t(`cards.${c.key}`)}</p>

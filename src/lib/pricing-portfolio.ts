@@ -174,7 +174,7 @@ export function portfolioCell(row: PortfolioRow, s: ScenarioName, key: Portfolio
     case "totalAdDzd":
       return r?.totalAdDzd ?? null;
     case "capital":
-      return r ? capitalNeeded(row.stockCost, r.totalAdDzd) : null;
+      return r && isIncluded(row, s) ? capitalNeeded(row.stockCost, r.totalAdDzd) : null;
     case "minPrice":
       return r?.breakEven.minSellingPrice ?? null;
   }

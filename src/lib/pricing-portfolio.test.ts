@@ -81,7 +81,18 @@ describe("portfolio", () => {
 
   it("no revenue gives a null margin, never NaN", () => {
     expect(portfolioTotals([], "medium").margin).toBeNull();
-    expect(portfolioTotals([row(benz({ pricing: null }))], "medium").margin).toBeNull();
+    const r0 = row();
+    const zero = { ...r0, results: { ...r0.results!, medium: { ...r0.results!.medium, sellable: 0 } } };
+    const t = portfolioTotals([zero], "medium");
+    expect(t.included).toBe(1);
+    expect(t.revenue).toBe(0);
+    expect(t.margin).toBeNull();
+  });
+
+  it("capital cell is null for a row left out of the totals", () => {
+    const r = row();
+    const out = { ...r, results: { ...r.results!, medium: { ...r.results!.medium, netProfit: null } } };
+    expect(portfolioCell(out, "medium", "capital")).toBeNull();
   });
 
   it("inactive products are left out of the rows and totals", () => {
