@@ -421,3 +421,5 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - Verify: `scripts/gate.sh` GATE OK on v3-PRICE-4 (680 passed / 3 skipped, live RLS suite).
 - Evidence: `docs/briefs/PRICE-4.review-4.md` PASS; D69. Owner: Q-24 and D69 section 6 accepted limits (owner may overturn D69).
 - Next: PRICE-4-F (reviews 1–4 lows, missing tests, 1,000-product cap, agent-redirect test, "Pricing calculator" sidebar label, Excel leading zero).
+
+- STATS-2-F round 2: review-1 findings 1-9 fixed (unmatured marker = Info icon + sr-only reason; commune extras folded into the name cell; drill params share DRILL_PARAMS; banner label guarded). Screenshots via chrome-devtools: dark EN 1280 (table, unmatured markers) and light AR 390 (commune panel open) checked, no defects. Not shot: orders/all?drill=shipped banner, other theme/locale combos. #12 (Latin names in AR) still open.
