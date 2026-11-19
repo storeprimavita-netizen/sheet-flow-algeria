@@ -166,6 +166,64 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     await ws2Admin.auth.signOut({ scope: "local" });
   });
 
+  test("product_pricing audit INSERT/UPDATE/DELETE", async () => {
+    const { data: prod, error: pe } = await admin
+      .from("products")
+      .insert({ workspace_id: workspaceId, name: "rls-audit-pricing" })
+      .select("id")
+      .single();
+    expect(pe).toBeNull();
+    const pid = prod!.id;
+    try {
+      const ins = await adminUser.from("product_pricing").insert({ product_id: pid, workspace_id: workspaceId, final_price: 100 });
+      expect(ins.error).toBeNull();
+      const upd = await adminUser.from("product_pricing").update({ final_price: 200 }).eq("product_id", pid).select();
+      expect(upd.error).toBeNull();
+      expect(upd.data).toHaveLength(1);
+      const del = await adminUser.from("product_pricing").delete().eq("product_id", pid).select();
+      expect(del.error).toBeNull();
+      expect(del.data).toHaveLength(1);
+      const { data: audit } = await adminUser
+        .from("audit_log")
+        .select("action, old_row, new_row")
+        .eq("workspace_id", workspaceId)
+        .eq("table_name", "product_pricing")
+        .order("created_at", { ascending: true });
+      const mine = (audit ?? []).filter(
+        (a) => ((a.new_row ?? a.old_row) as { product_id?: string } | null)?.product_id === pid,
+      );
+      expect(mine.map((a) => a.action)).toEqual(["INSERT", "UPDATE", "DELETE"]);
+    } finally {
+      await admin.from("product_pricing").delete().eq("product_id", pid);
+      await admin.from("products").delete().eq("id", pid);
+    }
+  });
+
+  test("product_pricing product_id cross-workspace UPDATE refused", async () => {
+    const ws2Admin = await signIn(LOCAL_URL!, "ws2-admin@seed.mnw");
+    const { data: ws2Prod } = await admin
+      .from("products")
+      .select("id")
+      .eq("workspace_id", ws2Id)
+      .eq("name", "WS2-only product")
+      .single();
+    const ws2Pid = ws2Prod!.id;
+    try {
+      const ins = await ws2Admin.from("product_pricing").insert({ product_id: ws2Pid, workspace_id: ws2Id, final_price: 50 });
+      expect(ins.error).toBeNull();
+      // move the row onto OUR workspace's product: composite FK (product_id, workspace_id) must refuse
+      const upd = await ws2Admin.from("product_pricing").update({ product_id: productId }).eq("product_id", ws2Pid).select();
+      expect(upd.error !== null || (upd.data ?? []).length === 0).toBe(true);
+      const { data: still } = await admin.from("product_pricing").select("product_id, workspace_id").eq("product_id", productId);
+      expect((still ?? []).every((r) => r.workspace_id === workspaceId)).toBe(true);
+      const { data: mine } = await admin.from("product_pricing").select("product_id").eq("product_id", ws2Pid);
+      expect(mine).toHaveLength(1);
+    } finally {
+      await admin.from("product_pricing").delete().eq("product_id", ws2Pid);
+      await ws2Admin.auth.signOut({ scope: "local" });
+    }
+  });
+
   test("pricing_defaults: agent cannot write; admin reset (delete) is audited as DELETE", async () => {
     const agentIns = await confAgent
       .from("settings")
