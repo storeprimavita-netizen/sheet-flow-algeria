@@ -13,6 +13,7 @@ import {
   type DeepPartial,
   type PricingSettings,
   type Rounding,
+  type ScenarioInput,
   type ScenarioResult,
 } from "./pricing-v2";
 
@@ -381,29 +382,71 @@ export const realBelow = (profitPerPiece: number | null): boolean => profitPerPi
 /**
  * Real column with data but a rate of exactly 0 (nothing confirmed / nothing delivered):
  * the engine rejects 0 (null results), but the truth is "impossible", the worst loss.
- * Scenario columns keep the engine's validation.
+ * With an ad cost of exactly 0 the confirmation rate drops out of the engine, so a 0
+ * confirmation is then not a loss on its own. Scenario columns keep the engine's validation.
  */
-export const realZeroRate = (hasData: boolean, input: { confirm: number | null; delivery: number | null }): boolean =>
-  hasData && (input.confirm === 0 || input.delivery === 0);
+export const realZeroRate = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  adCostUsd?: number | null,
+): boolean => hasData && ((input.confirm === 0 && adCostUsd !== 0) || input.delivery === 0);
+
+type RealRow = { key: string; breakEven?: BreakEvenKey; isInput?: boolean };
+const AD_TOTAL_ROWS = ["ordersNeeded", "totalAdUsd", "totalAdDzd"];
 
 /**
  * How one Real-column row is drawn when a rate is exactly 0 (the engine rejects 0):
  * "alt" = read it from the engine run with the zero rate set to 1 (the row does not depend
  * on that rate: the final price echo, the zero rate's own break-even); "impossible" = every
  * other dependent row; "normal" = no zero rate, an input row, or the rate-1 run has missing inputs.
+ * Ad cost exactly 0: confirmation drops out of the engine, so with c = 0 every row is "alt"
+ * except the order count and ad totals (they divide by c).
  */
 export function realZeroRowMode(
   input: { confirm: number | null; delivery: number | null },
-  row: { key: string; breakEven?: BreakEvenKey; isInput?: boolean },
+  row: RealRow,
   rateOneComplete: boolean,
+  adCostUsd?: number | null,
 ): "normal" | "impossible" | "alt" {
   const dZero = input.delivery === 0;
   const cZero = input.confirm === 0;
   if (!(dZero || cZero) || row.isInput || !rateOneComplete) return "normal";
   if (row.key === "finalPrice") return "alt";
-  if (dZero && !cZero && row.breakEven === "minDelivery") return "alt";
-  if (cZero && !dZero && row.breakEven === "minConfirmation") return "alt";
+  const cDrops = cZero && adCostUsd === 0;
+  if (cDrops && !dZero) return AD_TOTAL_ROWS.includes(row.key) ? "impossible" : "alt";
+  const cEff = cZero && !cDrops;
+  if (dZero && !cEff && row.breakEven === "minDelivery") return "alt";
+  if (cEff && !dZero && row.breakEven === "minConfirmation") return "alt";
   return "impossible";
+}
+
+/**
+ * One Real-column cell: the drawn state and which engine run it reads
+ * ("rateOne" = the run with the zero rate set to 1). Pure lookup for the JSX.
+ */
+export function realCellState(
+  mode: "normal" | "impossible" | "alt",
+  real: { result: ScenarioResult; rateOne: ScenarioResult | null; input: ScenarioInput },
+  row: RealRow & { get: (r: ScenarioResult) => number | null; input?: (i: ScenarioInput) => number | null },
+): { state: "value" | "missing" | "impossible"; srcKey: "result" | "rateOne"; value: number | null } {
+  const srcKey = mode === "alt" && real.rateOne ? "rateOne" : "result";
+  const src = srcKey === "rateOne" ? real.rateOne! : real.result;
+  const value = row.input ? row.input(real.input) : row.get(src);
+  const state = mode === "impossible" ? "impossible" : row.breakEven ? breakEvenState(src, row.breakEven) : value === null ? "missing" : "value";
+  return { state, srcKey, value };
+}
+
+/** True when at least one drawn Real cell (data present) is "impossible"; drives the footer. */
+export function anyRealImpossible(
+  real: { result: ScenarioResult; rateOne: ScenarioResult | null; input: ScenarioInput; hasData: boolean },
+  rows: (RealRow & { get: (r: ScenarioResult) => number | null; input?: (i: ScenarioInput) => number | null })[],
+): boolean {
+  if (!real.hasData) return false;
+  const rateOneComplete = !!real.rateOne && real.rateOne.totalCost !== null;
+  return rows.some((row) => {
+    const mode = realZeroRowMode(real.input, row, rateOneComplete, real.input.adCostUsd);
+    return realCellState(mode, real, row).state === "impossible";
+  });
 }
 
 /** Real column loses money: negative profit, or a zero rate with data. */
@@ -411,7 +454,8 @@ export const realLosing = (
   hasData: boolean,
   input: { confirm: number | null; delivery: number | null },
   profitPerPiece: number | null,
-): boolean => hasData && (realZeroRate(hasData, input) || realBelow(profitPerPiece));
+  adCostUsd?: number | null,
+): boolean => hasData && (realZeroRate(hasData, input, adCostUsd) || realBelow(profitPerPiece));
 
 /** Sale price strictly below the medium break-even selling price; null on either side -> no badge. */
 export const saleBelowBreakEven = (salePrice: number | null, minSellingPrice: number | null): boolean =>

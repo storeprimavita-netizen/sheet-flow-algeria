@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Kpi } from "./kpi";
-import { realScenarioInput } from "./pricing-real";
+import { realScenarioInput, toRealKpiSlice } from "./pricing-real";
 import { DEFAULT_PRICING_SETTINGS as S, computeAll, computeScenario } from "./pricing-v2";
 
 const metric = (value: number | null, matured = true) => ({ num: 0, den: 0, value, matured });
@@ -83,5 +83,12 @@ describe("realScenarioInput", () => {
   it("a real 0% delivery maps to 0, not null", () => {
     const r = realScenarioInput(kpi({ delivery: metric(0) }), S.parallelRate);
     expect(r.input.delivery).toBe(0);
+  });
+  it("a real 0% confirmation maps to 0, not null", () => {
+    expect(realScenarioInput(kpi({ confirmation: { ...metric(0), of_received: 0 } }), S.parallelRate).input.confirm).toBe(0);
+  });
+  it("toRealKpiSlice keeps no pnl, waterfall or net_profit keys", () => {
+    const slice = toRealKpiSlice({ ...kpi(), pnl: {}, waterfall: [], net_profit: 1 } as unknown as Kpi) as Record<string, unknown>;
+    for (const k of ["pnl", "waterfall", "net_profit"]) expect(k in slice).toBe(false);
   });
 });

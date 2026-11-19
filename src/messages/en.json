@@ -1118,6 +1118,7 @@
     "missing": "Missing input",
     "notPossible": "Not possible",
     "notPossibleHint": "The price cannot cover the costs at any value of this input.",
+    "realBothZeroHint": "No orders were confirmed or delivered yet, so Real break-even cannot be computed",
     "da": "DA",
     "groups": {
       "target": "Profit target",
