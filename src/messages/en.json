@@ -34,7 +34,8 @@
     "usersRoles": "Users & roles",
     "storeHub": "Store",
     "storePages": "Product pages",
-    "storeSettings": "Store settings"
+    "storeSettings": "Store settings",
+    "statistics": "Statistics"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -448,6 +449,13 @@
       "saveBlocked": "Choose another wilaya or delivery type to save.",
       "createFailed": "The order could not be saved. Refresh the page and try again.",
       "invalid": "Check the order: choose a product and fill in every required field."
+    },
+    "drill": {
+      "received": "Received orders",
+      "confirmed": "Confirmed orders",
+      "delivered": "Delivered orders",
+      "return": "Returned orders",
+      "clear": "Show all orders"
     }
   },
   "expenses": {
@@ -1434,5 +1442,33 @@
     "title": "Page not found",
     "body": "This page doesn't exist, or you don't have access to it.",
     "back": "Back to the dashboard"
+  },
+  "statistics": {
+    "title": "Statistics",
+    "subtitle": "Confirmation, delivery and return rates by wilaya and commune. Open a wilaya to see its communes; every count opens the orders behind it.",
+    "received": "Received",
+    "confirmation": "Confirmation",
+    "delivery": "Delivery",
+    "returnRate": "Return",
+    "notEnoughData": "Not enough data yet",
+    "expand": "Show communes of {name}",
+    "collapse": "Hide communes of {name}",
+    "commune": "Commune",
+    "unknownCommune": "Unknown commune",
+    "noCommunes": "No orders in this wilaya for the selected filters.",
+    "avgDays": "Avg days to deliver",
+    "sample": "{n} delivered",
+    "home": "Home",
+    "stopdesk": "Stop desk",
+    "communeError": "Couldn't load the communes.",
+    "retry": "Try again",
+    "errorTitle": "Statistics couldn't load",
+    "emptyTitle": "No orders match these filters",
+    "emptyBody": "Widen the period or clear the product filter to see wilaya rates.",
+    "widenPeriod": "Clear the period",
+    "clearProduct": "Clear the product",
+    "unknownWilaya": "Unknown wilaya",
+    "allOrders": "Open all orders",
+    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection."
   }
 }

@@ -24,6 +24,7 @@ import {
   FileText,
   SlidersHorizontal,
   Settings as SettingsIcon,
+  MapPinned,
 } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
@@ -67,6 +68,7 @@ export const GROUPS: NavGroup[] = [
       { key: "shipping", oldKey: "delivery", href: "/app/orders/delivery", icon: Truck, counter: "delivery" },
       { key: "all", href: "/app/orders/all", match: ["/app/orders"], icon: ListChecks, adminOnly: true },
       { key: "customers", oldKey: "contacts", href: "/app/contacts", icon: Users, adminOnly: true },
+      { key: "statistics", href: "/app/statistics", icon: MapPinned, adminOnly: true },
     ],
   },
   {

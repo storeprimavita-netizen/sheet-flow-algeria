@@ -35,12 +35,18 @@ export function OrdersFilterBar({
 
   const get = (k: string) => sp.get(k) ?? "";
 
+  /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
+  function leaveDrill(next: URLSearchParams) {
+    for (const k of ["drill", "commune_key", "commune_unknown"]) next.delete(k);
+  }
+
   function setDates(from: string, to: string) {
     const next = new URLSearchParams(sp.toString());
     for (const [k, v] of [["from", from], ["to", to]] as const) {
       if (v) next.set(k, v);
       else next.delete(k);
     }
+    leaveDrill(next);
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -48,6 +54,7 @@ export function OrdersFilterBar({
     const next = new URLSearchParams(sp.toString());
     if (!v || v === ALL) next.delete(k);
     else next.set(k, v);
+    leaveDrill(next);
     next.delete("page"); // any filter change resets pagination
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }

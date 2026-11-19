@@ -48,7 +48,7 @@ describe("ALGERIA_OUTLINE", () => {
 
 describe("wilaya legend bidi", () => {
   // No component test setup (jsdom/RTL) in this repo, so assert on source.
-  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/components/stats/wilaya-section.tsx", "utf8");
   it("wraps every range label in bdi dir=ltr", () => {
     for (const label of ["&lt;40%", "40–55%", "55–70%", "70–85%", "85%+"]) {
       expect(src).toContain(`<bdi dir="ltr">${label}</bdi>`);
@@ -57,8 +57,7 @@ describe("wilaya legend bidi", () => {
 });
 
 const datum = (o: Partial<WilayaMapDatum>): WilayaMapDatum => ({
-  code: 16, name: null, totalOrders: 0, confirmedOrders: 0, deliveryRate: null,
-  stopShippingManual: false, stopShippingAuto: false, ...o,
+  code: 16, name: null, totalOrders: 0, deliveryRate: null, matured: true, ...o,
 });
 
 describe("wilayaTitle", () => {
@@ -73,12 +72,20 @@ describe("wilayaTitle", () => {
 });
 
 describe("wilaya table label structure", () => {
-  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/components/stats/wilaya-table.tsx", "utf8");
   it("renders ltr code, readable separator, name in bdi", () => {
-    expect(src).toContain('<bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi>');
+    expect(src).toContain('<bdi dir="ltr">{code}</bdi><span> · </span><bdi>{w.name}</bdi>');
     expect(src).not.toContain("<span aria-hidden> · </span>");
   });
   it("has a scroll-fade hint on the table", () => {
     expect(src).toContain("data-scroll-fade");
+  });
+});
+
+describe("AlgeriaMap matured fill", () => {
+  const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
+  it("an unmatured datum takes the neutral fill, not a status fill", () => {
+    expect(src).toContain('if (!d.matured || d.deliveryRate === null) return "fill-neutral/30"');
+    expect(src).not.toContain("minOrders");
   });
 });
