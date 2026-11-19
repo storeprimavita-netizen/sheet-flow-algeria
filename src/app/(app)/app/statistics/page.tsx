@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/button-link";
 import { Empty } from "@/components/empty";
 import { WilayaSection, type StatsRow } from "@/components/stats/wilaya-section";
 import { CommunePanel, CommunePanelSkeleton } from "@/components/stats/commune-panel";
+import { SeasonCompare, SeasonCompareSkeleton } from "@/components/stats/season-compare";
 import { StatsFilterBar, type StatsOpt } from "@/components/stats/stats-filter-bar";
 import { getOptionSet } from "@/lib/option-sets";
 import { getProfile } from "@/lib/rbac";
@@ -89,6 +90,13 @@ export default async function StatisticsPage({
   const keep = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && v && k !== "wilaya") keep.set(k, v);
   const baseHref = `/app/statistics${keep.size ? `?${keep.toString()}` : ""}`;
+  const yearHref = (year: number) => {
+    const p = new URLSearchParams(keep);
+    for (const k of ["from", "to"]) p.delete(k);
+    p.set("season", season.season!.id);
+    p.set("year", String(year));
+    return `/app/statistics?${p.toString()}`;
+  };
   const retryHref = open ? `${baseHref}${keep.size ? "&" : "?"}wilaya=${wantedWilaya}` : baseHref;
 
   const names = Object.fromEntries(rows.flatMap((r) => (r.code !== null && r.name ? [[r.code, r.name] as const] : [])));
@@ -108,6 +116,19 @@ export default async function StatisticsPage({
         overridden={season.overridden}
         notes={notes}
       />
+
+      {season.season ? (
+        <Suspense fallback={<SeasonCompareSkeleton />}>
+          <SeasonCompare
+            season={season.season}
+            selectedYear={season.period?.year ?? null}
+            product={f.product}
+            pFilters={pFilters}
+            hrefForYear={yearHref}
+            retryHref={baseHref}
+          />
+        </Suspense>
+      ) : null}
 
       {error ? (
         <Empty>
