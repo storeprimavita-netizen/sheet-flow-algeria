@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, requireAdmin } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
-import { realKpiForProduct } from "@/lib/pricing-real";
+import { realKpiForProduct, toRealKpiSlice } from "@/lib/pricing-real";
 import { sanitizeSparse } from "@/lib/pricing-form";
 import { PricingCalculator } from "./pricing-calculator";
 
@@ -37,7 +37,7 @@ export default async function ProductPricingPage({ params }: { params: Promise<{
         perPieceCost={cost?.sourcing_cost_dzd ?? null}
         stock={product.stock}
         salePrice={product.sale_price}
-        realKpi={realKpi}
+        realKpi={toRealKpiSlice(realKpi)}
         saved={{
           overrides: sanitizeSparse(pricing?.overrides),
           adBest: pricing?.ad_best_usd ?? null,

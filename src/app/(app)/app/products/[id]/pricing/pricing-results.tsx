@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/chip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PricingCell, type PricingCellState } from "@/components/pricing/pricing-cell";
 import { formatCurrency, formatInt, formatPercent, formatUsd, ltr } from "@/lib/format";
-import { breakEvenState, type BreakEvenKey } from "@/lib/pricing-form";
+import { breakEvenState, realLosing, realZeroRate, type BreakEvenKey } from "@/lib/pricing-form";
 import type { ScenarioInput, ScenarioName, ScenarioResult } from "@/lib/pricing-v2";
 
 const SCENARIOS: readonly ScenarioName[] = ["best", "medium", "worst"];
@@ -97,18 +97,20 @@ export type RealColumn = {
 };
 
 /** Focusable hint: keyboard and touch reach it (Popover), the text is also the button's description. */
-function Hint({ label, text, children }: { label: string; text: string; children?: React.ReactNode }) {
+function Hint({ text, floatIcon, children }: { text: string; floatIcon?: boolean; children?: React.ReactNode }) {
   const id = React.useId();
   return (
     <Popover>
       <PopoverTrigger
         type="button"
-        aria-label={label}
         aria-describedby={id}
-        className="inline-flex items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className={`-mx-1 inline-flex min-h-9 items-center gap-1 rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${floatIcon ? "relative" : ""}`}
       >
         {children}
-        <Info className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+        <Info
+          className={`h-3.5 w-3.5 text-muted-foreground ${floatIcon ? "absolute end-full top-1/2 -translate-y-1/2" : ""}`}
+          aria-hidden
+        />
       </PopoverTrigger>
       <span id={id} hidden>
         {text}
@@ -130,12 +132,13 @@ export function PricingResults({
   unit: string;
 }) {
   const t = useTranslations("pricingV2");
-  const realLoses = !!real && real.hasData && (real.result.profitPerPiece ?? 0) < 0;
+  const realZero = !!real && realZeroRate(real.hasData, real.input);
+  const realLoses = !!real && realLosing(real.hasData, real.input, real.result.profitPerPiece);
   const losing = [
     ...SCENARIOS.filter((s) => (results[s].profitPerPiece ?? 0) < 0).map((s) => t(`scenario.${s}`)),
     ...(realLoses ? [t("scenario.real")] : []),
   ];
-  const anyImpossible = SCENARIOS.some((s) =>
+  const anyImpossible = realZero || SCENARIOS.some((s) =>
     (["minConfirmation", "minDelivery", "maxAdCostUsd"] as const).some((k) => breakEvenState(results[s], k) === "impossible"),
   );
 
@@ -173,7 +176,7 @@ export function PricingResults({
                     {!real.hasData ? (
                       <span className="text-xs font-normal text-muted-foreground">{t("real.noData")}</span>
                     ) : !real.matured ? (
-                      <Hint label={t("real.preliminary")} text={t("real.preliminaryHint")}>
+                      <Hint text={t("real.preliminaryHint")}>
                         <Chip token="neutral" size="sm">
                           {t("real.preliminary")}
                         </Chip>
@@ -218,7 +221,9 @@ export function PricingResults({
                         const v = !real.hasData ? null : row.input ? row.input(real.input) : row.get(real.result);
                         const state: PricingCellState = !real.hasData
                           ? "missing"
-                          : row.breakEven
+                          : realZero && !row.input
+                            ? "impossible"
+                            : row.breakEven
                             ? breakEvenState(real.result, row.breakEven)
                             : v === null
                               ? "missing"
@@ -230,7 +235,7 @@ export function PricingResults({
                         );
                         if (row.key === "adCostUsd" && state === "value") {
                           return (
-                            <Hint label={t("rows.adCostUsd")} text={t("real.adCostHint", { rate: formatInt(real.rate) })}>
+                            <Hint floatIcon text={t("real.adCostHint", { rate: String(Math.round(real.rate * 100) / 100) })}>
                               <span className="flex flex-col items-end">
                                 {cell}
                                 {real.adCostDzd !== null ? (

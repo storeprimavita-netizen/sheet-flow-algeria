@@ -375,6 +375,24 @@ export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | 
   return "missing";
 }
 
+/** Real column: strictly negative profit per piece is "below break-even" (0 is not). */
+export const realBelow = (profitPerPiece: number | null): boolean => profitPerPiece !== null && profitPerPiece < 0;
+
+/**
+ * Real column with data but a rate of exactly 0 (nothing confirmed / nothing delivered):
+ * the engine rejects 0 (null results), but the truth is "impossible", the worst loss.
+ * Scenario columns keep the engine's validation.
+ */
+export const realZeroRate = (hasData: boolean, input: { confirm: number | null; delivery: number | null }): boolean =>
+  hasData && (input.confirm === 0 || input.delivery === 0);
+
+/** Real column loses money: negative profit, or a zero rate with data. */
+export const realLosing = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  profitPerPiece: number | null,
+): boolean => hasData && (realZeroRate(hasData, input) || realBelow(profitPerPiece));
+
 /** Sale price strictly below the medium break-even selling price; null on either side -> no badge. */
 export const saleBelowBreakEven = (salePrice: number | null, minSellingPrice: number | null): boolean =>
   salePrice !== null && minSellingPrice !== null && salePrice < minSellingPrice;

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  realBelow,
+  realLosing,
+  realZeroRate,
   countOverrides,
   targetModeForKey,
   breakEvenState,
@@ -237,5 +240,24 @@ describe("saleBelowBreakEven", () => {
     expect(saleBelowBreakEven(3962, 3962)).toBe(false);
     expect(saleBelowBreakEven(null, 3962)).toBe(false);
     expect(saleBelowBreakEven(3000, null)).toBe(false);
+  });
+});
+
+describe("Real column classification (review 2)", () => {
+  const ok = { confirm: 0.65, delivery: 0.65 };
+  it("profit -1 is below, 0 and null are not", () => {
+    expect(realBelow(-1)).toBe(true);
+    expect(realBelow(0)).toBe(false);
+    expect(realBelow(null)).toBe(false);
+  });
+  it("a 0% delivery or confirmation with data is a zero rate and a loss", () => {
+    expect(realZeroRate(true, { confirm: 0.65, delivery: 0 })).toBe(true);
+    expect(realZeroRate(true, { confirm: 0, delivery: 0.65 })).toBe(true);
+    expect(realLosing(true, { confirm: 0.65, delivery: 0 }, null)).toBe(true);
+    expect(realZeroRate(false, { confirm: 0, delivery: 0 })).toBe(false);
+    expect(realLosing(false, { confirm: 0, delivery: 0 }, null)).toBe(false);
+    expect(realZeroRate(true, { confirm: null, delivery: 0.5 })).toBe(false);
+    expect(realLosing(true, ok, 5)).toBe(false);
+    expect(realLosing(true, ok, -5)).toBe(true);
   });
 });

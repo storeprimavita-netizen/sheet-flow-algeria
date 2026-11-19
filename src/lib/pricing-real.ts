@@ -4,6 +4,24 @@ import type { Database } from "@/lib/supabase/database.types";
 import { asKpi, type Kpi } from "@/lib/kpi";
 import type { ScenarioInput } from "@/lib/pricing-v2";
 
+/** Only what the Real column needs (keeps pnl/waterfall/net profit out of the client bundle). */
+export type RealKpiSlice = {
+  confirmation: { value: number | null; matured: boolean };
+  delivery: { value: number | null; matured: boolean };
+  counts: { received: number };
+  ad_spend_dzd?: number | null;
+};
+
+export const toRealKpiSlice = (k: Kpi | null): RealKpiSlice | null =>
+  k
+    ? {
+        confirmation: { value: k.confirmation.value, matured: k.confirmation.matured },
+        delivery: { value: k.delivery.value, matured: k.delivery.matured },
+        counts: { received: k.counts.received },
+        ad_spend_dzd: k.ad_spend_dzd,
+      }
+    : null;
+
 export type RealScenario = { input: ScenarioInput; adCostDzd: number | null; hasData: boolean; matured: boolean };
 
 /**
@@ -14,7 +32,7 @@ export type RealScenario = { input: ScenarioInput; adCostDzd: number | null; has
  * received orders, converted at the engine's parallel rate B (so the Ads line
  * equals real DZD spend per delivered). Unknown rate / 0 received -> null.
  */
-export function realScenarioInput(kpi: Kpi | null, parallelRate: number | null): RealScenario {
+export function realScenarioInput(kpi: RealKpiSlice | null, parallelRate: number | null): RealScenario {
   const received = kpi?.counts.received ?? 0;
   const spend = kpi?.ad_spend_dzd;
   const rateOk = typeof parallelRate === "number" && Number.isFinite(parallelRate) && parallelRate > 0;

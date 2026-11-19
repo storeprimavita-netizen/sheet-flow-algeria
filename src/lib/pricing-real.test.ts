@@ -75,4 +75,13 @@ describe("realScenarioInput", () => {
     expect(Math.round(real.totalCost ?? 0)).toBe(3885);
     expect(real.totalCost).toBeCloseTo(medium.totalCost ?? 0, 6);
   });
+  it("keeps adCostDzd when the parallel rate is invalid", () => {
+    const r = realScenarioInput(kpi({ ad_spend_dzd: 22000 }), 0);
+    expect(r.input.adCostUsd).toBeNull();
+    expect(r.adCostDzd).toBe(220);
+  });
+  it("a real 0% delivery maps to 0, not null", () => {
+    const r = realScenarioInput(kpi({ delivery: metric(0) }), S.parallelRate);
+    expect(r.input.delivery).toBe(0);
+  });
 });

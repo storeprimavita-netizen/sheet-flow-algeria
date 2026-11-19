@@ -25,8 +25,7 @@ import {
   stockCostTotal,
   type PricingForm,
 } from "@/lib/pricing-form";
-import type { Kpi } from "@/lib/kpi";
-import { realScenarioInput } from "@/lib/pricing-real";
+import { realScenarioInput, type RealKpiSlice } from "@/lib/pricing-real";
 import { computeAll, computeScenario, resolveSettings, scenarioInputs, type DeepPartial, type PricingSettings } from "@/lib/pricing-v2";
 import { saveProductPricing } from "./actions";
 import { PricingResults } from "./pricing-results";
@@ -70,7 +69,7 @@ export function PricingCalculator({
   perPieceCost: number | null;
   stock: number;
   salePrice: number | null;
-  realKpi: Kpi | null;
+  realKpi: RealKpiSlice | null;
   saved: SavedPricing;
 }) {
   const t = useTranslations("pricingV2");
