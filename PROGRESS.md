@@ -312,3 +312,8 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Evidence: full scripts/gate.sh GATE OK, 507 tests (3 skipped) with the live RLS suite.
 - Owner: production db push of 00049 is owner-only (O-2). No order form on the page yet (STORE-3/4). Store assets (S-1) still open — logo, photos, policy texts.
 - Next: STORE-3.
+
+### ORD-1 round 4 (D59)
+- data-table.tsx: table outline off only while a row is current (ring is the single indicator; with no row current the table outline shows); frozen column divider is now an `after:` line on the sticky th/td (logical end, `border-strong`), border-collapse kept.
+- Tests in orders.order_seq.rls.test.ts: real fallback via psql, ON CONFLICT asserts, swap_order, manual insert (admin session), webhook replayEvent.
+- Browser check done (chrome-devtools): EN dark + AR light on orders/all, AR dark on delivery; orders/all `?product_id=x` error state + Retry in EN and AR. Screenshots `docs/design/audit/ORD-1/r4-*`.
