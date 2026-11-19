@@ -365,3 +365,11 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 STATS-2 build: screenshots taken in dark EN only (empty state, populated, drilled Alger) with chrome-devtools; light theme, AR and 390px NOT verified. Fixed Return column clipping by stacking the map below the table until 2xl.
 
 STATS-2 round 2 (review-1 FIX): fixed findings 1-8, 10-13 (drill error -> retry block, drill banner + drop drill params on filter/sort change, Unknown wilaya row without drill, 390px compact table with no horizontal scroll, commune panel capped to viewport + sticky name column, statistics error reason, extras gated by is_admin in migration 00060, shared ISO_DATE, `commune_unknown=1` param, visible drill-link underline, 44px chevron hit area, empty-state action). Not done: 9 (home/stop-desk drill), 14 (no breadcrumb component exists app-wide). Screenshots (chrome-devtools): light 390 EN and AR with the commune panel open, empty state, drill banner in docs/design/audit/STATS-2/. Agent redirect checked (307 to /app/orders, no data in body). Real error state not forced (no safe way to make the RPC fail locally).
+
+## STATS-2 done (review-2 PASS)
+- Done: `/app/statistics` wilaya confirmation/delivery table with commune drill-down (KPI RPCs 00059-00060, extras gated by is_admin, drill banner, 390px compact layout).
+- Verify: `scripts/gate.sh` GATE OK (tsc, 588 passed / 3 skipped with live RLS suite, i18n parity, color lint, build, protected paths).
+- Evidence: docs/briefs/STATS-2.review-2.md PASS (no high or medium); screenshots docs/design/audit/STATS-2/ (dark EN not re-shot in review 2).
+- Open: STATS-2-F (12 lows, missing brief tests, review-1 findings 9 and 14).
+- Owner: migrations 00059-00060 need the production push; product call on Latin names in AR (STATS-2-F).
+- Next: STATS-2-F after the owner's priority rows; STATS-3 is unblocked once STATS-2 merges to v3.
