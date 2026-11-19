@@ -8,6 +8,23 @@ owner may overturn").
 
 ## Open
 
+### Q-14 · STORE-3 · 2026-11-19 · answered-by-default
+An offer such as "2 pieces for 9,000 DZD" could also promise free delivery.
+Should your offers be able to do that? **Applied by default (D60):** not for
+now. An offer changes the product price only, and the customer always pays the
+delivery price of her wilaya on top, as today. Nothing on the store says "free
+delivery". Reason: free delivery means you pay the carrier instead of the
+customer. In your price sheet that is 500 to 1,600 DZD per home order (Algiers
+700) and 370 to 1,120 per stop-desk order, and your money rule today says the
+delivery price is never a cost for you. The other options: (a) allow it on the
+offers you choose: the customer pays the products only, you pay the carrier,
+and that amount is counted as a cost of that order in your profit, like the
+return fee; the offers screen shows what it costs you. This is the one
+recommended if you want free delivery. (b) the same, but only for stop-desk
+delivery, which costs you less. Say which one you want; it is then added
+together with the order form, the step that computes the delivery price.
+Nothing is blocked.
+
 ### Q-13 · STORE-1 · 2026-11-18 · answered-by-default
 A product already has its sizes saved (S, M, L). Later you want to add a second
 option to it, for example the colour. **Applied by default (D55):** this is not
