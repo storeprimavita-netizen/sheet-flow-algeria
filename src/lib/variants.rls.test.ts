@@ -397,7 +397,9 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     a.cfg.variants = [a.cfg.variants[0], { id: vm2, sku: null, is_active: true, values: { [o]: m2 } }];
     // the old M size still uses the old M value: refused (in use), nothing changes
     expect((await save(adminUser, p, a.cfg)).error?.code).toBe("23503");
-    // with the old size kept the old value cannot go; re-adding after a clean removal is covered below
+  });
+
+  test("re-adding a removed label after a clean removal, and inside one save", async () => {
     const b = sizeCfg();
     const p2 = await bare();
     b.cfg.variants = [b.cfg.variants[0]]; // only S has a size
@@ -419,6 +421,14 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     const a = sizeCfg();
     a.cfg.variants[1].values = {};
     expect((await save(adminUser, p, a.cfg)).error?.message).toMatch(/incomplete size/);
+    expect(await counts(p)).toEqual({ options: 0, variants: 0 });
+    // zero options: value-less sizes are refused
+    const z: Cfg = { options: [], variants: [{ id: uid(), sku: null, is_active: true, values: {} }] };
+    expect((await save(adminUser, p, z)).error?.message).toMatch(/incomplete size/);
+    // "values": null (direct RPC) is an incomplete size too
+    const n = sizeCfg();
+    (n.cfg.variants[1] as unknown as { values: unknown }).values = null;
+    expect((await save(adminUser, p, n.cfg)).error?.message).toMatch(/incomplete size/);
     expect(await counts(p)).toEqual({ options: 0, variants: 0 });
     // a key that is not a payload option is refused too
     const b = sizeCfg();
@@ -529,7 +539,8 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     const r = await adminUser.from("orders").update({ variant_id: a.variants.L }).eq("id", o).select("id");
     expect(r.error).toBeNull();
     expect(r.data).toHaveLength(1);
-    // reserved is a derived stage: nothing was taken from stock yet, so no hold moves
+    // D34: reserved is derived per product (00031), there is no per-size reserved count, so no hold moves
+    expect(await moves(o)).toEqual([]);
     expect(await vstock(a.variants.M)).toBe(heldM);
     expect(await vstock(a.variants.L)).toBe(0);
     expect(await pstock(a.p)).toBe(total);
