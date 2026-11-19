@@ -382,3 +382,11 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 ## STATS-3 round 5 (D66)
 - Orders/all drill chips: category shows "Category: <label>", delivery type shows the translated home/stop-desk label, only home/stopdesk accepted (otherwise dropped, `role=status` note); unknown label falls back to "<field>: Selected". Pure fns + tests in `orders/_lib/drill-filters*.ts`.
 - Browser (chrome-devtools, viewport locked at 390): screenshots `docs/design/audit/STATS-3/final-orders-drill-390-{en-dark,ar-dark,en-light}.png`, `final-stats-390-{en,ar}-dark.png`. Chip removal and Clear all verified on both pages. Not done: 1280 screens and Settings > Seasons dark EN 1280 (viewport could not be resized). Observed: removing one Statistics chip also dropped season/year from the URL (check in STATS-3-F).
+
+## STATS-3 done (review-5 PASS, D66)
+- Done: admin seasons (named date ranges per year, migrations 00061-00062) and one URL-state filter bar on Statistics; Orders/all drill chips (category label, translated delivery type, checked values).
+- Verify: `scripts/gate.sh` GATE OK (tsc, 627 passed / 3 skipped with live RLS suite, i18n parity, color lint, build, protected paths, secret scan). Retry after test-cleanup 8f72ccb; local DB reset to 00062.
+- Evidence: docs/briefs/STATS-3.review-5.md PASS; screenshots docs/design/audit/STATS-3/ (390px only).
+- Open: STATS-3-F (review-3/4/5 lows, missing tests, chip removal drops season/year from URL, seasons.rls.test.ts 5s timeouts when leaked workspaces exist).
+- Owner: migrations 00061-00062 await the production push.
+- Next: STATS-3-F after the owner's priority rows; STATS-4 is unblocked once STATS-3 merges to v3.
