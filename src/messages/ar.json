@@ -1353,6 +1353,30 @@
     "outOfStock": "غير متوفر",
     "related": "قد يعجبك أيضاً",
     "noPhoto": "لا توجد صورة",
+    "sizeguide": {
+      "title": "دليل المقاسات",
+      "region": "جدول المقاسات، قابل للتمرير",
+      "size": "المقاس",
+      "fits": "الملاءمة",
+      "shoulders": "الأكتاف (سم)",
+      "chest": "الصدر (سم)",
+      "waist": "الخصر (سم)",
+      "weight": "الوزن (كغ)"
+    },
+    "reviews": {
+      "title": "آراء الزبونات",
+      "stars": "{n} من 5 نجوم",
+      "ratingLink": "عرض الآراء",
+      "verified": "تم تأكيد الطلب",
+      "anonymous": "زبونة",
+      "more": "عرض المزيد من الآراء ({n})",
+      "countZero": "{n} تقييم",
+      "countOne": "تقييم واحد",
+      "countTwo": "تقييمان",
+      "countFew": "{n} تقييمات",
+      "countMany": "{n} تقييماً",
+      "countOther": "{n} تقييم"
+    },
     "galleryAlt": "صورة {n} من {total}",
     "defaultTitle": "المتجر",
     "notFound": {

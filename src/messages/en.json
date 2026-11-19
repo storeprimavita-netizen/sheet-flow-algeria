@@ -1353,6 +1353,30 @@
     "outOfStock": "Out of stock",
     "related": "You may also like",
     "noPhoto": "No photo",
+    "sizeguide": {
+      "title": "Size guide",
+      "region": "Size table, scrollable",
+      "size": "Size",
+      "fits": "Fits",
+      "shoulders": "Shoulders (cm)",
+      "chest": "Chest (cm)",
+      "waist": "Waist (cm)",
+      "weight": "Weight (kg)"
+    },
+    "reviews": {
+      "title": "Customer reviews",
+      "stars": "{n} out of 5 stars",
+      "ratingLink": "See reviews",
+      "verified": "Order confirmed",
+      "anonymous": "Customer",
+      "more": "Show more reviews ({n})",
+      "countZero": "{n} reviews",
+      "countOne": "1 review",
+      "countTwo": "{n} reviews",
+      "countFew": "{n} reviews",
+      "countMany": "{n} reviews",
+      "countOther": "{n} reviews"
+    },
     "galleryAlt": "Photo {n} of {total}",
     "defaultTitle": "Store",
     "notFound": {
