@@ -15,7 +15,7 @@ function esc(v: string | number | null | undefined): string {
   // A leading +/- is safe only when the whole value is number-like (phones, amounts).
   if (typeof v === "string") {
     const t = v.trimStart();
-    if (/^[=@\t\r\uFF1D]/.test(t) || (/^[+-]/.test(t) && !/^[+-]?\d[\d .]*$/.test(t))) s = `'${s}`;
+    if (/^[\t\r]/.test(v) || /^[=@\uFF1D]/.test(t) || (/^[+-]/.test(t) && !/^[+-]?\d[\d .]*$/.test(t))) s = `'${s}`;
   }
   if (/[",\n\r]|^\s|\s$/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
