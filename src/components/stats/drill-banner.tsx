@@ -8,7 +8,7 @@ export function DrillBanner({ metric, parts, clearLabel }: { metric: string; par
       <p>
         <span className="font-medium text-foreground">{metric}</span>
         <span className="text-muted-foreground">
-          {parts.filter(Boolean).map((p) => ` · ${p}`).join("")}
+          {parts.map((p) => p.trim()).filter(Boolean).map((p) => ` · ${p}`).join("")}
         </span>
       </p>
       <ButtonLink href="/app/orders/all" size="sm" variant="outline">{clearLabel}</ButtonLink>

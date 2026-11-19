@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
-import { parseDrillFilters } from "../_lib/drill-filters";
+import { DRILL_FILTER_KEYS, parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
 import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
 import { Empty } from "@/components/empty";
@@ -43,9 +43,8 @@ export default async function AllOrdersPage({
     supabase.from("wilayas").select("code, name").order("code"),
     supabase.from("profiles").select("user_id, display_name, role").eq("is_active", true),
   ]);
-  const agents = (team ?? [])
-    .filter((a) => a.role !== "admin")
-    .map((a) => ({ id: a.user_id, name: a.display_name ?? a.user_id.slice(0, 8), role: a.role }));
+  const members = (team ?? []).map((a) => ({ id: a.user_id, name: a.display_name ?? a.user_id.slice(0, 8), role: a.role }));
+  const agents = members.filter((a) => a.role !== "admin");
   const nameByUser = new Map((team ?? []).map((a) => [a.user_id, a.display_name ?? a.user_id.slice(0, 8)]));
 
   // Drill mode (from /app/statistics): the exact orders behind one SQL count. The id list comes
@@ -56,7 +55,7 @@ export default async function AllOrdersPage({
   const communeLabel = get("commune_label").slice(0, MAX_COMMUNE_KEY);
   // Statistics filters on this page: `category` (option uuid) and `conf_agent` (confirmation agent
   // only; `agent` keeps its confirmation-OR-delivery meaning). Same text comparison as kpi_order_set.
-  const { filters: drillChecked, dropped: droppedDrill } = parseDrillFilters(get);
+  const { filters: drillChecked, dropped: droppedDrill } = parseDrillFilters(get, DRILL_FILTER_KEYS.filter((k) => Array.isArray(sp[k])));
   const { category, confAgent, deliveryType } = drillChecked;
   const drillFilters: Record<string, string> = {};
   if (category) drillFilters.category = category;
@@ -239,7 +238,8 @@ export default async function AllOrdersPage({
 
   const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
-  const agentOpts: Opt[] = agents.map((a) => ({ value: a.id, label: a.name }));
+  // every workspace member (admins included) so a conf_agent chip always has a name
+  const agentOpts: Opt[] = members.map((a) => ({ value: a.id, label: a.name }));
   const categoryOpts: Opt[] = categoryOptions.map((o) => ({ value: o.id, label: o.label }));
   const isAdmin = await isCurrentUserAdmin();
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
