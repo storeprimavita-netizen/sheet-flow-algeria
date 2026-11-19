@@ -7,7 +7,6 @@ import { Ruler } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Field } from "@/components/field";
 import { changeOrderVariant } from "../actions";
 
 type Size = { id: string; label: string; isActive: boolean };
@@ -61,9 +60,9 @@ export function VariantCard({
         </p>
       ) : null}
       <div className="flex flex-wrap items-end gap-3">
-        <Field label={t("orders.chooseSize")} className="min-w-48">
+        <div className="min-w-48">
           <Select value={value} onValueChange={setValue} disabled={busy}>
-            <SelectTrigger>
+            <SelectTrigger aria-label={t("orders.sizeLabel")}>
               <SelectValue placeholder={t("orders.chooseSize")} />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +73,7 @@ export function VariantCard({
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </div>
         <Button type="button" size="sm" onClick={save} disabled={busy || !value || value === currentId}>
           {currentId ? t("orders.changeSize") : t("orders.assignSize")}
         </Button>

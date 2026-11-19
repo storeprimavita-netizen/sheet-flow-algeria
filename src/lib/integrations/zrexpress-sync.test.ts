@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { deleteWorkspaces } from "@/lib/test-cleanup";
 
 import { cronAuthorized } from "@/lib/cron-auth";
 import { GET as cronGET } from "@/app/api/cron/zr-sync/route";
@@ -80,7 +81,7 @@ describe.skipIf(!URL)("ZR-2 state sync (live DB)", () => {
     await admin.from("webhook_events").delete().eq("workspace_id", ws);
     await admin.from("integration_configs").delete().eq("workspace_id", ws);
     await admin.from("settings").delete().eq("workspace_id", ws);
-    expect((await admin.from("workspaces").delete().eq("id", ws)).error).toBeNull();
+    expect((await deleteWorkspaces(admin, [ws])).error).toBeNull();
   });
 
   async function hook(body: unknown, id = `msg_${crypto.randomUUID()}`) {

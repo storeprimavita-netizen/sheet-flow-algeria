@@ -294,6 +294,8 @@
     "date": "Date"
   },
   "products": {
+    "sizesSaveSeparately": "Options and sizes are saved separately, with the Save button in their own section.",
+    "sizesAfterFirstSave": "Add options and sizes after the first save.",
     "title": "Products",
     "subtitle": "Catalog, costs & status lifecycle",
     "new": "New product",
@@ -440,6 +442,7 @@
     "sizeSaved": "Size updated",
     "sizeOldHint": "Typed before sizes existed",
     "chooseSize": "Choose a size",
+    "sizeLabel": "Size",
     "sizeTitle": "Size",
     "sizeFailed": "Could not change the size: {reason}",
     "form": {
@@ -613,6 +616,7 @@
     "countTitle": "Count by size",
     "countHint": "Type what is on the shelf for each size. Leave a size empty to keep it as it is. The product total does not change.",
     "countSubmit": "Save count",
+    "countNow": "Now: {n}",
     "countInput": "Count for {label}",
     "countSaved": "{n, plural, =0 {Nothing changed} one {1 size updated} other {# sizes updated}}",
     "countLeft": "Left in not assigned: {n}",
@@ -1301,6 +1305,8 @@
     "redacted": "Secret value hidden; the code identifies the value without revealing it"
   },
   "variants": {
+    "optionFallback": "option {n}",
+    "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",
     "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",
     "empty": "No options yet. Add an option such as Size to track stock per size.",

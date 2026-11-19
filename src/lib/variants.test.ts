@@ -51,6 +51,9 @@ describe("variantConfigSchema", () => {
     expect(variantConfigSchema.safeParse({ options: [size, color], variants: base.variants }).success).toBe(false);
     expect(variantConfigSchema.safeParse({ options: [size], variants: [{ ...base.variants[0], values: { [size.id]: u(5) } }] }).success).toBe(false);
   });
+  it("refuses sizes when there are no options", () => {
+    expect(variantConfigSchema.safeParse({ options: [], variants: [{ id: u(10), sku: null, is_active: true, values: {} }] }).success).toBe(false);
+  });
   it("refuses two variants with the same values", () => {
     const dup = { ...base.variants[0], id: u(11) };
     expect(variantConfigSchema.safeParse({ options: [size], variants: [base.variants[0], dup] }).success).toBe(false);

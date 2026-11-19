@@ -215,6 +215,15 @@ export default async function OrderDetailPage({
         </div>
       ) : null}
 
+      {isAdmin && productSizes.length ? (
+        <VariantCard
+          orderId={order.id}
+          currentId={order.variant_id}
+          oldLabel={order.variant}
+          sizes={productSizes.map((v) => ({ id: v.id, label: v.label, isActive: v.isActive }))}
+        />
+      ) : null}
+
       <OrderTaxonomyCard
         orderId={order.id}
         tags={tags}
@@ -233,15 +242,6 @@ export default async function OrderDetailPage({
           confirmationAgent={order.assigned_confirmation_agent}
           deliveryAgent={order.assigned_delivery_agent}
           confirmationAgents={confirmationAgents}
-        />
-      ) : null}
-
-      {isAdmin && productSizes.length ? (
-        <VariantCard
-          orderId={order.id}
-          currentId={order.variant_id}
-          oldLabel={order.variant}
-          sizes={productSizes.map((v) => ({ id: v.id, label: v.label, isActive: v.isActive }))}
         />
       ) : null}
 

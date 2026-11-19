@@ -80,7 +80,7 @@ export default async function StockHubPage() {
                           {p.name}
                         </Link>
                         {countNeeded.has(p.id) ? (
-                          <Link href={`/app/products/${p.id}/stock`} className="ms-2 inline-block align-middle">
+                          <Link href={`/app/products/${p.id}/stock`} className="ms-2 inline-block whitespace-nowrap align-middle">
                             <StatusPill kind="stock" status="count_needed" size="sm" />
                           </Link>
                         ) : null}
