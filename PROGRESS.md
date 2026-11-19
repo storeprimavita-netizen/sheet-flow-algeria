@@ -400,3 +400,4 @@ STATS-3 round 2 (review-1 FIX): fixed 1-5, 7, 9-13 and part of 14 (unknown filte
 - U1 overflow fixed (sr-only hint span removed from th; `relative` wrapper). Browser, 390px, AR+EN x light+dark: documentElement.scrollWidth = 390 = viewport in all four. Screenshots docs/design/audit/PRICE-3/r2-*.
 - Q1 Real reads confirmation.value / delivery.value (+ own maturity flags); Q2 inputs rows + red below-break-even Real cells; Q3 USD/DZD cell with hint; U2 popover hint; U3 group labels stay sticky; U4 divider; Q4 RPC error throws to error.tsx; Q5 ceil.
 - Known limits (D67 item 8): confirmed-then-cancelled-before-pickup not in either rate; delivery % can read slightly high with <=20% parcels on the road. Not done: Q6, Q7 (no decision, out of scope).
+- PRICE-3 round 3: 390px screenshots EN dark and AR light (r3-en-dark-390.png overwritten by r3-*-390 final, r3-ar-light-390.png); ad-cost number now aligned with its column.
