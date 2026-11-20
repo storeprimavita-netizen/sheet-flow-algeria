@@ -55,7 +55,7 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
     { id: "table", header: t("team.table"), cell: (r) => (
         <>
           {r.table_name}
-          <bdi dir="ltr" className="block text-xs text-muted-foreground sm:hidden">{formatDateTime(r.created_at)}</bdi>
+          <div className="text-xs text-muted-foreground sm:hidden"><bdi dir="ltr">{formatDateTime(r.created_at)}</bdi></div>
           <div className="text-xs text-muted-foreground sm:hidden">{r.action} · {r.actor_name}</div>
           {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
         </>
