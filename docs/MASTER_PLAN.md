@@ -94,7 +94,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | P0-8-G | Follow-up (review-3 lows): decide + enforce whether a swapped original may leave `swap`; `swapOrder` action tests (double submit, non-uuid) | CARRIER | L | – | – | orders | P0-8-F | done |
 | CARRIER-0 | Wilayas stay 58 (D26). Fix the dashboard map: centroids 49–58 in `src/lib/geo/algeria-wilayas.ts` are misnumbered vs the seed (review-0 finding 2) and some names are garbled; webhook wilaya name match prefers the longest name. No migration **Next:** code correct (review-3); only open item: Arabic legend still reversed in the 390 px map screenshot, retake or fix, then one review.. | CARRIER | L | ui | – | orders | O-1 | done |
 | CARRIER-0-F | Follow-up (D40): Arabic map legend reversed in the 390 px screenshot — fix or retake (review-3) | CARRIER | L | ui | – | orders | CARRIER-0 || done |
-| CARRIER-0-G | Follow-up (lows): CARRIER-0-F review-3 lows; map keyboard access; sticky filter panel covering the map on phones (review-2 #5, #6) | CARRIER | L | ui | – | orders | CARRIER-0-F | claimed:claude |
+| CARRIER-0-G | Follow-up (lows): CARRIER-0-F review-3 lows; map keyboard access; sticky filter panel covering the map on phones (review-2 #5, #6) | CARRIER | L | ui | – | orders | CARRIER-0-F | done |
 
 ## Wave 1 — clarity (owner's main complaint)
 
