@@ -784,7 +784,7 @@
       "button": "استيراد CSV",
       "title": "استيراد أسعار التوصيل",
       "description": "ارفع ملف الأسعار. ستشاهد ما سيتغير قبل حفظ أي شيء.",
-      "formatHint": "ملف CSV بصف لكل ولاية (<cols>Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates</cols>) ثم صف لكل بلدية. ترميز UTF-8 وحتى 1 ميغابايت.",
+      "formatHint": "ملف CSV بصف لكل ولاية <cols>(Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates)</cols> ثم صف لكل بلدية. ترميز UTF-8 وحتى 1 ميغابايت.",
       "choose": "اختيار ملف",
       "chosen": "الملف: {name}",
       "parsing": "جارٍ قراءة الملف",

@@ -784,7 +784,7 @@
       "button": "Import CSV",
       "title": "Import delivery prices",
       "description": "Upload the prices file. You will see what changes before anything is saved.",
-      "formatHint": "CSV with one row per wilaya (<cols>Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates</cols>), then one row per commune. UTF-8, up to 1 MB.",
+      "formatHint": "CSV with one row per wilaya <cols>(Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates)</cols>, then one row per commune. UTF-8, up to 1 MB.",
       "choose": "Choose a file",
       "chosen": "File: {name}",
       "parsing": "Reading the file",
