@@ -763,3 +763,10 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Gate: intermittent live-DB failures again (`seasons.rls.test.ts`, `rls.test.ts`), green on rerun (TEST-2). NAV-3's merge gate first failed on tsc from the dev server's stale `.next/dev/types`; clean on rerun, then pushed. The review step returned once before its reviewers finished; the coordinator assembled `NAV-4.review-2.md` from their reports.
 - Follow-ups added: NAV-4-F, NAV-4-S (anon grants on `public.options`, pre-existing, RLS blocks it; H / sec), NAV-4-V (waits on CONF-1), SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F.
 - Next `/auto`: NAV-4-F, NAV-4-S, NAV-5, then SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F, P1-1-F.
+
+## NAV-4-S: done
+- Done: migration 00074 revokes anon grants on `public.options` / `option_sets`; live test; DB.md updated; follow-up NAV-4-S2 added (sweep ~36 anon grants).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4-S (tsc, 1049 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4-S.review-1.md VERDICT: PASS.
+- Owner: remote `db push` of 00074 (revokes anon grants; owner-only).
+- Next: merge to v3; NAV-4-S2 (owner/decide call) and NAV-5 in lane order.
