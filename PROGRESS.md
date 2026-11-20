@@ -706,3 +706,7 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: docs/briefs/SEC-1-H.review-1.md VERDICT: PASS; shots docs/design/audit/SEC-1-H/ (en/ar, dark/light, 1440/390, focused pill).
 - Owner: remote `db push` (none new in H); Q-21 open; D49 amendment ack pending.
 - Next: none from H; SEC-1-G carry-overs per its entry.
+
+## NAV-1-G build
+- Done: drawer dialog name `nav.menu`, aside tabIndex only while drawer open, `dir="ltr"` on three kbd hints, substring palette filter (`src/lib/palette-filter.ts`, Arabic-normalised) wired via `CommandDialog filter`, NAV-1-F brief example fixed. Tests in `src/lib/palette-filter.test.ts`.
+- Screenshots: not taken in this build session (no browser run); left for /verify ui-reviewer.

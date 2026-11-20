@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { PlusCircle, Package, Building2, Megaphone, Users, Hash } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
+import { paletteFilter } from "@/lib/palette-filter";
 import {
   CommandDialog,
   CommandInput,
@@ -96,7 +97,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
         {children}
       </span>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} filter={paletteFilter}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
         <CommandList>
           {query.trim() ? null : <CommandEmpty>{t("cmd.empty")}</CommandEmpty>}
