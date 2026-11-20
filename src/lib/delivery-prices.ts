@@ -124,32 +124,43 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
       if (kind === "rate") {
         let homeSeen = false;
         for (const part of (r[6] ?? "").split("|")) {
+          if (part.trim() === "") continue;
           const i = part.lastIndexOf(":");
-          if (i < 0) continue;
-          const label = part.slice(0, i);
-          const fee = Number(part.slice(i + 1).trim());
-          if (!Number.isFinite(fee) || fee < 0 || part.slice(i + 1).trim() === "") {
+          if (i < 0) {
             warnings.push({ type: "malformed_row", code, text: part });
             continue;
           }
+          const label = part.slice(0, i);
           let k = labelKind(label);
+          let repeated = false;
           if (!k) {
             warnings.push({ type: "unknown_label", code, text: norm(label) });
             continue;
           }
-          if (k === "home" && homeSeen) {
-            // Same label twice (Béchar 1350|720): second one is stop-desk.
-            k = "desk";
-            warnings.push({ type: "repeated_label", code, text: norm(label) });
+          if (k === "home") {
+            if (homeSeen) {
+              // Same label twice (Béchar 1350|720): second one is stop-desk.
+              k = "desk";
+              repeated = true;
+              warnings.push({ type: "repeated_label", code, text: norm(label) });
+            }
+            // Seen even when its fee is invalid: a later home label is never promoted.
+            homeSeen = true;
           }
-          if (k === "home") homeSeen = true;
+          const raw = part.slice(i + 1).trim();
+          const fee = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : NaN;
+          if (!Number.isFinite(fee)) {
+            warnings.push({ type: "malformed_row", code, text: part });
+            continue;
+          }
           if (fee <= 0) {
             // 0 is never a price (D62): that type is not offered
             warnings.push({ type: "zero_price", code, text: norm(label) });
             continue;
           }
           if (k === "home") w.home = fee;
-          else w.stopdesk = fee;
+          else if (w.stopdesk === null) w.stopdesk = fee;
+          else if (!repeated) warnings.push({ type: "repeated_label", code, text: norm(label) });
         }
         if (w.home === null && w.stopdesk === null) w.priced = false;
         w.stopdeskAvailable = w.priced && w.stopdesk !== null;
