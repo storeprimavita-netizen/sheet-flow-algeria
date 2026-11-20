@@ -836,3 +836,8 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Evidence: docs/briefs/NAV-5-H.review-1.md FIX, docs/briefs/NAV-5-H.review-2.md PASS; screenshots in docs/design/audit/NAV-5-H/.
 - Owner: review-2 lows go to NAV-5-I (vacuous RLS check at src/lib/rls.test.ts:554, missing keyboard pass, untested errorAs="toast", cycle-test gaps).
 - Next: NAV-5-I.
+
+## NAV-5-I — close NAV-5-H review-2 lows (2026-11-20)
+- Done: RLS no-access check now uses `select("*", {count:"exact", head:true})` and asserts `error` null then count 0 (fail-proof: selecting `nonexistent` made all 3 cases fail; reverted). Tests added: sign-out toast/inline, unknown role on /no-access, cycle `[...rest]` and `/login` (2 hops; dead reassigned-handler case replaced), sell real `getProfile` -> `requireProfile` path. rbac query-error test already existed.
+- Browser (chrome-devtools, local stack): keyboard pass on `/no-access` EN and AR (rtl): Tab order language switcher, Retry, Sign out; box-shadow focus ring visible on each; Enter on the switcher switched language, Space on Sign out signed out. Shot: `docs/design/audit/NAV-5-H/no-access-en-focus-signout.png` (dark only; light not re-shot). Role home: a signed-in profile visiting `/login` landed on `/app/dashboard`. Sign-out landed on `/login`. Local user `noaccess-shots@seed.mnw` deleted. Page closed back to about:blank.
+- Not done: My day / Team rules blank for a deactivated user (optional finding 5, out of scope).
