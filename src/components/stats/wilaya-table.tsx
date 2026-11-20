@@ -24,6 +24,11 @@ export type StatsRow = {
  * the commune panel (`?wilaya=`, one at a time, other params kept); the name
  * and every count drill into the exact orders behind them.
  */
+/** abs(): scrollLeft is negative in RTL */
+export function hasMoreScroll(scrollLeft: number, clientWidth: number, scrollWidth: number): boolean {
+  return Math.abs(scrollLeft) + clientWidth < scrollWidth - 1;
+}
+
 export function WilayaTable({
   rows,
   filters,
@@ -56,8 +61,7 @@ export function WilayaTable({
   const measure = React.useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // abs(): scrollLeft is negative in RTL
-    const more = Math.abs(el.scrollLeft) + el.clientWidth < el.scrollWidth - 1;
+    const more = hasMoreScroll(el.scrollLeft, el.clientWidth, el.scrollWidth);
     setMoreEnd((m) => (m === more ? m : more));
   }, []);
   React.useEffect(() => {

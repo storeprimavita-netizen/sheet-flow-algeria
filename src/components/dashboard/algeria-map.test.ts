@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
 import { wilayaTitle, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import { hasMoreScroll } from "@/components/stats/wilaya-table";
 import { normalizeText } from "@/lib/utils";
 
 describe("WILAYA_CENTROIDS", () => {
@@ -87,5 +88,30 @@ describe("AlgeriaMap matured fill", () => {
   it("an unmatured datum takes the neutral fill, not a status fill", () => {
     expect(src).toContain('if (!d.matured || d.deliveryRate === null) return "fill-neutral/30"');
     expect(src).not.toContain("minOrders");
+  });
+});
+
+describe("hasMoreScroll", () => {
+  it("LTR at start has more", () => expect(hasMoreScroll(0, 300, 600)).toBe(true));
+  it("RTL negative scrollLeft has more", () => expect(hasMoreScroll(-100, 300, 600)).toBe(true));
+  it("at end (LTR and RTL) has none", () => {
+    expect(hasMoreScroll(300, 300, 600)).toBe(false);
+    expect(hasMoreScroll(-300, 300, 600)).toBe(false);
+  });
+  it("no overflow has none", () => expect(hasMoreScroll(0, 300, 300)).toBe(false));
+});
+
+describe("map keyboard access and names wiring", () => {
+  it("cells are focusable links with aria-label and key handler", () => {
+    const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
+    expect(src).toContain("tabIndex={0}");
+    expect(src).toContain('role="link"');
+    expect(src).toContain("aria-label={titleText}");
+    expect(src).toContain('e.key === "Enter" || e.key === " "');
+  });
+  it("statistics page builds names and passes them down", () => {
+    const src = readFileSync("src/app/(app)/app/statistics/page.tsx", "utf8");
+    expect(src).toContain("const names = Object.fromEntries(");
+    expect(src).toContain("names={names}");
   });
 });

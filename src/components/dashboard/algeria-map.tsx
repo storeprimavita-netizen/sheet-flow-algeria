@@ -108,7 +108,7 @@ export function AlgeriaMap({
     <svg
       viewBox={viewBox}
       className="mx-auto h-auto w-full max-w-[360px]"
-      role="img"
+      role="group"
       aria-label={label}
     >
       <clipPath id={clipId}>
@@ -132,14 +132,25 @@ export function AlgeriaMap({
               className={cn(
                 fillClass(wd),
                 "cursor-pointer transition-[stroke-width,opacity]",
-                "stroke-background",
+                "stroke-background focus-visible:stroke-ring focus-visible:outline-none",
                 isHovered ? "opacity-100" : "opacity-90",
               )}
+              tabIndex={0}
+              role="link"
+              aria-label={titleText}
               strokeWidth={isHovered ? 1.5 : 0.75}
               strokeLinejoin="round"
               onMouseEnter={() => onHover?.(code)}
               onMouseLeave={() => onHover?.(null)}
               onClick={() => onSelect?.(code)}
+              onFocus={() => onHover?.(code)}
+              onBlur={() => onHover?.(null)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect?.(code);
+                }
+              }}
             >
               <title>{titleText}</title>
             </path>
