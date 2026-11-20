@@ -633,6 +633,8 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
     const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
     expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
+    // the value-less size must not outlive the test: the 00070 guard test counts them
+    expect((await svc.from("product_variants").delete().eq("id", spare)).error).toBeNull();
   });
 
   test("00070: authenticated lost TRUNCATE/TRIGGER/REFERENCES and keeps SELECT/INSERT/UPDATE/DELETE on the four variant tables", () => {
@@ -650,7 +652,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect(del.data).toHaveLength(1);
   });
 
-  test("00070: zod refuses a size with no values (variant_values), with or without options", async () => {
+  test("00070: zod (schema only, the action needs a session) refuses a size with no values (variant_values), with or without options", async () => {
     const { variantConfigSchema } = await import("@/lib/variants");
     const id = () => crypto.randomUUID();
     const o = { id: id(), name: "Size", values: [{ id: id(), label: "S" }] };
@@ -662,14 +664,48 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     }
   });
 
-  test("00070 guard: refuses a value-less size anywhere, deletes nothing", () => {
+  test("00070 guard: refuses a value-less size anywhere, deletes nothing; count is pre-count + 1", () => {
     const sql = readFileSync("supabase/migrations/00070_variant_values_hardening.sql", "utf8");
     const guard = sql.slice(sql.indexOf("-- guard:begin"), sql.indexOf("-- guard:end"));
+    const count = () =>
+      Number(psql("select count(*) from public.product_variants v where not exists (select 1 from public.product_variant_values x where x.variant_id = v.id);").trim());
+    const pre = count();
     const run = `begin;
       with p as (insert into products(workspace_id, name) values ('${ws}', 'guard-${crypto.randomUUID()}') returning id)
       insert into product_variants(workspace_id, product_id) select '${ws}', id from p;
       ${guard}
       rollback;`;
-    expect(() => psql(run)).toThrow(/guard: \d+ size\(s\) have no value rows/);
+    let msg = "";
+    try {
+      psql(run);
+    } catch (e) {
+      msg = String((e as { stderr?: unknown }).stderr ?? e);
+    }
+    const m = msg.match(/guard: (\d+) size\(s\) have no value rows/);
+    expect(m, msg).not.toBeNull();
+    expect(Number(m![1])).toBe(pre + 1);
+    expect(count()).toBe(pre); // rolled back, nothing left behind
+  });
+
+  test("00070 guard: clean data (value-less sizes removed inside a rolled-back txn) does not throw", () => {
+    const sql = readFileSync("supabase/migrations/00070_variant_values_hardening.sql", "utf8");
+    const guard = sql.slice(sql.indexOf("-- guard:begin"), sql.indexOf("-- guard:end"));
+    const run = `begin;
+      delete from public.product_variants v where not exists (select 1 from public.product_variant_values x where x.variant_id = v.id);
+      ${guard}
+      rollback;`;
+    expect(() => psql(run)).not.toThrow();
+  });
+
+  test("00070: anon and PUBLIC lack TRUNCATE/TRIGGER/REFERENCES on the four variant tables", () => {
+    for (const t of ["product_options", "product_option_values", "product_variants", "product_variant_values"]) {
+      for (const priv of ["TRUNCATE", "TRIGGER", "REFERENCES"]) {
+        expect(psql(`select has_table_privilege('anon','public.${t}','${priv}');`).trim(), `anon ${t} ${priv}`).toBe("f");
+        expect(
+          psql(`select exists (select 1 from information_schema.role_table_grants where grantee='PUBLIC' and table_schema='public' and table_name='${t}' and privilege_type='${priv}');`).trim(),
+          `PUBLIC ${t} ${priv}`,
+        ).toBe("f");
+      }
+    }
   });
 });
