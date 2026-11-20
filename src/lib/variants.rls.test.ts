@@ -594,4 +594,82 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
       expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
     }
   });
+
+  // ---- 00070 hardening ------------------------------------------------------
+  test("00070: no role can change an existing product_variant_values row (update and upsert paths)", async () => {
+    // Built by hand: a second option must exist before any size does. 3 Size values, 2 sizes, so value L
+    // is used by no size and the older uniqueness triggers cannot be what refuses the change.
+    const ins = async (table: string, r: Record<string, unknown>) => {
+      const x = await svc.from(table).insert({ workspace_id: ws, ...r }).select("id").single();
+      expect(x.error, table).toBeNull();
+      return x.data!.id as string;
+    };
+    const p = await ins("products", { name: tag() });
+    const o = await ins("product_options", { product_id: p, name: "Size", position: 0 });
+    const o2 = await ins("product_options", { product_id: p, name: "Color", position: 1 });
+    const val = (option_id: string, label: string, position: number) => ins("product_option_values", { product_id: p, option_id, label, position });
+    const [S, M, L] = [await val(o, "S", 0), await val(o, "M", 1), await val(o, "L", 2)];
+    const [red, blue] = [await val(o2, "Red", 0), await val(o2, "Blue", 1)];
+    const vS = await ins("product_variants", { product_id: p });
+    const vM = await ins("product_variants", { product_id: p });
+    const jv = (variant_id: string, option_id: string, value_id: string) => ({ variant_id, option_id, value_id, product_id: p, workspace_id: ws });
+    expect((await svc.from("product_variant_values").insert([jv(vS, o, S), jv(vS, o2, red), jv(vM, o, M), jv(vM, o2, blue)])).error).toBeNull();
+    const spare = await ins("product_variants", { product_id: p });
+    const row = (over: Record<string, string>) => ({ variant_id: vS, option_id: o, value_id: S, product_id: p, workspace_id: ws, ...over });
+    const changes: Record<string, Record<string, string>> = {
+      value_id: { value_id: L },
+      option_id: { option_id: o2, value_id: blue }, // conflicts with S's Color row (Red): upsert turns into a value change
+      variant_id: { variant_id: spare },
+    };
+    for (const who of [svc, adminUser]) {
+      for (const [name, over] of Object.entries(changes)) {
+        const upd = await who.from("product_variant_values").update(over).eq("variant_id", vS).eq("option_id", o);
+        expect(upd.error?.message, `update ${name}`).toMatch(/immutable/);
+        if (name === "variant_id") continue; // the upsert key itself changes: not a conflict path
+        const ups = await who.from("product_variant_values").upsert(row(over), { onConflict: "variant_id,option_id" });
+        expect(ups.error?.message, `upsert ${name}`).toMatch(/immutable/);
+      }
+    }
+    expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
+    const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
+    expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
+  });
+
+  test("00070: authenticated lost TRUNCATE/TRIGGER/REFERENCES and keeps SELECT/INSERT/UPDATE/DELETE on the four variant tables", () => {
+    for (const t of ["product_options", "product_option_values", "product_variants", "product_variant_values"]) {
+      const has = (priv: string) => psql(`select has_table_privilege('authenticated','public.${t}','${priv}');`).trim();
+      for (const priv of ["TRUNCATE", "TRIGGER", "REFERENCES"]) expect(has(priv)).toBe("f");
+      for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) expect(has(priv)).toBe("t");
+    }
+  });
+
+  test("00070: an admin product delete still commits with variants present", async () => {
+    const a = await product(["S", "M"]);
+    const del = await adminUser.from("products").delete().eq("id", a.p).select("id");
+    expect(del.error).toBeNull();
+    expect(del.data).toHaveLength(1);
+  });
+
+  test("00070: zod refuses a size with no values (variant_values), with or without options", async () => {
+    const { variantConfigSchema } = await import("@/lib/variants");
+    const id = () => crypto.randomUUID();
+    const o = { id: id(), name: "Size", values: [{ id: id(), label: "S" }] };
+    const bare = { id: id(), sku: null, is_active: true, values: {} };
+    for (const cfg of [{ options: [o], variants: [bare] }, { options: [], variants: [bare] }]) {
+      const r = variantConfigSchema.safeParse(cfg);
+      expect(r.success).toBe(false);
+      expect(!r.success && r.error.issues.some((i) => i.message === "variant_values")).toBe(true);
+    }
+  });
+
+  test("00070 guard: refuses a value-less size anywhere, deletes nothing", () => {
+    const sql = readFileSync("supabase/migrations/00070_variant_values_hardening.sql", "utf8");
+    const guard = sql.slice(sql.indexOf("-- guard:begin"), sql.indexOf("-- guard:end"));
+    const run = `begin;
+      with p as (insert into products(workspace_id, name) values ('${ws}', 'guard-${crypto.randomUUID()}') returning id)
+      insert into product_variants(workspace_id, product_id) select '${ws}', id from p;
+      ${guard}
+      rollback;`;
+    expect(() => psql(run)).toThrow(/guard: \d+ size\(s\) have no value rows/);
+  });
 });

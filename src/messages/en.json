@@ -1320,7 +1320,7 @@
     "redacted": "Secret value hidden; the code identifies the value without revealing it"
   },
   "variants": {
-    "optionFallback": "option {n}",
+    "optionFallback": "Option {n}",
     "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",
     "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",
@@ -1329,10 +1329,14 @@
     "removeOption": "Remove option {name}",
     "moveOptionUp": "Move option {name} up",
     "moveOptionDown": "Move option {name} down",
+    "removeOptionUnnamed": "Remove {name}",
+    "moveOptionUpUnnamed": "Move {name} up",
+    "moveOptionDownUnnamed": "Move {name} down",
     "optionName": "Option name",
     "valueLabel": "Value",
     "addValue": "Add value to {name}",
     "removeValue": "Remove value {label}",
+    "removeValueUnnamed": "Remove {label}",
     "moveValueEarlier": "Move {label} earlier",
     "moveValueLater": "Move {label} later",
     "optionsLocked": "Options cannot be added or removed once sizes exist. You can still add or rename values.",

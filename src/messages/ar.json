@@ -1320,7 +1320,7 @@
     "redacted": "القيمة السرية مخفية؛ الرمز يحدد القيمة دون كشفها"
   },
   "variants": {
-    "optionFallback": "الخيار {n}",
+    "optionFallback": "الخيار رقم {n}",
     "unsavedHint": "تغييرات غير محفوظة في الخيارات والمقاسات. استخدم زر الحفظ هذا.",
     "title": "الخيارات والمقاسات",
     "hint": "الخيارات (مثل المقاس واللون) وقيمها. كل تركيبة هي مقاس يمكنك جرده وبيعه.",
@@ -1329,10 +1329,14 @@
     "removeOption": "حذف الخيار {name}",
     "moveOptionUp": "نقل الخيار {name} للأعلى",
     "moveOptionDown": "نقل الخيار {name} للأسفل",
+    "removeOptionUnnamed": "حذف {name}",
+    "moveOptionUpUnnamed": "نقل {name} للأعلى",
+    "moveOptionDownUnnamed": "نقل {name} للأسفل",
     "optionName": "اسم الخيار",
     "valueLabel": "القيمة",
     "addValue": "إضافة قيمة إلى {name}",
     "removeValue": "حذف القيمة {label}",
+    "removeValueUnnamed": "حذف {label}",
     "moveValueEarlier": "تقديم {label}",
     "moveValueLater": "تأخير {label}",
     "optionsLocked": "لا يمكن إضافة الخيارات أو حذفها بعد وجود مقاسات. يمكنك إضافة القيم أو إعادة تسميتها.",

@@ -12,6 +12,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { tableClass } from "@/components/field";
 import { missingCombos, variantLabel, type VariantOption } from "@/lib/variants";
 import { saveVariantConfig, type VariantResult } from "../actions";
+import { VariantsFeedback } from "./variants-feedback";
 
 type EditorVariant = { id: string; sku: string; isActive: boolean; stock: number; values: Record<string, string>; saved: boolean };
 
@@ -95,22 +96,6 @@ export function VariantsEditor({
     }
   }
 
-  const message = result
-    ? result.ok
-      ? t("saved")
-      : result.code === "duplicate_value"
-        ? t("duplicateValue")
-        : result.code === "duplicate_variant"
-          ? t("duplicateVariant")
-          : result.code === "in_use"
-            ? t("inUse")
-            : result.code === "stale"
-              ? t("stale")
-            : result.code === "invalid"
-              ? t("invalid")
-              : t("failed", { reason: result.error })
-    : null;
-
   return (
     <section className="card-surface space-y-5 rounded-xl p-5" aria-labelledby="variants-title" aria-busy={busy}>
       <div className="space-y-1">
@@ -134,13 +119,13 @@ export function VariantsEditor({
                 className="max-w-56"
                 onChange={(e) => setOption(i, { name: e.target.value })}
               />
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionUp", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionUp" : "moveOptionUpUnnamed", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
                 <ArrowUp />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionDown", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionDown" : "moveOptionDownUnnamed", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
                 <ArrowDown />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "removeOption" : "removeOptionUnnamed", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
                 <Trash2 />
               </Button>
             </div>
@@ -162,7 +147,7 @@ export function VariantsEditor({
                   <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueLater", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
                     <ChevronRight className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("removeValue", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={v.label ? t("removeValue", { label: v.label }) : t("removeValueUnnamed", { label: t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}
                     disabled={variants.some((x) => x.saved && x.values[o.id] === v.id)}
                     onClick={() => {
                       setVariants(variants.filter((x) => x.values[o.id] !== v.id));
@@ -268,12 +253,7 @@ export function VariantsEditor({
         <Button type="button" onClick={save} disabled={busy}>
           {t("save")}
         </Button>
-        {unsaved && !message ? <p className="text-xs text-muted-foreground">{t("unsavedHint")}</p> : null}
-        {message ? (
-          <p role={result?.ok ? "status" : "alert"} className={result?.ok ? "text-sm text-success" : "rounded-md bg-danger-bg px-3 py-2 text-sm text-danger"}>
-            {message}
-          </p>
-        ) : null}
+        <VariantsFeedback unsaved={unsaved} result={result} />
       </div>
       <Dialog open={confirmDeactivate !== null} onOpenChange={(o) => !o && setConfirmDeactivate(null)}>
         <DialogContent
