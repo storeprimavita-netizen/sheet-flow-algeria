@@ -262,7 +262,7 @@ function OptionRowItem({
           <ArrowDown className="h-3 w-3" />
         </button>
       </div>
-      <EmojiField value={option.emoji} disabled={busy} onPick={(e) => run(() => setOptionEmoji(option.id, e))} />
+      <EmojiField value={option.emoji} label={option.label} disabled={busy} onPick={(e) => run(() => setOptionEmoji(option.id, e))} />
       <ColorPicker token={option.color_token} onPick={(tok) => run(() => recolorOption(option.id, tok))} />
       <span
         title={option.archived_at ? t("settings.options.archivedHint") : undefined}

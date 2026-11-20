@@ -12,7 +12,7 @@ import { StatusPill } from "@/components/status-pill";
 import { normalizeLabel } from "@/lib/emoji";
 import { StatusLabelsProvider } from "@/components/status-labels-provider";
 import type { StatusLabelOverrides } from "@/lib/status-label";
-import type { StatusKind } from "@/lib/statuses";
+import { getStatus, type StatusKind } from "@/lib/statuses";
 import { resetStatusLabel, saveStatusLabel } from "./actions";
 
 export type StatusLabelGroup = {
@@ -49,6 +49,7 @@ function LabelRow({ kind, status }: { kind: StatusKind; status: StatusLabelGroup
   const [en, setEn] = React.useState(status.en);
   const [ar, setAr] = React.useState(status.ar);
   const [busy, setBusy] = React.useState(false);
+  const statusName = t(getStatus(kind, status.key)?.label ?? status.key);
   const dirty = en !== status.en || ar !== status.ar;
   const hasOverride = status.en !== "" || status.ar !== "";
 
@@ -88,11 +89,11 @@ function LabelRow({ kind, status }: { kind: StatusKind; status: StatusLabelGroup
       </StatusLabelsProvider>
       <label className="space-y-1 text-xs text-muted-foreground">
         <span>{t("settings.statusLabels.en")}</span>
-        <Input dir="ltr" lang="en" maxLength={40} value={en} onChange={(e) => setEn(e.target.value)} placeholder={status.defaultEn} className="h-9" />
+        <Input aria-label={t("settings.statusLabels.inputLabel", { status: statusName, language: t("settings.statusLabels.en") })} dir="ltr" lang="en" maxLength={40} value={en} onChange={(e) => setEn(e.target.value)} placeholder={status.defaultEn} className="h-9" />
       </label>
       <label className="space-y-1 text-xs text-muted-foreground">
         <span>{t("settings.statusLabels.ar")}</span>
-        <Input dir="rtl" lang="ar" maxLength={40} value={ar} onChange={(e) => setAr(e.target.value)} placeholder={status.defaultAr} className="h-9" />
+        <Input aria-label={t("settings.statusLabels.inputLabel", { status: statusName, language: t("settings.statusLabels.ar") })} dir="rtl" lang="ar" maxLength={40} value={ar} onChange={(e) => setAr(e.target.value)} placeholder={status.defaultAr} className="h-9" />
       </label>
       <div className="flex items-center gap-1">
         <Button

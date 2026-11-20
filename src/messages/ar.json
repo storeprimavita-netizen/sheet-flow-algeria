@@ -770,6 +770,9 @@
       "emojiPaste": "الصق إيموجي واحد",
       "emojiClear": "إزالة الإيموجي",
       "emojiInvalid": "أدخل إيموجي واحدًا فقط.",
+      "emojiCell": "الإيموجي {n} من {total}",
+      "emojiTriggerSet": "إيموجي {option}: {emoji}. تغيير",
+      "emojiTriggerEmpty": "اختر إيموجي لـ {option}",
       "usageCount": "{count, plural, =0 {غير مستخدم} one {استخدام واحد} other {# استخدامات}}",
       "sets": {
         "product_category": "فئة المنتج",
@@ -886,6 +889,7 @@
       "ar": "العربية",
       "saved": "تم حفظ التسمية.",
       "resetDone": "تمت إعادة التسمية.",
+      "inputLabel": "{status}، {language}",
       "reset": "إعادة إلى الافتراضي",
       "invalid": "يجب أن تتكون التسمية من 1 إلى 40 حرفًا دون رموز تحكم.",
       "failed": "تعذّر حفظ التسمية. حاول مرة أخرى.",

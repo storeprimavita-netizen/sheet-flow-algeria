@@ -26,8 +26,11 @@ export function EmojiField({
   value,
   onPick,
   disabled,
+  label,
 }: {
   value: string | null;
+  /** Name of the option this picker belongs to (read out by screen readers). */
+  label: string;
   onPick: (emoji: string | null) => void;
   disabled?: boolean;
 }) {
@@ -35,6 +38,8 @@ export function EmojiField({
   const [open, setOpen] = React.useState(false);
   const [text, setText] = React.useState("");
   const [invalid, setInvalid] = React.useState(false);
+  // roving tabindex: one cell is in the tab order (the selected one, else the first)
+  const [active, setActive] = React.useState(0);
   const cells = React.useRef<(HTMLButtonElement | null)[]>([]);
 
   function pick(v: string | null) {
@@ -54,14 +59,22 @@ export function EmojiField({
       : 0;
     if (!step) return;
     e.preventDefault();
-    cells.current[Math.min(EMOJIS.length - 1, Math.max(0, i + step))]?.focus();
+    const next = Math.min(EMOJIS.length - 1, Math.max(0, i + step));
+    setActive(next);
+    cells.current[next]?.focus();
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        if (o) setActive(Math.max(0, EMOJIS.indexOf(value ?? "")));
+        setOpen(o);
+      }}
+    >
       <PopoverTrigger
         disabled={disabled}
-        aria-label={t("settings.options.emoji")}
+        aria-label={value ? t("settings.options.emojiTriggerSet", { option: label, emoji: value }) : t("settings.options.emojiTriggerEmpty", { option: label })}
         className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md px-1 text-base hover:bg-surface-raised focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
       >
         {value ?? <SmilePlus className="h-4 w-4 text-muted-foreground" aria-hidden />}
@@ -76,7 +89,8 @@ export function EmojiField({
               }}
               type="button"
               role="gridcell"
-              aria-label={e}
+              aria-label={t("settings.options.emojiCell", { n: i + 1, total: EMOJIS.length })}
+              tabIndex={i === active ? 0 : -1}
               aria-selected={e === value}
               onClick={() => pick(e)}
               onKeyDown={(ev) => onGridKey(ev, i)}
