@@ -8,6 +8,29 @@ owner may overturn").
 
 ## Open
 
+### Q-27 · CHART-1 · 2026-11-20 · answered-by-default
+The new charts are built: your money as a line per day on the Dashboard, and
+charts in place of the walls of cards on Statistics. The third review found
+nothing serious, and nothing wrong in the roles or the totals. One point needed
+a choice: the profit waterfall you called not understandable is gone from the
+Dashboard, but the same picture was still on Money › Overview, in the "Profit &
+loss" card. **Applied by default (D83):** it is removed there too. That card
+now shows Revenue, then one bar "Where the money goes" split into product cost,
+return fees, ad spend, expenses and fixed fees (each with its amount, its share
+and its link, and a table view), then Net profit. Same numbers as before,
+nothing recalculated. The other option was to keep the waterfall on that one
+screen.
+
+One more short review round runs (the fourth; the count of points went 5, 4,
+3). It also makes two small buttons under the charts big enough for a thumb,
+checks that a tap on a chart point shows its numbers before opening the orders,
+fixes a total that was off when an order carries a future date, and writes the
+Arabic day names in full. If that review passes, the task is merged; the
+smaller points go to a follow-up task.
+
+Say so if you would rather keep the waterfall on Money › Overview: it is one
+card to put back. Nothing is blocked.
+
 ### Q-26 · VAR-1 · 2026-11-19
 Product options are built: "+ Size" and "+ Color" buttons, a colour swatch per
 value, your own size names saved as reusable size sets, and adding an option to
