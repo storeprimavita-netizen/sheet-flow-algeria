@@ -659,3 +659,10 @@ STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; sh
 - Screenshots (chrome-devtools, `docs/design/audit/STORE-2-H/`, html lang ar / dir rtl): gallery with one broken non-first image (AR light+dark, 390 and 1280; failed slide gone, related card with broken image keeps 4/5 height next to a working card); all broken (AR light+dark, 390 and 1280: one placeholder); editor with published page and hint (AR light+dark, 1280; muted token text readable). Local demo data (temp product/page, images) reverted. Not shot: related-card shot is 390/1280 inside the full-page captures only for the one-broken scenario.
 - Conflict note: `.store-top` (store.css:46) is not touched here; STORE-3 edits the same line, expect a merge conflict there.
 - Deviation: editor-hint light shot toggled the `light` class on `<html>` by script (no theme switch clicked).
+
+## STORE-2-H done (ship)
+- Done: STORE-2 follow-ups (lazy-image mount check, document-title path dependency, linkPageProduct throws on read error, unpublish hint key, ws2 RLS 42501 asserts, gallery collapses broken slides, preview page tests) merged from v3-STORE-2-H.
+- Verify: scripts/gate.sh GATE OK (tsc, 932 passed 5 skipped incl. live RLS suite, i18n parity, color lint, build, protected paths).
+- Evidence: docs/briefs/STORE-2-H.review-1.md VERDICT: PASS; screenshots in docs/design/audit/STORE-2-H/.
+- Owner: none. Not shot: related-card placeholder only inside full-page captures for the one-broken case.
+- Next: TEST-2 (intermittent live-DB failures); STORE-3 expects a conflict at store.css `.store-top`.
