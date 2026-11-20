@@ -36,6 +36,7 @@ describe.skipIf(!URL)("stores and store_pages (live DB)", () => {
   let adminA: SupabaseClient;
   let adminB: SupabaseClient;
   let agent: SupabaseClient;
+  let agent2: SupabaseClient;
   let ws: string;
   let ws2: string;
   const users: string[] = [];
@@ -63,6 +64,7 @@ describe.skipIf(!URL)("stores and store_pages (live DB)", () => {
     adminA = await userIn(ws, "admin");
     adminB = await userIn(ws2, "admin");
     agent = await userIn(ws, "confirmation_agent");
+    agent2 = await userIn(ws2, "confirmation_agent");
   });
   afterAll(async () => {
     if (!svc) return;
@@ -145,5 +147,26 @@ describe.skipIf(!URL)("stores and store_pages (live DB)", () => {
     // a ws1 admin cannot point its own page at a ws2 product either
     expect((await adminA.from("store_pages").update({ product_id: pb }).eq("id", page.id).select("id")).error).not.toBeNull();
     expect((await svc.from("store_pages").select("product_id").eq("id", page.id).single()).data?.product_id).toBe(pa);
+  });
+
+  test("agent of ws2 cannot see or write stores or store_pages of ws1 or ws2", async () => {
+    const sa = (await store()).data!;
+    const sb = (await store(ws2)).data!;
+    const pa = await product();
+    const pb = await product(ws2);
+    const pageA = (await svc.from("store_pages").insert({ workspace_id: ws, store_id: sa.id, product_id: pa, slug: "ag-a", title: "T" }).select("id").single()).data!;
+    const pageB = (await svc.from("store_pages").insert({ workspace_id: ws2, store_id: sb.id, product_id: pb, slug: "ag-b", title: "T" }).select("id").single()).data!;
+    // ws1 data is invisible; no store_pages at all
+    expect((await agent2.from("stores").select("id").eq("id", sa.id)).data ?? []).toEqual([]);
+    expect((await agent2.from("store_pages").select("id").in("id", [pageA.id, pageB.id])).data ?? []).toEqual([]);
+    // no writes anywhere, own workspace included
+    for (const [sid, pid, wsId] of [[sa.id, pageA.id, ws], [sb.id, pageB.id, ws2]] as const) {
+      expect((await agent2.from("stores").update({ name: "hack" }).eq("id", sid).select("id")).data ?? []).toEqual([]);
+      expect((await agent2.from("store_pages").update({ title: "hack" }).eq("id", pid).select("id")).data ?? []).toEqual([]);
+      expect((await agent2.from("store_pages").delete().eq("id", pid).select("id")).data ?? []).toEqual([]);
+      expect((await agent2.from("stores").insert({ workspace_id: wsId, slug: tag(), name: "x" })).error).not.toBeNull();
+      expect((await agent2.from("store_pages").insert({ workspace_id: wsId, store_id: sid, slug: tag(), title: "x" })).error).not.toBeNull();
+    }
+    expect((await svc.from("stores").select("name").eq("id", sb.id).single()).data?.name).toBe("Store");
   });
 });

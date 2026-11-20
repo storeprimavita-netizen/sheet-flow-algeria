@@ -5,6 +5,7 @@ let tables: Record<string, Rows | Rows[] | null>;
 let deleteResult: { data: { id: string }[] | null; error: { message: string } | null };
 let readError: { message: string } | null = null;
 let writes: { table: string; op: string }[];
+let eqs: { table: string; op: string; col: string; val: unknown }[];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/lib/store/invalidate", () => ({ invalidateStorePublic: vi.fn() }));
@@ -14,7 +15,8 @@ vi.mock("@/lib/supabase/server", () => ({
     from: (table: string) => {
       let op = "select";
       const q: Record<string, unknown> = {};
-      for (const m of ["select", "eq", "order", "limit"]) q[m] = () => q;
+      for (const m of ["select", "order", "limit"]) q[m] = () => q;
+      q.eq = (col: string, val: unknown) => (eqs.push({ table, op, col, val }), q);
       q.maybeSingle = async () => ({ data: readError ? null : (tables[table] ?? null), error: readError });
       q.single = async () => ({ data: { id: "new-store" }, error: null });
       q.insert = () => ((op = "insert"), writes.push({ table, op }), q);
@@ -27,7 +29,7 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { createStore, linkPageProduct } from "./actions";
+import { createStore, linkPageProduct, publishPage } from "./actions";
 
 const PAGE = "11111111-1111-4111-8111-111111111111";
 const PROD = "22222222-2222-4222-8222-222222222222";
@@ -35,6 +37,7 @@ const PROD = "22222222-2222-4222-8222-222222222222";
 describe("store actions", () => {
   beforeEach(() => {
     writes = [];
+    eqs = [];
     deleteResult = { data: [{ id: "new-store" }], error: null };
     tables = {};
     readError = null;
@@ -78,5 +81,17 @@ describe("store actions", () => {
     call = 0;
     deleteResult = { data: [], error: null };
     expect(await createStore(f)).toEqual({ ok: false, error: "failed" });
+  });
+
+  test("link guard filters on status", async () => {
+    tables = { store_pages: { status: "published" }, products: { is_active: true, sale_price: 100 } };
+    await linkPageProduct(PAGE, PROD);
+    expect(eqs).toContainEqual({ table: "store_pages", op: "update", col: "status", val: "published" });
+  });
+
+  test("publish filters on product_id", async () => {
+    tables = { store_pages: { product_id: PROD }, products: { is_active: true, sale_price: 100 } };
+    expect(await publishPage(PAGE)).toEqual({ ok: true, id: PAGE });
+    expect(eqs).toContainEqual({ table: "store_pages", op: "update", col: "product_id", val: PROD });
   });
 });

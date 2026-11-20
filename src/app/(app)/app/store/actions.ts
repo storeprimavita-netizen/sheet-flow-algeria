@@ -145,7 +145,8 @@ export async function linkPageProduct(pageId: string, productId: string | null):
 
 /** A page can only answer 200 when its product is active and priced. */
 async function assertPublishable(supabase: Awaited<ReturnType<typeof createClient>>, productId: string): Promise<boolean> {
-  const { data: pr } = await supabase.from("products").select("is_active, sale_price").eq("id", productId).maybeSingle();
+  const { data: pr, error } = await supabase.from("products").select("is_active, sale_price").eq("id", productId).maybeSingle();
+  if (error) throw new Error(`assertPublishable: ${error.message}`);
   return !!pr?.is_active && pr.sale_price !== null;
 }
 
@@ -154,19 +155,24 @@ async function setPublished(pageId: string, publish: boolean): Promise<StoreResu
   const id = uuid.safeParse(pageId);
   if (!id.success) return fail("invalid");
   const supabase = await createClient();
+  let productId: string | null = null;
   if (publish) {
     // the UI disables Publish, but a direct call must not publish a page that would answer 404
-    const { data: pg } = await supabase.from("store_pages").select("product_id").eq("id", id.data).eq("workspace_id", workspaceId).maybeSingle();
+    const { data: pg, error: pgError } = await supabase.from("store_pages").select("product_id").eq("id", id.data).eq("workspace_id", workspaceId).maybeSingle();
+    if (pgError) throw new Error(`setPublished: ${pgError.message}`);
     if (!pg?.product_id || !(await assertPublishable(supabase, pg.product_id))) return fail("needs_product");
+    productId = pg.product_id;
   }
-  const { data, error } = await supabase
+  let update = supabase
     .from("store_pages")
     .update({ status: publish ? "published" : "draft", published_at: publish ? new Date().toISOString() : null })
     .eq("id", id.data)
-    .eq("workspace_id", workspaceId)
-    .select("id");
+    .eq("workspace_id", workspaceId);
+  // publish only the product that was just checked: an unlink in between must not slip through
+  if (productId) update = update.eq("product_id", productId);
+  const { data, error } = await update.select("id");
   if (error) return dbFail(error);
-  if (!data?.length) return fail("failed");
+  if (!data?.length) return fail(publish ? "needs_product" : "failed");
   done(`/app/store/pages/${id.data}`);
   return { ok: true, id: id.data };
 }
