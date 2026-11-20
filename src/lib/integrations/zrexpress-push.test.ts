@@ -54,7 +54,7 @@ beforeEach(() => {
 // Chainable stub: filters return the builder, terminal calls resolve per table.
 function fakeSupabase(
   insertError: { code?: string; message: string } | null,
-  over: { order?: Record<string, unknown>; fees?: Record<string, unknown> | null } = {},
+  over: { order?: Record<string, unknown>; fees?: Record<string, unknown> | null; shipment?: Record<string, unknown> } = {},
 ) {
   const tables: Record<string, unknown> = {
     orders: {
@@ -63,7 +63,7 @@ function fakeSupabase(
       delivery_fee: 0, product: { name: "P" }, ...over.order,
     },
     wilaya_fees: over.fees ?? null,
-    zr_shipments: null,
+    zr_shipments: over.shipment ?? null,
     integration_configs: { config: { tenant_id: "t", api_key: "k" } },
   };
   const inserts: unknown[] = [];
@@ -99,6 +99,45 @@ describe("swapped orders", () => {
     const r = await pushToZR(client, "w", "o1");
     expect(r).toMatchObject({ ok: false, error: expect.stringContaining("swapped") });
     expect(creates).toBe(0);
+    expect(inserts).toEqual([]);
+  });
+});
+
+describe("send state", () => {
+  it("already sent wins over past dispatch", async () => {
+    const { client } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited" }, shipment: { order_id: "o1" } });
+    expect(await pushToZR(client, "w", "o1")).toEqual({ ok: false, error: "This order was already sent to ZR Express." });
+    expect(creates).toBe(0);
+  });
+  it("links existing parcel for bureau_deposited without creating", async () => {
+    parcels.push({ id: "pX", externalId: "o1" });
+    const { client, inserts } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited" } });
+    expect(await pushToZR(client, "w", "o1")).toEqual({ ok: true });
+    expect(creates).toBe(0);
+    expect(inserts[0]).toMatchObject({ parcel_id: "pX" });
+  });
+  it("refuses bureau_deposited when no parcel", async () => {
+    const { client, inserts } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited" } });
+    expect(await pushToZR(client, "w", "o1")).toEqual({
+      ok: false,
+      error: "This order is swapped or already past dispatch and cannot be sent.",
+    });
+    expect(creates).toBe(0);
+    expect(inserts).toEqual([]);
+  });
+  it("refuses delayed/returned", async () => {
+    for (const delivery_status of ["delayed", "returned"]) {
+      parcels.push({ id: "pX", externalId: "o1" });
+      const { client, inserts } = fakeSupabase(null, { order: { delivery_status } });
+      expect(await pushToZR(client, "w", "o1")).toMatchObject({ ok: false, error: expect.stringContaining("past dispatch") });
+      expect(inserts).toEqual([]);
+    }
+    expect(creates).toBe(0);
+  });
+  it("swapped never links", async () => {
+    parcels.push({ id: "pX", externalId: "o1" });
+    const { client, inserts } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited", swapped_to_order_id: "o2" } });
+    expect(await pushToZR(client, "w", "o1")).toMatchObject({ ok: false });
     expect(inserts).toEqual([]);
   });
 });

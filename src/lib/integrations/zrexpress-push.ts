@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { deliveryFeeFor } from "@/lib/pricing-delivery";
 import { normalizeText } from "@/lib/utils";
+import { zrSendState } from "@/lib/integrations/zr-sendable";
 import {
   getZRCredentials,
   createZRParcel,
@@ -15,6 +16,8 @@ import {
   zrErrorMessage,
   type ZRHub,
 } from "@/lib/integrations/zrexpress";
+
+const PAST_DISPATCH = "This order is swapped or already past dispatch and cannot be sent.";
 
 export type PushResult = { ok: true } | { ok: false; error: string };
 
@@ -41,9 +44,20 @@ export async function pushToZR(
   if (order.confirmation_status !== "confirmed") {
     return { ok: false, error: "Only confirmed orders can be sent to ZR Express." };
   }
-  // State rule, not the nullable link: the link clears if the replacement order is deleted.
-  if (order.swapped_to_order_id || order.delivery_status !== "wait_for_deposit") {
-    return { ok: false, error: "This order is swapped or already past dispatch and cannot be sent." };
+  // Already sent wins over every other refusal (re-confirming a sent order is not "past dispatch").
+  const { data: existing } = await supabase
+    .from("zr_shipments")
+    .select("order_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (existing) return { ok: false, error: "This order was already sent to ZR Express." };
+
+  const sendState = zrSendState(order);
+  // Link-only: a bureau_deposited order without a shipment row may already have a parcel at ZR
+  // (insert failed earlier). Adopt it; never create one. Swapped never links.
+  const linkOnly = !sendState.ok && sendState.reason === "status" && order.delivery_status === "bureau_deposited";
+  if (!sendState.ok && !linkOnly) {
+    return { ok: false, error: PAST_DISPATCH };
   }
   if (!order.wilaya_code || (order.delivery_type === "home" && !order.commune)) {
     return { ok: false, error: "Order needs a wilaya (and a commune for home delivery) before it can be sent." };
@@ -70,18 +84,21 @@ export async function pushToZR(
     }
   }
 
-  const { data: existing } = await supabase
-    .from("zr_shipments")
-    .select("order_id")
-    .eq("order_id", orderId)
-    .maybeSingle();
-  if (existing) return { ok: false, error: "This order was already sent to ZR Express." };
-
   let creds;
   try {
     creds = await getZRCredentials(supabase, workspaceId);
   } catch (e) {
     return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
+  }
+
+  if (linkOnly) {
+    try {
+      const found = await findZRParcelByExternalId(creds, order.id);
+      if (!found) return { ok: false, error: PAST_DISPATCH };
+      return await saveShipment(supabase, workspaceId, order.id, creds, found, false);
+    } catch (e) {
+      return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
+    }
   }
 
   const { data: wilayaTerritory } = await supabase
@@ -165,6 +182,17 @@ export async function pushToZR(
     return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
   }
 
+  return saveShipment(supabase, workspaceId, orderId, creds, parcel, created);
+}
+
+async function saveShipment(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  orderId: string,
+  creds: Awaited<ReturnType<typeof getZRCredentials>>,
+  parcel: { id: string },
+  created: boolean,
+): Promise<PushResult> {
   // Best-effort follow-up read for the tracking number — the create response
   // only returns the parcel id; "Refresh status" picks it up later otherwise.
   let trackingNumber: string | null = null;
@@ -189,7 +217,7 @@ export async function pushToZR(
   if (!error) return { ok: true };
   if (error.code === "23505") {
     // lost a race: if WE just created a parcel it is now a second real parcel nobody links to
-    if (created) console.error("zr duplicate parcel after racing push — cancel in ZR dashboard:", parcel.id, "order", order.id);
+    if (created) console.error("zr duplicate parcel after racing push — cancel in ZR dashboard:", parcel.id, "order", orderId);
     return { ok: false, error: "This order was already sent to ZR Express." };
   }
   console.error("zr_shipments insert failed after parcel creation", parcel.id, error.message);
