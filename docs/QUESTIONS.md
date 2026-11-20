@@ -8,6 +8,22 @@ owner may overturn").
 
 ## Open
 
+### Q-29 · NAV-5 · 2026-11-20 · answered-by-default
+On a phone the app gets a bar at the bottom of the screen, and your agents get
+a home page, "My day". The plan listed "Tasks" in the agents' bar, but today
+the Tasks, Meetings and Rules pages open for admins only. **Applied by default
+(D86):** agents do not get these pages. Their bar is My day · Confirmation ·
+More, and My day shows their own open tasks and the next meeting to read, with
+nothing to click or change. Reason: which pages an agent can open is your
+call, and this way nothing changes in what they can open. The other option:
+agents open the Tasks page (to read, or also to tick their own tasks as done)
+and "Tasks" goes back into their bar. Say so if you want it.
+Also on My day, "your orders today" counts the orders an agent confirmed,
+cancelled or left to call again, among the orders assigned to them. An agent
+takes an order by handling it, so their own work is all counted; only an order
+you give to another agent afterwards leaves the first agent's count. Nothing
+is blocked.
+
 ### Q-28 · CHART-1 · 2026-11-20
 The charts are built: your money as a line per day on the Dashboard, charts on
 Statistics, and the cost bar that replaced the waterfall on Money › Overview
