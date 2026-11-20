@@ -873,3 +873,7 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - TEST-2 (intermittent live-DB tests) hit every task of this run: 9 gate runs failed and passed on re-run with no code change (seasons.rls, reviews.rls, delivery-prices.rls, kpi, variants.rls: FK races and 5 s timeouts). One cause found: pages left open in the chrome-devtools browser held a renderer at 100% CPU (load 10); closing them made the NAV-5-H merge gate pass. It still failed afterwards on a quiet machine, so the FK race is separate. Worth running TEST-2 before more tasks.
 - Owner-owed, unchanged: bottom bar and My day on a real iPhone/Android (NAV-5-G shots are emulated; "390 px" shots of SEC-1-I are 500 px, the tool's minimum).
 - Next `/auto` picks: SEC-1-J, NAV-1-H, NAV-2-F, NAV-3-F, then P1-1-F.
+
+## SEC-1-J: screenshots
+- Screenshots `docs/design/audit/SEC-1-J/` (chrome-devtools, cookies `theme`/`locale`): EN dark and AR light at 1440 and 500 px. Rows show the translated table name (ZR shipments / شحنات ZR, Settings / الإعدادات), mobile cards show it once, AR html is rtl, no horizontal scroll. Nothing to fix. Not shot: EN light and AR dark (same tokens).
+- Caveat: the MCP window cannot go below 500 px, so "390" shots are 500 px. Page closed back to about:blank.
