@@ -388,6 +388,10 @@
       "refresh": "Refresh status",
       "stopdeskGone": "This stop desk order cannot ship: stop desk is no longer available in this wilaya.",
       "switchToHome": "Switch to home delivery",
+      "notSendable": {
+        "swapped": "Not sent: this order was swapped for another order.",
+        "status": "Not sent: this order is already past dispatch."
+      },
       "switch": {
         "needsWilaya": "Order needs a wilaya first.",
         "status": "This order has already moved past the waiting stage, so its delivery type cannot change.",
