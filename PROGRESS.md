@@ -796,3 +796,17 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-5.review-1.md FIX, .review-2.md FIX, .review-3.md ESCALATE (answered by D87, option b).
 - Owner: screenshots at 390 px (light/dark, EN/AR) and real-phone check owed (NAV-5-G); review-1 low #9 reopened (NAV-5-F).
 - Next: NAV-5-F, NAV-5-G.
+
+## NAV-5-F: built (awaiting /verify)
+- Done: delivery count uses the last delivery-stage row per order (shared `lastPerOrder`, query no longer filters `to_status`); live fixtures (second courier, admin change adds one to call again, profile-setup error asserted); queue title "Team queue: orders to deliver" and dashboard card "Waiting for first call" (EN/AR, counts unchanged); tests for my-day layout guard, root redirect, bottom bar (sub-route, 99+, md:hidden, More ref), loading and error states.
+- Limits: no DOM test environment, so "focus returns to More" pins the ref wiring only, not the focus call itself.
+- (d) 768 px dashboard overflow: filter card now `lg:w-fit` with minmax grid columns (review 1 FIX); not re-measured live. Docs excluded from Tailwind scan.
+- (e) Not built: `viewportFit: "cover"` and top/side insets stay out (D87); no notched iPhone simulator confirmed (only `xcrun simctl` "iPhone Duo"); safe-area class test not written.
+- Screenshots (390 px, light/dark, EN/AR): not taken, no browser MCP run in this session.
+
+## NAV-5-F: done
+- Done: review-1 FIX items landed (delivery count per last delivery-stage row, live fixtures, queue/dashboard copy EN/AR, my-day layout, root redirect, bottom bar and loading/error tests); review-2 PASS (ui-reviewer, fc04611).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-F (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5-F.review-1.md FIX, docs/briefs/NAV-5-F.review-2.md PASS.
+- Owner: screenshots at 390 px (light/dark, EN/AR) not taken in this run; owed via NAV-5-G; 768 px overflow not re-measured live.
+- Next: NAV-5-G.

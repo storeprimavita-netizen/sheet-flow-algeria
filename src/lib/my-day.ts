@@ -25,17 +25,22 @@ export function algiersDayStart(now: Date = new Date()): string {
 
 export type HistoryRow = { order_id: string; to_status: string; created_at: string };
 
-/** Each order counts once, under my last change today: confirmed / cancelled / to call again (anything else). */
-export function countMyChanges(rows: HistoryRow[]) {
+/** Last row per order; rows arrive ordered by created_at then id, so a later row wins a tie. */
+function lastPerOrder(rows: HistoryRow[]): HistoryRow[] {
   const last = new Map<string, HistoryRow>();
   for (const r of rows) {
     const prev = last.get(r.order_id);
     if (!prev || r.created_at >= prev.created_at) last.set(r.order_id, r);
   }
+  return [...last.values()];
+}
+
+/** Each order counts once, under my last change today: confirmed / cancelled / to call again (anything else). */
+export function countMyChanges(rows: HistoryRow[]) {
   let confirmed = 0;
   let cancelled = 0;
   let callAgain = 0;
-  for (const { to_status } of last.values()) {
+  for (const { to_status } of lastPerOrder(rows)) {
     if (to_status === "confirmed") confirmed++;
     else if (to_status === "cancelled") cancelled++;
     else callAgain++;
@@ -43,16 +48,11 @@ export function countMyChanges(rows: HistoryRow[]) {
   return { confirmed, cancelled, callAgain, handled: confirmed + cancelled + callAgain };
 }
 
-/** Each order counts once, under its last delivery outcome today. */
+/** Each order counts once, under its last delivery-stage row today; only delivered/returned are counted. */
 export function countDelivery(rows: HistoryRow[]) {
-  const last = new Map<string, HistoryRow>();
-  for (const r of rows) {
-    const prev = last.get(r.order_id);
-    if (!prev || r.created_at >= prev.created_at) last.set(r.order_id, r);
-  }
   let delivered = 0;
   let returned = 0;
-  for (const { to_status } of last.values()) {
+  for (const { to_status } of lastPerOrder(rows)) {
     if (to_status === "delivered") delivered++;
     else if (to_status === "returned") returned++;
   }
@@ -102,7 +102,6 @@ export async function getMyDay(
             .from("order_status_history")
             .select("order_id, to_status, created_at, orders!inner(assigned_delivery_agent)")
             .eq("stage", "delivery")
-            .in("to_status", ["delivered", "returned"])
             .eq("orders.assigned_delivery_agent", userId)
             .gte("created_at", since)
             .order("created_at")

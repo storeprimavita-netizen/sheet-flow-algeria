@@ -26,4 +26,12 @@ describe("countDelivery", () => {
   it("each order once under its last outcome", () => {
     expect(countDelivery([r("a", "returned", 1), r("a", "delivered", 2), r("b", "returned", 3)])).toEqual({ delivered: 1, returned: 1 });
   });
+  it("delivered then returning same day is not counted", () => {
+    expect(countDelivery([r("a", "delivered", 1), r("a", "returning", 2)])).toEqual({ delivered: 0, returned: 0 });
+  });
+  it("equal created_at rows resolve by order (tie)", () => {
+    const at = "2026-03-10T10:00:00Z";
+    const row = (to_status: string) => ({ order_id: "a", to_status, created_at: at });
+    expect(countDelivery([row("returned"), row("delivered")])).toEqual({ delivered: 1, returned: 0 });
+  });
 });

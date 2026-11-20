@@ -25,7 +25,7 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
   const users: string[] = [];
   let ws = "";
   let ws2 = "";
-  let admin: Who, a1: Who, a2: Who, courier: Who, other: Who;
+  let admin: Who, a1: Who, a2: Who, courier: Who, courier2: Who, other: Who;
 
   const mk = async (workspace: string, role: Role): Promise<Who> => {
     const email = `${prefix}${role}-${crypto.randomUUID()}@test.mnw`;
@@ -33,7 +33,7 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     if (error) throw error;
     users.push(data.user.id);
     const up = await svc.from("profiles").update({ workspace_id: workspace, role, is_active: true }).eq("user_id", data.user.id);
-    if (up.error) throw up.error;
+    expect(up.error).toBeNull();
     const c = client(ANON_KEY);
     const s = await c.auth.signInWithPassword({ email, password: SEED_PASSWORD });
     if (s.error) throw s.error;
@@ -58,6 +58,7 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     a1 = await mk(ws, "confirmation_agent");
     a2 = await mk(ws, "confirmation_agent");
     courier = await mk(ws, "delivery_agent");
+    courier2 = await mk(ws, "delivery_agent");
     other = await mk(ws2, "confirmation_agent");
   }, 60000);
   afterAll(async () => {
@@ -81,14 +82,16 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     expect(d.kind === "confirmation" && d.numbers).toEqual({ confirmed: 1, cancelled: 0, callAgain: 0, handled: 1 });
   });
 
-  test("admin change on agent's order not counted", async () => {
+  test("admin change adds one to call again", async () => {
     const before = await day(a1, "confirmation_agent");
     const id = await newOrder();
     await change(a1, id, "no_answer"); // assigns to a1
     await change(admin, id, "cancelled");
     const after = await day(a1, "confirmation_agent");
     // the agent's own change is theirs; the admin's is not: this order counts as "to call again", not cancelled
-    expect(after.kind === "confirmation" && before.kind === "confirmation" && after.numbers.cancelled).toBe(before.kind === "confirmation" ? before.numbers.cancelled : -1);
+    if (before.kind !== "confirmation" || after.kind !== "confirmation") throw new Error("kind");
+    expect(after.numbers.cancelled).toBe(before.numbers.cancelled);
+    expect(after.numbers.callAgain).toBe(before.numbers.callAgain + 1);
   });
 
   test("order agent confirmed then admin assigned elsewhere not counted (limit pinned)", async () => {
@@ -124,5 +127,15 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     const c = await day(courier, "delivery_agent");
     expect(c.kind === "delivery" && c.numbers).toEqual({ delivered: 1, returned: 0 });
     for (const d of [c, o, a]) expect(JSON.stringify(d)).not.toMatch(/price|cost|amount|dzd|fee|profit/i);
+  });
+
+  test("second courier's order delivered today is not counted for me", async () => {
+    const before = await day(courier, "delivery_agent");
+    const id = await newOrder();
+    await svc.from("orders").update({ confirmation_status: "confirmed", assigned_delivery_agent: courier2.id, delivery_status: "delivered" }).eq("id", id);
+    const mine = await day(courier, "delivery_agent");
+    const theirs = await day(courier2, "delivery_agent");
+    expect(mine.kind === "delivery" && before.kind === "delivery" && mine.numbers).toEqual(before.kind === "delivery" ? before.numbers : null);
+    expect(theirs.kind === "delivery" && theirs.numbers.delivered).toBe(1);
   });
 });
