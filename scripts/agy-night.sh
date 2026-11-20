@@ -25,6 +25,7 @@ say() { echo "$(date '+%H:%M') ── [$name] $*"; }
 command -v agy >/dev/null 2>&1 || { say "agy is not installed — see docs/ANTIGRAVITY.md"; exit 1; }
 [ -d node_modules ] || { say "node_modules missing — run: npm ci"; exit 1; }
 caffeinate -ims -w $$ &
+trap 'scripts/dev-down.sh >/dev/null 2>&1' EXIT INT TERM   # never leave the dev server running after a run
 [ "$filter" = "nodb" ] && export GATE_SKIP_LIVE=1
 
 bad=0; n=0

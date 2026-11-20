@@ -20,7 +20,8 @@ ids=(); case "${1:-}" in ""|*[!0-9]*) [ $# -gt 0 ] && ids=("$@") ;; esac
 say() { echo "$(date '+%H:%M') ── $*"; }
 
 command -v claude >/dev/null 2>&1 || { say "claude CLI not found"; exit 1; }
-caffeinate -ims -w $$ &            # no idle/disk/system sleep while this script lives
+caffeinate -ims -w $$ &
+trap 'scripts/dev-down.sh >/dev/null 2>&1' EXIT INT TERM   # never leave the dev server running after a run            # no idle/disk/system sleep while this script lives
 
 seconds_until() {                  # "5:20pm" → seconds from now (next occurrence)
   python3 -I - "$1" <<'PY'

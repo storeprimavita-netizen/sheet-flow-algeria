@@ -28,6 +28,7 @@ if [ "${1:-}" != "--no-app" ] && [ $ok = 0 ]; then
     nohup npm run dev -- -p "$port" >"$logdir/mnw-dev-$port.log" 2>&1 &
     for _ in $(seq 1 30); do sleep 2; app && break; done
   fi
+  pgrep -f "scripts/dev-watchdog.sh $port" >/dev/null 2>&1 || (nohup scripts/dev-watchdog.sh "$port" >/dev/null 2>&1 &)
   app && echo "UP    app       http://localhost:$port  (admin@seed.mnw — docs/TESTING.md)" || { echo "DOWN  app — see $logdir/mnw-dev-$port.log"; ok=1; }
 fi
 exit $ok

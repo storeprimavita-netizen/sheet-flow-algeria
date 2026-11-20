@@ -40,9 +40,9 @@ if [ "${1:-}" = "--write-permissions" ]; then
     "allow": [
       "command(git)",
       "command(git push)",
-      "command(regex:scripts/(gate|step|secret-scan|dev-up|db-reset)\\.sh.*)",
+      "command(regex:scripts/(gate|step|secret-scan|dev-up|dev-down|db-reset|notify)\\.sh.*)",
       "command(regex:npx (tsc|vitest|supabase (status|migration|gen|db reset --local)).*)",
-      "command(regex:npm (ci|test|run (build|dev)).*)",
+      "command(regex:npm (ci|test|run build).*)",
       "command(regex:node (--import|--env-file|scripts/).*)",
       "command(regex:(ls|cat|head|tail|sed|grep|rg|find|wc|sort|uniq|cut|awk|curl -s -m [0-9]+ .*(127\\.0\\.0\\.1|localhost)).*)"
     ],

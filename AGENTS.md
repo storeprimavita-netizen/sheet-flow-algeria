@@ -132,9 +132,12 @@ navigation, images, performance. It replaces guesses from old training data.
 
 ## Running
 
-`npm ci` · `npm run dev` · gate `scripts/gate.sh` · migrations
+`npm ci` · app `scripts/dev-up.sh` / `scripts/dev-down.sh` · gate `scripts/gate.sh` · migrations
 `npx supabase db push` (owner only for remote) · env in `.env.local`
 (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-`SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`). Never commit `.env.local`; never expose
+`SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`). **Start the app only with `scripts/dev-up.sh`** (never `npm run dev` or
+`next dev` directly): it clears an oversized build cache and attaches a watchdog
+that stops a runaway or forgotten dev server. When your session's work is done,
+run `scripts/dev-down.sh`. Never commit `.env.local`; never expose
 the service key to the client. Local stack: Supabase docker at
 `http://127.0.0.1:54321`, seed users in `scripts/seed-dev.ts`.

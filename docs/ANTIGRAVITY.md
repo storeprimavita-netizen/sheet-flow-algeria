@@ -166,6 +166,13 @@ the **same folder** at once.
 
 ## Things to know
 
+- **The dev server is guarded.** Agents start the app only through
+  `scripts/dev-up.sh`, which attaches a watchdog: it stops a server that spins
+  the CPU with nobody connected, one that nobody has used for 45 minutes, or
+  one whose build cache passed 4 GB (and deletes that cache). `/loop-night`
+  and the runner scripts also stop the app when they end. To cool the Mac at
+  any time: `scripts/dev-down.sh` (add `--all` to stop the database too).
+
 - Antigravity does not read `CLAUDE.md`, `.claude/commands` or `.claude/agents`
   by itself; the `.agents/` skills point it at those files.
 - Rule files in `.agents/rules/` must start with frontmatter (`trigger:`) or
