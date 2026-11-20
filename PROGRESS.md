@@ -975,3 +975,11 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - Evidence: docs/briefs/VAR-1.md, docs/briefs/VAR-1.review-4.md.
 - Owner: Q-26 answered-by-default; mediums in VAR-1-F, 9 lows in docs/BACKLOG.md.
 - Next: VAR-1-F, VAR-1-B (after STORE-3).
+
+### Run report (auto VAR-1)
+- Shipped: VAR-1 (merge c541910). Gate OK after merging v3 (conflicts resolved in 055bd4a); review-4 ESCALATE, no high.
+- Decisions: D93 — VAR-1 merged under D89/D40 (Q-26 answered-by-default); 2 mediums -> VAR-1-F, 9 lows -> BACKLOG.
+- Note: the `ship` skill refuses a non-PASS review, so the D89 merge was done by a one-off agent.
+- Owner step: migration 00068 (variant options, swatches, size sets) is local only; remote `db push` is yours.
+- Open questions: Q-15, Q-16, Q-26, Q-29 (answered-by-default, nothing blocked).
+- Next: CONF-2 (feature rows first), then follow-ups VAR-1-F / VAR-1-B / CONF-1-F.
