@@ -31,11 +31,15 @@ export const AUDITED_WORKSPACE_TABLES = [
   "settings",
 ] as const;
 
+/** Not audited, but they reference audited option tables, which cannot be deleted while variants exist. */
+const VARIANT_TABLES = ["product_variant_values", "product_variants"] as const;
+
 /**
  * Test-only: delete workspaces, retrying up to 3 times when Postgres reports a deadlock (40P01).
  * Audited tables are emptied first (see AUDITED_WORKSPACE_TABLES). Only the given workspaces are touched.
  */
 export async function deleteWorkspaces(svc: SupabaseClient, ids: string[]) {
+  for (const t of VARIANT_TABLES) await svc.from(t).delete().in("workspace_id", ids);
   for (const t of AUDITED_WORKSPACE_TABLES) await svc.from(t).delete().in("workspace_id", ids);
   let res = await svc.from("workspaces").delete().in("id", ids);
   for (let i = 1; i < 3 && res.error?.code === "40P01"; i++) {
