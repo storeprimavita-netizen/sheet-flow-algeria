@@ -11,6 +11,7 @@ export function WilayaCombobox({
   value,
   onChange,
   name,
+  id,
   placeholder = "Wilaya",
   disabled,
   ariaLabel,
@@ -19,6 +20,7 @@ export function WilayaCombobox({
   value?: string;
   onChange?: (value: string) => void;
   name?: string;
+  id?: string;
   placeholder?: string;
   disabled?: boolean;
   ariaLabel?: string;
@@ -34,6 +36,7 @@ export function WilayaCombobox({
       value={value}
       onChange={onChange}
       name={name}
+      id={id}
       placeholder={placeholder}
       disabled={disabled}
       ariaLabel={ariaLabel}
