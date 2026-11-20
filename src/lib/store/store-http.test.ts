@@ -1,3 +1,5 @@
+import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, test } from "vitest";
 
 /**
@@ -22,10 +24,66 @@ describe.skipIf(!BASE)("store over HTTP", () => {
       expect((await fetch(`${BASE}${p}`)).status, p).toBe(404);
     }
   });
+  test("dead store link: real 404, Arabic title, noindex, the 404 marker, no store data (D78)", async () => {
+    for (const p of ["/s/nope/xx", "/s/luxe/definitely-missing"]) {
+      const res = await fetch(`${BASE}${p}`);
+      expect(res.status, p).toBe(404);
+      const html = await res.text();
+      expect(html, p).toContain("<title>الصفحة غير موجودة</title>");
+      expect(html, p).toContain("noindex");
+      expect(html, p).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+      expect(html, p).not.toMatch(/luxe modesty/i);
+    }
+  });
   test("/s/x/y?preview=1 on a draft is a 404; /app still redirects to login", async () => {
     expect((await fetch(`${BASE}/s/luxe/draft-page?preview=1`)).status).toBe(404);
     const app = await fetch(`${BASE}/app/dashboard`, { redirect: "manual" });
     expect(app.status).toBe(307);
     expect(app.headers.get("location")).toContain("/login");
+  });
+});
+
+/**
+ * Session checks over HTTP. Opt-in with STORE_E2E_URL plus the local Supabase env
+ * (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY) and the seed users (docs/TESTING.md).
+ */
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+async function sessionCookie(email: string): Promise<{ header: string; userClient: SupabaseClient }> {
+  const jar = new Map<string, string>();
+  const client = createServerClient(SB_URL!, SB_KEY!, {
+    cookies: {
+      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+      setAll: (list) => list.forEach(({ name, value }) => jar.set(name, value)),
+    },
+  });
+  const { error } = await client.auth.signInWithPassword({ email, password: "SeedDev!2026" });
+  if (error) throw error;
+  return { header: [...jar].map(([k, v]) => `${k}=${v}`).join("; "), userClient: client };
+}
+
+describe.skipIf(!BASE || !SB_URL || !SB_KEY)("store admin over HTTP (agent vs admin session)", () => {
+  test("agent hits the 404 boundary on /app/store and a real page editor URL; admin gets the hub", async () => {
+    const admin = await sessionCookie("admin@seed.mnw");
+    const { data: pages } = await admin.userClient.from("store_pages").select("id, title, slug").limit(1);
+    const page = pages?.[0];
+    if (!page) throw new Error("seed has no store page: the editor 404 check needs a real page");
+    if (!page.title || !page.slug) throw new Error("store page has an empty title or slug: the leak check would be meaningless");
+    const pageId = page.id;
+    const agent = await sessionCookie("confirmation@seed.mnw");
+    for (const p of ["/app/store", `/app/store/pages/${pageId}`]) {
+      const res = await fetch(`${BASE}${p}`, { headers: { cookie: agent.header }, redirect: "manual" });
+      // The route streams behind loading.tsx, so Next documents a 200 with noindex and the 404 boundary in the payload.
+      const html = await res.text();
+      expect(html, `agent ${p}`).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+      expect(html, `agent ${p}`).toContain("noindex");
+      expect(html, `agent ${p}`).not.toMatch(/<h1[^>]*>Store</);
+      expect(html, `agent ${p}`).not.toContain(page.title);
+      expect(html, `agent ${p}`).not.toContain(page.slug);
+    }
+    const ok = await fetch(`${BASE}/app/store`, { headers: { cookie: admin.header }, redirect: "manual" });
+    expect(ok.status).toBe(200);
+    expect(await ok.text()).not.toContain("NEXT_HTTP_ERROR_FALLBACK;404");
   });
 });

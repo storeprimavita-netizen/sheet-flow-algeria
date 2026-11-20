@@ -5,7 +5,6 @@ import { Empty } from "@/components/empty";
 import { PageHeader } from "@/components/page-header";
 import { publicSettingsSchema } from "@/lib/store/settings";
 
-import { Crumbs } from "../_components/crumbs";
 import { SettingsForm } from "../_components/settings-form";
 import { getStore } from "../_lib/data";
 
@@ -16,7 +15,6 @@ export default async function StoreSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Crumbs items={[{ label: t("settings.title") }]} />
         <PageHeader title={t("settings.title")} subtitle={t("settings.purpose")} />
       </div>
       {!store ? (

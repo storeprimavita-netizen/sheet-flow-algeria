@@ -10,11 +10,11 @@ import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
 export type WilayaMapDatum = {
   code: number;
   name: string | null;
+  /** received orders (counts.received) */
   totalOrders: number;
-  confirmedOrders: number;
   deliveryRate: number | null;
-  stopShippingManual: boolean;
-  stopShippingAuto: boolean;
+  /** delivery rate has enough data (kpi_metric.matured); false renders the grey "not enough data" fill */
+  matured: boolean;
 };
 
 /** Tooltip text: name (datum → names map → code), then rate and volume, or the no-data label. */
@@ -25,11 +25,20 @@ export function wilayaTitle(wd: WilayaMapDatum, noDataLabel: string, names?: Rec
     : `${name} — ${noDataLabel}`;
 }
 
-/** 4-5 step token scale, low → danger, high → success; below the min-orders
- * threshold (same confirmed-orders denominator the stop-shipping-auto flag
- * uses) renders neutral, never a false extreme. */
-function fillClass(d: WilayaMapDatum, minOrders: number): string {
-  if (d.confirmedOrders < minOrders || d.deliveryRate === null) return "fill-neutral/30";
+/** Enter/Space activate a cell; every other key is left alone. */
+export function cellKeyHandler(code: number, onSelect?: (code: number) => void) {
+  return (e: { key: string; preventDefault: () => void }) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelect?.(code);
+    }
+  };
+}
+
+/** 4-5 step token scale, low → danger, high → success; an unmatured rate
+ * (SQL `matured`) renders neutral, never a false extreme. */
+function fillClass(d: WilayaMapDatum): string {
+  if (!d.matured || d.deliveryRate === null) return "fill-neutral/30";
   if (d.deliveryRate < 40) return "fill-danger";
   if (d.deliveryRate < 55) return "fill-orange";
   if (d.deliveryRate < 70) return "fill-warning";
@@ -85,7 +94,6 @@ function useMapGeometry() {
 
 export function AlgeriaMap({
   data,
-  minOrders,
   hovered,
   onHover,
   onSelect,
@@ -94,7 +102,6 @@ export function AlgeriaMap({
   names,
 }: {
   data: WilayaMapDatum[];
-  minOrders: number;
   hovered?: number | null;
   onHover?: (code: number | null) => void;
   onSelect?: (code: number) => void;
@@ -106,12 +113,15 @@ export function AlgeriaMap({
   const clipId = React.useId();
   const { outlineD, cells, viewBox } = useMapGeometry();
   const byCode = new Map(data.map((d) => [d.code, d]));
+  const [focused, setFocused] = React.useState<number | null>(null);
+  const active = focused ?? hovered ?? null;
+  const activeD = cells.find((c) => c.code === active)?.d;
 
   return (
     <svg
       viewBox={viewBox}
       className="mx-auto h-auto w-full max-w-[360px]"
-      role="img"
+      role="group"
       aria-label={label}
     >
       <clipPath id={clipId}>
@@ -123,35 +133,51 @@ export function AlgeriaMap({
             code,
             name: null,
             totalOrders: 0,
-            confirmedOrders: 0,
             deliveryRate: null,
-            stopShippingManual: false,
-            stopShippingAuto: false,
+            matured: false,
           };
           const isHovered = hovered === code;
-          const stopFlag = wd.stopShippingManual || wd.stopShippingAuto;
           const titleText = wilayaTitle(wd, noDataLabel, names);
           return (
             <path
               key={code}
               d={d}
               className={cn(
-                fillClass(wd, minOrders),
+                fillClass(wd),
                 "cursor-pointer transition-[stroke-width,opacity]",
-                stopFlag ? "stroke-danger" : "stroke-background",
+                "stroke-background focus-visible:outline-none",
                 isHovered ? "opacity-100" : "opacity-90",
               )}
-              strokeWidth={stopFlag ? 2 : isHovered ? 1.5 : 0.75}
+              {...(onSelect ? { tabIndex: 0, role: "link", onKeyDown: cellKeyHandler(code, onSelect) } : {})}
+              aria-label={titleText}
+              strokeWidth={isHovered ? 1.5 : 0.75}
               strokeLinejoin="round"
               onMouseEnter={() => onHover?.(code)}
               onMouseLeave={() => onHover?.(null)}
               onClick={() => onSelect?.(code)}
+              onFocus={() => {
+                setFocused(code);
+                onHover?.(code);
+              }}
+              onBlur={() => {
+                setFocused(null);
+                onHover?.(null);
+              }}
             >
               <title>{titleText}</title>
             </path>
           );
         })}
       </g>
+      {activeD ? (
+        <path
+          d={activeD}
+          aria-hidden
+          className="pointer-events-none fill-none stroke-ring"
+          strokeWidth={3.5}
+          strokeLinejoin="round"
+        />
+      ) : null}
       <path d={outlineD} className="pointer-events-none fill-none stroke-border" strokeWidth={1} />
     </svg>
   );

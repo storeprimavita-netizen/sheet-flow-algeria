@@ -10,6 +10,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { blocksSchema, seoSchema, type Block, type Seo } from "./blocks";
 import { parseDeliveryMethods, parseFormFields, type FormField } from "./form-fields";
 import { comparePrice, lowestPrice, offerSaving, unitPrice, visibleOffers, type PricingMode } from "./offer-price";
+import { isVerifiedOrder, publicReviewName } from "./reviews";
 import { instagramLink, publicSettingsSchema, waLink } from "./settings";
 import { isHttps, slugSchema, storeSlugSchema, stripEmoji } from "./url";
 import { sizeInStock } from "./variant-stock";
@@ -19,6 +20,10 @@ export type PublicOffer = { id: string; label: string; qty: number; total: numbe
 export type PublicBump = { id: string; name: string; price: number };
 export type PublicForm = { fields: FormField[]; deliveryMethods: ("home" | "stopdesk")[] };
 export type PublicRelated = { slug: string; title: string; image: string | null; price: number };
+/** No ids: nothing here can be traced back to a customer, an order or a workspace. `name` is "" when nothing is left to show. */
+export type PublicReview = { name: string; rating: number; text: string; date: string; verified: boolean };
+export type PublicReviews = { avg: number; count: number; items: PublicReview[] };
+export const MAX_PUBLIC_REVIEWS = 60;
 export type PublicProductPage = {
   store: {
     slug: string;
@@ -33,6 +38,7 @@ export type PublicProductPage = {
   bump: PublicBump | null;
   form: PublicForm;
   related: PublicRelated[];
+  reviews: PublicReviews;
 };
 
 type Db = SupabaseClient<Database>;
@@ -110,11 +116,13 @@ async function buildProductPage(
   const base = product.sale_price === null ? null : Number(product.sale_price);
   const compareBase = product.compare_at_price === null ? null : Number(product.compare_at_price);
 
-  const [variants, related, offerRows, form] = await Promise.all([
+  const list = blocks.success ? blocks.data : [];
+  const [variants, related, offerRows, form, reviews] = await Promise.all([
     loadVariants(db, product, mode, base, compareBase),
-    loadRelated(db, store.id, store.workspace_id, blocks.success ? blocks.data : [], page.id),
+    loadRelated(db, store.id, store.workspace_id, list, page.id),
     loadOffers(db, product.id, store.workspace_id, now),
     loadForm(db, product.id),
+    list.some((b) => b.type === "reviews") ? loadReviews(db, store.workspace_id, product.id) : Promise.resolve({ avg: 0, count: 0, items: [] }),
   ]);
 
   // The price shown on the page: the lowest sellable size, or the plain price when the product has no sizes.
@@ -156,8 +164,79 @@ async function buildProductPage(
     bump: offerRows.bump,
     form,
     related,
+    reviews,
   };
   return { dto, sellable: unit !== null };
+}
+
+/** Approved reviews only. Summary comes from every approved rating (plain fetch, no aggregate); the list is the latest 60. */
+export async function loadReviews(db: Db, workspaceId: string, productId: string): Promise<PublicReviews> {
+  const base = () => db.from("reviews").select("rating", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("product_id", productId).eq("approved", true);
+  const [total, latest] = await Promise.all([
+    base(),
+    db
+      .from("reviews")
+      .select("name, rating, body, order_id, created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("product_id", productId)
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .limit(MAX_PUBLIC_REVIEWS),
+  ]);
+  if (total.error) throw new Error(`reviews summary failed: ${total.error.message}`);
+  if (latest.error) throw new Error(`reviews lookup failed: ${latest.error.message}`);
+  const rows = total.count ?? 0;
+  // PostgREST caps a response at max_rows (1000): page through the ratings so the average stays exact.
+  let sum = 0;
+  let count = 0;
+  for (let from = 0; from < rows; from += 1000) {
+    const { data, error } = await db
+      .from("reviews")
+      .select("rating, body")
+      .eq("workspace_id", workspaceId)
+      .eq("product_id", productId)
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(`reviews summary failed: ${error.message}`);
+    // Only reviews that render count, so the summary always matches the cards (emoji-only bodies are dropped).
+    for (const r of data ?? []) {
+      if (!stripEmoji(r.body)) continue;
+      sum += r.rating;
+      count += 1;
+    }
+  }
+  const avg = count ? sum / count : 0;
+
+  const orderIds = [...new Set((latest.data ?? []).flatMap((r) => (r.order_id ? [r.order_id] : [])))];
+  const orders = new Map<string, { product_id: string | null; confirmation_status: string; excluded_reason: string | null }>();
+  if (orderIds.length) {
+    const { data, error } = await db
+      .from("orders")
+      .select("id, product_id, confirmation_status, excluded_reason")
+      .in("id", orderIds)
+      .eq("workspace_id", workspaceId);
+    if (error) throw new Error(`reviews orders lookup failed: ${error.message}`);
+    for (const o of data ?? []) orders.set(o.id, o);
+  }
+  return {
+    avg: Math.round(avg * 10) / 10,
+    count,
+    items: (latest.data ?? []).flatMap((r) => {
+      const text = stripEmoji(r.body);
+      if (!text) return [];
+      return [
+        {
+          name: publicReviewName(r.name),
+          rating: r.rating,
+          text,
+          date: r.created_at,
+          verified: isVerifiedOrder(r.order_id ? orders.get(r.order_id) : null, productId),
+        },
+      ];
+    }),
+  };
 }
 
 /** D54.4: stock rule lives in variant-stock.ts. A size whose price is <= 0 is refused (not offered). */
@@ -299,9 +378,15 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
 /** Live store slugs, cached once: random /s/<unknown>/<x> URLs 404 here without a per-URL cache entry or query. */
 const liveStoreSlugs = unstable_cache(
   async (): Promise<string[]> => {
-    const { data, error } = await (await createAdminClient()).from("stores").select("slug").eq("status", "live");
-    if (error) throw new Error(`live stores lookup failed: ${error.message}`);
-    return (data ?? []).map((r) => r.slug.toLowerCase());
+    const db = await createAdminClient();
+    const slugs: string[] = [];
+    // PostgREST caps a response at max_rows (1000): page through so no live store is missed.
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from("stores").select("slug").eq("status", "live").order("id").range(from, from + 999);
+      if (error) throw new Error(`live stores lookup failed: ${error.message}`);
+      slugs.push(...(data ?? []).map((r) => r.slug.toLowerCase()));
+      if ((data ?? []).length < 1000) return slugs;
+    }
   },
   ["store-live-slugs"],
   { tags: ["store-public"], revalidate: PUBLIC_REVALIDATE_S },

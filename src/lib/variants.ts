@@ -50,6 +50,7 @@ export const variantConfigSchema = z
         labels.add(key);
       }
     }
+    if (cfg.variants.length && !cfg.options.length) fail("variant_values");
     const valueOf = new Map(cfg.options.flatMap((o) => o.values.map((v) => [v.id, o.id] as const)));
     const sets = new Set<string>();
     const variantIds = new Set<string>();

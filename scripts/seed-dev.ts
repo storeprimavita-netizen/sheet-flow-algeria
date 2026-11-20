@@ -13,7 +13,24 @@
  */
 import { createAdminClient } from "../src/lib/supabase/admin.ts";
 import { upsertCustomerFromOrder } from "../src/lib/customers.ts";
-import { DEFAULT_INPUTS, seedForProduct, type PricingInputs } from "../src/lib/pricing.ts";
+// The BENZ engine was retired (PRICE-4) but product_scenarios stays (D68):
+// seed its jsonb with the old sheet defaults, kept local to this script.
+type PricingInputs = Record<
+  | "product_price" | "euro_price" | "lead_cost_eur" | "confirmation_pct" | "delivery_pct"
+  | "delivery_price" | "confirmation_agent" | "packaging_fees" | "sale_price" | "spend_eur_day"
+  | "delivery_fee_da" | "flexy_month" | "location_day" | "salary_month",
+  number
+>;
+const DEFAULT_INPUTS: PricingInputs = {
+  product_price: 2500, euro_price: 255, lead_cost_eur: 2, confirmation_pct: 65, delivery_pct: 65,
+  delivery_price: 0, confirmation_agent: 0, packaging_fees: 50, sale_price: 4900, spend_eur_day: 20,
+  delivery_fee_da: 100, flexy_month: 0, location_day: 100, salary_month: 5000,
+};
+const seedForProduct = (cost: number, sale: number | null): PricingInputs => ({
+  ...DEFAULT_INPUTS,
+  product_price: cost > 0 ? cost : DEFAULT_INPUTS.product_price,
+  sale_price: sale && sale > 0 ? sale : DEFAULT_INPUTS.sale_price,
+});
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 if (!/localhost|127\.0\.0\.1/.test(url) && !process.argv.includes("--force")) {

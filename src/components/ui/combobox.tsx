@@ -31,6 +31,7 @@ export function Combobox({
   value,
   onChange,
   name,
+  id,
   placeholder,
   searchPlaceholder = "Search…",
   emptyText = "No matches.",
@@ -45,6 +46,7 @@ export function Combobox({
   value?: string;
   onChange?: (value: string) => void;
   name?: string;
+  id?: string;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -74,6 +76,7 @@ export function Combobox({
     <Popover open={open} onOpenChange={setOpen}>
       {name ? <input type="hidden" name={name} value={current} /> : null}
       <PopoverTrigger
+        id={id}
         disabled={disabled}
         aria-label={ariaLabel}
         title={disabled ? disabledReason : undefined}
@@ -83,9 +86,9 @@ export function Combobox({
           className,
         )}
       >
-        <span className="flex min-w-0 items-center gap-2 truncate">
+        <span className="flex min-w-0 items-center gap-2">
           {selected?.icon}
-          {selected ? selected.label : (placeholder ?? searchPlaceholder)}
+          <span dir="auto" className="truncate text-start">{selected ? selected.label : (placeholder ?? searchPlaceholder)}</span>
         </span>
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
@@ -103,7 +106,7 @@ export function Combobox({
                   onSelect={() => select(o.value)}
                 >
                   {o.icon}
-                  <span className="truncate">{o.label}</span>
+                  <span className="truncate"><bdi>{o.label}</bdi></span>
                   {current === o.value ? <Check className="ms-auto h-4 w-4 text-primary" /> : null}
                 </CommandItem>
               ))}

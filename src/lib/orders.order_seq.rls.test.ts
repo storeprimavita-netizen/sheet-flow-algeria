@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { deleteWorkspaces } from "@/lib/test-cleanup";
 
 /** Live ORD-1 (D57): per-workspace running order number. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -57,7 +58,7 @@ describe.skipIf(!URL)("orders.order_seq (live DB)", () => {
       await svc.from("orders").delete().eq("workspace_id", ws);
       await svc.from("customers").delete().eq("workspace_id", ws);
       await svc.from("audit_log").delete().eq("workspace_id", ws);
-      await svc.from("workspaces").delete().eq("id", ws);
+      await deleteWorkspaces(svc, [ws]);
     }
     for (const u of users) await svc.auth.admin.deleteUser(u);
   });

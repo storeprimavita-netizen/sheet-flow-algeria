@@ -16,12 +16,14 @@ export async function requireStoreAdmin() {
 export async function getStore() {
   await requireStoreAdmin();
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("stores")
     .select("id, slug, name, status, settings")
     .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (error) throw new Error(`getStore: ${error.message}`);
   return data;
 }
 

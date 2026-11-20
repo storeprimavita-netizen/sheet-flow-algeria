@@ -1,11 +1,16 @@
-import { requireAdmin } from "@/lib/rbac";
+import { redirect } from "next/navigation";
 
-/** Section layout guard: agents redirect to their Orders queue. */
+import { getProfile, requireAdmin } from "@/lib/rbac";
+import { roleHome } from "@/lib/role-home";
+
+/** Section layout guard: agents go straight to their role home, no profile to /no-access. */
 export async function AdminGuardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin("/app/orders");
+  const profile = await getProfile();
+  if (!profile) redirect("/no-access");
+  await requireAdmin(roleHome(profile.role));
   return children;
 }

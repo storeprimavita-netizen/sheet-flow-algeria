@@ -1,18 +1,20 @@
 ---
 name: loop-auto
-description: Run the whole MNW development loop automatically — pick the next task, brief, build, gate, review, ship — for N tasks or one task id, until a stop condition. Use when asked to "run the loop", "continue the plan", "work on the next task(s)" or "/loop-auto".
+description: Run one task of the MNW development loop end to end — pick, brief, build, gate, review, ship — then stop. Use when asked to "run the loop", "do the next task", "continue the plan" or "/loop-auto"; scripts/agy-night.sh calls it once per fresh session.
 ---
-You coordinate loop v3, defined in `.claude/loop.md` (read it first; it applies to every agent, not only Claude Code). The argument is a task id, or a number N of tasks (default 1).
+You coordinate loop v3 for this project. The loop is defined in `.claude/loop.md` and the exact stage order and rules in `.claude/commands/auto.md` — read both first; they apply to every agent, not only Claude Code. Ignore the frontmatter of the files under `.claude/commands/` (those are Claude Code settings).
 
-For each task run the stages in order, each as its own skill: `loop-analyse` → (`loop-verify` on the brief when it is high risk and the design is non-obvious) → `loop-execute` → `loop-verify` on the diff when the brief says risk high or names a surface → `loop-ship`. The decision rules between stages are the numbered list in `.claude/commands/auto.md`.
+Arguments (any order, all optional): a task id (do that one) · `nodb` (pick only rows with no migration: column `M` is `–`) · `as:<name>` (claim rows as `claimed:<name>`; default `claimed:antigravity`) · a number (ignored: one task per session).
+
+Run the stages as skills, in order: `loop-analyse` → `loop-verify` on the brief only when it is high risk and the design is non-obvious → `loop-execute` → `loop-verify` on the diff when the brief says risk high or names a surface (at most 2 rounds; a re-check looks only at the listed findings) → `loop-ship`.
 
 Rules that matter most:
-- Only take tasks that are `todo`; claim as `claimed:antigravity` and push the claim before building. Claude Code works the same plan — the claim on branch `v3` is the lock.
-- Commit and push every finished step with `scripts/step.sh`. Work only on `v3` and `v3-<id>`.
-- `scripts/gate.sh` decides. Reviews are done by the `qa-reviewer` / `ui-reviewer` subagents, never by the agent that wrote the code.
-- A question never stops the run: use `loop-decide`; if it returns `ASK`, park the task as `blocked:Q-<n>` and take the next eligible one ("Questions and stops" in `.claude/loop.md`).
-- Stop conditions are listed in `.claude/loop.md` (owner input missing, credentials, remote db push, anything touching `main`, real parcels/messages/ad events, a new dependency or decision not already approved, 3 review rounds without PASS, database work while the RLS suite is skipped). On any of them: stop and report; never work around one.
+- One task per session. When it is shipped or parked, write the short run report and stop.
+- Take only `todo` rows. Claim under your name and push the claim before building; if the push is rejected, pull and pick another row. Never touch a row claimed by another name — Claude Code and other Antigravity agents work the same plan.
+- Commit and push every finished step with `scripts/step.sh "<id>: <what>"`. Only branches `v3` and `v3-<id>`. Never `main`, never force-push, never `supabase db push`.
+- `scripts/gate.sh` decides whether work is done. Never edit the gate or the reviewers, never delete a test to pass.
+- Reviews are done by the `qa-reviewer` / `ui-reviewer` subagents, never by the agent that wrote the code.
+- A question never stops the run: use `loop-decide` and continue. Low findings go to `docs/BACKLOG.md`, mediums to ONE follow-up row.
+- Hard limits, never worked around: credentials and secrets, anything touching `main`, remote database or production deploy, real parcels / customer messages / ad events, spending money, deleting data.
 
-For parallel work use `/swarm` or separate worktrees only for tasks in different lanes with at most one migration between them, and ship them one at a time.
-
-When you stop or finish, report in ≤ 10 lines: tasks shipped (id + merge commit), the task you stopped on and exactly what the owner must decide or provide, and what the next run will pick up.
+The very last line of your reply is exactly one of: `RUN-END: more` (other tasks are still eligible), `RUN-END: nothing-eligible` (every remaining task waits on the owner or on a parked task), `RUN-END: hard-stop <reason>`.

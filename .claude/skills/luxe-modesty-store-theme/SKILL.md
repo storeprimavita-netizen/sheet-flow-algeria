@@ -70,6 +70,12 @@ The owner's original skill is kept verbatim in `references/original-v1.md`.
 11. **The server owns the price.** The page shows what the server computed;
     totals, discounts and delivery fees are never trusted from the browser.
 
+12. **Findable by default.** Every public page is server-rendered with its
+    title, description, canonical URL and structured data from real values
+    (`references/seo-aieo.md`). No hidden text, no keyword lists.
+13. **Offers suggest, they do not trap.** Nothing pre-ticked, a clear "لا شكراً",
+    one upsell and at most one downsell (`references/upsell.md`).
+
 ## Typography
 
 | Role | Font | Notes |
@@ -113,5 +119,7 @@ first paint; Marcellus and Aref Ruqaa must not block it.
 - `references/tokens.css` — every token, light and dark, ready to import.
 - `references/product-page.md` — store chrome, product page blocks in order, collection page, thank-you page, component specs.
 - `references/order-form.md` — the dynamic order form: fields, variants, pricing modes, offers, delivery, summary, validation, states, tracking hooks.
+- `references/seo-aieo.md` — what every public page carries for Google and for AI assistants: head tags, structured data, quotable facts, site files.
+- `references/upsell.md` — order bump, cross-sell, mix bundles, post-order upsell and downsell: layout and the no-pressure rules.
 - `references/checklist.md` — brand facts to seed, speed budget, pre-ship checklist.
 - `references/original-v1.md` — the owner's original skill, unchanged.

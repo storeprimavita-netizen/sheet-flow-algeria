@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { groupDigits } from "@/lib/format";
+
 /** Empty (or ".") -> null ("inherit"); malformed text ("1.2.3") -> NaN so callers can flag it, never null. */
 export function parseNumberInput(text: string): number | null {
   if (text === "" || text === "." || text === "-") return null;
@@ -24,6 +26,7 @@ export function NumberField({
   name,
   defaultValue,
   unit,
+  group,
   placeholder,
   disabled,
   invalid,
@@ -38,6 +41,8 @@ export function NumberField({
   name?: string;
   defaultValue?: number | null;
   unit?: string;
+  /** show thousands separators while the field is not being edited */
+  group?: boolean;
   placeholder?: string;
   disabled?: boolean;
   invalid?: boolean;
@@ -51,6 +56,7 @@ export function NumberField({
   "aria-label"?: string;
 }) {
   const [value, setValue] = React.useState(defaultValue == null ? "" : String(defaultValue));
+  const [focused, setFocused] = React.useState(false);
   return (
     <div className={`relative ${className ?? ""}`}>
       <input
@@ -60,7 +66,9 @@ export function NumberField({
         inputMode="decimal"
         dir="ltr"
         disabled={disabled}
-        value={value}
+        value={group && !focused ? groupDigits(value) : value}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={placeholder}
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}

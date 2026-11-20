@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "../../../docs";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -213,6 +214,18 @@
     background-color: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+  }
+  /* horizontal scroll cue: edge shadows appear only where more content is hidden (physical edges, so correct in RTL too) */
+  .scroll-edge-x {
+    background-image:
+      linear-gradient(to right, var(--surface) 30%, transparent),
+      linear-gradient(to left, transparent, var(--surface) 70%),
+      linear-gradient(to right, var(--border-strong), transparent),
+      linear-gradient(to left, var(--border-strong), transparent);
+    background-position: left center, right center, left center, right center;
+    background-repeat: no-repeat;
+    background-size: 2rem 100%, 2rem 100%, 0.75rem 100%, 0.75rem 100%;
+    background-attachment: local, local, scroll, scroll;
   }
   /* raised surface for popovers / dropdowns / modals / sheets */
   .surface-raised {

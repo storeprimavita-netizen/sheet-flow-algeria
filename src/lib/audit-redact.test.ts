@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { auditRedact, MAX_DEPTH } from "./audit-redact";
-import { MASKED_NAMES, VISIBLE_NAMES } from "./audit-redact.cases";
+import { MASKED_NAMES, PARITY_CASES, VISIBLE_NAMES } from "./audit-redact.cases";
 import { diffRows } from "@/app/(app)/app/settings/audit/_lib/diff";
 
 const r = (v: unknown) => auditRedact(v) as Record<string, unknown>;
@@ -111,5 +111,15 @@ describe("auditRedact SEC-1-F acronyms and odd case", () => {
   test("JSON null is kept past the depth cap", () => {
     expect(auditRedact({ a: null }, MAX_DEPTH)).toEqual({ a: null });
     expect(auditRedact(null, MAX_DEPTH + 1)).toBeNull();
+  });
+});
+
+describe("auditRedact idempotence (SEC-1-G)", () => {
+  test.each(PARITY_CASES.map((c, i) => [i, c] as const))("f(f(x)) == f(x) for case %i", (_i, c) => {
+    const once = auditRedact(c);
+    expect(auditRedact(once)).toEqual(once);
+  });
+  test("masked string passes through at any depth", () => {
+    expect(auditRedact("[redacted:aaaaaaaa]", MAX_DEPTH + 5)).toBe("[redacted:aaaaaaaa]");
   });
 });

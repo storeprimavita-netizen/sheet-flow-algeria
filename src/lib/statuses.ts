@@ -31,6 +31,7 @@ import {
   CircleCheck,
   ListChecks,
   Globe,
+  EyeOff,
 } from "lucide-react";
 
 export type IconType = React.ComponentType<{ className?: string }>;
@@ -47,7 +48,7 @@ export type StatusToken =
   | "orange"
   | "rose";
 
-export type StatusKind = "confirmation" | "delivery" | "product" | "task" | "stock" | "store";
+export type StatusKind = "confirmation" | "delivery" | "product" | "task" | "stock" | "store" | "review";
 
 /** Every chip color token — the fixed palette user-created options may pick from. */
 export const CHIP_TOKENS: StatusToken[] = [
@@ -105,7 +106,9 @@ function def(
             ? "stock_status"
             : kind === "store"
               ? "store_status"
-              : "task_status";
+              : kind === "review"
+                ? "review_status"
+                : "task_status";
   return {
     key,
     label: `status.${group}.${key}`,
@@ -189,6 +192,12 @@ export const STORE_STATUS: Record<string, StatusDef> = {
   published: def("store", "published", "success", Globe, ["draft"]),
 };
 
+/** Customer reviews (STORE-7): approved reviews show on the public page, hidden ones do not. */
+export const REVIEW_STATUS: Record<string, StatusDef> = {
+  approved: def("review", "approved", "success", CircleCheck, ["hidden"]),
+  hidden: def("review", "hidden", "neutral", EyeOff, ["approved"]),
+};
+
 export const STATUS_KINDS: Record<StatusKind, Record<string, StatusDef>> = {
   confirmation: CONFIRMATION_STATUS,
   delivery: DELIVERY_STATUS,
@@ -196,6 +205,7 @@ export const STATUS_KINDS: Record<StatusKind, Record<string, StatusDef>> = {
   task: TASK_STATUS,
   stock: STOCK_STATUS,
   store: STORE_STATUS,
+  review: REVIEW_STATUS,
 };
 
 export function getStatus(kind: StatusKind, key: string): StatusDef | undefined {

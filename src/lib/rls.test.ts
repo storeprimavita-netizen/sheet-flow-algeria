@@ -166,6 +166,65 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     await ws2Admin.auth.signOut({ scope: "local" });
   });
 
+  test("product_pricing audit INSERT/UPDATE/DELETE", async () => {
+    const { data: prod, error: pe } = await admin
+      .from("products")
+      .insert({ workspace_id: workspaceId, name: "rls-audit-pricing" })
+      .select("id")
+      .single();
+    expect(pe).toBeNull();
+    const pid = prod!.id;
+    try {
+      const ins = await adminUser.from("product_pricing").insert({ product_id: pid, workspace_id: workspaceId, final_price: 100 });
+      expect(ins.error).toBeNull();
+      const upd = await adminUser.from("product_pricing").update({ final_price: 200 }).eq("product_id", pid).select();
+      expect(upd.error).toBeNull();
+      expect(upd.data).toHaveLength(1);
+      const del = await adminUser.from("product_pricing").delete().eq("product_id", pid).select();
+      expect(del.error).toBeNull();
+      expect(del.data).toHaveLength(1);
+      const { data: audit } = await adminUser
+        .from("audit_log")
+        .select("action, old_row, new_row")
+        .eq("workspace_id", workspaceId)
+        .eq("table_name", "product_pricing")
+        .order("created_at", { ascending: true });
+      const mine = (audit ?? []).filter(
+        (a) => ((a.new_row ?? a.old_row) as { product_id?: string } | null)?.product_id === pid,
+      );
+      expect(mine.map((a) => a.action)).toEqual(["INSERT", "UPDATE", "DELETE"]);
+    } finally {
+      await admin.from("product_pricing").delete().eq("product_id", pid);
+      await admin.from("products").delete().eq("id", pid);
+    }
+  });
+
+  test("product_pricing product_id cross-workspace UPDATE refused", async () => {
+    const ws2Admin = await signIn(LOCAL_URL!, "ws2-admin@seed.mnw");
+    const { data: ws2Prod } = await admin
+      .from("products")
+      .select("id")
+      .eq("workspace_id", ws2Id)
+      .eq("name", "WS2-only product")
+      .single();
+    const ws2Pid = ws2Prod!.id;
+    try {
+      const ins = await ws2Admin.from("product_pricing").insert({ product_id: ws2Pid, workspace_id: ws2Id, final_price: 50 });
+      expect(ins.error).toBeNull();
+      // move the row onto OUR workspace's product: composite FK (product_id, workspace_id) must refuse
+      const upd = await ws2Admin.from("product_pricing").update({ product_id: productId }).eq("product_id", ws2Pid).select();
+      expect(upd.error).not.toBeNull(); // composite FK (product_id, workspace_id) refuses the move
+      expect(upd.data ?? []).toHaveLength(0);
+      const { data: still } = await admin.from("product_pricing").select("product_id, workspace_id").eq("product_id", productId);
+      expect((still ?? []).every((r) => r.workspace_id === workspaceId)).toBe(true);
+      const { data: mine } = await admin.from("product_pricing").select("product_id").eq("product_id", ws2Pid);
+      expect(mine).toHaveLength(1);
+    } finally {
+      await admin.from("product_pricing").delete().eq("product_id", ws2Pid);
+      await ws2Admin.auth.signOut({ scope: "local" });
+    }
+  });
+
   test("pricing_defaults: agent cannot write; admin reset (delete) is audited as DELETE", async () => {
     const agentIns = await confAgent
       .from("settings")
@@ -287,11 +346,12 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     });
 
     test("D9/D10: legacy delivery agent is read-only and sees confirmed orders only", async () => {
-      const { data, error } = await delivAgent.from("orders").select("id, confirmation_status").eq("workspace_id", workspaceId);
+      const { data, error } = await delivAgent.from("orders").select("id, confirmation_status, delivery_status").eq("workspace_id", workspaceId);
       expect(error).toBeNull();
       expect(data!.length).toBeGreaterThan(0);
       expect(data!.every((o) => o.confirmation_status === "confirmed")).toBe(true);
-      const id = data![0].id;
+      // an order that is not delivered yet (row order is not guaranteed)
+      const id = (data!.find((o) => o.delivery_status !== "delivered") ?? data![0]).id;
       const upd = await delivAgent.from("orders").update({ delivery_status: "delivered" }).eq("id", id).select("id");
       expect(upd.error ?? upd.data!.length === 0 ? true : false).toBe(true); // error or 0 rows
       const { data: after } = await admin.from("orders").select("delivery_status").eq("id", id).single();
@@ -439,6 +499,62 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     test("workspace 1 agent never sees workspace 2's orders", async () => {
       const { data } = await confAgent.from("orders").select("workspace_id");
       expect((data ?? []).every((o) => o.workspace_id === workspaceId)).toBe(true);
+    });
+  });
+
+  describe("users without a usable profile see nothing (NAV-5-H)", () => {
+    const BUSINESS = ["orders", "customers", "products", "settings"] as const;
+    const made: string[] = [];
+
+    async function makeUser(tag: string, profile: null | { is_active: boolean; workspace_id: string | null }) {
+      const email = `noaccess-${tag}-${Date.now()}@seed.mnw`;
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        password: SEED_PASSWORD,
+        email_confirm: true,
+      });
+      if (error) throw new Error(error.message);
+      made.push(data.user.id);
+      // the signup trigger may create a profile row; normalise to the case under test
+      await admin.from("profiles").delete().eq("user_id", data.user.id);
+      if (profile) {
+        const { error: pe } = await admin
+          .from("profiles")
+          .insert({ user_id: data.user.id, role: "confirmation_agent", ...profile });
+        if (pe) throw new Error(pe.message);
+      }
+      return { id: data.user.id, client: await signIn(LOCAL_URL!, email) };
+    }
+
+    afterAll(async () => {
+      for (const id of made) {
+        await admin.from("profiles").delete().eq("user_id", id);
+        await admin.auth.admin.deleteUser(id);
+      }
+    });
+
+    const cases = [
+      ["a: no profile row", null],
+      ["b: is_active = false", { is_active: false, workspace_id: "WS" }],
+      ["c: null workspace", { is_active: true, workspace_id: null }],
+    ] as const;
+
+    test.each(cases)("%s: own profile only, zero business rows", async (name, profile) => {
+      const u = await makeUser(name[0], profile && { ...profile, workspace_id: profile.workspace_id && workspaceId });
+      const { data: own } = await u.client.from("profiles").select("user_id");
+      expect((own ?? []).map((r) => r.user_id)).toEqual(profile ? [u.id] : []);
+      // same predicate as getProfile(): inactive or workspace-less -> null
+      const { data: row } = await u.client
+        .from("profiles")
+        .select("role, workspace_id, is_active")
+        .eq("user_id", u.id)
+        .maybeSingle();
+      expect(!!row?.is_active && !!row?.workspace_id).toBe(false);
+      for (const table of BUSINESS) {
+        const { count, error } = await u.client.from(table).select("*", { count: "exact", head: true });
+        expect(error).toBeNull();
+        expect(count).toBe(0);
+      }
     });
   });
 });

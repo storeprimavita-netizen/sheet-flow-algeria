@@ -9,7 +9,6 @@ import { tableClass } from "@/components/field";
 import { createClient } from "@/lib/supabase/server";
 
 import { CreatePageForm } from "../_components/create-page-form";
-import { Crumbs } from "../_components/crumbs";
 import { getStore } from "../_lib/data";
 
 export default async function StorePagesPage() {
@@ -17,7 +16,6 @@ export default async function StorePagesPage() {
   const store = await getStore();
   const head = (
     <div>
-      <Crumbs items={[{ label: t("pages.title") }]} />
       <PageHeader title={t("pages.title")} subtitle={t("pages.purpose")} />
     </div>
   );
@@ -35,10 +33,11 @@ export default async function StorePagesPage() {
   }
 
   const supabase = await createClient();
-  const [{ data: pages }, { data: products }] = await Promise.all([
+  const [{ data: pages, error: pagesError }, { data: products, error: productsError }] = await Promise.all([
     supabase.from("store_pages").select("id, title, slug, status, product_id").eq("store_id", store.id).order("created_at", { ascending: false }),
     supabase.from("products").select("id, name").order("name"),
   ]);
+  if (pagesError || productsError) throw new Error(`store pages list: ${(pagesError ?? productsError)?.message}`);
   const byId = new Map((products ?? []).map((p) => [p.id, p.name]));
   const used = new Set((pages ?? []).map((p) => p.product_id).filter(Boolean));
   const free = (products ?? []).filter((p) => !used.has(p.id));
@@ -49,7 +48,7 @@ export default async function StorePagesPage() {
       {(products ?? []).length === 0 ? (
         <Empty>
           <p className="mb-3">{t("pages.emptyNoProducts")}</p>
-          <ButtonLink href="/app/products/new">{t("pages.goProducts")}</ButtonLink>
+          <ButtonLink href="/app/catalog/products/new">{t("pages.goProducts")}</ButtonLink>
         </Empty>
       ) : free.length > 0 ? (
         <CreatePageForm storeId={store.id} products={free} />

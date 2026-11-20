@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCurrency, formatDate, formatDuration, formatOrderNo, formatUsd } from "./format";
+import { formatCurrency, formatDate, formatDuration, formatOrderNo, formatUsd, groupDigits } from "./format";
 
 describe("formatDuration", () => {
   it("returns — for null/undefined", () => {
@@ -64,5 +64,19 @@ describe("formatOrderNo", () => {
     expect(formatOrderNo(0)).toBe("—");
     expect(formatOrderNo(-3)).toBe("—");
     expect(formatOrderNo(null)).toBe("—");
+  });
+});
+
+describe("groupDigits", () => {
+  const N = "\u00a0";
+  it("groups integers and keeps decimals as typed", () => {
+    expect(groupDigits("10000.5")).toBe(`10${N}000.5`);
+    expect(groupDigits("1234567")).toBe(`1${N}234${N}567`);
+    expect(groupDigits("100")).toBe("100");
+  });
+  it("handles negatives, junk and empty", () => {
+    expect(groupDigits("-10000")).toBe(`-10${N}000`);
+    expect(groupDigits("1.2.3")).toBe("1.2");
+    expect(groupDigits("")).toBe("");
   });
 });

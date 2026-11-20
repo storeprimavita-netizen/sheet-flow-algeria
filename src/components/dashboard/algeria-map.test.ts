@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
 import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
-import { wilayaTitle, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import { AlgeriaMap, wilayaTitle, cellKeyHandler, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import { hasMoreScroll } from "@/components/stats/wilaya-table";
 import { normalizeText } from "@/lib/utils";
 
 describe("WILAYA_CENTROIDS", () => {
@@ -48,7 +51,7 @@ describe("ALGERIA_OUTLINE", () => {
 
 describe("wilaya legend bidi", () => {
   // No component test setup (jsdom/RTL) in this repo, so assert on source.
-  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/components/stats/wilaya-section.tsx", "utf8");
   it("wraps every range label in bdi dir=ltr", () => {
     for (const label of ["&lt;40%", "40–55%", "55–70%", "70–85%", "85%+"]) {
       expect(src).toContain(`<bdi dir="ltr">${label}</bdi>`);
@@ -57,8 +60,7 @@ describe("wilaya legend bidi", () => {
 });
 
 const datum = (o: Partial<WilayaMapDatum>): WilayaMapDatum => ({
-  code: 16, name: null, totalOrders: 0, confirmedOrders: 0, deliveryRate: null,
-  stopShippingManual: false, stopShippingAuto: false, ...o,
+  code: 16, name: null, totalOrders: 0, deliveryRate: null, matured: true, ...o,
 });
 
 describe("wilayaTitle", () => {
@@ -73,12 +75,76 @@ describe("wilayaTitle", () => {
 });
 
 describe("wilaya table label structure", () => {
-  const src = readFileSync("src/app/(app)/app/dashboard/wilaya-section.tsx", "utf8");
+  const src = readFileSync("src/components/stats/wilaya-table.tsx", "utf8");
   it("renders ltr code, readable separator, name in bdi", () => {
-    expect(src).toContain('<bdi dir="ltr">{w.code}</bdi><span> · </span><bdi>{w.name}</bdi>');
+    expect(src).toContain('<bdi dir="ltr">{code}</bdi><span> · </span><bdi>{w.name}</bdi>');
     expect(src).not.toContain("<span aria-hidden> · </span>");
   });
   it("has a scroll-fade hint on the table", () => {
     expect(src).toContain("data-scroll-fade");
+  });
+});
+
+describe("AlgeriaMap matured fill", () => {
+  const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
+  it("an unmatured datum takes the neutral fill, not a status fill", () => {
+    expect(src).toContain('if (!d.matured || d.deliveryRate === null) return "fill-neutral/30"');
+    expect(src).not.toContain("minOrders");
+  });
+});
+
+describe("hasMoreScroll", () => {
+  it("LTR at start has more", () => expect(hasMoreScroll(0, 300, 600)).toBe(true));
+  it("RTL negative scrollLeft has more", () => expect(hasMoreScroll(-100, 300, 600)).toBe(true));
+  it("at end (LTR and RTL) has none", () => {
+    expect(hasMoreScroll(300, 300, 600)).toBe(false);
+    expect(hasMoreScroll(-300, 300, 600)).toBe(false);
+  });
+  it("no overflow has none", () => expect(hasMoreScroll(0, 300, 300)).toBe(false));
+});
+
+describe("map keyboard access and names wiring", () => {
+  it("cells are focusable links with aria-label and key handler", () => {
+    const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
+    expect(src).toContain("tabIndex: 0");
+    expect(src).toContain('role: "link"');
+    expect(src).toContain("aria-label={titleText}");
+    expect(src).toContain('role="group"');
+    expect(src).toContain("stroke-ring");
+  });
+  it("Enter and Space select and preventDefault; other keys do nothing", () => {
+    const onSelect = vi.fn();
+    const h = cellKeyHandler(16, onSelect);
+    for (const key of ["Enter", " "]) {
+      const preventDefault = vi.fn();
+      h({ key, preventDefault });
+      expect(preventDefault).toHaveBeenCalledOnce();
+    }
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect).toHaveBeenCalledWith(16);
+    const pd = vi.fn();
+    h({ key: "a", preventDefault: pd });
+    h({ key: "Tab", preventDefault: pd });
+    expect(pd).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+  it("renders 58 focusable labelled cells when selectable", () => {
+    const html = renderToStaticMarkup(
+      createElement(AlgeriaMap, { data: [], label: "Map", noDataLabel: "No data", onSelect: () => {} }),
+    );
+    expect(html.match(/tabindex="0"/g)).toHaveLength(58);
+    expect(html.match(/role="link"/g)).toHaveLength(58);
+    expect(html).toContain('role="group"');
+  });
+  it("cells are not focusable without onSelect", () => {
+    const html = renderToStaticMarkup(
+      createElement(AlgeriaMap, { data: [], label: "Map", noDataLabel: "No data" }),
+    );
+    expect(html).not.toContain("tabindex");
+  });
+  it("statistics page builds names and passes them down", () => {
+    const src = readFileSync("src/app/(app)/app/statistics/page.tsx", "utf8");
+    expect(src).toContain("const names = Object.fromEntries(");
+    expect(src).toContain("names={names}");
   });
 });

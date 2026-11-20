@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-import { recordCashCollection } from "@/app/(app)/app/orders/cash/actions";
+import { recordCashCollection } from "@/app/(app)/app/money/courier-cash/actions";
+import { deleteWorkspaces } from "@/lib/test-cleanup";
 
 /** Live P0-5 checks (cash_collections uniqueness / tenancy / audit). Needs the local stack. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -46,8 +47,7 @@ describe.skipIf(!URL)("cash_collections (00026)", () => {
     await admin.from("cash_collections").delete().in("workspace_id", [ws1, ws2]);
     await admin.from("orders").delete().eq("workspace_id", ws1);
     await admin.from("products").delete().eq("id", productId);
-    expect((await admin.from("workspaces").delete().eq("id", ws1)).error).toBeNull();
-    expect((await admin.from("workspaces").delete().eq("id", ws2)).error).toBeNull();
+    expect((await deleteWorkspaces(admin, [ws1, ws2].filter(Boolean))).error).toBeNull();
   });
 
   test("second insert for the same order_id -> 23505; NULL order_id rows stay allowed", async () => {
