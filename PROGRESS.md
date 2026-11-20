@@ -595,3 +595,10 @@ P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates pa
 - Logged, not built: advisory-lock createStore race and DB trigger for deactivated linked product (need migration + DECISIONS row). Store-http "luxe modesty" grep untouched. Sold-out block stays STORE-3.
 
 STORE-2-G review 1 FIX: tests added for DoD 4 (draft link), 6 (publish with zero rows updated), 7 (read errors throw in publish, assertPublishable, link); StorePhoto now exports `imageFailed()` (the before-hydration check) with unit tests plus a server-render test. No DOM library is installed (jsdom would be a new dependency), so a real client mount is not tested; the placeholder after a failed load was seen live in the browser (veste page). Image block alt text is now the placeholder label. Screenshots re-shot with locale in the name: `store-{veste-broken,jupe-ok}-ar-{390,1280}-{light,dark}.png` (8 files, store is Arabic-only so no EN), before-fix shots removed. `.store-buy` next to hidden `#order` visible at 1280. Not shown: a related-card placeholder (the demo pages have no related products). Not done: review lows 4-8, hint contrast measurement.
+
+## STORE-2-G done (2026-11-20, review-2 PASS)
+- Done: review-2 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); task set to done; the six review-2 lows and review-1 lows 4–8 moved to STORE-2-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-2-G (876 passed, 5 skipped).
+- Evidence: docs/briefs/STORE-2-G.review-2.md; screenshots docs/design/audit/STORE-2-G/.
+- Owner: none.
+- Next: STORE-2-H (lows from review-2 and review-1 4–8); STORE-3 expects a `.store-top` merge conflict (review-2 low 6).
