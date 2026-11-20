@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
 import { WILAYA_CENTROIDS, ALGERIA_OUTLINE } from "@/lib/geo/algeria-wilayas";
-import { wilayaTitle, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import { AlgeriaMap, wilayaTitle, cellKeyHandler, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
 import { hasMoreScroll } from "@/components/stats/wilaya-table";
 import { normalizeText } from "@/lib/utils";
 
@@ -104,10 +106,41 @@ describe("hasMoreScroll", () => {
 describe("map keyboard access and names wiring", () => {
   it("cells are focusable links with aria-label and key handler", () => {
     const src = readFileSync("src/components/dashboard/algeria-map.tsx", "utf8");
-    expect(src).toContain("tabIndex={0}");
-    expect(src).toContain('role="link"');
+    expect(src).toContain("tabIndex: 0");
+    expect(src).toContain('role: "link"');
     expect(src).toContain("aria-label={titleText}");
-    expect(src).toContain('e.key === "Enter" || e.key === " "');
+    expect(src).toContain('role="group"');
+    expect(src).toContain("stroke-ring");
+  });
+  it("Enter and Space select and preventDefault; other keys do nothing", () => {
+    const onSelect = vi.fn();
+    const h = cellKeyHandler(16, onSelect);
+    for (const key of ["Enter", " "]) {
+      const preventDefault = vi.fn();
+      h({ key, preventDefault });
+      expect(preventDefault).toHaveBeenCalledOnce();
+    }
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect).toHaveBeenCalledWith(16);
+    const pd = vi.fn();
+    h({ key: "a", preventDefault: pd });
+    h({ key: "Tab", preventDefault: pd });
+    expect(pd).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+  it("renders 58 focusable labelled cells when selectable", () => {
+    const html = renderToStaticMarkup(
+      createElement(AlgeriaMap, { data: [], label: "Map", noDataLabel: "No data", onSelect: () => {} }),
+    );
+    expect(html.match(/tabindex="0"/g)).toHaveLength(58);
+    expect(html.match(/role="link"/g)).toHaveLength(58);
+    expect(html).toContain('role="group"');
+  });
+  it("cells are not focusable without onSelect", () => {
+    const html = renderToStaticMarkup(
+      createElement(AlgeriaMap, { data: [], label: "Map", noDataLabel: "No data" }),
+    );
+    expect(html).not.toContain("tabindex");
   });
   it("statistics page builds names and passes them down", () => {
     const src = readFileSync("src/app/(app)/app/statistics/page.tsx", "utf8");

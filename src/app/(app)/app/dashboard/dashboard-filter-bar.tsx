@@ -78,7 +78,7 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
   }
 
   return (
-    <div className="card-surface z-10 sm:sticky sm:top-0 w-full space-y-3 rounded-xl p-3 backdrop-blur sm:w-fit">
+    <div className="card-surface z-10 w-full sm:sticky sm:top-0 space-y-3 rounded-xl p-3 backdrop-blur sm:w-fit">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-[16rem_14rem]">
         <label className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
