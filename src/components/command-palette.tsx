@@ -34,6 +34,19 @@ export function CommandPalette({ role, children }: { role: Role | null; children
   const [open, setOpen] = React.useState(false);
   const [help, setHelp] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const returnFocus = React.useRef<HTMLElement | null>(null);
+
+  // No Radix Trigger here (opened by state / ⌘K), so give focus back to whatever had it.
+  // Layout effect: it must read activeElement before Radix's FocusScope moves focus.
+  React.useLayoutEffect(() => {
+    if (open) {
+      returnFocus.current = document.activeElement as HTMLElement | null;
+      return;
+    }
+    const el = returnFocus.current;
+    returnFocus.current = null;
+    if (el?.isConnected) requestAnimationFrame(() => document.activeElement === document.body && el.focus());
+  }, [open]);
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
