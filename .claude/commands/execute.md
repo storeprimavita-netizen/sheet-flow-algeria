@@ -11,3 +11,5 @@ Rules: AGENTS.md is binding (no hardcoded colors or raw inputs, strings in en+ar
 Work in the brief's step order. After each step: `scripts/gate.sh --fast`, then `scripts/step.sh "<id>: <what this step did>"`. When all steps are done run the full `scripts/gate.sh` (its output is the only log you read) and fix until GATE OK. Do not edit the gate, the reviewers, or delete tests to get there. Do not merge.
 
 Return ONLY: branch, files changed (names), gate result, deviations from the brief, open risks, and "needs /verify" if the brief says risk high or names a surface. Under 150 words.
+
+Token budget: read the brief and only the files it names; search before reading; never read a file over 400 lines whole (use offset/limit); run `scripts/gate.sh --fast` between steps and the full gate once at the end.

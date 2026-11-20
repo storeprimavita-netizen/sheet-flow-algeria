@@ -18,3 +18,5 @@ First run `scripts/dev-up.sh` (starts Docker, local Supabase and the dev server 
 8. Store pages additionally: 390 px with no horizontal scroll, tap targets ≥ 44 px, order form usable with one thumb, prices and saving % arithmetically correct.
 
 Report ranked findings (severity, screen + theme + locale, what is wrong, fix) with screenshot paths under `docs/design/audit/<id>/`, under 400 words. "No findings" is valid only after you looked at every screen.
+
+Token budget: use the page's text snapshot for structure, labels, focus order and states; take a screenshot only where the eye is needed (layout, colour, clipping, RTL), **at most 8 per round**, at the smallest size that shows the issue. On a re-check, shoot only the screens whose finding you are confirming. Do not save screenshots of screens that passed.

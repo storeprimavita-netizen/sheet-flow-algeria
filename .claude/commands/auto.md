@@ -1,8 +1,12 @@
 ---
+model: sonnet
+effort: medium
 description: Run the loop automatically — Pick → Brief → Build → Gate → Review → Ship, repeated for N tasks or one id; questions are decided or sent to the owner without stopping other work
 argument-hint: "[number of tasks | task id | all]  (default 1)"
 ---
 You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id (run that one), a number N (ship up to N tasks in plan order), or `all` (keep going until no task is eligible); default 1. You do not read code or write code yourself; you call the stage commands with the Skill tool, read only the first line or the ≤ 150-word return of each, and decide the next stage.
+
+**One task per session (D90).** Whatever number was passed, this session ships (or parks) **one** task, writes its short report and ends with `RUN-END: more` if anything is still eligible. `scripts/night-run.sh` starts a fresh session for the next task, so no session carries another task's context. Do not `/compact`; end instead. Keep your own messages short and never paste a stage's output back.
 
 **Start of run.** `git checkout v3 && git pull --rebase`. Run `scripts/dev-up.sh` and note which parts are up: Supabase down → only tasks that do not touch the database may run (D24); app down → no `ui` task. Read `docs/QUESTIONS.md`: for every question the owner has answered (in the file or in this conversation), record it as a DECISIONS row, move it to "Answered", and set its task back to `todo`.
 
@@ -12,7 +16,7 @@ You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id 
 1. `analyse [id]` → brief exists, task claimed.
 2. If the brief says `risk: high` and its design is non-obvious (new table design, permission change, money formula, public endpoint): `verify docs/briefs/<id>.md`. On FIX, run `analyse <id>` again with the review file named.
 3. If the task has a migration (`M`): `scripts/db-reset.sh` first, so the local database matches `v3`. Then `execute <id>`. If the gate is not OK after its return, run `execute <id>` once more.
-4. If the brief says risk high or names a surface: `verify <id>`. PASS → 5. FIX → `execute <id>` (it reads the review file) then `verify <id>` again. Up to 3 rounds; a 4th and 5th are allowed only while each round has fewer high/medium findings than the one before and none of them needs a decision.
+4. If the brief says risk high or names a surface: `verify <id>`. PASS → 5. FIX → `execute <id>` (it reads the review file) then `verify <id> recheck` — the reviewer re-checks only the listed findings and the lines the fix touched, not the whole task. **At most 2 review rounds** (D90); a 3rd only when round 2 still has a high finding. After that: no high → ship, mediums into ONE follow-up row, lows into `docs/BACKLOG.md`; a high still open → park the task.
 5. `ship <id>`.
 6. Next task.
 
