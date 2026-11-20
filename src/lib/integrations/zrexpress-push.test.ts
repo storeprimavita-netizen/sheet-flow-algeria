@@ -86,6 +86,16 @@ function fakeSupabase(
   return { client: { from } as never, inserts, filters };
 }
 
+describe("swapped orders", () => {
+  it("refuses a swapped order and never calls the carrier", async () => {
+    const { client, inserts } = fakeSupabase(null, { order: { swapped_to_order_id: "o2" } });
+    const r = await pushToZR(client, "w", "o1");
+    expect(r).toMatchObject({ ok: false });
+    expect(creates).toBe(0);
+    expect(inserts).toEqual([]);
+  });
+});
+
 describe("zr base guard", () => {
   const blocked = async (base: string | undefined, env: Record<string, string> = {}) => {
     vi.unstubAllEnvs();

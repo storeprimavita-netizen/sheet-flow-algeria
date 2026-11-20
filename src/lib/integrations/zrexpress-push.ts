@@ -41,6 +41,9 @@ export async function pushToZR(
   if (order.confirmation_status !== "confirmed") {
     return { ok: false, error: "Only confirmed orders can be sent to ZR Express." };
   }
+  if (order.swapped_to_order_id) {
+    return { ok: false, error: "This order was swapped to another order and cannot be sent." };
+  }
   if (!order.wilaya_code || (order.delivery_type === "home" && !order.commune)) {
     return { ok: false, error: "Order needs a wilaya (and a commune for home delivery) before it can be sent." };
   }

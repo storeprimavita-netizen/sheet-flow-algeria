@@ -68,6 +68,18 @@ describe("parseDeliveryCsv", () => {
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
       expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
     });
+    it("home:1350:720|home:500 raises exactly one malformed_row", () => {
+      const r = one(`${HOME}:1350:720|${HOME}:500`);
+      expect(r.warnings.filter((w) => w.type === "malformed_row")).toHaveLength(1);
+    });
+    it("a colon-less Arabic-Indic suffix on a home label still marks home seen", () => {
+      const r = one(`${HOME}٣|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 500, priced: false });
+    });
+    it("an explicit desk label after two home labels is the stop-desk price", () => {
+      const r = one(`${HOME}:1350|${HOME}:720|${DESK}:900`);
+      expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: 720 });
+    });
     it("desk:900:720 after a good home keeps home, no stop-desk", () => {
       const r = one(`${HOME}:1350|${DESK}:900:720`);
       expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: null });
