@@ -128,6 +128,8 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
           const i = part.lastIndexOf(":");
           if (i < 0) {
             warnings.push({ type: "malformed_row", code, text: part });
+            // A colon-less home label still counts: a later home label is never promoted.
+            if (labelKind(part.replace(/[\s\d.]+$/, "")) === "home") homeSeen = true;
             continue;
           }
           const label = part.slice(0, i);

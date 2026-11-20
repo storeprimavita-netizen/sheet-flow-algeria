@@ -50,9 +50,9 @@ describe("parseDeliveryCsv", () => {
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
     });
     it("colon-less part warns", () => {
-      const r = one(`${HOME}|${HOME}:720`);
+      const r = one(`${HOME} 1350|${HOME}:720`);
       expect(r.warnings[0].type).toBe("malformed_row");
-      expect(r.wilayas[0]).toMatchObject({ home: 720 });
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
     });
     it.each(["0x10", "1e3"])("rejects %s", (bad) => {
       const r = one(`${HOME}:${bad}|${DESK}:500`);

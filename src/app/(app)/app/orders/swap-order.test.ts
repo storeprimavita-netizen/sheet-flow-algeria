@@ -86,7 +86,11 @@ describe("swapOrder", () => {
     q.maybeSingle = maybeSingle;
     from.mockReturnValue(q);
     await expect(swapOrder(A, form())).resolves.toEqual({ error: "form.blocked.stopped" });
-    maybeSingle.mockResolvedValue({ data: { stop_shipping: false } });
+    maybeSingle.mockResolvedValue({ data: { stop_shipping: false, priced: true } });
     await expect(swapOrder(A, form())).resolves.toEqual({ error: "form.blocked.type_unavailable" });
+    maybeSingle.mockResolvedValue({ data: { stop_shipping: false, priced: false } });
+    await expect(swapOrder(A, form())).resolves.toEqual({ error: "form.blocked.unpriced" });
+    maybeSingle.mockResolvedValue({ data: null, error: { message: "boom" } });
+    await expect(swapOrder(A, form())).resolves.toEqual({ error: "swap.failed" });
   });
 });

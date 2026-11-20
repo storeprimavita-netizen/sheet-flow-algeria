@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import { useActionState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import { useSubmitAction } from "@/lib/use-submit-action";
 import { swapOrder } from "../actions";
 import { Field } from "@/components/field";
@@ -33,7 +33,17 @@ export function SwapCard({
   const t = useTranslations("orders.swap");
   const tOrders = useTranslations("orders");
   const [state, formAction] = useActionState<{ error: string } | undefined, FormData>((_prev, fd) => swapOrder(orderId, fd), undefined);
-  const onSubmit = useSubmitAction(formAction);
+  const submitAction = useSubmitAction(formAction);
+  const [wilaya, setWilaya] = useState("");
+  const [missingWilaya, setMissingWilaya] = useState(false);
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    if (!wilaya) {
+      e.preventDefault();
+      setMissingWilaya(true);
+      return;
+    }
+    submitAction(e);
+  };
   const canSwap = !swappedTo && SWAPPABLE.has(deliveryStatus);
   if (!swappedTo && !swappedFrom && !canSwap) return null; // nothing to show → no empty card
 
@@ -71,12 +81,18 @@ export function SwapCard({
               <Input id="swap-name" name="customer_name" required />
             </Field>
             <Field label={t("customerPhone")} htmlFor="swap-phone">
-              <PhoneField id="swap-phone" name="customer_phone" />
+              <PhoneField id="swap-phone" name="customer_phone" required />
             </Field>
             <Field label={t("wilaya")}>
               <WilayaCombobox
                 wilayas={wilayas.map((w) => ({ code: String(w.code), name: w.name }))}
                 name="wilaya_code"
+                value={wilaya}
+                onChange={(v) => {
+                  setWilaya(v);
+                  setMissingWilaya(false);
+                }}
+                placeholder={t("wilaya")}
                 ariaLabel={t("wilaya")}
               />
             </Field>
@@ -86,7 +102,11 @@ export function SwapCard({
             <Field label={t("address")} htmlFor="swap-address" className="sm:col-span-2">
               <Input id="swap-address" name="address" />
             </Field>
-            {state?.error ? (
+            {missingWilaya ? (
+              <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger sm:col-span-2">
+                {t("wilayaRequired")}
+              </p>
+            ) : state?.error ? (
               <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger sm:col-span-2">
                 {tOrders(state.error)}
               </p>

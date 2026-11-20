@@ -537,13 +537,15 @@ export async function swapOrder(orderId: string, formData: FormData): Promise<{ 
   if (swapErr || !newOrderId) {
     // the RPC refuses a delivery type the destination wilaya cannot ship; anything else is a generic failure
     if (!/not available/.test(swapErr?.message ?? "")) return { error: "swap.failed" };
-    const { data: wf } = await supabase
+    const { data: wf, error: wfErr } = await supabase
       .from("wilaya_fees")
-      .select("stop_shipping")
+      .select("stop_shipping, priced")
       .eq("workspace_id", workspaceId)
       .eq("wilaya_code", input.wilaya_code)
       .maybeSingle();
-    return { error: wf?.stop_shipping ? "form.blocked.stopped" : "form.blocked.type_unavailable" };
+    if (wfErr || !wf) return { error: "swap.failed" };
+    if (wf.stop_shipping) return { error: "form.blocked.stopped" };
+    return { error: wf.priced ? "form.blocked.type_unavailable" : "form.blocked.unpriced" };
   }
 
   // only after the swap succeeded: link the customer record to the new order
