@@ -666,3 +666,6 @@ STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; sh
 - Evidence: docs/briefs/STORE-2-H.review-1.md VERDICT: PASS; screenshots in docs/design/audit/STORE-2-H/.
 - Owner: none. Not shot: related-card placeholder only inside full-page captures for the one-broken case.
 - Next: TEST-2 (intermittent live-DB failures); STORE-3 expects a conflict at store.css `.store-top`.
+
+## CARRIER-0-G screenshot pass
+Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, session locale was AR; window min width rendered 500) with a focused map cell, focus ring visible; /app/dashboard scrolled, filter bar static and scrolled away; /app/statistics at 1280, no regression. 58 cells focusable. Table scroll fade in AR not separately captured. Follow-up: wilaya Arabic names need a migration (no name_ar column). Shots in docs/design/audit/CARRIER-0-G/.
