@@ -975,7 +975,7 @@
       "needsAction": {
         "title": "Needs action",
         "toConfirm": "Waiting for first call",
-        "toConfirmHint": "Orders waiting for a confirmation call.",
+        "toConfirmHint": "Waiting for the first call only. The Confirmation badge also counts no answer and closed phone.",
         "toShip": "To ship",
         "toShipHint": "Confirmed but not yet deposited at the courier.",
         "toRetry": "To retry",

@@ -800,6 +800,6 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 ## NAV-5-F: built (awaiting /verify)
 - Done: delivery count uses the last delivery-stage row per order (shared `lastPerOrder`, query no longer filters `to_status`); live fixtures (second courier, admin change adds one to call again, profile-setup error asserted); queue title "Team queue: orders to deliver" and dashboard card "Waiting for first call" (EN/AR, counts unchanged); tests for my-day layout guard, root redirect, bottom bar (sub-route, 99+, md:hidden, More ref), loading and error states.
 - Limits: no DOM test environment, so "focus returns to More" pins the ref wiring only, not the focus call itself.
-- (d) AR overflow at 768 px / 844 px landscape: NOT checked, no running app or login session and no browser run in this session. Still open for the ui-reviewer.
+- (d) 768 px dashboard overflow: filter card now `lg:w-fit` with minmax grid columns (review 1 FIX); not re-measured live. Docs excluded from Tailwind scan.
 - (e) Not built: `viewportFit: "cover"` and top/side insets stay out (D87); no notched iPhone simulator confirmed (only `xcrun simctl` "iPhone Duo"); safe-area class test not written.
 - Screenshots (390 px, light/dark, EN/AR): not taken, no browser MCP run in this session.
