@@ -26,7 +26,8 @@ const series: LineSeries[] = [
   { key: "cost", label: "Costs", color: "var(--chart-2)", dash: "6 4", marker: "square", values: [50, 80, 90, 100], format: "dzd" },
   { key: "net", label: "Net", color: "var(--chart-3)", dash: "2 3", marker: "diamond", values: [50, 120, null, 200], format: "dzd" },
 ];
-const cx = (html: string) => [...html.matchAll(/<circle cx="([\d.]+)"[^>]*r="22"/g)].map((m) => Number(m[1]));
+const hits = (html: string) => [...html.matchAll(/<rect x="(-?[\d.]+)" y="12" width="([\d.]+)" height="200"[^>]*pointer-events="all"/g)].map((m) => ({ x: Number(m[1]), w: Number(m[2]) }));
+const cx = (html: string) => hits(html).map((h) => h.x + h.w / 2);
 
 describe("LineChart", () => {
   test("every point is a link with drill href, aria label and exactly one roving tab stop", () => {
@@ -58,6 +59,13 @@ describe("LineChart", () => {
     const rtl = cx(render(<LineChart title="M" xs={xs} series={[series[1]]} />, "ar"));
     expect(ltr[0]).toBeLessThan(ltr[ltr.length - 1]);
     expect(rtl[0]).toBeGreaterThan(rtl[rtl.length - 1]);
+  });
+  test("dense series: adjacent hit bands never overlap", () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({ key: `d${i}`, label: `d${i}`, short: `${i}`, href: `/o?d=${i}` }));
+    const s = [{ ...series[1], values: many.map((_, i) => i) }];
+    const b = hits(render(<LineChart title="M" xs={many} series={s} />)).slice(-60); // the link bands (hover bands come first)
+    expect(b.length).toBeGreaterThan(30);
+    for (let i = 1; i < b.length; i++) expect(b[i].x).toBeGreaterThanOrEqual(b[i - 1].x + b[i - 1].w - 0.01);
   });
   test("table shows exactly the numbers the plot labels", () => {
     const table = lineTable("Money", xs, series, "No data");

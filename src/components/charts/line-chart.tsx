@@ -80,6 +80,8 @@ function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Pr
   const y = linear(dom.min, dom.max, H - M.bottom, M.top);
   const xsPx = xs.map((_, i) => xAt(i, n, left + 6, right - 6, rtl));
   const labelIdx = thinIndices(n, Math.max(2, Math.floor((right - left) / 56)));
+  // one hit band per point, exactly one pitch wide, so neighbouring links never overlap
+  const pitch = n > 1 ? (right - left - 12) / (n - 1) : right - left;
   const immature = xs.map((x) => !!x.immature);
   const showMarkers = n <= 60;
 
@@ -123,7 +125,7 @@ function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Pr
               {s.values.map((v, i) =>
                 v == null ? null : (
                   <Link key={xs[i].key} href={xs[i].href ?? "#"} aria-label={grid[si][i]?.aria} className="group outline-none" {...nav.bind(si, i)}>
-                    <circle cx={xsPx[i]} cy={y(v)} r={22} fill="none" pointerEvents="all" />
+                    <rect x={xsPx[i] - pitch / 2} y={M.top} width={pitch} height={H - M.top - M.bottom} fill="none" pointerEvents="all" />
                     {showMarkers ? <path d={markerPath(s.marker, xsPx[i], y(v), 3.5)} fill={s.color} stroke="var(--surface)" strokeWidth={1} /> : null}
                     <circle cx={xsPx[i]} cy={y(v)} r={9} fill="none" strokeWidth={2} className="stroke-[var(--focus)] opacity-0 group-focus-visible:opacity-100" />
                   </Link>

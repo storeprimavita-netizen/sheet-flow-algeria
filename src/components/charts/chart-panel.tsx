@@ -186,17 +186,32 @@ export function ChartTooltip({
   pinned: boolean;
 }) {
   const t = useTranslations("charts");
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [dy, setDy] = React.useState(0);
+  const below = !!shown && shown.y < 150;
+  // keep the tooltip inside the plot box (its offset parent): measure, then shift back in
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    const box = el?.offsetParent as HTMLElement | null;
+    if (!el || !box) return;
+    const h = el.offsetHeight;
+    const top = el.offsetTop - dy - (below ? 0 : h); // translate(-100%) is not part of offsetTop
+    const lo = top < 0 ? -top : 0;
+    const hi = top + h > box.clientHeight ? box.clientHeight - (top + h) : 0;
+    const next = lo || hi;
+    setDy((d) => (d === next ? d : next));
+  });
   if (!shown || !point) return null;
   const half = 100;
   const left = Math.min(Math.max(shown.x, half + 4), Math.max(shown.width - half - 4, half + 4));
-  const below = shown.y < 96;
   return (
     <div
+      ref={ref}
       className={cn(
         "absolute z-10 w-max max-w-[200px] rounded-lg border border-border-strong bg-popover px-3 py-2 text-xs shadow-[var(--shadow-raised)]",
         !pinned && "pointer-events-none",
       )}
-      style={{ left, top: below ? shown.y + 24 : shown.y - 6, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
+      style={{ left, top: (below ? shown.y + 24 : shown.y - 6) + dy, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
     >
       <p className="mb-1 font-medium">
         <bdi>{point.title}</bdi>

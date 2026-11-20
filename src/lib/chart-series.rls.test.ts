@@ -161,6 +161,31 @@ describe.skipIf(!URL)("chart series (live DB, 00068)", () => {
     expect(error).not.toBeNull();
   });
 
+  test("p_from after p_to is rejected by every chart RPC", async () => {
+    for (const fn of RPCS) {
+      const { error } = await admin.rpc(fn, { p_from: TO, p_to: FROM });
+      expect(error, fn).not.toBeNull();
+    }
+  });
+
+  test("a range over 366 days: daily is the last 366 days and sums to pnl_lines of that window", async () => {
+    const rows = await daily({ p_from: "2024-01-01", p_to: TO });
+    expect(rows).toHaveLength(366);
+    const p = await pnl({ p_from: rows[0].day, p_to: TO });
+    for (const [k, pk] of [["revenue", "revenue"], ["cogs", "cogs"], ["fixed", "fixed_fees"], ["net_profit", "net_profit"]] as const)
+      expect(sum(rows, k)).toBeCloseTo(p[pk], 2);
+    for (const r of rows) expect(r.money!.fixed).toBeGreaterThanOrEqual(0);
+  });
+
+  test("outcome drills list exactly the orders each outcome counts", async () => {
+    const { data } = await admin.rpc("kpi_outcomes", { p_from: FROM, p_to: TO });
+    for (const o of data as unknown as { outcome: string; n: number }[]) {
+      const { data: d, error } = await admin.rpc("kpi_drill_orders", { p_metric: `out_${o.outcome}`, p_from: FROM, p_to: TO, p_limit: 1 });
+      expect(error).toBeNull();
+      expect(Number((d as { total: number }[])[0]?.total ?? 0), o.outcome).toBe(o.n);
+    }
+  });
+
   test("daily counts re-aggregate to kpi_rates; swaps and replacements do not shift them", async () => {
     const rows = await daily({ p_from: FROM, p_to: TO });
     const { data } = await admin.rpc("kpi_set_rates", { p_from: FROM, p_to: TO });

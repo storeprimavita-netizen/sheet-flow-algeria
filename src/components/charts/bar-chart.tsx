@@ -99,7 +99,7 @@ function BarChartInner({ title, items, orientation = "v", valueHead, subHead, em
     const dom = niceTicks(0, Math.max(0, ...items.map((i) => i.value)), 4, true);
     const y = linear(dom.min, dom.max, H - M.bottom, M.top);
     const n = items.length;
-    const labelIdx = thinIndices(n, Math.max(2, Math.floor((right - left) / 44)));
+    const labelIdx = thinIndices(n, n <= 7 ? n : Math.max(2, Math.floor((right - left) / 44)));
     plot = (
       <div ref={nav.boxRef} className="relative w-full min-w-0" onKeyDown={nav.onKeyDown}>
         <svg width={width} height={H} role="group" aria-label={title} style={{ touchAction: "pan-y" }} className="block overflow-visible">
@@ -118,7 +118,7 @@ function BarChartInner({ title, items, orientation = "v", valueHead, subHead, em
             const base = y(0);
             return (
               <Link key={it.key} href={it.href ?? "#"} aria-label={grid[0][i]?.aria} className="group outline-none" {...nav.bind(0, i)}>
-                <rect x={b.x - Math.max(b.w, 44) / 2} y={M.top} width={Math.max(b.w, 44)} height={H - M.top - M.bottom} fill="none" pointerEvents="all" />
+                <rect x={b.x - b.w / 2} y={M.top} width={b.w} height={H - M.top - M.bottom} fill="none" pointerEvents="all" />
                 <rect x={b.x - bw / 2} y={Math.min(top, base)} width={bw} height={Math.max(2, Math.abs(base - top))} rx={2} fill={it.color ?? "var(--chart-1)"} />
                 <rect x={b.x - bw / 2 - 2} y={M.top} width={bw + 4} height={H - M.top - M.bottom} rx={3} fill="none" strokeWidth={2} className="stroke-[var(--focus)] opacity-0 group-focus-visible:opacity-100" />
               </Link>

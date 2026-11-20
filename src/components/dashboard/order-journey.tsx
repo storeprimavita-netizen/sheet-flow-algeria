@@ -18,7 +18,7 @@ export async function OrderJourney({
   const t = await getTranslations("dashboard.v2.journey");
   return (
     <Band id="band-journey" title={t("title")}>
-      <div className="card-surface flex-1 space-y-4 rounded-xl p-5">
+      <div className="card-surface flex flex-1 flex-col justify-between gap-4 rounded-xl p-5">
         {!kpi ? (
           <BandError />
         ) : (

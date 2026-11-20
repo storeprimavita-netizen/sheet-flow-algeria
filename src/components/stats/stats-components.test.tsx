@@ -89,7 +89,7 @@ describe("DrillBanner and drill params", () => {
     expect(html).not.toContain("drill=");
   });
   test("leaving drill mode removes drill, commune_key, commune_unknown and commune_label", () => {
-    expect([...DRILL_PARAMS].sort()).toEqual(["commune_key", "commune_label", "commune_unknown", "drill"]);
+    expect([...DRILL_PARAMS].sort()).toEqual(["commune_key", "commune_label", "commune_unknown", "drill", "hour", "weekday"]);
   });
   test("a label that is not the key's spelling falls back to the key", () => {
     expect(communeBannerLabel("hydra", "  Hydra ")).toBe("Hydra");

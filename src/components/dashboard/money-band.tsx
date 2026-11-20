@@ -148,10 +148,18 @@ export async function MoneyChartBand({
           revenue: d.money.revenue,
           costs: d.money.costs,
           net: d.money.net_profit,
-          href: ordersQs({ ...filters, from: d.day, to: d.day }),
+          href: ordersQs({ ...filters, from: d.day, to: d.day }, { drill: "received" }),
         }]
       : [],
   );
+  // no order in the period: one empty state for the whole band (not flat zero lines and a 100% cost bar)
+  if (!daily.some((d) => d.rates.counts.received > 0)) {
+    return (
+      <Band id="band-money-chart" title={t("chart.title")}>
+        <MoneyChart days={[]} total={formatCurrency(kpi.net_profit)} emptyAction={{ label: t("chart.emptyAction"), href: "/app/orders/new" }} />
+      </Band>
+    );
+  }
   const wf = kpi.waterfall;
   const slices = wf
     ? [

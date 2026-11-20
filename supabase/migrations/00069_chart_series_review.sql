@@ -194,6 +194,14 @@ language sql stable security invoker set search_path = public as $$
              when p_metric = 'returned' then o.delivery_status = 'returned' and o.swapped_to_order_id is null
              when p_metric = 'return' then (o.delivery_status = 'returned' and o.swapped_to_order_id is null)
                                 or o.swapped_to_order_id is not null
+             when p_metric = 'shipped' then o.swapped_to_order_id is not null
+                                or o.delivery_status in ('delivered', 'returned')
+                                or (o.delivery_status = 'cancelled' and (
+                                      exists (select 1 from public.zr_shipments z where z.order_id = o.id)
+                                      or exists (select 1 from public.order_status_history h
+                                                  where h.order_id = o.id and h.stage = 'delivery'
+                                                    and h.to_status in ('bureau_deposited', 'in_transit', 'out_for_delivery',
+                                                                        'stop_desk_waiting', 'delayed', 'returning'))))
              when p_metric like 'out\_%' then not exists (select 1 from public.orders r
                     where r.swapped_to_order_id = o.id and r.workspace_id = o.workspace_id)
                     and public.order_outcome(o.swapped_to_order_id, o.delivery_status::text, o.confirmation_status::text)
