@@ -939,3 +939,9 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - The merge resolution itself had no review round (rounds were used up, D89); STORE-3-F carries the two review-5 mediums, lows are in `docs/BACKLOG.md`.
 - Decisions by Claude: none new. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
 - Next `/auto`: first eligible `todo` row in plan order.
+### CONF-1 done (ship)
+- Done: saved order views (table layout) for confirmation/shipping/all, tabs, URL state, seeded shared views (migration 00056).
+- Verify: gate.sh OK on v3-CONF-1 (tsc, 1257 tests incl. live RLS, i18n parity, color lint, build, secret scan). Review-5 VERDICT: PASS.
+- Evidence: docs/briefs/CONF-1.md, docs/briefs/CONF-1.review-5.md.
+- Owner: 00056 applies before 00051 (parked on STORE-3) on a remote push; open mediums in CONF-1-F, lows in docs/BACKLOG.md.
+- Next: CONF-1-F, then CONF-2.
