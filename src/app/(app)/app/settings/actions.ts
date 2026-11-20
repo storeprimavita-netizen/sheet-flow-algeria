@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, SETTINGS_SCHEMAS, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
 import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
+import { STATUS_KINDS } from "@/lib/statuses";
+import { labelSchema } from "@/lib/emoji";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
 import { replayEvent, lightfunnelProvider, shopifyProvider } from "@/lib/webhook";
@@ -589,4 +591,45 @@ export async function saveMeetingSchedule(formData: FormData) {
   const result = await setSetting(workspaceId, "meeting_schedule", { slots });
   if (!result.ok) throw new Error(result.error);
   revalidatePath("/app/settings");
+}
+
+// ---------------------------------------------------------------------------
+// System status labels (NAV-4): display text only, per workspace + language
+// ---------------------------------------------------------------------------
+export type StatusLabelResult = { ok: true } | { ok: false; error: "invalid" | "failed" };
+
+const statusLabelTarget = z
+  .object({ kind: z.string(), key: z.string() })
+  .refine((v) => Object.hasOwn(STATUS_KINDS, v.kind) && Object.hasOwn(STATUS_KINDS[v.kind as keyof typeof STATUS_KINDS], v.key));
+/** Blank = no override for that language. */
+const optionalLabel = z.union([z.literal(""), labelSchema]).transform((v) => (v === "" ? null : v));
+
+export async function saveStatusLabel(input: unknown): Promise<StatusLabelResult> {
+  const { workspaceId } = await adminProfile();
+  const parsed = z
+    .object({ kind: z.string(), key: z.string(), en: z.string().max(200), ar: z.string().max(200) })
+    .safeParse(input);
+  if (!parsed.success || !statusLabelTarget.safeParse(parsed.data).success) return { ok: false, error: "invalid" };
+  const en = optionalLabel.safeParse(parsed.data.en.trim());
+  const ar = optionalLabel.safeParse(parsed.data.ar.trim());
+  if (!en.success || !ar.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { kind, key } = parsed.data;
+  const { error } =
+    en.data === null && ar.data === null
+      ? await supabase.from("status_label_overrides").delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key)
+      : await supabase
+          .from("status_label_overrides")
+          .upsert(
+            { workspace_id: workspaceId, kind, status_key: key, label_en: en.data, label_ar: ar.data },
+            { onConflict: "workspace_id,kind,status_key" },
+          );
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/app", "layout");
+  return { ok: true };
+}
+
+export async function resetStatusLabel(input: unknown): Promise<StatusLabelResult> {
+  return saveStatusLabel({ ...(typeof input === "object" && input ? input : {}), en: "", ar: "" });
 }

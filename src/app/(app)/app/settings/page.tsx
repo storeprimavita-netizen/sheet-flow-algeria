@@ -20,6 +20,7 @@ import { PricingSection } from "./pricing-section";
 import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
 import { OptionsSection } from "./options-section";
+import { StatusLabelsBlock } from "./status-labels-block";
 import { AppearanceSection } from "./appearance-section";
 import { SettingsTabs } from "./settings-tabs";
 
@@ -32,7 +33,7 @@ const NAV_SECTIONS = [
   ["pricing", "settings.pricing"],
   ["engine-rules", "settings.engineRules"],
   ["meeting-schedule", "settings.meetingSchedule"],
-  ["options", "settings.options.title"],
+  ["options", "settings.options.navTitle"],
 ] as const; // appearance renders under "workspace"
 
 type SectionId = (typeof NAV_SECTIONS)[number][0];
@@ -184,7 +185,12 @@ async function SectionBody({ section }: { section: SectionId }) {
       const optionUsage = Object.fromEntries(
         await Promise.all(optionSets.map(async (s) => [s.key, await getOptionUsageCounts(ws, s.key)])),
       ) as Record<OptionSetKey, Record<string, number>>;
-      return <OptionsSection sets={optionSets} usage={optionUsage} />;
+      return (
+        <>
+          <OptionsSection sets={optionSets} usage={optionUsage} />
+          <StatusLabelsBlock workspaceId={ws} />
+        </>
+      );
     }
   }
 }

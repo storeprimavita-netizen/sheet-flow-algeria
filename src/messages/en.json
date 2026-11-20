@@ -777,7 +777,8 @@
         "expense_subcategory": "Expense subcategory",
         "order_tag": "Tags",
         "cancellation_reason": "Cancellation reason"
-      }
+      },
+      "navTitle": "Options & labels"
     },
     "fees": {
       "noPrice": "No price",
@@ -876,6 +877,27 @@
         "errDuplicate": "This already exists.",
         "errMissing": "That season no longer exists. Reload the page.",
         "errGeneric": "Could not save. Try again."
+      }
+    },
+    "statusLabels": {
+      "title": "System status labels",
+      "subtitle": "Rename how a status reads for your team, per language. Keys, colors and workflow stay the same; leave a field empty to keep the default.",
+      "en": "English",
+      "ar": "Arabic",
+      "saved": "Label saved.",
+      "resetDone": "Label reset.",
+      "reset": "Reset to default",
+      "invalid": "Labels need 1 to 40 characters and no control characters.",
+      "failed": "Could not save the label. Try again.",
+      "loadError": "Could not load the labels: {reason}",
+      "kinds": {
+        "confirmation": "Confirmation",
+        "delivery": "Delivery",
+        "product": "Product",
+        "task": "Task",
+        "stock": "Stock",
+        "store": "Store",
+        "review": "Reviews"
       }
     }
   },
