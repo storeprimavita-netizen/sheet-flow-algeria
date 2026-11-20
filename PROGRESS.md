@@ -841,3 +841,10 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Done: RLS no-access check now uses `select("*", {count:"exact", head:true})` and asserts `error` null then count 0 (fail-proof: selecting `nonexistent` made all 3 cases fail; reverted). Tests added: sign-out toast/inline, unknown role on /no-access, cycle `[...rest]` and `/login` (2 hops; dead reassigned-handler case replaced), sell real `getProfile` -> `requireProfile` path. rbac query-error test already existed.
 - Browser (chrome-devtools, local stack): keyboard pass on `/no-access` EN and AR (rtl): Tab order language switcher, Retry, Sign out; box-shadow focus ring visible on each; Enter on the switcher switched language, Space on Sign out signed out. Shot: `docs/design/audit/NAV-5-H/no-access-en-focus-signout.png` (dark only; light not re-shot). Role home: a signed-in profile visiting `/login` landed on `/app/dashboard`. Sign-out landed on `/login`. Local user `noaccess-shots@seed.mnw` deleted. Page closed back to about:blank.
 - Not done: My day / Team rules blank for a deactivated user (optional finding 5, out of scope).
+
+## NAV-5-I: done
+- Done: review-1 PASS (docs/briefs/NAV-5-I.review-1.md). Closed NAV-5-H review-2 lows: non-vacuous no-access RLS check, sign-out toast/inline tests, unknown-role and cycle tests, sell real-path test, /no-access EN+AR keyboard pass.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-I after one re-run (tsc, 1136 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: first run failed only on live-DB FK race (audit_log_workspace_id_fkey) in delivery-prices.rls and reviews.rls tests; known intermittent (TEST-2), passed on re-run.
+- Owner: light-theme /no-access screenshot not re-shot (owner to confirm); optional finding 5 (deactivated user My day / Team rules blank) out of scope.
+- Next: none for NAV-5-I; merge to v3 pending.
