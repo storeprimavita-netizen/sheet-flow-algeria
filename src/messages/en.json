@@ -974,7 +974,7 @@
       "retry": "Retry",
       "needsAction": {
         "title": "Needs action",
-        "toConfirm": "To confirm",
+        "toConfirm": "Waiting for first call",
         "toConfirmHint": "Orders waiting for a confirmation call.",
         "toShip": "To ship",
         "toShipHint": "Confirmed but not yet deposited at the courier.",
@@ -1785,7 +1785,7 @@
     "title": "My day",
     "subtitle": "Your queue, your open tasks and the next meeting.",
     "queueConfirmation": "Orders waiting for confirmation",
-    "queueDelivery": "Orders to deliver",
+    "queueDelivery": "Team queue: orders to deliver",
     "openQueue": "Open queue",
     "numbers": "My numbers today",
     "numbersHelp": "Only orders assigned to you.",
