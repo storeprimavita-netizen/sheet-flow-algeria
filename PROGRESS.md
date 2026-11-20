@@ -968,3 +968,10 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - Owner step: remote push of 00056/00057 needs `db push --include-all`.
 - Open questions: Q-15, Q-16, Q-28, Q-29 (answered-by-default, nothing blocked).
 - Next: CONF-2/3/4 and NAV-4-V now unblocked.
+
+## VAR-1 — Variants the owner can set up (2026-11-20) — DONE
+- Done: "+ Size"/"+ Color" quick buttons, colour swatches per value, reusable size sets, adding an option to a product with variants (backfill in one transaction), "Variants" title, SKU hint (migration 00068).
+- Verify: gate.sh OK on v3-VAR-1 after merging v3. Review-4 ESCALATE (no high, two medium), merged under D93 (D89/D40).
+- Evidence: docs/briefs/VAR-1.md, docs/briefs/VAR-1.review-4.md.
+- Owner: Q-26 answered-by-default; mediums in VAR-1-F, 9 lows in docs/BACKLOG.md.
+- Next: VAR-1-F, VAR-1-B (after STORE-3).
