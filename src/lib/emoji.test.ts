@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { emojiSchema, labelSchema, isEmojiOnly, startsWithEmoji } from "@/lib/emoji";
+import { emojiSchema, labelSchema, isEmojiOnly, normalizeLabel, splitLeadingEmoji, startsWithEmoji } from "@/lib/emoji";
 
 describe("emojiSchema", () => {
   test("one grapheme, including ZWJ and skin-tone sequences", () => {
@@ -40,5 +40,28 @@ describe("flags and keycaps", () => {
     expect(isEmojiOnly("🇩🇿 ✅")).toBe(false);
     expect(isEmojiOnly("✅ Ok")).toBe(false);
     expect(isEmojiOnly("")).toBe(false);
+  });
+});
+
+describe("normalizeLabel parity with the DB set", () => {
+  test("strips every code point the 00074 CHECK bans and keeps ZWJ", () => {
+    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u2029", "\u00AD", "\u034F", "\u115F", "\u3164", "\u200B", "\u200E", "\u202E"]) {
+      expect(normalizeLabel(`a${ch}b`)).toBe("ab");
+    }
+    const fam = "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}";
+    expect(normalizeLabel(` ${fam} `)).toBe(fam);
+    expect(labelSchema.parse(`${fam} x`)).toBe(`${fam} x`);
+  });
+  test("a label of only invisible characters is invalid", () => {
+    for (const bad of ["\u3164", "\uFEFF\u061C", "\u200D", "\u2028 \u00AD\u034F\u115F"]) expect(labelSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe("splitLeadingEmoji", () => {
+  test("splits the first grapheme, else null", () => {
+    expect(splitLeadingEmoji("🔥 Hot")).toEqual({ emoji: "🔥", rest: "Hot" });
+    expect(splitLeadingEmoji("👩\u200D👩\u200D👧Family")).toEqual({ emoji: "👩\u200D👩\u200D👧", rest: "Family" });
+    expect(splitLeadingEmoji("🔥")).toEqual({ emoji: "🔥", rest: "" });
+    expect(splitLeadingEmoji("Hot 🔥")).toBeNull();
   });
 });
