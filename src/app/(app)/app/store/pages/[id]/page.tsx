@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { CrumbRecord } from "@/components/breadcrumbs";
 import { PageHeader } from "@/components/page-header";
 import { blocksSchema, seoSchema } from "@/lib/store/blocks";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
-import { Crumbs } from "../../_components/crumbs";
 import { PageEditor } from "../../_components/page-editor";
 import { getStore, requireStoreAdmin } from "../../_lib/data";
 
@@ -36,7 +36,7 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
   return (
     <div className="space-y-6">
       <div>
-        <Crumbs items={[{ label: t("pages.title"), href: "/app/store/pages" }, { label: page.title }]} />
+        <CrumbRecord label={page.title} />
         <PageHeader title={t("editor.title")} subtitle={t("editor.purpose")} />
       </div>
       <PageEditor

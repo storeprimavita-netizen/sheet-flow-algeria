@@ -1,4 +1,5 @@
 ---
+model: claude-fable-5-2
 description: Loop decision step (forked, runs on the session's model — Fable) — answer a question a task raised, or route it to the owner without stopping other work
 effort: high
 context: fork

@@ -67,7 +67,7 @@ export default async function MeetingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
+      <PageHeader title={t("nav.meetings")} subtitle={t("navPurpose.meetings")} />
       <TeamTabs active="meetings" />
 
       <form action={createNextMeetingInstances}>

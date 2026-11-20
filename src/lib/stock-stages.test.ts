@@ -5,6 +5,14 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { deleteWorkspaces } from "@/lib/test-cleanup";
 
+/** 00029's own loop, scoped to one workspace: the unscoped file scans every order and deadlocks (40P01) with parallel suites. */
+const reconcileWs = (workspace: string) => {
+  const sql = readFileSync("supabase/migrations/00029_stock_reconcile_existing.sql", "utf8");
+  const scoped = sql.replace("where product_id is not null loop", `where product_id is not null and workspace_id = '${workspace}' loop`);
+  if (scoped === sql) throw new Error("00029 loop select changed; update reconcileWs");
+  return scoped;
+};
+
 /** Live P0-8 checks: stock in three stages (D34), add-only log (D35), workspace guard (D30), swap link (D31). */
 const URL = process.env.LOCAL_SUPABASE_URL;
 const ANON_KEY =
@@ -326,7 +334,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const p = await product();
     await order(p, { delivery_status: "in_transit" });
     const before = await count();
-    psql(readFileSync("supabase/migrations/00029_stock_reconcile_existing.sql", "utf8"));
+    psql(reconcileWs(ws));
     expect(await count()).toBe(before);
   });
 
@@ -422,7 +430,7 @@ describe.skipIf(!URL)("stock in three stages (live DB)", () => {
     const o = await order(p, { delivery_status: "in_transit" }); // -2
     await svc.from("stock_movements").insert({ workspace_id: ws, product_id: p, delta: 2, reason: "order_reverted", order_id: o });
     expect(await stock(p)).toBe(0);
-    const sql = readFileSync("supabase/migrations/00029_stock_reconcile_existing.sql", "utf8");
+    const sql = reconcileWs(ws);
     psql(sql);
     expect(await stock(p)).toBe(-2);
     const n = (await moves(o)).length;

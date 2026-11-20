@@ -45,6 +45,8 @@ export function Chip({
   size = "md",
   dot = false,
   icon,
+  emoji,
+  emojiLabel,
   className,
   children,
 }: {
@@ -52,9 +54,14 @@ export function Chip({
   size?: "sm" | "md";
   dot?: boolean;
   icon?: React.ReactNode;
+  /** Option emoji (NAV-4): decorative when the label has text, so hidden from screen readers. */
+  emoji?: string | null;
+  /** Name read out when the chip has an emoji but no visible text. */
+  emojiLabel?: string;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
+  const hasText = React.Children.toArray(children).some((c) => (typeof c === "string" ? c.trim() !== "" : true));
   return (
     <span
       className={cn(
@@ -66,6 +73,12 @@ export function Chip({
     >
       {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden /> : null}
       {icon}
+      {emoji ? (
+        <span aria-hidden={hasText || undefined} className="shrink-0">
+          {emoji}
+        </span>
+      ) : null}
+      {emoji && !hasText && emojiLabel ? <span className="sr-only">{emojiLabel}</span> : null}
       {children}
     </span>
   );

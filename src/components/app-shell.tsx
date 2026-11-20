@@ -4,16 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { ChevronDown, Menu, PanelLeftClose, PanelLeftOpen, Search, Store } from "lucide-react";
+import { ChevronDown, PanelLeftClose, PanelLeftOpen, Search, Store } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { SignOutButton } from "@/app/(app)/app/dashboard/sign-out-button";
+import { SignOutButton } from "@/components/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Breadcrumbs, CrumbProvider } from "@/components/breadcrumbs";
+import { NavCountsProvider } from "@/components/nav-counts";
+import { MobileBottomBar } from "@/components/mobile-bottom-bar";
 import { CommandPalette } from "@/components/command-palette";
 import {
   DropdownMenu,
@@ -257,6 +260,18 @@ export function AppShell({
     return () => ro.disconnect();
   }, [measure, collapsed, closedGroups, role]);
 
+  // keep the current page clear of the edge fades, or its row reads as disabled
+  useEffect(() => {
+    const el = navRef.current;
+    const row = el?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!el || !row) return;
+    const pad = 44; // fade height (h-11)
+    const box = el.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    if (r.bottom > box.bottom - pad) el.scrollTop += r.bottom - box.bottom + pad;
+    else if (r.top < box.top + pad && el.scrollTop > 0) el.scrollTop -= box.top + pad - r.top;
+  }, [activeHref]);
+
   const nav = (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <nav ref={navRef} onScroll={measure} className="flex-1 overflow-y-auto p-3">
@@ -321,9 +336,9 @@ export function AppShell({
       <div className="flex min-h-screen w-full">
         <aside
           ref={drawerRef}
-          tabIndex={-1}
+          tabIndex={open && !isDesktop ? -1 : undefined}
           inert={!open && !isDesktop}
-          {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.toggleSidebar") } : {})}
+          {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.menu") } : {})}
           className={cn(
             "fixed inset-y-0 start-0 z-40 flex outline-none flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
             collapsed ? "w-16" : "w-64",
@@ -385,7 +400,7 @@ export function AppShell({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem destructive asChild>
-                  <SignOutButton className="w-full justify-start border-0 bg-transparent shadow-none hover:bg-transparent" />
+                  <SignOutButton errorAs="toast" className="w-full justify-start border-0 bg-transparent shadow-none hover:bg-transparent" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -396,22 +411,25 @@ export function AppShell({
           <div className="fixed inset-0 z-30 bg-overlay md:hidden" onClick={() => setOpen(false)} />
         )}
 
+        <NavCountsProvider value={counts}>
+        <CrumbProvider role={role}>
         <div inert={open && !isDesktop} className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
-            <Button ref={toggleRef} variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label={t("nav.toggleSidebar")}>
-              <Menu className="h-5 w-5" />
-            </Button>
             <CommandPalette role={role}>
               <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" aria-label={t("cmd.title")}>
                 <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("cmd.title")}</span>
-                <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">{kbdHint}</kbd>
+                <kbd dir="ltr" className="hidden rounded border border-border px-1 text-[10px] sm:inline">{kbdHint}</kbd>
               </Button>
             </CommandPalette>
+            <Breadcrumbs />
             <div className="ms-auto md:hidden">{brand}</div>
           </header>
-          <main className="flex-1 p-4 md:p-8">{children}</main>
+          <main className="flex-1 p-4 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] md:p-8">{children}</main>
+          <MobileBottomBar role={role} counts={counts} onMore={() => setOpen(true)} moreRef={toggleRef} />
         </div>
+        </CrumbProvider>
+        </NavCountsProvider>
       </div>
     </TooltipProvider>
   );

@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, SETTINGS_SCHEMAS, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
 import { MANUAL_DELIVERY_STATUSES } from "@/lib/enums";
+import { STATUS_KINDS } from "@/lib/statuses";
+import { labelSchema } from "@/lib/emoji";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
 import { sizeSetSchema, uuid as uuidSchema } from "@/lib/variants";
@@ -388,27 +390,31 @@ async function readCsv(formData: FormData) {
   return { parsed, error: null };
 }
 
+const STORED_READ_ERROR = "Could not read the current delivery fees. Try again.";
+
 async function loadStoredFees(supabase: Awaited<ReturnType<typeof createClient>>, workspaceId: string) {
-  const { data: fees } = await supabase
+  const { data: fees, error: feesErr } = await supabase
     .from("wilaya_fees")
     .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at")
     .eq("workspace_id", workspaceId);
+  if (feesErr) return { ok: false as const, error: STORED_READ_ERROR };
   const names = new Map<number, string[]>();
   for (let from = 0; ; from += 1000) {
-    const { data } = await supabase
+    const { data, error: communesErr } = await supabase
       .from("wilaya_communes")
       .select("wilaya_code, name")
       .eq("workspace_id", workspaceId)
       .order("wilaya_code")
       .order("name")
       .range(from, from + 999);
+    if (communesErr) return { ok: false as const, error: STORED_READ_ERROR };
     for (const c of data ?? []) names.set(c.wilaya_code, [...(names.get(c.wilaya_code) ?? []), c.name]);
     if ((data?.length ?? 0) < 1000) break;
   }
   const rows = fees ?? [];
   const stored: StoredWilayaFee[] = rows.map((r) => ({ ...r, communes: names.get(r.wilaya_code) ?? [] }));
   const snapshot = rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
-  return { stored, snapshot };
+  return { ok: true as const, stored, snapshot };
 }
 
 export async function previewDeliveryCsv(formData: FormData): Promise<DeliveryPreview> {
@@ -416,14 +422,15 @@ export async function previewDeliveryCsv(formData: FormData): Promise<DeliveryPr
   const read = await readCsv(formData);
   if (!read.parsed) return { ok: false, error: read.error };
   const supabase = await createClient();
-  const [{ stored, snapshot }, { data: wilayas }] = await Promise.all([
+  const [current, { data: wilayas }] = await Promise.all([
     loadStoredFees(supabase, workspaceId),
     supabase.from("wilayas").select("code, name"),
   ]);
+  if (!current.ok) return { ok: false, error: current.error };
   return {
     ok: true,
-    diff: diffDeliveryPrices(read.parsed, stored),
-    snapshot,
+    diff: diffDeliveryPrices(read.parsed, current.stored),
+    snapshot: current.snapshot,
     wilayaNames: Object.fromEntries((wilayas ?? []).map((w) => [w.code, w.name])),
   };
 }
@@ -435,7 +442,9 @@ export async function applyDeliveryCsv(
   const read = await readCsv(formData);
   if (!read.parsed) return { ok: false, error: read.error };
   const supabase = await createClient();
-  const { snapshot } = await loadStoredFees(supabase, workspaceId);
+  const current = await loadStoredFees(supabase, workspaceId);
+  if (!current.ok) return { ok: false, error: current.error };
+  const { snapshot } = current;
   const expected = String(formData.get("snapshot") ?? "");
   if (snapshot && new Date(expected).getTime() !== new Date(snapshot).getTime()) {
     return { ok: false, error: "Fees changed since the preview. Upload the file again." };
@@ -443,7 +452,7 @@ export async function applyDeliveryCsv(
   const { data, error } = await supabase.rpc("apply_delivery_prices", { p: toApplyPayload(read.parsed) });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/app/settings");
-  revalidatePath("/app/orders");
+  revalidatePath("/app/sell/orders");
   const changed = (data as { fees_changed?: number } | null)?.fees_changed ?? 0;
   return { ok: true, changed };
 }
@@ -552,7 +561,7 @@ export async function savePricingDefaults(input: unknown): Promise<PricingAction
   const res = await setSetting(workspaceId, "pricing_defaults", parsed.data);
   if (!res.ok) return { ok: false, error: "failed" };
   revalidatePath("/app/settings");
-  revalidatePath("/app/products", "layout");
+  revalidatePath("/app/catalog/products", "layout");
   return { ok: true };
 }
 
@@ -563,7 +572,7 @@ export async function resetPricingDefaults(): Promise<PricingActionResult> {
   const { error } = await supabase.from("settings").delete().eq("workspace_id", workspaceId).eq("key", "pricing_defaults");
   if (error) return { ok: false, error: "failed" };
   revalidatePath("/app/settings");
-  revalidatePath("/app/products", "layout");
+  revalidatePath("/app/catalog/products", "layout");
   return { ok: true };
 }
 
@@ -616,4 +625,44 @@ export async function deleteSizeSet(id: string): Promise<SizeSetResult> {
   revalidatePath("/app/settings");
   revalidatePath("/app/products", "layout");
   return { ok: true };
+}
+
+// System status labels (NAV-4): display text only, per workspace + language
+// ---------------------------------------------------------------------------
+export type StatusLabelResult = { ok: true } | { ok: false; error: "invalid" | "failed" };
+
+const statusLabelTarget = z
+  .object({ kind: z.string(), key: z.string() })
+  .refine((v) => Object.hasOwn(STATUS_KINDS, v.kind) && Object.hasOwn(STATUS_KINDS[v.kind as keyof typeof STATUS_KINDS], v.key));
+/** Blank = no override for that language. */
+const optionalLabel = z.union([z.literal(""), labelSchema]).transform((v) => (v === "" ? null : v));
+
+export async function saveStatusLabel(input: unknown): Promise<StatusLabelResult> {
+  const { workspaceId } = await adminProfile();
+  const parsed = z
+    .object({ kind: z.string(), key: z.string(), en: z.string().max(200), ar: z.string().max(200) })
+    .safeParse(input);
+  if (!parsed.success || !statusLabelTarget.safeParse(parsed.data).success) return { ok: false, error: "invalid" };
+  const en = optionalLabel.safeParse(parsed.data.en.trim());
+  const ar = optionalLabel.safeParse(parsed.data.ar.trim());
+  if (!en.success || !ar.success) return { ok: false, error: "invalid" };
+
+  const supabase = await createClient();
+  const { kind, key } = parsed.data;
+  const { error } =
+    en.data === null && ar.data === null
+      ? await supabase.from("status_label_overrides").delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key)
+      : await supabase
+          .from("status_label_overrides")
+          .upsert(
+            { workspace_id: workspaceId, kind, status_key: key, label_en: en.data, label_ar: ar.data },
+            { onConflict: "workspace_id,kind,status_key" },
+          );
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/app", "layout");
+  return { ok: true };
+}
+
+export async function resetStatusLabel(input: unknown): Promise<StatusLabelResult> {
+  return saveStatusLabel({ ...(typeof input === "object" && input ? input : {}), en: "", ar: "" });
 }

@@ -1,6 +1,6 @@
 /** Shared SQL/TS parity cases for audit_redact / auditRedact (string values only for fingerprints). */
-export const MASKED_NAMES = ["XAPIKey", "APISecret", "ZRToken", "IDKey", "sEcReT", "token_", "x_api_key ", "apikey", "secretkey", "accesstoken", "authtoken", "privatekey", "clientsecret", "webhooksecret", "bottoken", "AuthToken"];
-export const VISIBLE_NAMES = ["key", "idempotency_key", "color_token", "monkey", "token_count", "monkeys", "hotkey"];
+export const MASKED_NAMES = ["XAPIKey", "APISecret", "ZRToken", "IDKey", "sEcReT", "token_", "x_api_key ", "apikey", "secretkey", "accesstoken", "authtoken", "privatekey", "clientsecret", "webhooksecret", "bottoken", "AuthToken", "api/key", "api_key\t", "api+key", "api,key", "api key", "secretkeys", "privatekeys"];
+export const VISIBLE_NAMES = ["key", "idempotency_key", "color_token", "monkey", "token_count", "monkeys", "hotkey", "idempotency\u{1F600}key", "/sort_key", "@cache_key", "$color_token", "Key ", "_key_"];
 export const PARITY_CASES: unknown[] = [
   Object.fromEntries(MASKED_NAMES.map((n) => [n, "PLAIN_" + n])),
   Object.fromEntries(VISIBLE_NAMES.map((n) => [n, "v_" + n])),
@@ -24,6 +24,7 @@ const nest = (levels: number, leaf: unknown): unknown => {
 // Depth cap boundary (64 kept, 65 masked); JSON null is kept at every depth.
 PARITY_CASES.push(
   nest(64, null),
+  nest(64, { key: "api_key", value: "" }),
   nest(65, null),
   nest(64, { a: null }),
   nest(64, { secret: null }),
@@ -33,4 +34,17 @@ PARITY_CASES.push(
   nest(65, "plain"),
   nest(64, [1, null, "x"]),
   nest(63, [{ secret: "S" }, null]),
+);
+// Idempotence at the cap: empty / already-masked secret values and masked strings pass through at any depth.
+PARITY_CASES.push(
+  nest(64, { secret: "" }),
+  nest(64, { secret: "[redacted:aaaaaaaa]" }),
+  nest(65, "[redacted:aaaaaaaa]"),
+  { "api/key": "S1", "api key": "S2", secretkeys: "S3", privatekeys: ["S4"] },
+);
+// Anchoring: a mask token with a trailing newline is not a mask; uppercase hex is not a fingerprint.
+PARITY_CASES.push(
+  { note: "[redacted:aaaaaaaa]\n" },
+  { secret: "[redacted:AAAAAAAA]" },
+  { secret: "[redacted:aaaaaaaa]\n" },
 );

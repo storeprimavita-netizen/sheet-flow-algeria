@@ -2,8 +2,8 @@
 # Keep the loop running, batch after batch, in THIS terminal (foreground, readable
 # output). Waits out usage limits and continues by itself. Keeps the Mac awake.
 #
-#   scripts/night-run.sh            batches of 5 tasks until nothing is eligible
-#   scripts/night-run.sh 3          batches of 3
+#   scripts/night-run.sh                 one task per fresh session until nothing is eligible
+#   scripts/night-run.sh STORE-3 CONF-1  only these tasks, then stop
 #   Ctrl+C                          stop (the task in progress keeps its pushed steps)
 #
 # Each batch is a fresh Claude session (`claude -p "/auto N"`), so context never
@@ -13,7 +13,10 @@
 # Lid: keep it open, or run `sudo pmset -a disablesleep 1` first (undo with 0).
 set -uo pipefail
 cd "$(dirname "$0")/.."
-batch=${1:-5}
+batch=${1:-1}
+# Task ids instead of a number → run exactly those, in order, then stop:
+#   scripts/night-run.sh STORE-3 CONF-1
+ids=(); case "${1:-}" in ""|*[!0-9]*) [ $# -gt 0 ] && ids=("$@") ;; esac
 say() { echo "$(date '+%H:%M') ── $*"; }
 
 command -v claude >/dev/null 2>&1 || { say "claude CLI not found"; exit 1; }
@@ -33,13 +36,17 @@ print(int((t - now).total_seconds()) + 120)
 PY
 }
 
-bad=0; n=0
+bad=0; n=0; idx=0   # idx: position in the task-id list; it only advances when a run really ended
 while :; do
   n=$((n+1))
-  [ "$(git branch --show-current)" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
-  if [ -n "$(git status --porcelain)" ]; then say "uncommitted files on v3 — saving them as a step"; scripts/step.sh "wip: files left in the working tree before batch $n" || exit 1; fi
+  cur=$(git branch --show-current)
+  # A batch cut off mid-task (usage limit) leaves edits on v3-<id>; save them there or the checkout fails.
+  if [ "$cur" != "v3" ] && [ -n "$(git status --porcelain)" ]; then say "uncommitted files on $cur — saving them as a step"; scripts/step.sh "wip: files left on $cur when batch $((n-1)) was cut off (not gated)" || exit 1; fi
+  [ "$cur" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
+  if [ -n "$(git status --porcelain)" ]; then say "leftover files from an interrupted task — set aside with git stash (see: git stash list)"; git stash push -u -q -m "night-run leftovers $(date +%F-%H%M)" || exit 1; fi
   git pull --rebase -q origin v3 || { say "could not update v3 — stopping"; exit 1; }
   log="$HOME/Library/Logs/mnw-night-run-$(date +%Y%m%d-%H%M%S).jsonl"
+  if [ ${#ids[@]} -gt 0 ]; then [ $idx -lt ${#ids[@]} ] || { say "all listed tasks handled: ${ids[*]}"; break; }; batch=${ids[$idx]}; fi
   say "batch $n: /auto $batch   (transcript: $log)"
   start=$(date +%s)
   env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT \
@@ -53,14 +60,15 @@ while :; do
       wait_s=$(seconds_until "$reset")
       say "usage limit reached${reset:+ — resets $reset}. Waiting $((wait_s/60)) min, then continuing."
       sleep "$wait_s"; bad=0; continue ;;
-    NOTHING)  say "nothing left that can run without you — see docs/QUESTIONS.md and the Owner inputs table. Done."; break ;;
+    NOTHING)  if [ ${#ids[@]} -gt 0 ]; then idx=$((idx+1)); bad=0; continue; fi
+              say "nothing left that can run without you — see docs/QUESTIONS.md and the Owner inputs table. Done."; break ;;
     HARDSTOP) say "hard stop — read the run report at the end of PROGRESS.md."; break ;;
   esac
   if [ "$took" -lt 180 ]; then
     bad=$((bad+1)); [ "$bad" -ge 3 ] && { say "3 batches in a row ended in under 3 minutes — stopping. Last lines:"; tail -c 600 "$log"; break; }
     say "batch ended after ${took}s — retrying in 10 min ($bad/3)"; sleep 600; continue
   fi
-  bad=0
+  bad=0; idx=$((idx+1))
   say "batch $n finished in $((took/60)) min — starting the next one"
 done
 git log --oneline -6

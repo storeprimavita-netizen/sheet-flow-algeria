@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/button-link";
 import { DocumentTitle } from "@/components/document-title";
 import { Empty } from "@/components/empty";
 import { getProfile } from "@/lib/rbac";
+import { roleHome } from "@/lib/role-home";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("notFoundPage");
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AppNotFound() {
   const t = await getTranslations("notFoundPage");
   const profile = await getProfile();
-  const home = profile?.role === "admin" ? "/app/dashboard" : "/app/orders";
+  const home = roleHome(profile?.role ?? null);
   return (
     <Empty className="mx-auto max-w-md space-y-4">
       <DocumentTitle title={t("title")} />

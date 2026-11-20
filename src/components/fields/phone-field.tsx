@@ -25,6 +25,7 @@ export function PhoneField({
   name,
   defaultValue = "",
   disabled,
+  required,
   className,
   id,
   dupHint,
@@ -33,6 +34,7 @@ export function PhoneField({
   name?: string;
   defaultValue?: string;
   disabled?: boolean;
+  required?: boolean;
   className?: string;
   id?: string;
   dupHint?: { label: string; href: string } | null;
@@ -49,6 +51,7 @@ export function PhoneField({
         dir="ltr"
         inputMode="tel"
         disabled={disabled}
+        required={required}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => {

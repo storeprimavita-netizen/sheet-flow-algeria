@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, requireAdminProfile } from "@/lib/rbac";
 import { CHIP_TOKENS, autoToken } from "@/lib/statuses";
+import { emojiSchema } from "@/lib/emoji";
 import { getOptionUsageCounts, type OptionSetKey } from "@/lib/option-sets";
 
 export type OptionResult =
@@ -87,6 +88,19 @@ export async function recolorOption(id: string, colorToken: string): Promise<Act
   if (!parsed.success) return { ok: false, error: "Invalid color" };
   const supabase = await createClient();
   const { error } = await supabase.from("options").update({ color_token: parsed.data }).eq("id", id).eq("workspace_id", workspaceId);
+  if (error) return { ok: false, error: error.message };
+  revalidateOptions();
+  return { ok: true };
+}
+
+/** Admin only (the DB enforces it too): one emoji, or null to clear. */
+export async function setOptionEmoji(id: string, emoji: string | null): Promise<ActionResult> {
+  const { workspaceId } = await requireAdminProfile();
+  const parsed = z.string().uuid().safeParse(id);
+  const e = emojiSchema.safeParse(emoji ?? "");
+  if (!parsed.success || !e.success) return { ok: false, error: "Invalid emoji" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("options").update({ emoji: e.data }).eq("id", id).eq("workspace_id", workspaceId);
   if (error) return { ok: false, error: error.message };
   revalidateOptions();
   return { ok: true };

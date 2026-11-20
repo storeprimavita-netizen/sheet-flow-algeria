@@ -17,7 +17,7 @@ import { EnumSelect } from "@/components/fields/enum-select";
 import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
 import { ProductCombobox } from "@/components/fields/comboboxes";
 import { EXPENSE_CATEGORIES, type CURRENCY_CODES } from "@/lib/enums";
-import { saveExpense } from "@/app/(app)/app/products/actions";
+import { saveExpense } from "@/app/(app)/app/catalog/products/actions";
 
 type ExpenseRow = Tables<"expenses">;
 type CurrencyCode = (typeof CURRENCY_CODES)[number];
@@ -93,7 +93,7 @@ export function ExpenseForm({
             setKey="expense_subcategory"
             name="subcategory_option_id"
             value={expense?.subcategory_option_id ?? undefined}
-            options={subcategories.map((s) => ({ value: s.id, label: s.label, token: s.color_token, archived: !!s.archived_at }))}
+            options={subcategories.map((s) => ({ value: s.id, label: s.label, token: s.color_token, emoji: s.emoji, archived: !!s.archived_at }))}
             placeholder={t("fields.subcategory")}
           />
         </Field>

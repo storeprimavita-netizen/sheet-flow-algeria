@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { csvSuccessToast } from "./fees-csv-toast";
 import { AlertTriangle, ArrowRight, FileUp, Loader2, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,10 @@ export function FeesCsvDialog() {
     try {
       const res = await applyDeliveryCsv(fd);
       if (!res.ok) return setPhase({ name: "failed", data, error: res.error });
-      toast.success(t("success", { count: res.changed }));
+      // a commune-only file changes no fee: say what did change instead of "No prices changed"
+      const communeRows = data.diff.rows.filter((r) => r.communesAdded.length || r.communesRemoved.length).length;
+      const msg = csvSuccessToast(res.changed, communeRows);
+      toast.success(t(msg.key, { count: msg.count }));
       setOpen(false);
       reset();
       router.refresh();
@@ -118,7 +122,7 @@ export function FeesCsvDialog() {
                 aria-describedby="csv-format-hint"
               />
               <p id="csv-format-hint" className="text-xs text-muted-foreground">
-                <bdi>{t("formatHint")}</bdi>
+                {t.rich("formatHint", { cols: (c) => <bdi dir="ltr" className="font-sans">{c}</bdi> })}
               </p>
             </div>
 
@@ -264,6 +268,20 @@ function Change({ before, after, label }: { before: string; after: string; label
   );
 }
 
+const MAX_NAMES = 12;
+
+function CommuneNames({ label, list }: { label: string; list: string[] }) {
+  const t = useTranslations("settings.deliveryCsv");
+  if (!list.length) return null;
+  const more = list.length - MAX_NAMES;
+  return (
+    <p className="text-xs text-muted-foreground">
+      <span className="font-medium">{label}</span> <bdi>{list.slice(0, MAX_NAMES).join(", ")}</bdi>
+      {more > 0 ? <> {t("moreNames", { count: more })}</> : null}
+    </p>
+  );
+}
+
 function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
   const t = useTranslations("settings.deliveryCsv");
   const a = row.after;
@@ -294,6 +312,8 @@ function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
           <Change before={String(row.communesBefore)} after={String(row.communesAfter)} label={t("after")} />
         </dd>
       </dl>
+      <CommuneNames label={t("communesAdded")} list={row.communesAdded} />
+      <CommuneNames label={t("communesRemoved")} list={row.communesRemoved} />
       {row.warnings.length ? <FileWarnings warnings={row.warnings} /> : null}
     </li>
   );

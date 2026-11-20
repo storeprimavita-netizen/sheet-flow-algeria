@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { PlusCircle, Package, Building2, Megaphone, Users, Hash } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
+import { paletteFilter } from "@/lib/palette-filter";
 import {
   CommandDialog,
   CommandInput,
@@ -34,6 +35,19 @@ export function CommandPalette({ role, children }: { role: Role | null; children
   const [open, setOpen] = React.useState(false);
   const [help, setHelp] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const returnFocus = React.useRef<HTMLElement | null>(null);
+
+  // No Radix Trigger here (opened by state / ⌘K), so give focus back to whatever had it.
+  // Layout effect: it must read activeElement before Radix's FocusScope moves focus.
+  React.useLayoutEffect(() => {
+    if (open) {
+      returnFocus.current = document.activeElement as HTMLElement | null;
+      return;
+    }
+    const el = returnFocus.current;
+    returnFocus.current = null;
+    if (el?.isConnected) requestAnimationFrame(() => document.activeElement === document.body && el.focus());
+  }, [open]);
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -69,10 +83,10 @@ export function CommandPalette({ role, children }: { role: Role | null; children
   const actions =
     role === "admin"
       ? [
-          { key: "newOrder", href: "/app/orders/new", Icon: PlusCircle },
-          { key: "newProduct", href: "/app/products/new", Icon: Package },
-          { key: "newSupplier", href: "/app/contacts/suppliers/new", Icon: Building2 },
-          { key: "addAdSpend", href: "/app/finance/ad-spend", Icon: Megaphone },
+          { key: "newOrder", href: "/app/sell/orders/new", Icon: PlusCircle },
+          { key: "newProduct", href: "/app/catalog/products/new", Icon: Package },
+          { key: "newSupplier", href: "/app/money/suppliers/new", Icon: Building2 },
+          { key: "addAdSpend", href: "/app/money/ad-spend", Icon: Megaphone },
         ]
       : [];
 
@@ -83,7 +97,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
         {children}
       </span>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} filter={paletteFilter}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
         <CommandList>
           {query.trim() ? null : <CommandEmpty>{t("cmd.empty")}</CommandEmpty>}
@@ -121,7 +135,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
                 <CommandItem
                   value={`orders:${query}`}
                   forceMount
-                  onSelect={() => go(`/app/orders/all?q=${encodeURIComponent(query.trim())}`)}
+                  onSelect={() => go(`/app/sell/orders?q=${encodeURIComponent(query.trim())}`)}
                 >
                   <Hash />
                   {t("cmd.searchOrders", { q: query.trim() })}
@@ -130,7 +144,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
               <CommandItem
                 value={`customers:${query}`}
                 forceMount
-                onSelect={() => go(`/app/contacts?q=${encodeURIComponent(query.trim())}`)}
+                onSelect={() => go(`/app/sell/customers?q=${encodeURIComponent(query.trim())}`)}
               >
                 <Users />
                 {t("cmd.searchCustomers", { q: query.trim() })}
@@ -148,11 +162,11 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.palette")}</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">{kbdHint}</kbd>
+              <kbd dir="ltr" className="rounded border border-border px-1.5 py-0.5 text-xs">{kbdHint}</kbd>
             </li>
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.help")}</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">?</kbd>
+              <kbd dir="ltr" className="rounded border border-border px-1.5 py-0.5 text-xs">?</kbd>
             </li>
           </ul>
         </DialogContent>
