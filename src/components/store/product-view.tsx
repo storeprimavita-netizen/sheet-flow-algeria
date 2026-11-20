@@ -16,7 +16,7 @@ function BlockView({ block }: { block: Block }) {
     case "text":
       return <p>{block.text}</p>;
     case "image":
-      return <StorePhoto src={block.url} alt={block.alt} width={800} height={1000} loading="lazy" decoding="async" />;
+      return <StorePhoto src={block.url} alt={block.alt} emptyLabel={block.alt || undefined} width={800} height={1000} loading="lazy" decoding="async" />;
     case "list":
       return (
         <ul>

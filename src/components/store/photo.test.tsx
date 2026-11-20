@@ -11,7 +11,7 @@ vi.mock("react", () => ({
   useEffect: (fn: () => void) => void (effect = fn),
 }));
 
-import { StorePhoto } from "./photo";
+import { StorePhoto, imageFailed } from "./photo";
 
 type El = { type: string; props: Record<string, unknown> };
 
@@ -49,5 +49,12 @@ describe("StorePhoto", () => {
     failed = true;
     const ph = StorePhoto({ src: "/x.jpg", alt: "" }) as unknown as El;
     expect(ph.props["aria-hidden"]).toBe(true);
+  });
+
+  test("imageFailed is true only for a finished load with no pixels", () => {
+    expect(imageFailed(null)).toBe(false);
+    expect(imageFailed({ complete: false, naturalWidth: 0 })).toBe(false); // still loading
+    expect(imageFailed({ complete: true, naturalWidth: 0 })).toBe(true);
+    expect(imageFailed({ complete: true, naturalWidth: 800 })).toBe(false);
   });
 });
