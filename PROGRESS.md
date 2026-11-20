@@ -753,3 +753,13 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-4.review-3.md VERDICT: PASS; shots docs/design/audit/NAV-4, NAV-4-R2, NAV-4-R3.
 - Owner: light theme and EN matrix for kanban, customers, agent session not fully captured (see NAV-4-F).
 - Next: NAV-4-S (H, sec) and NAV-4-F; NAV-5 next in lane order.
+
+## Run report (2026-11-20, /auto 5, second batch)
+- Shipped 5: SEC-1-H `28731eb`, NAV-1-G `ad42dc6`, NAV-2 `abd2c39` (3 review rounds), NAV-3 `ebea6f9` (2 rounds), NAV-4 `e3d04b7` (migration 00073, brief review + 3 rounds).
+- Parked: none. Decided by Claude: none (no new D-row, no new question).
+- Caught in review before merge: NAV-2 order/product detail pages looped on render; NAV-4 brief would have leaked one workspace's status labels to others and could break `/login` (redesigned before build), then `StatusPill` crashed product and stock pages.
+- Open questions unchanged: Q-28 CHART-1, Q-26 VAR-1, Q-18 CONF-1; STORE-3 also waits for the owner's merge OK.
+- Owner before a remote `db push`: 00073 is new (`options.emoji`, `status_label_overrides`).
+- Gate: intermittent live-DB failures again (`seasons.rls.test.ts`, `rls.test.ts`), green on rerun (TEST-2). NAV-3's merge gate first failed on tsc from the dev server's stale `.next/dev/types`; clean on rerun, then pushed. The review step returned once before its reviewers finished; the coordinator assembled `NAV-4.review-2.md` from their reports.
+- Follow-ups added: NAV-4-F, NAV-4-S (anon grants on `public.options`, pre-existing, RLS blocks it; H / sec), NAV-4-V (waits on CONF-1), SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F.
+- Next `/auto`: NAV-4-F, NAV-4-S, NAV-5, then SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F, P1-1-F.

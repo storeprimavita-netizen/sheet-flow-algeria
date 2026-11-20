@@ -114,6 +114,10 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | NAV-4-S | Follow-up from NAV-4 review 3 point 10 (pre-existing): `anon` holds table grants on `public.options`; RLS blocks it, but AGENTS.md forbids anon grants on public tables. Revoke and test | NAV | H | sec | M | shell | NAV-4 | todo |
 | NAV-4-V | Follow-up from NAV-4: emoji on saved views (view name emoji, same picker and DB checks as options); needs saved views on v3 | NAV | L | ui | M | shell | CONF-1 | todo |
 | NAV-5 | Mobile bottom bar; agent "My day" home | NAV | L | ui | – | shell | NAV-3 | todo |
+| SEC-1-I | Follow-up from SEC-1-H (`docs/briefs/SEC-1-H.review-1.md`): its 5 lows and 2 missing tests; the audit date filter assumes `+01:00` (no workspace timezone setting checked); SEC-1-G's "ar" screenshots may be English (the locale cookie is `locale`, not `NEXT_LOCALE`) — retake or delete them | – | L | ui | – | shell | SEC-1-H | todo |
+| NAV-1-H | Follow-up from NAV-1-G (`docs/briefs/NAV-1-G.review-1.md`): ⌘K shows no "no match" line; invisible characters in the palette filter regex; optional extra Arabic letter folding; 4 missing tests; palette not checked live in AR light and EN dark | NAV | L | ui | – | shell | NAV-1-G | todo |
+| NAV-2-F | Follow-up from NAV-2 (`docs/briefs/NAV-2.review-3.md`): its 6 lows (incl. review-2 #6 and #8; #4 not re-checked); no regression test for the record crumb render loop (needs a render test without a new dependency); full theme / language / width screenshot matrix, admin record crumbs and 390 px truncation not seen live | NAV | L | ui | – | shell | NAV-2 | todo |
+| NAV-3-F | Follow-up from NAV-3 (`docs/briefs/NAV-3.review-2.md`): review-1 items 4–6 (incl. optional role-home helper), the extra tests, the new UI nits; light / EN / 390 px screenshots of the moved pages | NAV | L | ui | – | shell | NAV-3 | todo |
 
 ## Wave 2 — daily operations
 
