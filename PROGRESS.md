@@ -587,3 +587,18 @@ P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates pa
 - Evidence: docs/briefs/STORE-1-G.review-3.md; screenshots docs/design/audit/STORE-1-G-ui/.
 - Owner: before a remote `db push`, run the 00070 guard's `count(*)` on the remote; the migration aborts if value-less sizes exist (00067 still exempts service_role).
 - Next: STORE-1-H (follow-up lows and missing tests from review-2 and review-3).
+
+## STORE-2-G
+- Tests: invalidate busts store-public; hub/pages list throw on DB error; error.tsx reason+retry (EN+AR); ws2 agent RLS; publish/link eq filters; catch-all notFound; DocumentTitle unmount/pathname; StorePhoto (hook-harness, no jsdom in repo).
+- Fixes: publish UPDATE filters product_id (0 rows -> needs_product); assertPublishable, publish read and preview throw on DB error; DocumentTitle guard; StorePhoto placeholder (gallery, related, image block); `.store-top` align start; Unlink hidden while published (hint contrast 7.2 dark / 7.1 light); sidebar scrolls the active row clear of the edge fade (the "disabled" Store settings was the D33 bottom fade over the active item at <=800 px height).
+- Screenshots (chrome-devtools): docs/design/audit/STORE-2-G/ (store light/dark 390/1280 working + broken image; editor AR light/dark; sidebar EN/AR light/dark at 720 px; hub error EN dark; agent not-found EN dark). The store is Arabic-only (never reads the locale), so no EN store shots. Local demo store "luxe" recreated with picsum https photos (DAL accepts https only, so a local /public file cannot be shown); local DB only.
+- Logged, not built: advisory-lock createStore race and DB trigger for deactivated linked product (need migration + DECISIONS row). Store-http "luxe modesty" grep untouched. Sold-out block stays STORE-3.
+
+STORE-2-G review 1 FIX: tests added for DoD 4 (draft link), 6 (publish with zero rows updated), 7 (read errors throw in publish, assertPublishable, link); StorePhoto now exports `imageFailed()` (the before-hydration check) with unit tests plus a server-render test. No DOM library is installed (jsdom would be a new dependency), so a real client mount is not tested; the placeholder after a failed load was seen live in the browser (veste page). Image block alt text is now the placeholder label. Screenshots re-shot with locale in the name: `store-{veste-broken,jupe-ok}-ar-{390,1280}-{light,dark}.png` (8 files, store is Arabic-only so no EN), before-fix shots removed. `.store-buy` next to hidden `#order` visible at 1280. Not shown: a related-card placeholder (the demo pages have no related products). Not done: review lows 4-8, hint contrast measurement.
+
+## STORE-2-G done (2026-11-20, review-2 PASS)
+- Done: review-2 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); task set to done; the six review-2 lows and review-1 lows 4–8 moved to STORE-2-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-2-G (876 passed, 5 skipped).
+- Evidence: docs/briefs/STORE-2-G.review-2.md; screenshots docs/design/audit/STORE-2-G/.
+- Owner: none.
+- Next: STORE-2-H (lows from review-2 and review-1 4–8); STORE-3 expects a `.store-top` merge conflict (review-2 low 6).
