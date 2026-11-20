@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { ButtonLink } from "@/components/button-link";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatDateTime } from "@/lib/format";
@@ -50,10 +51,11 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
 
   // Below sm the changes stack under the table name (the table scrolls sideways otherwise and hides them).
   const columns: Column<AuditRow>[] = [
-    { id: "created_at", header: t("fields.date"), sticky: true, cell: (r) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</span> },
+    { id: "created_at", header: t("fields.date"), width: "hidden sm:table-cell", sticky: true, cell: (r) => <bdi dir="ltr" className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</bdi> },
     { id: "table", header: t("team.table"), cell: (r) => (
         <>
           {r.table_name}
+          <bdi dir="ltr" className="block text-xs text-muted-foreground sm:hidden">{formatDateTime(r.created_at)}</bdi>
           <div className="text-xs text-muted-foreground sm:hidden">{r.action} · {r.actor_name}</div>
           {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
         </>
@@ -71,6 +73,8 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
       rowKey={(r) => String(r.id)}
       empty={{
         title: filtered ? t("team.auditNoMatch") : t("team.auditNone"),
+        description: filtered ? undefined : t("team.auditNoneHint"),
+        action: filtered ? <ButtonLink href="/app/settings/audit" variant="outline" size="sm">{t("orders.clearFilters")}</ButtonLink> : undefined,
       }}
     />
   );

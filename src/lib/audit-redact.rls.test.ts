@@ -169,7 +169,7 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(update).toContain("is distinct from");
     return (async () => {
       const mk = (n: string) => ({ workspace_id: ws, table_name: "x_backfill", row_id: crypto.randomUUID(), action: "INSERT" });
-      const raw = await svc.from("audit_log").insert({ ...mk("a"), old_row: { XAPIKey: "RAW_a" }, new_row: null }).select("id").single();
+      const raw = await svc.from("audit_log").insert({ ...mk("a"), old_row: { XAPIKey: "RAW_a", "api/key": "RAW_slash", secretkeys: "RAW_plural" }, new_row: null }).select("id").single();
       const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id").single();
       expect(raw.error).toBeNull();
       expect(clean.error).toBeNull();
@@ -182,7 +182,7 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
         const before = parse(psql(probe));
         const out = parse(psql(`begin;\n${update}\n${probe}\nrollback;`));
         const rawAfter = out.get(raw.data!.id)!;
-        expect(rawAfter.o2).not.toContain("RAW_a");
+        expect(rawAfter.o2).not.toMatch(/RAW_a|RAW_slash|RAW_plural/);
         expect(rawAfter.o2).toContain("[redacted:");
         expect(out.get(clean.data!.id)!.xmin).toBe(before.get(clean.data!.id)!.xmin);
         // rolled back: the raw row is still raw outside the transaction.

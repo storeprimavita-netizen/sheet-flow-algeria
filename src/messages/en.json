@@ -536,6 +536,7 @@
     "action": "Action",
     "changes": "Changes",
     "auditNone": "No audit entries yet.",
+    "auditNoneHint": "Changes to settings and finance appear here.",
     "auditNoMatch": "No entries match these filters.",
     "meeting": "Meeting",
     "attendeesNone": "No attendees yet.",
@@ -1324,6 +1325,7 @@
     "redactedPill": "Redacted",
     "redacted": "Secret value hidden; the code identifies the value without revealing it",
     "redactedAria": "Redacted value, code {fp}",
+    "errorReason": "The audit log could not be read. Check the filters in the address bar, then try again.",
     "emptyKey": "(empty key)"
   },
   "variants": {

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +9,8 @@ import { AuditFilterBar } from "./audit-filter-bar";
 import { diffRows } from "./_lib/diff";
 import { AuditTable, type AuditRow } from "./audit-table";
 
+const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((s) => !Number.isNaN(Date.parse(s)));
+
 // Tables with an `audit_row()` trigger attached (00002_settings.sql, 00003_products.sql).
 const AUDITED_TABLES = [
   "wilaya_fees",
@@ -17,6 +20,7 @@ const AUDITED_TABLES = [
   "integration_configs",
   "expenses",
   "product_costs",
+  "zr_shipments",
 ] as const;
 
 export default async function AuditPage({
@@ -25,10 +29,15 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const table = typeof sp.table === "string" ? sp.table : "";
-  const actor = typeof sp.actor === "string" ? sp.actor : "";
-  const from = typeof sp.from === "string" ? sp.from : "";
-  const to = typeof sp.to === "string" ? sp.to : "";
+  // Invalid URL values are dropped instead of reaching Postgres (22007 / 22P02).
+  const pick = (v: unknown, schema: z.ZodType<string>) => {
+    const r = schema.safeParse(v);
+    return r.success ? r.data : "";
+  };
+  const table = pick(sp.table, z.enum(AUDITED_TABLES));
+  const actor = pick(sp.actor, z.string().uuid());
+  const from = pick(sp.from, DATE);
+  const to = pick(sp.to, DATE);
 
   const t = await getTranslations();
   const { workspaceId } = await requireAdminProfile();
