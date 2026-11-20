@@ -740,3 +740,6 @@ Moved orders/contacts/products/stock/pricing/finance routes under sell|catalog|m
 
 ## NAV-4 (build)
 Migration 00073: `options.emoji` (admin-only, DB-checked; ZWJ allowed) and `status_label_overrides` (RLS, audited). Chip emoji + option consumers, `EmojiField` picker, `StatusLabelsProvider` + pure `resolveStatusLabel` (no ICU, i18n/request.ts untouched), pill/select/delivery advance/confirmation/filter bar/customers wired, Settings "Options & labels" block. Follow-up NAV-4-V (saved-view emoji) added to plan. Screenshots (browser MCP, docs/design/audit/NAV-4): settings AR dark 1280, emoji picker AR light 390. Not captured: EN, other themes/sizes of orders list, kanban, customers, agent session, /login.
+
+## NAV-4 (fix round 1)
+`StatusPill` is now a client component (it called a client-only hook from server components, which crashed product and stock pages). `emojiSchema`/`startsWithEmoji` accept flags and keycaps (DB CHECK already allowed them). Browser MCP sweep as admin and as confirmation agent: orders, order detail, product (+stock), stock, customers, kanban, settings, store: no error page, no console error. Screenshots in docs/design/audit/NAV-4: EN+AR, dark+light for orders/product/settings, order detail, stock, customers, kanban (1280 and one 390), agent orders, /login. Not done: review LOW findings 4-11, not in this round's scope.
