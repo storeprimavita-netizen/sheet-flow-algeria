@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { GROUPS, groupCounterTotal, HOME, activeLeafHref, navLeaves, parseClosedGroups, visibleNav } from "@/components/nav-model";
+import { GROUPS, groupCounterTotal, HOME, activeLeafHref, crumbsFor, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
@@ -180,5 +180,34 @@ describe("app shell (D32, review-4)", () => {
     expect(src).toContain('"aria-modal": true');
     expect(src).toContain("toggleRef.current?.focus()");
     expect(src).toMatch(/brandClass = "[^"]*max-md:min-h-11/);
+  });
+  it("crumbsFor admin /app/finance/expenses → Money › Expenses", () => {
+    expect(crumbsFor("admin", "/app/finance/expenses")).toEqual([
+      { labelKey: "nav.groupMoney", href: "/app/money" },
+      { labelKey: "nav.expenses", href: "/app/finance/expenses" },
+    ]);
+  });
+  it("detail path /app/orders/<id> → Sell › All orders", () => {
+    expect(crumbsFor("admin", "/app/orders/abc").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all"]);
+    expect(crumbsFor("admin", "/app/orders/new").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all", "nav.newRecord"]);
+  });
+  it("hubs show the group only; home shows none", () => {
+    expect(crumbsFor("admin", "/app/money").map((c) => c.labelKey)).toEqual(["nav.groupMoney"]);
+    expect(crumbsFor("admin", "/app/store").map((c) => c.labelKey)).toEqual(["nav.groupStore"]);
+    expect(crumbsFor("admin", "/app/dashboard")).toEqual([]);
+  });
+  it("agent never gets an admin crumb or hub item", () => {
+    expect(crumbsFor("confirmation_agent", "/app/finance/expenses")).toEqual([]);
+    expect(crumbsFor("confirmation_agent", "/app/money")).toEqual([]);
+    expect(crumbsFor("confirmation_agent", "/app/sell").length).toBe(1);
+    expect(visibleNav("confirmation_agent").groups[0].items.map((l) => l.key)).toEqual(["confirmation"]);
+  });
+  it("every leaf has purposeKey present in en and ar", () => {
+    const get = (m: unknown, k: string) =>
+      k.split(".").reduce<unknown>((o, p) => (o as Record<string, unknown> | undefined)?.[p], m);
+    for (const l of navLeaves("admin")) {
+      expect(get(en, purposeKey(l)), `en ${l.key}`).toBeTypeOf("string");
+      expect(get(ar, purposeKey(l)), `ar ${l.key}`).toBeTypeOf("string");
+    }
   });
 });
