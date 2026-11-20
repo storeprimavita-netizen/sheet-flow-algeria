@@ -1369,7 +1369,31 @@
     "redacted": "القيمة السرية مخفية؛ الرمز يحدد القيمة دون كشفها",
     "redactedAria": "قيمة مخفية، الرمز {fp}",
     "errorReason": "تعذرت قراءة سجل التدقيق. تحقق من عوامل التصفية في شريط العنوان ثم حاول مجددًا.",
-    "emptyKey": "(مفتاح فارغ)"
+    "emptyKey": "(مفتاح فارغ)",
+    "tables": {
+      "account_topups": "شحن الحسابات",
+      "accounts": "الحسابات",
+      "cash_collections": "التحصيلات النقدية",
+      "exchange_rates": "أسعار الصرف",
+      "expenses": "المصاريف",
+      "fixed_fees": "الرسوم الثابتة",
+      "integration_configs": "التكاملات",
+      "option_sets": "مجموعات الخيارات",
+      "options": "الخيارات",
+      "product_costs": "تكاليف المنتجات",
+      "product_option_values": "قيم خيارات المنتج",
+      "product_options": "خيارات المنتج",
+      "product_pricing": "تسعير المنتجات",
+      "reviews": "التقييمات",
+      "season_periods": "فترات المواسم",
+      "seasons": "المواسم",
+      "settings": "الإعدادات",
+      "store_pages": "صفحات المتجر",
+      "status_label_overrides": "تسميات الحالات",
+      "stores": "المتاجر",
+      "wilaya_fees": "رسوم الولايات",
+      "zr_shipments": "شحنات ZR"
+    }
   },
   "variants": {
     "valuePlaceholder": "القيمة",

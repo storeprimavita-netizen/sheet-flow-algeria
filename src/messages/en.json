@@ -1369,7 +1369,31 @@
     "redacted": "Secret value hidden; the code identifies the value without revealing it",
     "redactedAria": "Redacted value, code {fp}",
     "errorReason": "The audit log could not be read. Check the filters in the address bar, then try again.",
-    "emptyKey": "(empty key)"
+    "emptyKey": "(empty key)",
+    "tables": {
+      "account_topups": "Account top-ups",
+      "accounts": "Accounts",
+      "cash_collections": "Cash collections",
+      "exchange_rates": "Exchange rates",
+      "expenses": "Expenses",
+      "fixed_fees": "Fixed fees",
+      "integration_configs": "Integrations",
+      "option_sets": "Option sets",
+      "options": "Options",
+      "product_costs": "Product costs",
+      "product_option_values": "Product option values",
+      "product_options": "Product options",
+      "product_pricing": "Product pricing",
+      "reviews": "Reviews",
+      "season_periods": "Season periods",
+      "seasons": "Seasons",
+      "settings": "Settings",
+      "store_pages": "Store pages",
+      "status_label_overrides": "Status labels",
+      "stores": "Stores",
+      "wilaya_fees": "Wilaya fees",
+      "zr_shipments": "ZR shipments"
+    }
   },
   "variants": {
     "valuePlaceholder": "Value",
