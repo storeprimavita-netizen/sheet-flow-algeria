@@ -945,3 +945,10 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - Evidence: docs/briefs/CONF-1.md, docs/briefs/CONF-1.review-5.md.
 - Owner: 00056 applies before 00051 (parked on STORE-3) on a remote push; open mediums in CONF-1-F, lows in docs/BACKLOG.md.
 - Next: CONF-1-F, then CONF-2.
+
+### Run report (auto CONF-1)
+- Shipped: CONF-1 (merge f546b66). Gate OK, review-5 PASS.
+- Decisions: D92 — CONF-1 merged under D89/D40 (Q-18 answered-by-default); mediums -> CONF-1-F, lows -> BACKLOG.
+- Owner step: remote push of 00056/00057 needs `db push --include-all`.
+- Open questions: Q-15, Q-16, Q-28, Q-29 (answered-by-default, nothing blocked).
+- Next: CONF-2/3/4 and NAV-4-V now unblocked.
