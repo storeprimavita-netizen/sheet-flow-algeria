@@ -164,9 +164,10 @@ describe.skipIf(!URL)("stores and store_pages (live DB)", () => {
       expect((await agent2.from("stores").update({ name: "hack" }).eq("id", sid).select("id")).data ?? []).toEqual([]);
       expect((await agent2.from("store_pages").update({ title: "hack" }).eq("id", pid).select("id")).data ?? []).toEqual([]);
       expect((await agent2.from("store_pages").delete().eq("id", pid).select("id")).data ?? []).toEqual([]);
-      expect((await agent2.from("stores").insert({ workspace_id: wsId, slug: tag(), name: "x" })).error).not.toBeNull();
-      expect((await agent2.from("store_pages").insert({ workspace_id: wsId, store_id: sid, slug: tag(), title: "x" })).error).not.toBeNull();
+      expect((await agent2.from("stores").insert({ workspace_id: wsId, slug: tag(), name: "x" })).error?.code).toBe("42501");
+      expect((await agent2.from("store_pages").insert({ workspace_id: wsId, store_id: sid, slug: tag(), title: "x" })).error?.code).toBe("42501");
     }
     expect((await svc.from("stores").select("name").eq("id", sb.id).single()).data?.name).toBe("Store");
+    expect((await svc.from("store_pages").select("title").eq("id", pageB.id).single()).data?.title).toBe("T");
   });
 });
