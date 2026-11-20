@@ -717,3 +717,6 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: docs/briefs/NAV-1-G.review-1.md VERDICT: PASS. No new screenshots in this ship step.
 - Owner: none.
 - Next: none from G.
+
+## NAV-2 (build)
+Breadcrumb in top bar (shared, `CrumbRecord` for record names), required `PageHeader.subtitle` + `related`, hubs /app/sell|catalog|money|team via `GroupHub`, store Crumbs removed. Screenshots (browser MCP, dark, AR, 390px): /app/money hub, /app/orders/new breadcrumb overflow. Not captured: light theme, EN, 1280, agent hub, product/order record tails.
