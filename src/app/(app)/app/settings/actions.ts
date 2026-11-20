@@ -604,32 +604,47 @@ const statusLabelTarget = z
 /** Blank = no override for that language. */
 const optionalLabel = z.union([z.literal(""), labelSchema]).transform((v) => (v === "" ? null : v));
 
+/** Writes ONE language, so two admins editing EN and AR of the same row never overwrite each other. */
 export async function saveStatusLabel(input: unknown): Promise<StatusLabelResult> {
   const { workspaceId } = await adminProfile();
   const parsed = z
-    .object({ kind: z.string(), key: z.string(), en: z.string().max(200), ar: z.string().max(200) })
+    .object({ kind: z.string(), key: z.string(), lang: z.enum(["en", "ar"]), value: z.string().max(200) })
     .safeParse(input);
   if (!parsed.success || !statusLabelTarget.safeParse(parsed.data).success) return { ok: false, error: "invalid" };
-  const en = optionalLabel.safeParse(parsed.data.en.trim());
-  const ar = optionalLabel.safeParse(parsed.data.ar.trim());
-  if (!en.success || !ar.success) return { ok: false, error: "invalid" };
+  const value = optionalLabel.safeParse(parsed.data.value.trim());
+  if (!value.success) return { ok: false, error: "invalid" };
 
   const supabase = await createClient();
-  const { kind, key } = parsed.data;
-  const { error } =
-    en.data === null && ar.data === null
-      ? await supabase.from("status_label_overrides").delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key)
-      : await supabase
-          .from("status_label_overrides")
-          .upsert(
-            { workspace_id: workspaceId, kind, status_key: key, label_en: en.data, label_ar: ar.data },
-            { onConflict: "workspace_id,kind,status_key" },
-          );
+  const { kind, key, lang } = parsed.data;
+  const patch = lang === "en" ? ({ label_en: value.data } as const) : ({ label_ar: value.data } as const);
+  const other = lang === "en" ? "label_ar" : "label_en";
+  const rows = supabase.from("status_label_overrides");
+  let error;
+  if (value.data === null) {
+    // clearing the only remaining language removes the row (a row needs one label); else null just this column
+    const del = await rows.delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key).is(other, null);
+    if (del.error) return { ok: false, error: "failed" };
+    ({ error } = await rows.update(patch).eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key));
+  } else {
+    // upsert sends only this column, so the other language is left untouched on conflict
+    ({ error } = await rows.upsert(
+      { workspace_id: workspaceId, kind, status_key: key, ...patch },
+      { onConflict: "workspace_id,kind,status_key" },
+    ));
+  }
   if (error) return { ok: false, error: "failed" };
   revalidatePath("/app", "layout");
   return { ok: true };
 }
 
 export async function resetStatusLabel(input: unknown): Promise<StatusLabelResult> {
-  return saveStatusLabel({ ...(typeof input === "object" && input ? input : {}), en: "", ar: "" });
+  const { workspaceId } = await adminProfile();
+  const parsed = statusLabelTarget.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { kind, key } = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.from("status_label_overrides").delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key);
+  if (error) return { ok: false, error: "failed" };
+  revalidatePath("/app", "layout");
+  return { ok: true };
 }

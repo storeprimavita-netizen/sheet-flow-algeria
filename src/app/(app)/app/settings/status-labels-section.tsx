@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusPill } from "@/components/status-pill";
+import { normalizeLabel } from "@/lib/emoji";
 import { StatusLabelsProvider } from "@/components/status-labels-provider";
 import type { StatusLabelOverrides } from "@/lib/status-label";
 import type { StatusKind } from "@/lib/statuses";
@@ -53,8 +54,21 @@ function LabelRow({ kind, status }: { kind: StatusKind; status: StatusLabelGroup
 
   // live preview: the pill reads the typed draft through its own provider
   const draft: StatusLabelOverrides = {
-    [kind]: { [status.key]: { en: en.trim() || null, ar: ar.trim() || null } },
+    [kind]: { [status.key]: { en: normalizeLabel(en) || null, ar: normalizeLabel(ar) || null } },
   };
+
+  /** Sends only the language(s) the admin changed. */
+  async function save() {
+    if (en !== status.en) {
+      const r = await saveStatusLabel({ kind, key: status.key, lang: "en", value: en });
+      if (!r.ok) return r;
+    }
+    if (ar !== status.ar) {
+      const r = await saveStatusLabel({ kind, key: status.key, lang: "ar", value: ar });
+      if (!r.ok) return r;
+    }
+    return { ok: true as const };
+  }
 
   async function run(action: () => ReturnType<typeof saveStatusLabel>, okMsg: string) {
     setBusy(true);
@@ -85,7 +99,7 @@ function LabelRow({ kind, status }: { kind: StatusKind; status: StatusLabelGroup
           type="button"
           size="sm"
           disabled={busy || !dirty}
-          onClick={() => run(() => saveStatusLabel({ kind, key: status.key, en, ar }), t("settings.statusLabels.saved"))}
+          onClick={() => run(save, t("settings.statusLabels.saved"))}
         >
           {t("actions.save")}
         </Button>
