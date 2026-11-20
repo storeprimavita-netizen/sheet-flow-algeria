@@ -810,3 +810,19 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-5-F.review-1.md FIX, docs/briefs/NAV-5-F.review-2.md PASS.
 - Owner: screenshots at 390 px (light/dark, EN/AR) not taken in this run; owed via NAV-5-G; 768 px overflow not re-measured live.
 - Next: NAV-5-G.
+
+## NAV-5-G — NAV-5 screenshots at 390 px (2026-11-20) — screenshots done, awaiting review (not DONE until review passes)
+- Done: chrome-devtools emulation, local stack, seed users. Shots in `docs/design/audit/NAV-5/g-*`: admin dashboard + orders + More drawer, confirmation agent My day + More, delivery agent My day; each 390 px, EN+AR, light+dark. 1280 px admin and delivery: bottom bar `display:none`. 768 px AR and 844x390 landscape AR: bar hidden (md breakpoint = 768), sidebar shown, page scrollWidth == viewport (only the orders table scrolls inside its own wrapper), so no page overflow.
+- Review-1 fixes: `g-admin-orders-ar-dark-390.png` re-shot (header, filters, table, bar visible). Empty My day (confirmation agent, tasks empty + no planned meeting) shot EN/AR x light/dark: `g-conf-myday-empty-*-390.png`; produced locally by setting the one planned seed meeting to `cancelled` for the shoot, then restored to `planned`. `g-conf-badge99-{ar,en}-dark-390.png` are DOM text overrides ("18" -> "99+", real count was 18, no 100 orders seeded); badge box 197-223 px sits inside its link 130-260 px. The "99+" cap logic itself is covered by the unit test, not by data. Scrolled-to-end shot `g-conf-myday-scrolled-end-en-dark-390.png`: last card ends above the bar (other roles: numeric check only, 764 < 792). The Next dev "N" overlay was hidden by CSS in the re-shot files only; older g-* shots still show it (dev-only).
+- Measured: header 56 px; bar items 51 px high, 78 px wide (admin); last content bottom 764 px < bar top 792 px; AR bar order mirrored; viewport meta is `width=device-width, initial-scale=1` (no viewport-fit); no hardcoded-color look in either theme. Defects: none, clean. No code changed.
+- Gate: scripts/gate.sh GATE OK (first run failed once on a seasons.rls.test FK race, passed on rerun; no code changed).
+- Not covered: populated confirmation tasks (no seed tasks). Thin coverage at 1280/768/844x390 (one AR dark shot each).
+- Real iPhone/Android check NOT done (no device) and stays owner-owed, incl. keyboard-open bar. Review-1 low #9 (iOS bottom padding 0 without `cover`) stays open per D87.
+- Flag: D87 item 7 (no-role/inactive redirect loop, risk H) has no plan row; owner/decide to confirm.
+
+## NAV-5-G: done
+- Done: 390 px screenshots (light/dark, EN/AR) in `docs/design/audit/NAV-5/g-*`; review-1 FIX landed (re-shot AR dark orders, empty My day, 99+ shot, scrolled-end shot); review-2 PASS (ui-reviewer). No code changed.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-G (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan). One earlier run hit the reviews.rls.test.ts:74 FK teardown race; green on rerun.
+- Evidence: docs/briefs/NAV-5-G.review-1.md FIX, docs/briefs/NAV-5-G.review-2.md PASS.
+- Owner: real iPhone/Android check and keyboard-open bar (no device); review-1 low #9 (iOS bottom padding without viewport-fit=cover) open per D87; D87 item 7 (no-role/inactive redirect loop) has no plan row.
+- Next: none for NAV-5-G; owner decides on D87 item 7 row.
