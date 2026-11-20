@@ -40,7 +40,9 @@ export default async function StockHubPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("stock.title")} subtitle={t("stock.hub.subtitle")} />
+      <PageHeader title={t("stock.title")} subtitle={t("stock.hub.subtitle")}
+        related={[{ href: "/app/products", label: t("nav.products") }]}
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile icon={Boxes} label={t("stock.unitsOnHand")} value={units.toLocaleString("en-US").replace(/,/g, " ")} />

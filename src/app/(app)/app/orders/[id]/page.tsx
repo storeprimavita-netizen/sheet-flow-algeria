@@ -18,6 +18,7 @@ import { zrSendState } from "@/lib/integrations/zr-sendable";
 import { OrderTaxonomyCard } from "./order-taxonomy-card";
 import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
+import { CrumbRecord } from "@/components/breadcrumbs";
 import { VariantCard } from "./variant-card";
 import { Meta, showsSizeCell, SizeMeta, WilayaValue } from "./order-meta";
 import { loadProductVariants } from "@/lib/catalog/variants-data";
@@ -43,7 +44,7 @@ export default async function OrderDetailPage({
   if (!order) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("orders.title")} />
+        <PageHeader title={t("orders.title")} subtitle={t("navPurpose.all")} />
         <Empty>{t("orders.notFound")}</Empty>
       </div>
     );
@@ -150,6 +151,7 @@ export default async function OrderDetailPage({
 
   return (
     <div className="space-y-6">
+      <CrumbRecord label={formatOrderNo(order.order_seq)} />
       <Link href={queueHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         {t("nav.orders")}

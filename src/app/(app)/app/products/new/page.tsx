@@ -8,7 +8,7 @@ export default async function NewProductPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("products.new")} />
+      <PageHeader title={t("products.new")} subtitle={t("navSubtitle.productsNew")} />
       <ProductForm />
     </div>
   );

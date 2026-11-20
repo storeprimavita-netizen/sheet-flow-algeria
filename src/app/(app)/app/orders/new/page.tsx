@@ -45,7 +45,7 @@ export default async function NewOrderPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("orders.new")} />
+      <PageHeader title={t("orders.new")} subtitle={t("navSubtitle.orderNew")} />
       <OrderForm products={withSizes} wilayas={wilayas ?? []} fees={feeMap} communes={communeRows} />
     </div>
   );

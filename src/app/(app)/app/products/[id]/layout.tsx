@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ChevronRight } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { CrumbRecord } from "@/components/breadcrumbs";
 import { StatusPill } from "@/components/status-pill";
 import { ProductTabs } from "./product-tabs";
 
@@ -16,7 +15,6 @@ export default async function ProductTabsLayout({
 }) {
   const { id } = await params;
   const t = await getTranslations("products.tabs");
-  const tRoot = await getTranslations();
 
   const supabase = await createClient();
   const { data: product } = await supabase
@@ -41,13 +39,7 @@ export default async function ProductTabsLayout({
     <div className="space-y-6">
       {/* product-context header — shown across every tab */}
       <div className="space-y-3">
-        <nav className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Link href="/app/products" className="hover:text-foreground">
-            {tRoot("products.title")}
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
-          <span className="text-foreground">{product.name}</span>
-        </nav>
+        <CrumbRecord label={product.name} />
         <div className="flex items-center gap-3">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element -- external supplier URLs, no next/image domain config

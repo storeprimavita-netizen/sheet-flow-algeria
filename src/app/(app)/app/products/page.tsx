@@ -72,7 +72,9 @@ export default async function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("products.title")} subtitle={t("products.subtitle")}>
+      <PageHeader title={t("products.title")} subtitle={t("products.subtitle")}
+        related={[{ href: "/app/stock", label: t("nav.stock") }, { href: "/app/pricing", label: t("nav.pricing") }]}
+      >
         <ButtonLink href="/app/products/new">
           <Plus />
           {t("products.new")}

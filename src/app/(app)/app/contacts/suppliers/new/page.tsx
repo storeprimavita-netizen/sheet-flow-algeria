@@ -8,7 +8,7 @@ export default async function NewSupplierPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("contacts.newSupplier")} />
+      <PageHeader title={t("contacts.newSupplier")} subtitle={t("navSubtitle.supplierNew")} />
       <ContactForm />
     </div>
   );
