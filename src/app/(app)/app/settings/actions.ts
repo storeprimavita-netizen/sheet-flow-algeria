@@ -449,7 +449,7 @@ export async function applyDeliveryCsv(
   const { data, error } = await supabase.rpc("apply_delivery_prices", { p: toApplyPayload(read.parsed) });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/app/settings");
-  revalidatePath("/app/orders");
+  revalidatePath("/app/sell/orders");
   const changed = (data as { fees_changed?: number } | null)?.fees_changed ?? 0;
   return { ok: true, changed };
 }
@@ -558,7 +558,7 @@ export async function savePricingDefaults(input: unknown): Promise<PricingAction
   const res = await setSetting(workspaceId, "pricing_defaults", parsed.data);
   if (!res.ok) return { ok: false, error: "failed" };
   revalidatePath("/app/settings");
-  revalidatePath("/app/products", "layout");
+  revalidatePath("/app/catalog/products", "layout");
   return { ok: true };
 }
 
@@ -569,7 +569,7 @@ export async function resetPricingDefaults(): Promise<PricingActionResult> {
   const { error } = await supabase.from("settings").delete().eq("workspace_id", workspaceId).eq("key", "pricing_defaults");
   if (error) return { ok: false, error: "failed" };
   revalidatePath("/app/settings");
-  revalidatePath("/app/products", "layout");
+  revalidatePath("/app/catalog/products", "layout");
   return { ok: true };
 }
 

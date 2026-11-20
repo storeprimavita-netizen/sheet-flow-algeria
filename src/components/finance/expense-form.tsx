@@ -17,7 +17,7 @@ import { EnumSelect } from "@/components/fields/enum-select";
 import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
 import { ProductCombobox } from "@/components/fields/comboboxes";
 import { EXPENSE_CATEGORIES, type CURRENCY_CODES } from "@/lib/enums";
-import { saveExpense } from "@/app/(app)/app/products/actions";
+import { saveExpense } from "@/app/(app)/app/catalog/products/actions";
 
 type ExpenseRow = Tables<"expenses">;
 type CurrencyCode = (typeof CURRENCY_CODES)[number];

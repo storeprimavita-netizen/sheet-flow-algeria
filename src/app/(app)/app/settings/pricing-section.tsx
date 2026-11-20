@@ -109,7 +109,7 @@ export function PricingSection({ settings, saved }: { settings: PricingSettings;
       </div>
       <p className="text-xs text-muted-foreground">
         {t("settings.productsHint")}{" "}
-        <Link href="/app/products" className="underline underline-offset-2 hover:text-foreground">
+        <Link href="/app/catalog/products" className="underline underline-offset-2 hover:text-foreground">
           {tc("products.title")}
         </Link>
       </p>

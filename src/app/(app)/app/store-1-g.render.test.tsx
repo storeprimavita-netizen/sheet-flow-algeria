@@ -5,14 +5,14 @@ import { describe, expect, test, vi } from "vitest";
 import ar from "@/messages/ar.json";
 import en from "@/messages/en.json";
 import { StatusPill } from "@/components/status-pill";
-import { Meta, showsSizeCell, SizeMeta, WilayaValue } from "./orders/[id]/order-meta";
-import type { VariantResult } from "./products/actions";
-import { VariantsEditor } from "./products/_components/variants-editor";
-import { VariantsFeedback } from "./products/_components/variants-feedback";
-import { StockLevelChip } from "./stock/stock-level-chip";
+import { Meta, showsSizeCell, SizeMeta, WilayaValue } from "./sell/orders/[id]/order-meta";
+import type { VariantResult } from "./catalog/products/actions";
+import { VariantsEditor } from "./catalog/products/_components/variants-editor";
+import { VariantsFeedback } from "./catalog/products/_components/variants-feedback";
+import { StockLevelChip } from "./catalog/stock/stock-level-chip";
 
 // the editor imports a server action and the router; neither runs in a static render
-vi.mock("./products/actions", () => ({ saveVariantConfig: vi.fn() }));
+vi.mock("./catalog/products/actions", () => ({ saveVariantConfig: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const locales = { en, ar } as const;

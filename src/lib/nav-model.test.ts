@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 import { GROUPS, groupCounterTotal, HOME, activeLeafHref, crumbsFor, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
@@ -60,14 +60,14 @@ describe("nav model", () => {
   });
   it("activeLeafHref resolves exactly one leaf by longest prefix", () => {
     const a = (p: string) => activeLeafHref("admin", p);
-    expect(a("/app/contacts/suppliers")).toBe("/app/contacts/suppliers");
-    expect(a("/app/contacts")).toBe("/app/contacts");
-    expect(a("/app/pricing")).toBe("/app/pricing");
-    expect(a("/app/products")).toBe("/app/products");
-    expect(a("/app/orders/123")).toBe("/app/orders/all");
-    expect(a("/app/orders/new")).toBe("/app/orders/all");
-    expect(a("/app/orders/cash")).toBe("/app/orders/cash");
-    expect(a("/app/orders/confirmation")).toBe("/app/orders/confirmation");
+    expect(a("/app/money/suppliers")).toBe("/app/money/suppliers");
+    expect(a("/app/sell/customers")).toBe("/app/sell/customers");
+    expect(a("/app/catalog/pricing")).toBe("/app/catalog/pricing");
+    expect(a("/app/catalog/products")).toBe("/app/catalog/products");
+    expect(a("/app/sell/orders/123")).toBe("/app/sell/orders");
+    expect(a("/app/sell/orders/new")).toBe("/app/sell/orders");
+    expect(a("/app/money/courier-cash")).toBe("/app/money/courier-cash");
+    expect(a("/app/sell/confirmation")).toBe("/app/sell/confirmation");
   });
   it("parseClosedGroups tolerates corrupt values", () => {
     expect(parseClosedGroups(null)).toEqual({});
@@ -83,9 +83,21 @@ describe("nav model", () => {
 describe("nav model (round 4)", () => {
   it("every nav href maps to an existing page.tsx", () => {
     for (const l of navLeaves("admin")) {
-      const file = path.join(process.cwd(), "src/app/(app)", l.href, "page.tsx");
-      expect(existsSync(file), l.href).toBe(true);
+      // Page sits in the href folder or in a route group (e.g. sell/orders/(list)).
+      const dir = path.join(process.cwd(), "src/app/(app)", l.href.split("?")[0]);
+      const groups = existsSync(dir) ? readdirSync(dir).filter((n) => n.startsWith("(")) : [];
+      const hit = [dir, ...groups.map((g) => path.join(dir, g))].some((d) => existsSync(path.join(d, "page.tsx")));
+      expect(hit, l.href).toBe(true);
     }
+  });
+  it("no nav href uses an old prefix", () => {
+    for (const l of navLeaves("admin")) {
+      expect(l.href, l.href).not.toMatch(/^\/app\/(orders|contacts|products|stock|pricing|finance)(\/|$|\?)/);
+    }
+  });
+  it("agent leaves unchanged", () => {
+    expect(navLeaves("confirmation_agent").map((l) => l.href)).toEqual(["/app/sell/confirmation"]);
+    expect(navLeaves("delivery_agent").map((l) => l.href)).toEqual(["/app/sell/shipping"]);
   });
   it("agents get exactly one Sell group", () => {
     for (const role of ["confirmation_agent", "delivery_agent"] as const) {
@@ -181,24 +193,24 @@ describe("app shell (D32, review-4)", () => {
     expect(src).toContain("toggleRef.current?.focus()");
     expect(src).toMatch(/brandClass = "[^"]*max-md:min-h-11/);
   });
-  it("crumbsFor admin /app/finance/expenses → Money › Expenses", () => {
-    expect(crumbsFor("admin", "/app/finance/expenses")).toEqual([
+  it("crumbsFor admin /app/money/expenses → Money › Expenses", () => {
+    expect(crumbsFor("admin", "/app/money/expenses")).toEqual([
       { labelKey: "nav.groupMoney", href: "/app/money" },
-      { labelKey: "nav.expenses", href: "/app/finance/expenses" },
+      { labelKey: "nav.expenses", href: "/app/money/expenses" },
     ]);
   });
-  it("detail path /app/orders/<id> → Sell › All orders", () => {
-    expect(crumbsFor("admin", "/app/orders/abc").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all"]);
-    expect(crumbsFor("admin", "/app/orders/new").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all", "nav.newRecord"]);
+  it("detail path /app/sell/orders/<id> → Sell › All orders", () => {
+    expect(crumbsFor("admin", "/app/sell/orders/abc").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all"]);
+    expect(crumbsFor("admin", "/app/sell/orders/new").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all", "nav.newRecord"]);
   });
   it("agent on an order record gets a path back to their own queue", () => {
-    const c = crumbsFor("confirmation_agent", "/app/orders/abc");
+    const c = crumbsFor("confirmation_agent", "/app/sell/orders/abc");
     expect(c.map((x) => x.labelKey)).toEqual(["nav.groupSell", "nav.confirmation"]);
-    expect(c[1].href).toBe("/app/orders/confirmation");
+    expect(c[1].href).toBe("/app/sell/confirmation");
     expect(c[0].href).toBeUndefined();
-    const d = crumbsFor("delivery_agent", "/app/orders/abc");
+    const d = crumbsFor("delivery_agent", "/app/sell/orders/abc");
     expect(d.map((x) => x.labelKey)).toEqual(["nav.groupSell", "nav.shipping"]);
-    expect(d[1].href).toBe("/app/orders/delivery");
+    expect(d[1].href).toBe("/app/sell/shipping");
   });
   it("hubs show the group only; home shows none", () => {
     expect(crumbsFor("admin", "/app/money").map((c) => c.labelKey)).toEqual(["nav.groupMoney"]);
@@ -206,7 +218,7 @@ describe("app shell (D32, review-4)", () => {
     expect(crumbsFor("admin", "/app/dashboard")).toEqual([]);
   });
   it("agent never gets an admin crumb or hub item", () => {
-    expect(crumbsFor("confirmation_agent", "/app/finance/expenses")).toEqual([]);
+    expect(crumbsFor("confirmation_agent", "/app/money/expenses")).toEqual([]);
     expect(crumbsFor("confirmation_agent", "/app/money")).toEqual([]);
     expect(crumbsFor("confirmation_agent", "/app/sell").length).toBe(1);
     expect(visibleNav("confirmation_agent").groups[0].items.map((l) => l.key)).toEqual(["confirmation"]);

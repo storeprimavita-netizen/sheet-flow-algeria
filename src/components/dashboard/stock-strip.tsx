@@ -35,30 +35,30 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
       ) : rows.length === 0 ? (
         <Empty className="space-y-3 p-6">
           <p>{t("empty")}</p>
-          <ButtonLink href="/app/products/new" variant="outline">
+          <ButtonLink href="/app/catalog/products/new" variant="outline">
             {t("add")}
           </ButtonLink>
         </Empty>
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiTile icon={Boxes} label={t("inStock")} value={String(sum((r) => r.inStock))} href="/app/stock" />
-            <KpiTile icon={Lock} label={t("reserved")} value={String(sum((r) => r.reserved))} hint={t("reservedHint")} href="/app/stock" />
-            <KpiTile icon={Truck} label={t("onRoad")} value={String(sum((r) => r.onRoad))} hint={t("onRoadHint")} href="/app/orders/delivery" />
+            <KpiTile icon={Boxes} label={t("inStock")} value={String(sum((r) => r.inStock))} href="/app/catalog/stock" />
+            <KpiTile icon={Lock} label={t("reserved")} value={String(sum((r) => r.reserved))} hint={t("reservedHint")} href="/app/catalog/stock" />
+            <KpiTile icon={Truck} label={t("onRoad")} value={String(sum((r) => r.onRoad))} hint={t("onRoadHint")} href="/app/sell/shipping" />
             <KpiTile
               icon={PackageX}
               label={t("lowItems")}
               value={String(lowCount)}
               tone={lowCount > 0 ? "danger" : undefined}
               hint={t("lowItemsHint")}
-              href="/app/stock"
+              href="/app/catalog/stock"
             />
           </div>
           <div className="card-surface divide-y divide-border rounded-xl">
             {rows.slice(0, MAX_ROWS).map((r) => (
               <Link
                 key={r.productId}
-                href={`/app/products/${r.productId}/stock`}
+                href={`/app/catalog/products/${r.productId}/stock`}
                 className="flex flex-col gap-1.5 px-4 py-2.5 text-sm hover:bg-surface-raised/40 sm:flex-row sm:items-center sm:gap-3"
               >
                 <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -88,7 +88,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
               </Link>
             ))}
             {rows.length > MAX_ROWS ? (
-              <Link href="/app/stock" className="block px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
+              <Link href="/app/catalog/stock" className="block px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
                 {t("viewAll", { n: rows.length })}
               </Link>
             ) : null}

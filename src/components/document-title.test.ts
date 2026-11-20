@@ -52,7 +52,7 @@ describe("DocumentTitle", () => {
 
   test("does not overwrite after the pathname changed", () => {
     const { fire } = setup();
-    (g.location as { pathname: string }).pathname = "/app/orders";
+    (g.location as { pathname: string }).pathname = "/app/sell/orders";
     (g.document as { title: string }).title = "Orders";
     fire();
     expect((g.document as { title: string }).title).toBe("Orders");

@@ -181,7 +181,7 @@ export default async function StatisticsPage({
               {keep.size ? (
                 <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
               ) : (
-                <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
+                <ButtonLink href="/app/sell/orders" size="sm">{t("statistics.allOrders")}</ButtonLink>
               )}
             </div>
           )}
