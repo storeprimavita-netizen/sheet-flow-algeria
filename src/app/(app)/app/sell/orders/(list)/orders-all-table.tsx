@@ -55,7 +55,7 @@ export type AllRow = {
   swapped_to: SwapTo | null;
   commune: string | null;
   address: string | null;
-  tags: { id: string; label: string; token: StatusToken }[];
+  tags: { id: string; label: string; emoji: string | null; token: StatusToken }[];
   events: TimelineEvent[];
 };
 
@@ -223,7 +223,7 @@ export function OrdersAllTable({
         r.tags.length ? (
           <div className="flex flex-wrap gap-1">
             {r.tags.map((tag) => (
-              <Chip key={tag.id} token={tag.token} size="sm">{tag.label}</Chip>
+              <Chip key={tag.id} token={tag.token} emoji={tag.emoji} size="sm">{tag.label}</Chip>
             ))}
           </div>
         ) : (

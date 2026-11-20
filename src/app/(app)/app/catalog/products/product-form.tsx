@@ -48,7 +48,7 @@ export async function ProductForm({
               setKey="product_category"
               name="category_option_id"
               value={product?.category_option_id ?? undefined}
-              options={categories.map((c) => ({ value: c.id, label: c.label, token: c.color_token, archived: !!c.archived_at }))}
+              options={categories.map((c) => ({ value: c.id, label: c.label, token: c.color_token, emoji: c.emoji, archived: !!c.archived_at }))}
               placeholder={t("fields.category")}
             />
           </Field>
@@ -67,7 +67,7 @@ export async function ProductForm({
               setKey="product_fabric"
               name="fabric_option_id"
               value={product?.fabric_option_id ?? undefined}
-              options={fabrics.map((f) => ({ value: f.id, label: f.label, token: f.color_token, archived: !!f.archived_at }))}
+              options={fabrics.map((f) => ({ value: f.id, label: f.label, token: f.color_token, emoji: f.emoji, archived: !!f.archived_at }))}
               placeholder={t("fields.fabric")}
             />
           </Field>

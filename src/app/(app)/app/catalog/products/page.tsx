@@ -56,7 +56,7 @@ export default async function ProductsPage() {
       id: p.id,
       name: p.name,
       sku: p.sku,
-      category: category ? { label: category.label, token: category.color_token } : null,
+      category: category ? { label: category.label, emoji: category.emoji, token: category.color_token } : null,
       image: p.images?.[0] ?? null,
       status: p.status,
       sale_price: p.sale_price,

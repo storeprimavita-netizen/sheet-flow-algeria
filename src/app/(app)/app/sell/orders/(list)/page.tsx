@@ -189,12 +189,12 @@ export default async function AllOrdersPage({
     getOptionSet(workspaceId, "product_category"),
   ]);
   const tagById = new Map(tagOptions.map((o) => [o.id, o]));
-  const tagsByOrder = new Map<string, { id: string; label: string; token: (typeof tagOptions)[number]["color_token"] }[]>();
+  const tagsByOrder = new Map<string, { id: string; label: string; emoji: string | null; token: (typeof tagOptions)[number]["color_token"] }[]>();
   for (const row of orderTags ?? []) {
     const opt = tagById.get(row.option_id);
     if (!opt) continue;
     const list = tagsByOrder.get(row.order_id) ?? [];
-    list.push({ id: opt.id, label: opt.label, token: opt.color_token });
+    list.push({ id: opt.id, label: opt.label, emoji: opt.emoji, token: opt.color_token });
     tagsByOrder.set(row.order_id, list);
   }
   const eventsByOrder = new Map<string, AllRow["events"]>();

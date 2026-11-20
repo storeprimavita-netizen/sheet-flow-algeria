@@ -32,7 +32,7 @@ export type ProductRow = {
   id: string;
   name: string;
   sku: string | null;
-  category: { label: string; token: StatusToken } | null;
+  category: { label: string; emoji: string | null; token: StatusToken } | null;
   image: string | null;
   status: string;
   sale_price: number | null;
@@ -131,7 +131,7 @@ export function ProductsView({ rows }: { rows: ProductRow[] }) {
     {
       id: "category",
       header: t("fields.category"),
-      cell: (r) => (r.category ? <Chip token={r.category.token} size="sm">{r.category.label}</Chip> : "—"),
+      cell: (r) => (r.category ? <Chip token={r.category.token} emoji={r.category.emoji} size="sm">{r.category.label}</Chip> : "—"),
     },
     { id: "sale_price", header: t("fields.price"), numeric: true, sortable: true, cell: (r) => formatCurrency(r.sale_price) },
     {

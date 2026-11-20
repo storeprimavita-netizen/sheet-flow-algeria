@@ -38,7 +38,7 @@ export function OrderTaxonomyCard({
         <OptionMultiSelect
           setKey="order_tag"
           value={selectedTagIds}
-          options={tags.map((o) => ({ value: o.id, label: o.label, token: o.color_token, archived: !!o.archived_at }))}
+          options={tags.map((o) => ({ value: o.id, label: o.label, token: o.color_token, emoji: o.emoji, archived: !!o.archived_at }))}
           placeholder={t("fields.tags")}
           onChange={async (ids) => {
             const res = await setOrderTags(orderId, ids);
@@ -52,7 +52,7 @@ export function OrderTaxonomyCard({
           <OptionSelect
             setKey="cancellation_reason"
             value={cancellationReasonId ?? undefined}
-            options={reasons.map((o) => ({ value: o.id, label: o.label, token: o.color_token, archived: !!o.archived_at }))}
+            options={reasons.map((o) => ({ value: o.id, label: o.label, token: o.color_token, emoji: o.emoji, archived: !!o.archived_at }))}
             placeholder={t("fields.cancellationReason")}
             onChange={async (id) => {
               const res = await setOrderCancellationReason(orderId, id || null);
