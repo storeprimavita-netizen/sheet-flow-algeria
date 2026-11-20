@@ -302,6 +302,38 @@ hides secrets would then wait for a keyboard outline and screenshots. Say so if
 you want such tasks to wait for you each time (point 2 above); the merge can
 be taken back.
 
+It came up a sixth time on 20 November, on the phone bar and "My day" task
+(NAV-5: the bar at the bottom of the screen on a phone, and the agents' home
+page). Not a tie either: the third review found nothing serious and nothing
+wrong in what agents can see (no money on My day, each role lands on its own
+page), but the medium points went 3, then 1, then 3, so the rule allows no
+further round. All three were on iPhones with a notch, and none was in the bar
+or in My day. To give the bar a little extra space above the home line of an
+iPhone, the app had been told to draw itself over the whole screen, notch
+included. From then on every edge had to be handled by the app, and each round
+fixed one edge and broke another: the top of the menu under the notch, the
+narrow side menu crushed when the phone is held sideways, the page too close to
+the notch on the side. **Applied (D87):** that instruction is taken out, so the
+phone keeps the app inside the safe part of the screen by itself, as it did
+before this task, and the three points disappear together. Then the task is
+merged into the working branch (not the live app) under your rule of 18
+November, and the smaller points go into the follow-up task NAV-5-F. Two
+things to know:
+1. On an iPhone the bar has no extra space above the home line, and with the
+   phone held sideways there are plain strips beside the app. On Android
+   nothing changes.
+2. Nobody has looked at this on a real iPhone: the reviews imitated the notch
+   on a computer. If you or your agents use the app on an iPhone, open it once
+   and say whether the bar sits too close to the bottom edge. The proper
+   version (the app drawn up to the edges, every side handled) is written in
+   NAV-5-F and is built only when it can be checked on a real iPhone.
+
+The other options were one more round for the three points (the rule says no,
+and the last two rounds of this same work each brought new ones), merging with
+the three points still there (the menu behind the "More" button would start
+under the notch on iPhones), or keeping the task waiting for your OK. Say so
+if you prefer one; it is one line to put back.
+
 Nothing is blocked.
 
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default
