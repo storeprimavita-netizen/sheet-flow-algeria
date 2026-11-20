@@ -92,11 +92,25 @@ and no anon entry in `pg_default_acl` for `postgres`/public (r, S). Do not toggl
 re-add anon defaults; re-run the check if toggled, and after
 `supabase stop && supabase start`. `supabase_admin` default ACLs are
 platform-owned and untouched (owner-only).
-Follow-up NAV-4-S3 (functions, not done): (a) until it lands, every new
-SECURITY DEFINER RPC needs its own revoke from public/anon (00046 pattern);
-(b) PUBLIC execute is only removed by a global
+
+## anon function execute (00076, NAV-4-S3)
+
+`anon` and PUBLIC execute no function in `public` (any prokind), and
+`postgres` default privileges give anon/PUBLIC none for new functions (global
 `alter default privileges for role postgres revoke execute on functions from public`
-(no `in schema`); 26 public functions are still anon-executable.
+plus the anon revoke in `public`). `authenticated` and `service_role` keep what
+they had (RLS helpers, dashboard_stats, current_fx_rate, kpi_*/pnl_* ...).
+Two cases for a NEW function:
+- In `public`: the schema default still grants execute to `authenticated` and
+  `service_role`. A SECURITY DEFINER RPC must therefore also revoke from
+  `authenticated` (00046 pattern) or agents can call it.
+- In a new schema (e.g. `private`): nobody gets execute, so RLS policy helpers
+  there need an explicit grant to `authenticated` (else 42501 for every user).
+The `storage` schema default still grants anon execute (not owned here).
+`supabase_admin` default ACLs are platform-owned and untouched.
+Owner post-push check (expect 0 rows for postgres-owned functions; others are
+only reported by the migration as a NOTICE):
+`select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and has_function_privilege('anon',p.oid,'execute');`
 
 ## Order triggers (00004)
 

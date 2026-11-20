@@ -778,3 +778,10 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Owner: remote `db push` of 00075 (owner-only; revokes anon grants).
 - Gate note (TEST-2): one intermittent failure in `audit-redact.rls.test.ts` on this branch; green on the coordinator's full rerun. Same flaky class as before.
 - Next: NAV-4-S3 (anon function EXECUTE sweep); NAV-5 in lane order.
+
+## NAV-4-S3: done
+- Done: migration 00076 revokes anon/PUBLIC EXECUTE on public functions and the default function privilege for anon; live test; DB.md rule.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4-S3 (tsc, 1065 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4-S3.review-1.md VERDICT: PASS (review-0 was FIX, resolved).
+- Owner: remote `db push` of 00076 (owner-only; revokes anon function EXECUTE).
+- Next: NAV-5 in lane order.
