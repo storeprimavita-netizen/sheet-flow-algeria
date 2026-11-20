@@ -35,7 +35,7 @@ describe("parseDeliveryCsv", () => {
   });
   describe("hostile fee parts (P1-7-F)", () => {
     const one = (custom: string) => parseDeliveryCsv(`${H}DZ,8-Béchar,,,rate,,${custom}\n`);
-    it.each(["abc", "-5", ""])("home:%s|home:720 leaves home null, second stays stop-desk", (bad) => {
+    it.each(["abc", "-5", "", "0.001", "10000000000", "1350.004"])("home:%s|home:720 leaves home null, second stays stop-desk", (bad) => {
       const r = one(`${HOME}:${bad}|${HOME}:720`);
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
       expect(r.warnings.map((w) => w.type)).toContain("repeated_label");

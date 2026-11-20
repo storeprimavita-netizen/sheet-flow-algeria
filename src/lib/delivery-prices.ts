@@ -153,7 +153,7 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
             homeSeen = true;
           }
           const raw = part.slice(i + 1).trim();
-          const fee = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : NaN;
+          const fee = /^\d{1,10}(\.\d{1,2})?$/.test(raw) ? Number(raw) : NaN;
           if (!Number.isFinite(fee)) {
             warnings.push({ type: "malformed_row", code, text: part });
             continue;

@@ -58,7 +58,7 @@ function fakeSupabase(
 ) {
   const tables: Record<string, unknown> = {
     orders: {
-      id: "o1", confirmation_status: "confirmed", wilaya_code: 16, delivery_type: "home", commune: "Bab",
+      id: "o1", confirmation_status: "confirmed", delivery_status: "wait_for_deposit", wilaya_code: 16, delivery_type: "home", commune: "Bab",
       customer_phone: "0555000000", customer_name: "A", address: "x", quantity: 1, sale_price: 100,
       delivery_fee: 0, product: { name: "P" }, ...over.order,
     },
@@ -90,7 +90,14 @@ describe("swapped orders", () => {
   it("refuses a swapped order and never calls the carrier", async () => {
     const { client, inserts } = fakeSupabase(null, { order: { swapped_to_order_id: "o2" } });
     const r = await pushToZR(client, "w", "o1");
-    expect(r).toMatchObject({ ok: false });
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("swapped") });
+    expect(creates).toBe(0);
+    expect(inserts).toEqual([]);
+  });
+  it("refuses status swap even when the link was cleared by a deleted replacement", async () => {
+    const { client, inserts } = fakeSupabase(null, { order: { swapped_to_order_id: null, delivery_status: "swap" } });
+    const r = await pushToZR(client, "w", "o1");
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("swapped") });
     expect(creates).toBe(0);
     expect(inserts).toEqual([]);
   });
