@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { asKpi, type Kpi } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -36,7 +36,7 @@ export default async function DashboardPage({
   const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : "");
 
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   // Only period + product filter the dashboard; other params are ignored.
@@ -106,14 +106,14 @@ export default async function DashboardPage({
 
   const productOpts: Opt[] = (products.data ?? []).map((p) => ({ value: p.id, label: p.name }));
   const finance = (path: string) =>
-    `/app/finance${path ? `/${path}` : ""}${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`;
+    `/app/money${path ? `/${path}` : ""}${financeQs({ from: filters.from, to: filters.to }, { product: filters.product })}`;
   const moneyHrefs = {
     finance: finance("overview"),
     revenue: ordersQs(filters, { delivery_status: "delivered" }),
     returns: ordersQs(filters, { delivery_status: "returned" }),
     ads: finance("ad-spend"),
     expenses: finance("expenses"),
-    cogs: "/app/products",
+    cogs: "/app/catalog/products",
     fixed: "/app/settings?section=fixed-fees",
   };
   const rates = { USD: kpi?.usd_rate ?? 1, EUR: eurRate.data ?? 1 };
@@ -122,7 +122,7 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.subtitle")}>
         <AddAdSpendModal products={productOpts.map((p) => ({ id: p.value, name: p.label }))} rates={rates} />
-        <ButtonLink href="/app/orders/new" variant="outline">
+        <ButtonLink href="/app/sell/orders/new" variant="outline">
           {t("orders.new")}
         </ButtonLink>
       </PageHeader>
@@ -145,7 +145,7 @@ export default async function DashboardPage({
             hrefs={{
               received: ordersQs(filters),
               confirmed: ordersQs(filters, { confirmation_status: "confirmed" }),
-              onRoad: "/app/orders/delivery",
+              onRoad: "/app/sell/shipping",
               delivered: ordersQs(filters, { delivery_status: "delivered" }),
             }}
           />

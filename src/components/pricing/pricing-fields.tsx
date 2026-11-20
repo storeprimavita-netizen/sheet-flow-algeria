@@ -15,7 +15,13 @@ import {
   ROUNDING_OPTIONS,
   TARGET_MODES,
   type TargetMode,
+  focusIdFor,
   overridesFromForm,
+  PLATFORM_PCT_WARN,
+  radioTabIndex,
+  rangeHint,
+  rangeMessageKey,
+  withTargetMode,
   targetModeForKey,
   toPercent,
   type FieldDef,
@@ -24,7 +30,7 @@ import {
   type FormErrors,
   type PricingForm,
 } from "@/lib/pricing-form";
-import { ltr } from "@/lib/format";
+import { groupDigits, ltr } from "@/lib/format";
 import type { PricingSettings, Rounding } from "@/lib/pricing-v2";
 import { MAX_MARKUP } from "@/lib/pricing-v2";
 
@@ -53,6 +59,16 @@ function defaultFor(def: FieldDef, defaults: PricingSettings): number {
 }
 
 const INHERIT = "__inherit__";
+
+/** "Not a number." or the field's own range sentence (bounds in display units). */
+function fieldRangeText(t: ReturnType<typeof useTranslations>, def: FieldDef, typed: number | null) {
+  const key = rangeMessageKey(typed);
+  if (key === "notNumber") return t("field.notNumber");
+  const h = rangeHint(def);
+  const unit = def.pct ? "%" : "";
+  const fmt = (n: number) => ltr(`${groupDigits(String(n))}${unit}`);
+  return t(`field.range${h.kind[0].toUpperCase()}${h.kind.slice(1)}`, { min: fmt(h.min), max: h.max === undefined ? "" : fmt(h.max) });
+}
 
 /** Groups of fields (target excluded: see TargetEditor). */
 export function PricingFieldGroups({
@@ -89,11 +105,11 @@ export function PricingFieldGroups({
           </legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PRICING_FIELDS.filter((f) => f.group === g).map((f) => {
-              const id = `${idPrefix}-${f.key}`;
+              const id = focusIdFor(idPrefix, f.key);
               const err = errors[f.key];
               const label = t(`fields.${f.key}`);
               const dflt = defaultFor(f, defaults);
-              const dfltText = ltr(f.pct ? `${dflt}%` : `${dflt}`);
+              const dfltText = ltr(f.pct ? `${dflt}%` : groupDigits(String(dflt)));
               const value = form.values[f.key];
               const overridden = override && value !== null;
               const set = (v: number | null) => update((cur) => ({ ...cur, values: { ...cur.values, [f.key]: v } }));
@@ -123,11 +139,12 @@ export function PricingFieldGroups({
                           className="h-6 w-6"
                           aria-label={t("field.reset", { field: label })}
                           title={t("field.reset", { field: label })}
-                          onClick={() => {
+                          onClick={(e) => {
                             set(null);
                             setGens((s) => ({ ...s, [f.key]: (s[f.key] ?? 0) + 1 }));
-                            // the reset button unmounts; keep keyboard focus on the field
-                            requestAnimationFrame(() => document.getElementById(id)?.focus());
+                            // the reset button unmounts; keep keyboard focus on the field.
+                            // detail 0 = keyboard activation; touch/mouse must not open the phone keyboard
+                            if (e.detail === 0) requestAnimationFrame(() => document.getElementById(id)?.focus());
                           }}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
@@ -139,13 +156,15 @@ export function PricingFieldGroups({
                     {f.pct ? (
                       <PercentField key={key} {...common} defaultValue={value} nullable decimals={2} max={100} />
                     ) : (
-                      <NumberField key={key} {...common} defaultValue={value} unit={UNIT[f.key] ? t(`unit.${UNIT[f.key]}`) : undefined} />
+                      <NumberField key={key} {...common} defaultValue={value} group={UNIT[f.key] === "dzd" || UNIT[f.key] === "usd"} unit={UNIT[f.key] ? t(`unit.${UNIT[f.key]}`) : undefined} />
                     )}
                   </div>
                   {err ? (
                     <p id={`${id}-err`} className="mt-1 text-xs text-destructive">
-                      {t(`field.${err}`)}
+                      {err === "range" ? fieldRangeText(t, f, value) : t(`field.${err}`)}
                     </p>
+                  ) : f.key === "platformPct" && value !== null && value > PLATFORM_PCT_WARN ? (
+                    <p className="mt-1 text-xs text-warning">{t("field.feeHigh", { limit: ltr(`${PLATFORM_PCT_WARN}%`) })}</p>
                   ) : null}
                 </div>
               );
@@ -192,14 +211,14 @@ export function TargetEditor({
         : t("target.defaultProfit", { value: ltr(String(dv)) })
       : undefined;
   const overridden = override && overridesFromForm(form, defaults).target !== undefined;
-  const id = `${idPrefix}-target`;
+  const id = focusIdFor(idPrefix, "target");
   const valueKey = `${form.targetMode}-${resetKey}-${gen}`;
   const setValue = (v: number | null) => update((cur) => ({ ...cur, targetValue: v }));
 
   function chooseMode(m: TargetMode) {
     if (form.targetMode === m) return;
     // switching mode resets the value: DZD and percent are never reinterpreted
-    update((cur) => ({ ...cur, targetMode: m, targetValue: null }));
+    update((cur) => withTargetMode(cur, m));
     setGen((g) => g + 1);
   }
 
@@ -228,10 +247,10 @@ export function TargetEditor({
                   className="h-6 w-6"
                   aria-label={t("field.reset", { field: t("target.label") })}
                   title={t("field.reset", { field: t("target.label") })}
-                  onClick={() => {
+                  onClick={(e) => {
                     update((cur) => ({ ...cur, targetMode: defaults.target.mode, targetValue: null }));
                     setGen((g) => g + 1);
-                    requestAnimationFrame(() => radioRefs.current[defaults.target.mode]?.focus());
+                    if (e.detail === 0) requestAnimationFrame(() => radioRefs.current[defaults.target.mode]?.focus());
                   }}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -262,7 +281,7 @@ export function TargetEditor({
                   type="button"
                   role="radio"
                   aria-checked={form.targetMode === m}
-                  tabIndex={form.targetMode === m ? 0 : -1}
+                  tabIndex={radioTabIndex(form.targetMode === m)}
                   onClick={() => chooseMode(m)}
                   className={`rounded px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     form.targetMode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"

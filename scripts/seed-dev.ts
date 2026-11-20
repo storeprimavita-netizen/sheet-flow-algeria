@@ -13,7 +13,24 @@
  */
 import { createAdminClient } from "../src/lib/supabase/admin.ts";
 import { upsertCustomerFromOrder } from "../src/lib/customers.ts";
-import { DEFAULT_INPUTS, seedForProduct, type PricingInputs } from "../src/lib/pricing.ts";
+// The BENZ engine was retired (PRICE-4) but product_scenarios stays (D68):
+// seed its jsonb with the old sheet defaults, kept local to this script.
+type PricingInputs = Record<
+  | "product_price" | "euro_price" | "lead_cost_eur" | "confirmation_pct" | "delivery_pct"
+  | "delivery_price" | "confirmation_agent" | "packaging_fees" | "sale_price" | "spend_eur_day"
+  | "delivery_fee_da" | "flexy_month" | "location_day" | "salary_month",
+  number
+>;
+const DEFAULT_INPUTS: PricingInputs = {
+  product_price: 2500, euro_price: 255, lead_cost_eur: 2, confirmation_pct: 65, delivery_pct: 65,
+  delivery_price: 0, confirmation_agent: 0, packaging_fees: 50, sale_price: 4900, spend_eur_day: 20,
+  delivery_fee_da: 100, flexy_month: 0, location_day: 100, salary_month: 5000,
+};
+const seedForProduct = (cost: number, sale: number | null): PricingInputs => ({
+  ...DEFAULT_INPUTS,
+  product_price: cost > 0 ? cost : DEFAULT_INPUTS.product_price,
+  sale_price: sale && sale > 0 ? sale : DEFAULT_INPUTS.sale_price,
+});
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 if (!/localhost|127\.0\.0\.1/.test(url) && !process.argv.includes("--force")) {
@@ -703,6 +720,70 @@ async function seedRulesDocs(admin: Admin, ws: string, updatedBy: string) {
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * Dev-only demo store: a live store "demo" with two published product pages (S/M/L sizes + offers + bump, and a
+ * plain one) so the public page (/s/demo/abaya-luxe) and the admin preview can be opened locally. Idempotent.
+ */
+async function seedStore(admin: Admin, ws: string) {
+  let { data: store } = await admin.from("stores").select("id").eq("workspace_id", ws).eq("slug", "demo").maybeSingle();
+  if (!store) {
+    store = await mustRow(
+      await admin
+        .from("stores")
+        .insert({ workspace_id: ws, slug: "demo", name: "Luxe Modesty", status: "live", settings: { whatsapp: "213550000000", phone: "0550000000", slogan: "Elegance, delivered" } })
+        .select("id")
+        .single(),
+      "stores insert",
+    );
+  }
+  const ensureProduct = async (name: string, sale: number, compare: number | null) => {
+    const { data: ex } = await admin.from("products").select("id").eq("workspace_id", ws).eq("name", name).maybeSingle();
+    if (ex) return ex.id;
+    const row = await mustRow(
+      await admin.from("products").insert({ workspace_id: ws, name, sale_price: sale, compare_at_price: compare, is_active: true, images: [] }).select("id").single(),
+      `products insert (${name})`,
+    );
+    return row.id;
+  };
+  const ensurePage = async (productId: string, slug: string, title: string) => {
+    const { data: ex } = await admin.from("store_pages").select("id").eq("store_id", store!.id).eq("slug", slug).maybeSingle();
+    if (ex) return;
+    await must(
+      await admin.from("store_pages").insert({ workspace_id: ws, store_id: store!.id, product_id: productId, slug, title, status: "published", blocks: [{ type: "text", text: title }] }),
+      `store_pages insert (${slug})`,
+    );
+  };
+
+  const abaya = await ensureProduct("Abaya Luxe (store demo)", 5000, 6500);
+  const scarf = await ensureProduct("Hijab Soie (store demo)", 1800, null);
+  const bumpId = scarf;
+  await ensurePage(abaya, "abaya-luxe", "Abaya Luxe");
+  await ensurePage(scarf, "hijab-soie", "Hijab Soie");
+
+  const { count } = await admin.from("product_options").select("id", { count: "exact", head: true }).eq("product_id", abaya);
+  if (!count) {
+    const opt = await mustRow(await admin.from("product_options").insert({ workspace_id: ws, product_id: abaya, name: "Size" }).select("id").single(), "options insert");
+    for (const [label, stock] of [["S", 0], ["M", 8], ["L", 5]] as const) {
+      const val = await mustRow(await admin.from("product_option_values").insert({ workspace_id: ws, product_id: abaya, option_id: opt.id, label }).select("id").single(), "values insert");
+      const v = await mustRow(await admin.from("product_variants").insert({ workspace_id: ws, product_id: abaya }).select("id").single(), "variants insert");
+      await must(await admin.from("product_variant_values").insert({ variant_id: v.id, option_id: opt.id, value_id: val.id, product_id: abaya, workspace_id: ws }), "variant values insert");
+      // S stays at 0 while others are counted: shows the "out of stock" size
+      if (stock > 0) await must(await admin.from("stock_movements").insert({ workspace_id: ws, product_id: abaya, variant_id: v.id, delta: stock, reason: "purchase" }), "stock insert");
+    }
+  }
+  const { count: offers } = await admin.from("product_offers").select("id", { count: "exact", head: true }).eq("product_id", abaya);
+  if (!offers) {
+    await must(
+      await admin.from("product_offers").insert([
+        { workspace_id: ws, product_id: abaya, kind: "quantity", label: "x2", qty: 2, total_price: 9000, position: 0 },
+        { workspace_id: ws, product_id: abaya, kind: "quantity", label: "x3", qty: 3, total_price: 12500, position: 1 },
+        { workspace_id: ws, product_id: abaya, kind: "bump", label: "Hijab", bump_product_id: bumpId, bump_price: 1500, position: 2 },
+      ]),
+      "offers insert",
+    );
+  }
+}
+
 async function main() {
   const admin = await createAdminClient();
 
@@ -761,6 +842,7 @@ async function main() {
   const supplierIds = await seedContacts(admin, ws);
   const productIds = await seedProducts(admin, ws, adminId, supplierIds);
   await seedOrders(admin, ws, productIds, adminId, confAgentId, delivAgentId);
+  await seedStore(admin, ws);
   await seedMeetings(admin, ws, adminId, [adminId, confAgentId, delivAgentId]);
   await seedRulesDocs(admin, ws, adminId);
 
@@ -769,6 +851,7 @@ async function main() {
   console.log(`admin:               ${ADMIN_EMAIL} / ${SEED_PASSWORD}`);
   console.log(`confirmation agent:  ${CONF_EMAIL} / ${SEED_PASSWORD}`);
   console.log(`delivery agent:      ${DELIV_EMAIL} / ${SEED_PASSWORD}`);
+  console.log("demo store:          /s/demo/abaya-luxe (sizes, offers, bump) and /s/demo/hijab-soie (plain)");
 }
 
 main().catch((err) => {

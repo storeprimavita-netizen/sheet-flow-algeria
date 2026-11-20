@@ -35,7 +35,7 @@ export default async function RulesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
+      <PageHeader title={t("nav.rules")} subtitle={t("navPurpose.rules")} />
       <TeamTabs active="rules" />
 
       {admin && (

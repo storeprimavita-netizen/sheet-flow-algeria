@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { getTranslations, getLocale } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { getAllOptionSets, getOptionUsageCounts, type OptionSetKey } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
@@ -20,6 +20,7 @@ import { PricingSection } from "./pricing-section";
 import { EngineRulesSection } from "./engine-rules-section";
 import { MeetingScheduleSection } from "./meeting-schedule-section";
 import { OptionsSection } from "./options-section";
+import { StatusLabelsBlock } from "./status-labels-block";
 import { AppearanceSection } from "./appearance-section";
 import { SettingsTabs } from "./settings-tabs";
 
@@ -32,7 +33,7 @@ const NAV_SECTIONS = [
   ["pricing", "settings.pricing"],
   ["engine-rules", "settings.engineRules"],
   ["meeting-schedule", "settings.meetingSchedule"],
-  ["options", "settings.options.title"],
+  ["options", "settings.options.navTitle"],
 ] as const; // appearance renders under "workspace"
 
 type SectionId = (typeof NAV_SECTIONS)[number][0];
@@ -78,7 +79,7 @@ export default async function SettingsPage({
 }
 
 async function SectionBody({ section }: { section: SectionId }) {
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const ws = profile.workspaceId;
   const supabase = await createClient();
 
@@ -184,7 +185,12 @@ async function SectionBody({ section }: { section: SectionId }) {
       const optionUsage = Object.fromEntries(
         await Promise.all(optionSets.map(async (s) => [s.key, await getOptionUsageCounts(ws, s.key)])),
       ) as Record<OptionSetKey, Record<string, number>>;
-      return <OptionsSection sets={optionSets} usage={optionUsage} />;
+      return (
+        <>
+          <OptionsSection sets={optionSets} usage={optionUsage} />
+          <StatusLabelsBlock workspaceId={ws} />
+        </>
+      );
     }
   }
 }

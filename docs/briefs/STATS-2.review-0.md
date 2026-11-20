@@ -1,0 +1,40 @@
+VERDICT: FIX
+
+## Summary
+Brief review (before code) by qa-reviewer and ui-reviewer. The functions are workspace-scoped and return no money keys, but under `security invoker` an agent gets rates over only the orders RLS lets them see, and the page shows those as the wilaya rates. Several existing components ignore `matured`. Drill links will not match the order list, and the migration number collides with CONF-1.
+None of this needs the owner. SPEC STATS.md:55 already says "Agents see operational rates for their own work", so pick a scoping that fits it, or go admin-only (narrower), and record it with `/decide`. Widening agent access through `security definer` would need the owner.
+
+## Findings (ranked)
+
+### HIGH
+1. **Agent rates are a silent subset of the workspace (brief l.7, l.9, l.24).** `kpi_order_set`/`kpi_rates` filter on `current_workspace_id()` (good), but run with the caller's own rights, so RLS on `orders` cuts the set further. On the local seed, the admin sees received 59 / confirmation 0.76, and the delivery agent sees received 38 / confirmation 1.00. Both look like "the" wilaya rate. CARRIER-3 would also route differently depending on who calls. On top of that, `visibleNav` (src/components/nav-model.tsx:122-135) shows an agent only their role's item, so "both roles" does nothing as written, and `orders/all` is admin-only (D10), so every drill link is a dead end for agents. **Fix:** state the scoping in the brief, in line with STATS.md:55, through `/decide`. Either (a) admin-only for now: drop the agent screen and test and leave `visibleNav` alone; or (b) agents get an explicit `assigned_confirmation_agent = auth.uid()` filter labelled "your orders", with drill links hidden for agents and `visibleNav` and its test updated. Do not use `security definer` without an owner decision.
+2. **Existing components bypass the `matured` flag, so red/green still shows on small samples (brief l.8).** `RateBar` (src/components/stats/rate-bar.tsx) always colours by threshold. `AlgeriaMap` takes `minOrders`, and the legend in `dashboard/wilaya-section.tsx` (around l.135-142) uses fixed 40/55/70/85 bands. **Fix:** add a `matured` prop to `RateCell` and `RateBar` (neutral track, no status colour). Feed `matured` to the map instead of `minOrders`, with a grey "not enough data" fill and a matching legend entry. Test the bars and the map, not only the table row.
+3. **Wrong path for the orphan file (brief l.10).** The file is `src/app/(app)/app/dashboard/wilaya-section.tsx`, not `components/dashboard/`. It also carries stop-shipping props tied to `wilaya_stats`, which l.18 leaves untouched. **Fix:** correct the path, and say whether the stop-shipping column is kept or dropped when the file moves to `src/components/stats/`.
+
+### MEDIUM
+4. **Migration number collision (brief l.13).** Unmerged `v3-CONF-1` already has `00056_order_views.sql` and `00057_order_views_hardening.sql` (v3-STORE-3 has 00051, which is not a conflict). Whichever branch merges second fails on a duplicate version. **Fix:** use `00058_kpi_by_wilaya.sql` and check the latest number again at merge time.
+5. **Clicked counts will not match the order list (brief l.9, l.28).** `orders/all/page.tsx:84-85` filters raw `placed_at` on UTC bounds, with no `created_at` fallback, no Algiers day, and no exclusion of excluded orders or unconfirmed duplicates. The brief's own 23:30 UTC case lands on the wrong day. SQL groups on `lower(trim(commune))`, while the list would use an exact `.eq`. The "unknown" group cannot be clicked at all. **Fix:** add a drill mode to orders/all that uses the same set as `kpi_order_set` (Algiers day + eligible) and the same commune key (expression or generated `commune_key`). Map unknown to a reserved token that means `is null`. Add a test that the drill-link count equals the list count.
+6. **Top return reasons will almost always be empty (brief l.7).** A reason can only be set on cancel (`orders/[id]/page.tsx:154,224`). Returned parcels never get one, and the brief's set (returned / cancelled-after-pickup) differs from the D47 return numerator (returned + swapped). **Fix:** choose the source through `/decide`: agent reason only, plus `zr_shipments.situation`, or drop the column. Align the set with D47, and drop the drill link from reason counts or add a `cancellation_reason_option_id` filter.
+7. **Home/stop-desk share has no defined denominator (brief l.7).** `delivery_type` defaults to `home`, so measured over received orders, every unconfirmed or cancelled order counts as home. **Fix:** measure the shares over shipped parcels (the delivery-rate denominator), return the counts, and return null rather than 0/0 when nothing shipped.
+8. **Expand UX and accessibility are under-specified (brief l.9).** **Fix:** put a separate expand `<button aria-expanded aria-controls>` (or a `<Link scroll={false}>` toggling `?wilaya=`) in the first cell, apart from the drill links. Allow one expanded wilaya at a time and keep the other params when toggling. A mirrored chevron in RTL. A Suspense skeleton for the commune panel, plus an inline error and retry so a failing `kpi_by_commune` does not take down the table. An invalid `?wilaya=` falls back to nothing expanded.
+9. **390 px layout (brief l.24).** About 9 columns do not fit. **Fix:** a sticky first column (`sticky start-0`); keep received, confirmation, delivery and return at 390 px; move home/stop-desk, avg days and reasons into the expanded panel; put the map below the table, or collapse it, on mobile.
+10. **Four states are incomplete (brief l.11).** **Fix:** add `error.tsx` (reason + retry). Name the empty-state action (widen the period / clear the product filter). Cover a wilaya whose communes are all unknown.
+
+### LOW
+- Commune grouping: use `nullif(lower(trim(commune)),'')` so `''` and blanks join NULL. Return NULL, labelled through i18n, not the literal 'unknown'. Pick the display spelling deterministically (`mode()` or `min()`).
+- `avg_days_to_deliver`: measure from `coalesce(placed_at, created_at)`, count delivered non-swapped orders only, and return the sample size. Note that the history `created_at` is when the sync ran. Show "—" for null, one decimal, tabular numerals.
+- Take received and the rates from `kpi_rates(array_agg(id))` per group (`counts.received`), never `count(*)`, so swap replacements stay out (D46, D47).
+- Join reasons only to options of the workspace's `cancellation_reason` set, and add an explicit `workspace_id = current_workspace_id()` on the new joins (`setOrderCancellationReason` does not check which set the option belongs to).
+- Drop the proposed `(workspace_id, wilaya_code, commune)` index. Grouping is on an expression, so it would not be used.
+- Nav: give the Sell order (after Customers), a Lucide icon (`MapPinned`), a one-line PageHeader purpose, the breadcrumb "Sell › Statistics", ⌘K `navLeaves`, and an `activeLeafHref` test.
+- RTL: `bdi dir="ltr"` on percentages, "n/N" fractions and days; `text-end` on numeric columns; `bdi` on commune names. Show the denominator as visible text (works on touch), and mark the bar `aria-hidden`.
+- Out of scope, found while reviewing: `dashboard_stats` can be executed by anon/PUBLIC. Open a separate task.
+
+## Missing tests
+- Per the H1 decision: admin vs a second confirmation agent vs a delivery agent (equal, "own work", or no access); agent nav visibility.
+- `''`, `'  Alger '`, NULL communes; `kpi_by_commune` with NULL / other-workspace `p_wilaya`.
+- Swapped original counts as a return (D47); unresolved share > 20% gives `matured=false` even with 10+ orders.
+- No shipped parcels gives null shares; avg_days excludes swapped and undelivered orders.
+- Drill-link count = orders/all count for the same filters, including 23:30 UTC; `ordersQs` with commune, delivery_type and the unknown token.
+- Component: `RateCell`/`RateBar`/map with `matured=false` have no success/warning/danger class; `aria-expanded` toggles.
+- Confirm the `<10` threshold is `kpi_metric`'s `matured`, not a new constant in the page.

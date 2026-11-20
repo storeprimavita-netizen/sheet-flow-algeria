@@ -32,7 +32,7 @@ on the pushed branch. Antigravity's mirror of this file: `docs/ANTIGRAVITY.md`.
 `risk: high` = RLS / auth / migration / money / webhook / carrier / public form /
 tracking tokens / MCP. Reviewers get the brief and the diff, never the builder's
 summary. A reviewer that did not try to break it has not reviewed it.
-**Max 3 review rounds** (up to 5 while findings keep shrinking), then the task is parked with the open findings.
+**At most 2 review rounds** (a 3rd only for a remaining high finding, D90); re-checks look only at the listed findings. Then: no high → ship with one follow-up row; a high → park.
 
 ## State (all committed, so both agents see it)
 

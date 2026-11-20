@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 import { CreateStoreForm } from "./_components/create-store-form";
-import { Crumbs } from "./_components/crumbs";
 import { getStore } from "./_lib/data";
 
 export default async function StoreHubPage() {
@@ -19,7 +18,6 @@ export default async function StoreHubPage() {
     return (
       <div className="space-y-6">
         <div>
-          <Crumbs items={[]} />
           <PageHeader title={t("hub.title")} subtitle={t("hub.purpose")} />
         </div>
         <CreateStoreForm />
@@ -28,11 +26,12 @@ export default async function StoreHubPage() {
   }
 
   const supabase = await createClient();
-  const { data: pages } = await supabase
+  const { data: pages, error: pagesError } = await supabase
     .from("store_pages")
     .select("slug, status")
     .eq("store_id", store.id)
     .order("published_at", { ascending: false });
+  if (pagesError) throw new Error(`store hub pages: ${pagesError.message}`);
   const published = (pages ?? []).filter((p) => p.status === "published");
   const draft = (pages ?? []).length - published.length;
   const firstLive = store.status === "live" ? published[0] : undefined;
@@ -41,7 +40,6 @@ export default async function StoreHubPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Crumbs items={[]} />
         <PageHeader title={t("hub.title")} subtitle={t("hub.purpose")}>
           {firstLive ? (
             <ButtonLink href={`/s/${store.slug}/${firstLive.slug}`} variant="outline">

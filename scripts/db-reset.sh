@@ -13,10 +13,12 @@ npx supabase db reset --local >"$logdir/mnw-db-reset.log" 2>&1 \
   || { echo "FAILED  db reset (see $logdir/mnw-db-reset.log)"; tail -n 5 "$logdir/mnw-db-reset.log" | cut -c1-160; exit 1; }
 url=$(grep -E '^NEXT_PUBLIC_SUPABASE_URL=' .env.local | cut -d= -f2- | tr -d '"')
 akey=$(grep -E '^NEXT_PUBLIC_SUPABASE_ANON_KEY=' .env.local | cut -d= -f2- | tr -d '"')
+ready=0
 for _ in $(seq 1 30); do
-  [ "$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $akey" "$url/rest/v1/")" = 200 ] && break
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $akey" "$url/rest/v1/")" = 200 ] && { ready=1; break; }
   sleep 1
 done
+[ "$ready" = 1 ] || { echo "PostgREST not ready after 30s"; exit 1; }
 node --import ./scripts/seed-register.mjs --env-file=.env.local scripts/seed-dev.ts >"$logdir/mnw-db-seed.log" 2>&1 \
   || { echo "FAILED  seed (see $logdir/mnw-db-seed.log)"; tail -n 5 "$logdir/mnw-db-seed.log" | cut -c1-160; exit 1; }
 echo "OK    local database reset to $(ls supabase/migrations | tail -1) and seeded"

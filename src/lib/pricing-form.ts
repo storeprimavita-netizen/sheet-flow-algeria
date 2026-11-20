@@ -13,6 +13,7 @@ import {
   type DeepPartial,
   type PricingSettings,
   type Rounding,
+  type ScenarioInput,
   type ScenarioResult,
 } from "./pricing-v2";
 
@@ -375,6 +376,118 @@ export function breakEvenState(r: ScenarioResult, key: BreakEvenKey): "value" | 
   return "missing";
 }
 
+/** Real column: strictly negative profit per piece is "below break-even" (0 is not). */
+export const realBelow = (profitPerPiece: number | null): boolean => profitPerPiece !== null && profitPerPiece < 0;
+
+/**
+ * Real column with data but a rate of exactly 0 (nothing confirmed / nothing delivered):
+ * the engine rejects 0 (null results), but the truth is "impossible", the worst loss.
+ * With an ad cost of exactly 0 the confirmation rate drops out of the engine, so a 0
+ * confirmation is then not a loss on its own. Scenario columns keep the engine's validation.
+ */
+export const realZeroRate = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  adCostUsd?: number | null,
+): boolean => hasData && ((input.confirm === 0 && adCostUsd !== 0) || input.delivery === 0);
+
+type RealRow = { key: string; breakEven?: BreakEvenKey; isInput?: boolean };
+const AD_TOTAL_ROWS = ["ordersNeeded", "totalAdUsd", "totalAdDzd"];
+/**
+ * Rows that still depend on c when ad = 0: the ad totals (divide by c) and maxAdCostUsd
+ * (room * c * d / B: at c = 0 any ad spend is a pure loss, so the rate-1 value would mislead).
+ * adCostPerDeliveredUsd is NOT here: it is ad / (c * d) = 0 for ad = 0, so "alt" (0) is right.
+ */
+const C_DEPENDENT_ROWS = [...AD_TOTAL_ROWS, "maxAdCostUsd"];
+
+/**
+ * How one Real-column row is drawn when a rate is exactly 0 (the engine rejects 0):
+ * "alt" = read it from the engine run with the zero rate set to 1 (the row does not depend
+ * on that rate: the final price echo, the zero rate's own break-even); "impossible" = every
+ * other dependent row; "normal" = no zero rate, an input row, or the rate-1 run has missing inputs.
+ * Ad cost exactly 0: confirmation drops out of the engine, so with c = 0 every row is "alt"
+ * except the order count and ad totals (they divide by c).
+ */
+export function realZeroRowMode(
+  input: { confirm: number | null; delivery: number | null },
+  row: RealRow,
+  rateOneComplete: boolean,
+  adCostUsd?: number | null,
+): "normal" | "impossible" | "alt" {
+  const dZero = input.delivery === 0;
+  const cZero = input.confirm === 0;
+  if (!(dZero || cZero) || row.isInput || !rateOneComplete) return "normal";
+  if (row.key === "finalPrice") return "alt";
+  const cDrops = cZero && adCostUsd === 0;
+  if (cDrops && !dZero) return C_DEPENDENT_ROWS.includes(row.key) ? "impossible" : "alt";
+  const cEff = cZero && !cDrops;
+  if (dZero && !cEff && row.breakEven === "minDelivery") return "alt";
+  if (cEff && !dZero && row.breakEven === "minConfirmation") return "alt";
+  return "impossible";
+}
+
+/**
+ * One Real-column cell: the drawn state and which engine run it reads
+ * ("rateOne" = the run with the zero rate set to 1). Pure lookup for the JSX.
+ */
+export function realCellState(
+  mode: "normal" | "impossible" | "alt",
+  real: { result: ScenarioResult; rateOne: ScenarioResult | null; input: ScenarioInput },
+  row: RealRow & { get: (r: ScenarioResult) => number | null; input?: (i: ScenarioInput) => number | null },
+): { state: "value" | "missing" | "impossible"; srcKey: "result" | "rateOne"; value: number | null } {
+  const srcKey = mode === "alt" && real.rateOne ? "rateOne" : "result";
+  const src = srcKey === "rateOne" ? real.rateOne! : real.result;
+  const value = row.input ? row.input(real.input) : row.get(src);
+  const state = mode === "impossible" ? "impossible" : row.breakEven ? breakEvenState(src, row.breakEven) : value === null ? "missing" : "value";
+  return { state, srcKey, value };
+}
+
+/** True when at least one drawn Real cell (data present) is "impossible"; drives the footer. */
+export function anyRealImpossible(
+  real: { result: ScenarioResult; rateOne: ScenarioResult | null; input: ScenarioInput; hasData: boolean },
+  rows: (RealRow & { get: (r: ScenarioResult) => number | null; input?: (i: ScenarioInput) => number | null })[],
+): boolean {
+  if (!real.hasData) return false;
+  const rateOneComplete = !!real.rateOne && real.rateOne.totalCost !== null;
+  return rows.some((row) => {
+    const mode = realZeroRowMode(real.input, row, rateOneComplete, real.input.adCostUsd);
+    return realCellState(mode, real, row).state === "impossible";
+  });
+}
+
+/** The Real profit-per-piece value actually drawn (rate-1 run when the row is "alt"); null when not a value. */
+export function realDrawnProfit(real: {
+  result: ScenarioResult;
+  rateOne: ScenarioResult | null;
+  input: ScenarioInput;
+  hasData: boolean;
+}): number | null {
+  if (!real.hasData) return null;
+  const row = { key: "profitPerPiece", get: (r: ScenarioResult) => r.profitPerPiece };
+  const mode = realZeroRowMode(real.input, row, !!real.rateOne && real.rateOne.totalCost !== null, real.input.adCostUsd);
+  const cell = realCellState(mode, real, row);
+  return cell.state === "value" ? cell.value : null;
+}
+
+/** Footer line "no orders confirmed or delivered": both rates exactly 0 and ad cost not 0 (null counts as not 0). */
+export const realBothZero = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  adCostUsd?: number | null,
+): boolean => hasData && input.confirm === 0 && input.delivery === 0 && adCostUsd !== 0;
+
+/** Real column loses money: negative profit, or a zero rate with data. */
+export const realLosing = (
+  hasData: boolean,
+  input: { confirm: number | null; delivery: number | null },
+  profitPerPiece: number | null,
+  adCostUsd?: number | null,
+): boolean => hasData && (realZeroRate(hasData, input, adCostUsd) || realBelow(profitPerPiece));
+
+/** Sale price strictly below the medium break-even selling price; null on either side -> no badge. */
+export const saleBelowBreakEven = (salePrice: number | null, minSellingPrice: number | null): boolean =>
+  salePrice !== null && minSellingPrice !== null && salePrice < minSellingPrice;
+
 export const TARGET_MODES: readonly TargetMode[] = ["profit", "markup"];
 
 /** Radio-group arrow keys: the mode to move to, or null when the key does nothing. Arrows mirror in RTL. */
@@ -388,3 +501,96 @@ export function targetModeForKey(current: TargetMode, key: string, rtl: boolean)
   else return null;
   return TARGET_MODES[(n + TARGET_MODES.length) % TARGET_MODES.length];
 }
+
+// ---------- keyboard / focus helpers (D53) ----------
+
+/** Switching target mode clears the value (D52: DZD and percent are never reinterpreted); same mode keeps the form. */
+export function withTargetMode(form: PricingForm, mode: TargetMode): PricingForm {
+  return form.targetMode === mode ? form : { ...form, targetMode: mode, targetValue: null };
+}
+
+/**
+ * Where focus goes when the reset-confirm dialog closes: back to the opener button,
+ * unless a reset just happened or the button is disabled (built-in defaults) - then the first field.
+ */
+export function closeFocusTarget({ didReset, btnDisabled }: { didReset: boolean; btnDisabled: boolean }): "button" | "firstField" {
+  return didReset || btnDisabled ? "firstField" : "button";
+}
+
+/** Roving tabindex: only the checked radio is in the tab order. */
+export const radioTabIndex = (checked: boolean): 0 | -1 => (checked ? 0 : -1);
+
+/** DOM id of a field's input (keys may be dotted, e.g. `adMultiplier.best`). */
+export const focusIdFor = (idPrefix: string, key: FieldKey | string) => `${idPrefix}-${key}`;
+
+// ---------- product calculator draft ----------
+
+const centsOk = (v: number) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6;
+export const adOk = (v: number | null) => v === null || (v >= 0 && v <= MAX_AD_USD && centsOk(v));
+export const MAX_QUANTITY = 1_000_000;
+export const qtyOk = (v: number | null) => v !== null && Number.isInteger(v) && v >= 0 && v <= MAX_QUANTITY;
+export const priceOk = (v: number | null) => v === null || (v > 0 && v <= MAX_FINAL_PRICE && centsOk(v));
+
+export type CalcDraft = {
+  quantity: number | null;
+  form: PricingForm;
+  adBest: number | null;
+  adMedium: number | null;
+  adWorst: number | null;
+  finalPrice: number | null;
+};
+
+export type CalcApplied = {
+  quantity: number;
+  overrides: DeepPartial<PricingSettings>;
+  ads: { best: number | null; medium: number | null; worst: number | null };
+  finalPrice: number | null;
+};
+
+/** Draft is saveable: form, ad and price fields valid (quantity is never saved). */
+export function draftSaveValid(d: CalcDraft, defaults: PricingSettings): boolean {
+  return (
+    Object.keys(formErrors(d.form, false, defaults.target.mode)).length === 0 &&
+    priceOk(d.finalPrice) &&
+    adOk(d.adBest) &&
+    adOk(d.adMedium) &&
+    adOk(d.adWorst)
+  );
+}
+
+/**
+ * What the table shows. An invalid draft keeps the last valid table, except that an
+ * invalid QUANTITY alone only freezes the quantity: overrides, ads and final price keep applying.
+ * Returns `prev` (same identity) when nothing changed.
+ */
+export function nextApplied(prev: CalcApplied, d: CalcDraft, defaults: PricingSettings): CalcApplied {
+  if (!draftSaveValid(d, defaults)) return prev;
+  const next: CalcApplied = {
+    quantity: qtyOk(d.quantity) ? (d.quantity as number) : prev.quantity,
+    overrides: overridesFromForm(d.form, defaults),
+    ads: { best: d.adBest, medium: d.adMedium, worst: d.adWorst },
+    finalPrice: d.finalPrice,
+  };
+  return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
+}
+
+// ---------- range messages ----------
+
+/** Platform fee above this percent still saves but shows a warning (typo guard). */
+export const PLATFORM_PCT_WARN = 50;
+
+/**
+ * Which range sentence a field needs, with bounds in DISPLAY units.
+ * kind = lower bound + upper bound: `g`reater-than / `a`t-least, then `l`ess-than / `u`p-to / none.
+ */
+export function rangeHint(def: FieldDef): { kind: "gt" | "ge" | "gtUp" | "geUp" | "gtLt" | "geLt"; min: number; max?: number } {
+  const lo = def.minExcl ? "gt" : "ge";
+  const min = toDisplay(def, def.min);
+  if (def.max === undefined) return { kind: lo, min };
+  const max = toDisplay(def, def.max);
+  return { kind: `${lo}${def.maxExcl ? "Lt" : "Up"}` as "gtUp" | "geUp" | "gtLt" | "geLt", min, max };
+}
+
+/** Message key under `pricingV2.field.` for a "range" error: not-a-number text vs the field's range. */
+export const rangeMessageKey = (typed: number | null | undefined) =>
+  typeof typed === "number" && Number.isNaN(typed) ? "notNumber" : "range";

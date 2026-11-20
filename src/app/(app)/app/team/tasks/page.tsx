@@ -62,7 +62,7 @@ export default async function TasksPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
+      <PageHeader title={t("nav.tasks")} subtitle={t("navPurpose.tasks")} />
       <TeamTabs active="tasks" />
 
       <TasksView

@@ -31,7 +31,7 @@ Goal: fix the two medium findings and the brand-row lowest finding from `docs/br
 - nav-model.test: "palette search value has no i18n key", "group+label unique", "drawer closes on Escape", "drawer inert when closed", "brand row min-h-11".
 
 ## Screens to screenshot (browser MCP, per AGENTS.md)
-390x844 drawer open/closed, EN dark + AR light (Escape closes, Tab skips closed drawer, focus ring on toggle after close); 1280 sidebar unaffected (not inert) in both themes; ⌘K typing `adSpend` -> empty, `Ad spend` -> found.
+390x844 drawer open/closed, EN dark + AR light (Escape closes, Tab skips closed drawer, focus ring on toggle after close); 1280 sidebar unaffected (not inert) in both themes; ⌘K typing `financeOverview` -> empty, `Finance overview` -> found.
 
 ## Edge cases / assumptions
 - React 19.2 types support the `inert` boolean prop (confirmed in @types/react).

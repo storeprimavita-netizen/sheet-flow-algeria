@@ -1,9 +1,34 @@
 import { describe, expect, it } from "vitest";
 
+import en from "@/messages/en.json";
+import ar from "@/messages/ar.json";
+
+import { DEFAULT_PRICING_SETTINGS as PS, computeScenario } from "./pricing-v2";
+
 import {
+  anyRealImpossible,
+  realBothZero,
+  realDrawnProfit,
+  realCellState,
+  realBelow,
+  realLosing,
+  realZeroRate,
+  realZeroRowMode,
   countOverrides,
   targetModeForKey,
+  withTargetMode,
+  closeFocusTarget,
+  radioTabIndex,
+  focusIdFor,
+  rangeHint,
+  rangeMessageKey,
+  PLATFORM_PCT_WARN,
+  PRICING_FIELDS,
+  nextApplied,
+  type CalcApplied,
+  type CalcDraft,
   breakEvenState,
+  saleBelowBreakEven,
   formErrors,
   formFromOverrides,
   formFromSettings,
@@ -227,5 +252,262 @@ describe("targetModeForKey (radio group arrows)", () => {
   it("other keys do nothing", () => {
     expect(targetModeForKey("profit", "Enter", false)).toBeNull();
     expect(targetModeForKey("profit", "Tab", true)).toBeNull();
+  });
+});
+
+describe("saleBelowBreakEven", () => {
+  it("below / equal / null sale price / null break-even", () => {
+    expect(saleBelowBreakEven(3000, 3962)).toBe(true);
+    expect(saleBelowBreakEven(3962, 3962)).toBe(false);
+    expect(saleBelowBreakEven(null, 3962)).toBe(false);
+    expect(saleBelowBreakEven(3000, null)).toBe(false);
+  });
+});
+
+describe("Real column classification (review 2)", () => {
+  const ok = { confirm: 0.65, delivery: 0.65 };
+  it("profit -1 is below, 0 and null are not", () => {
+    expect(realBelow(-1)).toBe(true);
+    expect(realBelow(0)).toBe(false);
+    expect(realBelow(null)).toBe(false);
+  });
+  it("a 0% delivery or confirmation with data is a zero rate and a loss", () => {
+    expect(realZeroRate(true, { confirm: 0.65, delivery: 0 })).toBe(true);
+    expect(realZeroRate(true, { confirm: 0, delivery: 0.65 })).toBe(true);
+    expect(realLosing(true, { confirm: 0.65, delivery: 0 }, null)).toBe(true);
+    expect(realZeroRate(false, { confirm: 0, delivery: 0 })).toBe(false);
+    expect(realLosing(false, { confirm: 0, delivery: 0 }, null)).toBe(false);
+    expect(realZeroRate(true, { confirm: null, delivery: 0.5 })).toBe(false);
+    expect(realLosing(true, ok, 5)).toBe(false);
+    expect(realLosing(true, ok, -5)).toBe(true);
+  });
+});
+
+describe("realZeroRowMode (0% real delivery)", () => {
+  const input = { confirm: 0.7, delivery: 0 };
+  const run = computeScenario(PS, { stockCostDzd: 100000, quantity: 100 }, { confirm: 0.7, delivery: 1, adCostUsd: 2 }, 9900, 9900);
+  it("final price and own break-even are read from the rate-1 run, not Not possible", () => {
+    expect(realZeroRowMode(input, { key: "finalPrice" }, true)).toBe("alt");
+    expect(realZeroRowMode(input, { key: "minDelivery", breakEven: "minDelivery" }, true)).toBe("alt");
+    expect(run.finalPrice).toBe(9900);
+    expect(run.breakEven.minDelivery).not.toBeNull();
+    expect(breakEvenState(run, "minDelivery")).toBe("value");
+  });
+  it("other dependent rows stay impossible; inputs, no zero and missing inputs are normal", () => {
+    expect(realZeroRowMode(input, { key: "minConfirmation", breakEven: "minConfirmation" }, true)).toBe("impossible");
+    expect(realZeroRowMode(input, { key: "netProfit" }, true)).toBe("impossible");
+    expect(realZeroRowMode(input, { key: "delivery", isInput: true }, true)).toBe("normal");
+    expect(realZeroRowMode({ confirm: 0.7, delivery: 0.5 }, { key: "netProfit" }, true)).toBe("normal");
+    expect(realZeroRowMode(input, { key: "netProfit" }, false)).toBe("normal");
+  });
+  it("mirror: confirmation 0 keeps minConfirmation and final price", () => {
+    const c0 = { confirm: 0, delivery: 0.6 };
+    expect(realZeroRowMode(c0, { key: "minConfirmation", breakEven: "minConfirmation" }, true)).toBe("alt");
+    expect(realZeroRowMode(c0, { key: "minDelivery", breakEven: "minDelivery" }, true)).toBe("impossible");
+  });
+});
+
+describe("Real column, ad cost 0 and drawn cells (PRICE-3-F)", () => {
+  const settings = PS;
+  const product = { stockCostDzd: 100000, quantity: 100 };
+  const rows = [
+    { key: "confirmation", isInput: true, get: () => null, input: (i: { confirm: number | null }) => i.confirm },
+    { key: "ordersNeeded", get: (r: ReturnType<typeof computeScenario>) => r.ordersNeeded },
+    { key: "finalPrice", get: (r: ReturnType<typeof computeScenario>) => r.finalPrice },
+    { key: "profitPerPiece", get: (r: ReturnType<typeof computeScenario>) => r.profitPerPiece },
+    { key: "minConfirmation", breakEven: "minConfirmation" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.minConfirmation },
+    { key: "minDelivery", breakEven: "minDelivery" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.minDelivery },
+  ];
+  const build = (c: number | null, d: number | null, ad: number | null) => {
+    const input = { confirm: c, delivery: d, adCostUsd: ad };
+    const price = 9900;
+    const result = computeScenario(settings, product, input, price, price);
+    const rateOne = computeScenario(settings, product, { confirm: c === 0 ? 1 : c, delivery: d === 0 ? 1 : d, adCostUsd: ad }, price, price);
+    return { result, rateOne, input, hasData: true };
+  };
+  const draw = (real: ReturnType<typeof build>) =>
+    Object.fromEntries(
+      rows.map((row) => {
+        const mode = realZeroRowMode(real.input, row, real.rateOne.totalCost !== null, real.input.adCostUsd);
+        const cell = realCellState(mode, real, row);
+        return [row.key, `${cell.state}:${cell.srcKey}`];
+      }),
+    );
+
+  it("ad 0, c 0, d 0.6: engine values, not Not possible; ordersNeeded impossible", () => {
+    const real = build(0, 0.6, 0);
+    expect(realZeroRowMode(real.input, rows[4], true, 0)).toBe("alt");
+    expect(draw(real)).toEqual({
+      confirmation: "value:result",
+      ordersNeeded: "impossible:result",
+      finalPrice: "value:rateOne",
+      profitPerPiece: "value:rateOne",
+      minConfirmation: "value:rateOne",
+      minDelivery: "value:rateOne",
+    });
+    const other = computeScenario(settings, product, { confirm: 0.3, delivery: 0.6, adCostUsd: 0 }, 9900, 9900);
+    expect(real.rateOne.profitPerPiece).toBeCloseTo(other.profitPerPiece ?? NaN, 8); // c drops out when ad = 0
+    expect(realZeroRate(true, real.input, 0)).toBe(false);
+    expect(realLosing(true, real.input, real.rateOne.profitPerPiece, 0)).toBe(false);
+  });
+  it("ad 0, c 0, d 0: minDelivery alt, the rest impossible", () => {
+    const real = build(0, 0, 0);
+    expect(realZeroRowMode(real.input, rows[5], true, 0)).toBe("alt");
+    expect(draw(real)).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "impossible:result", minDelivery: "value:rateOne", finalPrice: "value:rateOne" });
+  });
+  it("ad > 0: d 0, c 0 and both 0 draw as before", () => {
+    expect(draw(build(0.7, 0, 2))).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "impossible:result", minDelivery: "value:rateOne", finalPrice: "value:rateOne" });
+    expect(draw(build(0, 0.6, 2))).toMatchObject({ profitPerPiece: "impossible:result", minConfirmation: "value:rateOne", minDelivery: "impossible:result" });
+    expect(draw(build(0, 0, 2))).toMatchObject({ minConfirmation: "impossible:result", minDelivery: "impossible:result", finalPrice: "value:rateOne" });
+    expect(realZeroRate(true, { confirm: 0, delivery: 0.6 }, 2)).toBe(true);
+  });
+  it("footer: impossible only if a drawn cell is impossible", () => {
+    expect(anyRealImpossible(build(0, 0.6, 0), rows)).toBe(true); // ordersNeeded
+    expect(anyRealImpossible(build(0, 0.6, 2), rows)).toBe(true);
+    expect(anyRealImpossible(build(0.7, 0.6, 2), rows)).toBe(false);
+    expect(anyRealImpossible({ ...build(0.7, 0.6, 2), hasData: false }, rows)).toBe(false);
+  });
+  it("c 0 with d null: every cell missing, no footer", () => {
+    const real = build(0, null, 2);
+    expect(real.rateOne.totalCost).toBeNull();
+    expect(anyRealImpossible(real, rows)).toBe(false);
+    expect(draw(real).minConfirmation).toMatch(/^missing/);
+    expect(draw(real).profitPerPiece).toMatch(/^missing/);
+  });
+  it("ad 0, c 0, d 0.6, price below cost: drawn negative alt profit flags Real as losing", () => {
+    const input = { confirm: 0, delivery: 0.6, adCostUsd: 0 };
+    const mk = (price: number) => {
+      const result = computeScenario(settings, product, input, price, price);
+      const rateOne = computeScenario(settings, product, { ...input, confirm: 1 }, price, price);
+      return { result, rateOne, input, hasData: true };
+    };
+    const real = mk(500);
+    expect(real.result.profitPerPiece).toBeNull();
+    const drawn = realDrawnProfit(real);
+    expect(drawn).not.toBeNull();
+    expect(drawn as number).toBeLessThan(0);
+    expect(realLosing(true, input, drawn, 0)).toBe(true);
+    expect(realDrawnProfit({ ...real, hasData: false })).toBeNull();
+    expect(realLosing(true, input, realDrawnProfit(mk(9900)), 0)).toBe(false);
+  });
+  it("maxAdCostUsd: impossible at c 0 when ad 0 (needs c); adCostPerDeliveredUsd alt", () => {
+    const more = [
+      ...rows,
+      { key: "maxAdCostUsd", breakEven: "maxAdCostUsd" as const, get: (r: ReturnType<typeof computeScenario>) => r.breakEven.maxAdCostUsd },
+      { key: "adCostPerDeliveredUsd", get: (r: ReturnType<typeof computeScenario>) => r.adCostPerDeliveredUsd },
+      { key: "totalAdUsd", get: () => null },
+    ];
+    const real = build(0, 0.6, 0);
+    const state = (key: string) => {
+      const row = more.find((r) => r.key === key)!;
+      const mode = realZeroRowMode(real.input, row, true, 0);
+      return `${mode}:${realCellState(mode, real, row).state}`;
+    };
+    expect(state("maxAdCostUsd")).toBe("impossible:impossible");
+    expect(state("adCostPerDeliveredUsd")).toBe("alt:value");
+    expect(state("totalAdUsd")).toBe("impossible:impossible");
+    expect(anyRealImpossible(real, more)).toBe(true);
+  });
+  it("realBothZero truth table", () => {
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 2)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, null)).toBe(true);
+    expect(realBothZero(true, { confirm: 0, delivery: 0 }, 0)).toBe(false);
+    expect(realBothZero(true, { confirm: 0, delivery: 0.5 }, 2)).toBe(false);
+    expect(realBothZero(false, { confirm: 0, delivery: 0 }, 2)).toBe(false);
+  });
+  it("NaN stock cost: rate-one totalCost null, cell missing", () => {
+    const run = computeScenario(settings, { stockCostDzd: Number.NaN, quantity: 100 }, { confirm: 1, delivery: 1, adCostUsd: 2 }, 9900, 9900);
+    expect(run.totalCost).toBeNull();
+    expect(realZeroRowMode({ confirm: 0.7, delivery: 0 }, rows[3], false, 2)).toBe("normal");
+    expect(breakEvenState(run, "minDelivery")).toBe("missing");
+  });
+  it("engine: d 0 keeps finalPrice; minDelivery same at d 1 and 0.0001, same for c", () => {
+    const at = (c: number, d: number) => computeScenario(settings, product, { confirm: c, delivery: d, adCostUsd: 2 }, 9900, 9900);
+    expect(at(0.7, 0).finalPrice).not.toBeNull();
+    expect(at(0.7, 1).breakEven.minDelivery).toBeCloseTo(at(0.7, 0.0001).breakEven.minDelivery ?? NaN, 10);
+    expect(at(1, 0.6).breakEven.minConfirmation).toBeCloseTo(at(0.0001, 0.6).breakEven.minConfirmation ?? NaN, 10);
+  });
+});
+
+describe("focus helpers", () => {
+  const form = { ...formFromSettings(PS), targetMode: "profit" as const, targetValue: 500 };
+  it("withTargetMode clears value on mode change", () => {
+    const next = withTargetMode(form, "markup");
+    expect(next.targetMode).toBe("markup");
+    expect(next.targetValue).toBeNull();
+    expect(next.values).toBe(form.values);
+  });
+  it("withTargetMode same mode keeps form", () => {
+    expect(withTargetMode(form, "profit")).toBe(form);
+  });
+  it("closeFocusTarget escape/cancel -> button", () => {
+    expect(closeFocusTarget({ didReset: false, btnDisabled: false })).toBe("button");
+  });
+  it("closeFocusTarget after reset or disabled -> firstField", () => {
+    expect(closeFocusTarget({ didReset: true, btnDisabled: false })).toBe("firstField");
+    expect(closeFocusTarget({ didReset: false, btnDisabled: true })).toBe("firstField");
+  });
+  it("radioTabIndex roving", () => {
+    expect(radioTabIndex(true)).toBe(0);
+    expect(radioTabIndex(false)).toBe(-1);
+  });
+  it("focusIdFor dotted key", () => {
+    expect(focusIdFor("pd", "adMultiplier.best")).toBe("pd-adMultiplier.best");
+    expect(focusIdFor("pd", "target")).toBe("pd-target");
+  });
+});
+
+describe("calculator", () => {
+  const draft: CalcDraft = { quantity: 100, form: formFromOverrides({}, PS), adBest: null, adMedium: 5, adWorst: null, finalPrice: 4000 };
+  const first: CalcApplied = nextApplied({ quantity: 100, overrides: {}, ads: { best: null, medium: null, worst: null }, finalPrice: null }, draft, PS);
+  it("calculator: invalid quantity keeps overrides applied", () => {
+    const form = { ...draft.form, values: { ...draft.form.values, packaging: 77 } };
+    const next = nextApplied(first, { ...draft, quantity: null, form, finalPrice: 4500 }, PS);
+    expect(next.quantity).toBe(100);
+    expect(next.finalPrice).toBe(4500);
+    expect(next.overrides.packaging).toBe(77);
+  });
+  it("calculator: invalid override or price freezes the table", () => {
+    const bad = { ...draft.form, values: { ...draft.form.values, packaging: -1 } };
+    expect(nextApplied(first, { ...draft, form: bad }, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, finalPrice: -5 }, PS)).toBe(first);
+  });
+  it("calculator: unchanged draft keeps identity; valid quantity applies", () => {
+    expect(nextApplied(first, draft, PS)).toBe(first);
+    expect(nextApplied(first, { ...draft, quantity: 50 }, PS).quantity).toBe(50);
+  });
+});
+
+describe("range messages", () => {
+  const def = (k: string) => PRICING_FIELDS.find((f) => f.key === k)!;
+  it("range hint shows display units", () => {
+    expect(rangeHint(def("confirmPct.best"))).toEqual({ kind: "gtUp", min: 0, max: 100 });
+    expect(rangeHint(def("platformPct"))).toEqual({ kind: "geLt", min: 0, max: 100 });
+    expect(rangeHint(def("officialRate"))).toEqual({ kind: "gt", min: 0 });
+    expect(rangeHint(def("packaging"))).toEqual({ kind: "ge", min: 0 });
+  });
+  it("NaN reads as not a number", () => {
+    expect(rangeMessageKey(Number.NaN)).toBe("notNumber");
+    expect(rangeMessageKey(5)).toBe("range");
+  });
+});
+
+describe("range hint kinds and fee warning", () => {
+  it("covers gtLt and geUp", () => {
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: true, maxExcl: true, pct: false } as never)).toMatchObject({ kind: "gtLt", min: 1, max: 10 });
+    expect(rangeHint({ ...PRICING_FIELDS[0], min: 1, max: 10, minExcl: false, maxExcl: false, pct: false } as never)).toMatchObject({ kind: "geUp", min: 1, max: 10 });
+  });
+  it("every kind has a message key in en and ar", () => {
+    const kinds = new Set(PRICING_FIELDS.map((f) => rangeHint(f).kind));
+    for (const k of ["gt", "ge", "gtUp", "geUp", "gtLt", "geLt"]) kinds.add(k as never);
+    for (const file of [en, ar]) {
+      const field = (file as { pricingV2: { field: Record<string, string> } }).pricingV2.field;
+      for (const k of kinds) expect(field[`range${k[0].toUpperCase()}${k.slice(1)}`]).toBeTruthy();
+    }
+  });
+  it("platform fee warns strictly above 50", () => {
+    expect(PLATFORM_PCT_WARN).toBe(50);
+    expect(50 > PLATFORM_PCT_WARN).toBe(false);
+    expect(50.01 > PLATFORM_PCT_WARN).toBe(true);
   });
 });

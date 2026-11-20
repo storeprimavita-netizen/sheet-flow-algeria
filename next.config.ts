@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+import { LEGACY_REDIRECTS } from "./src/lib/legacy-redirects";
+
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
@@ -11,6 +13,9 @@ const nextConfig: NextConfig = {
   },
   // No single root layout (app + store each own one): a neutral global 404.
   experimental: { globalNotFound: true },
+  async redirects() {
+    return LEGACY_REDIRECTS.map((r) => ({ ...r, permanent: true }));
+  },
   // Baseline hardening (OWASP A02). No CSP yet: next-intl + Next inline
   // scripts need nonces — ponytail: add a nonce CSP in proxy.ts if required.
   async headers() {

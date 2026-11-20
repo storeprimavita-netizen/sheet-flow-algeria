@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
+import { DASHBOARD_PERSIST_KEYS, pickParams } from "@/lib/query-string";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import type { StatusToken } from "@/lib/statuses";
@@ -34,7 +35,7 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
     if (restored.current) return;
     restored.current = true;
     if (sp.toString()) return; // explicit URL wins over the remembered one
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = pickParams(localStorage.getItem(STORAGE_KEY) ?? "", DASHBOARD_PERSIST_KEYS); // own keys only
     if (saved) router.replace(`${pathname}?${saved}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,8 +78,8 @@ export function DashboardFilterBar({ products }: { products: Opt[] }) {
   }
 
   return (
-    <div className="card-surface sticky top-0 z-10 w-full space-y-3 rounded-xl p-3 backdrop-blur sm:w-fit">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[16rem_14rem]">
+    <div className="card-surface z-10 w-full sm:sticky sm:top-0 space-y-3 rounded-xl p-3 backdrop-blur lg:w-fit">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,16rem)_minmax(0,14rem)]">
         <label className="space-y-1">
           <span className="text-xs font-medium text-muted-foreground">{t("dates.period")}</span>
           <DateRangePicker from={get("from")} to={get("to")} onChange={setDates} />

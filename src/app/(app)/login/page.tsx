@@ -36,7 +36,7 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.replace("/app/dashboard");
+    router.replace("/"); // the server picks the landing page by role
     router.refresh();
   }
 

@@ -6,6 +6,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 logdir=${TMPDIR:-/tmp}; logdir=${logdir%/}
+port=${APP_PORT:-3000}      # parallel workers set APP_PORT=3001, 3002…
 ok=0
 
 if ! docker info >/dev/null 2>&1; then
@@ -20,11 +21,11 @@ api && echo "UP    supabase  http://127.0.0.1:54321" || { echo "DOWN  supabase �
 [ -f .env.local ] && echo "OK    .env.local" || { echo "MISSING .env.local (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, APP_URL)"; ok=1; }
 
 if [ "${1:-}" != "--no-app" ] && [ $ok = 0 ]; then
-  app() { curl -s -m 5 -o /dev/null http://localhost:3000/login; }
+  app() { curl -s -m 5 -o /dev/null "http://localhost:$port/login"; }
   if ! app; then
-    nohup npm run dev >"$logdir/mnw-dev.log" 2>&1 &
+    nohup npm run dev -- -p "$port" >"$logdir/mnw-dev-$port.log" 2>&1 &
     for _ in $(seq 1 30); do sleep 2; app && break; done
   fi
-  app && echo "UP    app       http://localhost:3000  (admin@seed.mnw — docs/TESTING.md)" || { echo "DOWN  app — see $logdir/mnw-dev.log"; ok=1; }
+  app && echo "UP    app       http://localhost:$port  (admin@seed.mnw — docs/TESTING.md)" || { echo "DOWN  app — see $logdir/mnw-dev-$port.log"; ok=1; }
 fi
 exit $ok

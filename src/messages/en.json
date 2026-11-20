@@ -20,6 +20,7 @@
     "audit": "Audit log",
     "settingsOverview": "General",
     "toggleSidebar": "Toggle sidebar",
+    "menu": "Navigation menu",
     "home": "Home",
     "groupSell": "Sell",
     "groupCatalog": "Catalog",
@@ -30,11 +31,21 @@
     "groupSettings": "Settings",
     "shipping": "Shipping",
     "courierCash": "Courier cash",
-    "pricing": "Pricing calculator",
+    "pricing": "Pricing",
     "usersRoles": "Users & roles",
     "storeHub": "Store",
     "storePages": "Product pages",
-    "storeSettings": "Store settings"
+    "storeSettings": "Store settings",
+    "storeReviews": "Reviews",
+    "statistics": "Statistics",
+    "seasons": "Seasons",
+    "newRecord": "New",
+    "breadcrumb": "Breadcrumb",
+    "related": "Related",
+    "hubEmpty": "Nothing here for your role.",
+    "myDay": "My day",
+    "more": "More",
+    "bottomBar": "Mobile navigation"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -80,6 +91,7 @@
   },
   "common": {
     "signOut": "Sign out",
+    "signOutFailed": "Could not sign out. Check your connection and try again.",
     "soon": "soon",
     "noRole": "no role",
     "empty": "Nothing here yet.",
@@ -97,6 +109,7 @@
     "prev": "Previous",
     "next": "Next",
     "viewAll": "View all",
+    "deleteFailed": "Could not delete. Try again.",
     "deleteInUse": "Cannot delete: other records still use this item. Delete or reassign them first."
   },
   "actions": {
@@ -224,6 +237,10 @@
       "draft": "Draft",
       "live": "Live",
       "published": "Published"
+    },
+    "review_status": {
+      "approved": "Approved",
+      "hidden": "Hidden"
     }
   },
   "fields": {
@@ -286,6 +303,8 @@
     "date": "Date"
   },
   "products": {
+    "sizesSaveSeparately": "Options and sizes are saved separately, with the Save button in their own section.",
+    "sizesAfterFirstSave": "Add options and sizes after the first save.",
     "title": "Products",
     "subtitle": "Catalog, costs & status lifecycle",
     "new": "New product",
@@ -303,7 +322,8 @@
       "statistics": "Statistics",
       "pricing": "Pricing",
       "overview": "Overview",
-      "orders": "Orders"
+      "orders": "Orders",
+      "selling": "Selling"
     },
     "statistics": {
       "received": "Received",
@@ -377,7 +397,20 @@
       "stateUnknown": "unknown",
       "refresh": "Refresh status",
       "stopdeskGone": "This stop desk order cannot ship: stop desk is no longer available in this wilaya.",
-      "switchToHome": "Switch to home delivery"
+      "switchToHome": "Switch to home delivery",
+      "notSendable": {
+        "swapped": "Not sent: this order was swapped for another order.",
+        "status": "Not sent: this order is already past dispatch."
+      },
+      "switch": {
+        "needsWilaya": "Order needs a wilaya first.",
+        "status": "This order has already moved past the waiting stage, so its delivery type cannot change.",
+        "alreadyHome": "This order is already home delivery.",
+        "sent": "This order was already sent to ZR Express.",
+        "stopped": "Shipping to this wilaya is stopped.",
+        "unavailable": "Home delivery is not available in this wilaya.",
+        "failed": "Could not switch to home delivery. Refresh and try again."
+      }
     },
     "emptyHint": "No orders match these filters — widen the range or clear them.",
     "confirmationEmptyHint": "The confirmation queue is clear. New orders will land here.",
@@ -418,7 +451,9 @@
       "swappedTo": "Swapped to order {number}",
       "swappedFrom": "Swapped from order {number}",
       "confirm": "Swap this order? A new order will be created for the new customer with the same product.",
-      "failed": "The swap could not be created. Check the wilaya and try again."
+      "failed": "The swap could not be created. Check the wilaya and try again.",
+      "invalid": "The swap details are not valid. Check the name, phone and wilaya and try again.",
+      "wilayaRequired": "Choose a wilaya."
     },
     "call": "Call",
     "whatsapp": "WhatsApp",
@@ -432,6 +467,7 @@
     "sizeSaved": "Size updated",
     "sizeOldHint": "Typed before sizes existed",
     "chooseSize": "Choose a size",
+    "sizeLabel": "Size",
     "sizeTitle": "Size",
     "sizeFailed": "Could not change the size: {reason}",
     "form": {
@@ -448,6 +484,14 @@
       "saveBlocked": "Choose another wilaya or delivery type to save.",
       "createFailed": "The order could not be saved. Refresh the page and try again.",
       "invalid": "Check the order: choose a product and fill in every required field."
+    },
+    "drill": {
+      "received": "Received orders",
+      "confirmed": "Confirmed orders",
+      "delivered": "Delivered orders",
+      "return": "Returned orders",
+      "shipped": "Shipped orders",
+      "clear": "Show all orders"
     }
   },
   "expenses": {
@@ -457,54 +501,6 @@
     "edit": "Edit expense",
     "none": "No expenses yet.",
     "emptyHint": "Add an expense to track costs for this product."
-  },
-  "pricing": {
-    "title": "Pricing scenarios",
-    "subtitleGeneral": "COD unit-economics planner (best / medium / worst)",
-    "subtitleProduct": "COD unit-economics for this product (best / medium / worst)",
-    "autosave": "Edits save automatically.",
-    "real": "Real",
-    "profit": "Profit",
-    "loss": "Loss",
-    "netOrder": "Net profit / order",
-    "netDay": "Net profit / day",
-    "netMonth": "Net profit / month",
-    "confirmation_cost_da": "Confirmation cost (DA)",
-    "delivery_cost_da": "Delivery cost (DA)",
-    "confirmed_day": "Confirmed (day / mo)",
-    "delivered_day": "Delivered (day / mo)",
-    "returns_fee": "Returns fee / order",
-    "other_fee": "Other fee / order",
-    "cost_order": "Cost / order",
-    "scenario": {
-      "best": "Best",
-      "medium": "Medium",
-      "worst": "Worst"
-    },
-    "groups": {
-      "funnel": "Ad funnel",
-      "perOrder": "Per order",
-      "fixed": "Fixed costs"
-    },
-    "fields": {
-      "product_price": "Product price (COGS)",
-      "euro_price": "EUR → DA rate",
-      "lead_cost_eur": "Cost / lead (€)",
-      "confirmation_pct": "Confirmation %",
-      "delivery_pct": "Delivery %",
-      "delivery_price": "Delivery surcharge",
-      "confirmation_agent": "Confirmation agent",
-      "packaging_fees": "Packaging fees",
-      "sale_price": "Sale price",
-      "spend_eur_day": "Spend / day (€)",
-      "delivery_fee_da": "Delivery fee (DA)",
-      "flexy_month": "Flexy / month",
-      "location_day": "Rent + electricity / day",
-      "salary_month": "Salary / month"
-    },
-    "breakEven": "Break-even: needs ≥ {pct}% delivery rate to profit.",
-    "breakEvenNever": "Never profitable at these inputs.",
-    "incomplete": "Incomplete inputs"
   },
   "team": {
     "title": "Team & Rules",
@@ -550,6 +546,8 @@
     "action": "Action",
     "changes": "Changes",
     "auditNone": "No audit entries yet.",
+    "auditNoneHint": "Changes to settings and finance appear here.",
+    "auditNoMatch": "No entries match these filters.",
     "meeting": "Meeting",
     "attendeesNone": "No attendees yet.",
     "carriedOver": "Carried over",
@@ -566,6 +564,7 @@
   "cash": {
     "title": "Cash reconciliation",
     "subtitle": "Collect delivered cash, then bank it",
+    "tabCollections": "Collections",
     "record": "Record collection",
     "recordHint": "Log cash collected for each delivered order.",
     "noUncollected": "No delivered orders awaiting collection.",
@@ -645,6 +644,7 @@
     "countTitle": "Count by size",
     "countHint": "Type what is on the shelf for each size. Leave a size empty to keep it as it is. The product total does not change.",
     "countSubmit": "Save count",
+    "countNow": "Now: {n}",
     "countInput": "Count for {label}",
     "countSaved": "{n, plural, =0 {Nothing changed} one {1 size updated} other {# sizes updated}}",
     "countLeft": "Left in not assigned: {n}",
@@ -668,7 +668,8 @@
     "tabs": {
       "overview": "Overview",
       "users": "Users",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "seasons": "Seasons"
     },
     "usersSubtitle": "Invite teammates & manage roles",
     "auditSubtitle": "Who changed what, when",
@@ -765,11 +766,15 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "mergeInto": "Merge into…",
-      "mergeConfirm": "Merge \"{from}\" into \"{to}\"? Every record using \"{from}\" will be repointed, then it's deleted.",
+      "mergeConfirm": "Merge \"{from}\" into \"{to}\"? Every record using \"{from}\" will be repointed, then it's deleted. The merged option keeps the emoji of \"{to}\".",
       "archive": "Archive",
       "unarchive": "Unarchive",
       "archivedHint": "Archived option",
       "color": "Color",
+      "emoji": "Emoji",
+      "emojiPaste": "Paste one emoji",
+      "emojiClear": "Remove emoji",
+      "emojiInvalid": "Enter a single emoji.",
       "usageCount": "{count, plural, =0 {unused} one {# use} other {# uses}}",
       "sets": {
         "product_category": "Product category",
@@ -777,7 +782,8 @@
         "expense_subcategory": "Expense subcategory",
         "order_tag": "Tags",
         "cancellation_reason": "Cancellation reason"
-      }
+      },
+      "navTitle": "Options & labels"
     },
     "fees": {
       "noPrice": "No price",
@@ -800,14 +806,14 @@
       "button": "Import CSV",
       "title": "Import delivery prices",
       "description": "Upload the prices file. You will see what changes before anything is saved.",
-      "formatHint": "CSV with one row per wilaya (Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates), then one row per commune. UTF-8, up to 1 MB.",
+      "formatHint": "CSV with one row per wilaya <cols>(Country_code, Region, City, Area, Rate_or_extra, Cost, Custom_rates)</cols>, then one row per commune. UTF-8, up to 1 MB.",
       "choose": "Choose a file",
       "chosen": "File: {name}",
       "parsing": "Reading the file",
       "emptyTitle": "Nothing to import",
       "invalid": "This file cannot be imported",
       "retry": "Try again",
-      "summary": "{changed} changed / {unchanged} unchanged / {warnings} warnings",
+      "summary": "{changed} changed / {unchanged} unchanged / {warnings, plural, one {# warning} other {# warnings}}",
       "filterAll": "All",
       "filterChanged": "Changed only",
       "filterWarnings": "Warnings",
@@ -817,6 +823,10 @@
       "close": "Close",
       "applyFailed": "Could not apply the prices",
       "success": "{count, plural, =0 {No prices changed} one {# wilaya price updated} other {# wilaya prices updated}}",
+      "successCommunes": "{count, plural, one {Communes updated in # wilaya} other {Communes updated in # wilayas}}",
+      "communesAdded": "Communes added:",
+      "communesRemoved": "Communes removed:",
+      "moreNames": "+{count} more",
       "colWilaya": "Wilaya",
       "colHome": "Home",
       "colDesk": "Stop desk",
@@ -842,7 +852,66 @@
       "tooLarge": "The file is larger than 1 MB.",
       "chooseFile": "Choose file",
       "noFile": "No file chosen"
+    },
+    "seasons": {
+      "purpose": "Name the periods that matter to your sales (Ramadan, Eid, back to school) and set their dates for each year. Statistics uses them to compare the same season year over year.",
+      "loadError": "Couldn't load the seasons.",
+      "addSeason": "New season",
+      "namePlaceholder": "e.g. Black Friday",
+      "add": "Add season",
+      "name": "Season name",
+      "rename": "Rename",
+      "deleteSeasonLabel": "Delete season {name}",
+      "deleteSeasonConfirm": "Delete {name} and all its dates? This cannot be undone.",
+      "deletePeriodLabel": "Delete {year} dates of {name}",
+      "noDates": "No dates yet",
+      "addDates": "Add dates",
+      "addPeriod": "Add a year",
+      "editPeriod": "Edit dates",
+      "dateFrom": "First day",
+      "dateTo": "Last day",
+      "yearRule": "The year is the year of the first day. One period per year.",
+      "empty": "No seasons yet. Add the first one above.",
+      "err": {
+        "errForbidden": "Only an admin can change seasons.",
+        "errName": "Enter a name (80 characters at most).",
+        "errDuplicateName": "A season with this name already exists.",
+        "errDates": "Enter valid first and last days.",
+        "errRange": "The last day must be on or after the first day.",
+        "errDuplicateYear": "This season already has dates for that year. Edit them instead.",
+        "errDuplicate": "This already exists.",
+        "errMissing": "That season no longer exists. Reload the page.",
+        "errGeneric": "Could not save. Try again."
+      }
+    },
+    "statusLabels": {
+      "title": "System status labels",
+      "subtitle": "Rename how a status reads for your team, per language. Keys, colors and workflow stay the same; leave a field empty to keep the default.",
+      "en": "English",
+      "ar": "Arabic",
+      "saved": "Label saved.",
+      "resetDone": "Label reset.",
+      "reset": "Reset to default",
+      "invalid": "Labels need 1 to 40 characters and no control characters.",
+      "failed": "Could not save the label. Try again.",
+      "loadError": "Could not load the labels: {reason}",
+      "kinds": {
+        "confirmation": "Confirmation",
+        "delivery": "Delivery",
+        "product": "Product",
+        "task": "Task",
+        "stock": "Stock",
+        "store": "Store",
+        "review": "Reviews"
+      }
     }
+  },
+  "noAccess": {
+    "title": "No access yet",
+    "body": "Your account isn't active in a workspace. It may be new or deactivated.",
+    "hint": "Ask an admin, then try again.",
+    "retry": "Try again",
+    "account": "Signed in as"
   },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",
@@ -914,8 +983,8 @@
       "retry": "Retry",
       "needsAction": {
         "title": "Needs action",
-        "toConfirm": "To confirm",
-        "toConfirmHint": "Orders waiting for a confirmation call.",
+        "toConfirm": "Waiting for first call",
+        "toConfirmHint": "Waiting for the first call only. The Confirmation badge also counts no answer and closed phone.",
         "toShip": "To ship",
         "toShipHint": "Confirmed but not yet deposited at the courier.",
         "toRetry": "To retry",
@@ -1073,16 +1142,64 @@
     "nextMonth": "Next month",
     "period": "Period"
   },
+  "pricingPortfolio": {
+    "title": "Pricing",
+    "subtitle": "Every product at a glance: price, profit and capital in the best, medium or worst case.",
+    "dzd": "DA",
+    "scenario": {
+      "label": "Scenario",
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
+    "export": "Export CSV",
+    "table": "Pricing by product",
+    "totals": "Total",
+    "columns": {
+      "name": "Product",
+      "stock": "Stock",
+      "stockCost": "Stock cost",
+      "adCostUsd": "Ad cost / order (USD)",
+      "recommendedPrice": "Recommended price",
+      "salePrice": "Sale price",
+      "profitPerPiece": "Profit / piece",
+      "netProfit": "Net profit",
+      "margin": "Margin",
+      "totalAdUsd": "Total ads (USD)",
+      "totalAdDzd": "Total ads (DA)",
+      "capital": "Capital (stock + ads)",
+      "minPrice": "Break-even price"
+    },
+    "cards": {
+      "stockCost": "Total stock cost",
+      "adSpend": "Total ad spend",
+      "netProfit": "Combined net profit",
+      "capital": "Capital needed",
+      "margin": "Blended margin"
+    },
+    "capitalHint": "stock + ads",
+    "partialWarning": "Only the first 1,000 products are shown, so the totals are partial.",
+    "notIncluded": "{count, plural, one {# product is} other {# products are}} not included in the totals: stock cost, stock or ad cost is missing.",
+    "missing": "Missing cost, stock or ad cost",
+    "belowBreakEven": "Below break-even",
+    "emptyTitle": "No products yet",
+    "emptyBody": "Add a product to see its pricing here.",
+    "emptyAction": "Add a product",
+    "errorTitle": "The pricing could not load",
+    "error": "Products, costs or pricing could not be read. Try again in a moment."
+  },
   "pricingV2": {
     "title": "Pricing",
     "scenario": {
       "best": "Best",
       "medium": "Medium",
-      "worst": "Worst"
+      "worst": "Worst",
+      "real": "Real"
     },
     "missing": "Missing input",
     "notPossible": "Not possible",
     "notPossibleHint": "The price cannot cover the costs at any value of this input.",
+    "realBothZeroHint": "No orders were confirmed or delivered yet, so Real break-even cannot be computed",
     "da": "DA",
     "groups": {
       "target": "Profit target",
@@ -1147,7 +1264,15 @@
       "overridden": "Overridden",
       "reset": "Reset {field} to the default",
       "required": "Required.",
-      "range": "Value out of range."
+      "range": "Value out of range.",
+      "notNumber": "Not a number.",
+      "rangeGt": "Enter a value above {min}.",
+      "rangeGe": "Enter a value of {min} or more.",
+      "rangeGtUp": "Enter a value above {min}, up to {max}.",
+      "rangeGeUp": "Enter a value from {min} to {max}.",
+      "rangeGtLt": "Enter a value above {min} and below {max}.",
+      "rangeGeLt": "Enter a value from {min} up to (not including) {max}.",
+      "feeHigh": "This fee is above {limit}. Check it is a percent. It still saves."
     },
     "settings": {
       "intro": "Defaults for every product. Each product can override any of them in its Pricing tab.",
@@ -1194,9 +1319,14 @@
       "table": "Pricing results by scenario",
       "quantityInvalid": "Enter a whole number from 0 to 1,000,000.",
       "adInvalid": "Enter an amount from 0 with at most 2 decimals.",
-      "priceInvalid": "Enter an amount above 0 with at most 2 decimals."
+      "priceInvalid": "Enter an amount above 0 with at most 2 decimals.",
+      "saleBelowBreakEven": "Sale price below break-even ({value})"
     },
     "rows": {
+      "groupInputs": "Rates and ad cost",
+      "confirmation": "Confirmation rate",
+      "delivery": "Delivery rate",
+      "adCostUsd": "Ad cost / order (USD)",
       "groupAds": "Ads",
       "groupCost": "Cost",
       "groupPrice": "Price",
@@ -1220,6 +1350,13 @@
       "dzd": "DA",
       "usd": "USD",
       "times": "×"
+    },
+    "real": {
+      "noData": "No orders yet",
+      "preliminary": "Preliminary",
+      "preliminaryHint": "Few decided orders or many still in flight: these figures can still move.",
+      "adCostHint": "Real ad spend ÷ orders received, converted at the calculator's rate ({rate} DA per $). Finance converts at its own rate, so its dollar figure can differ.",
+      "below": "below break-even"
     }
   },
   "errorPage": {
@@ -1230,9 +1367,41 @@
   },
   "audit": {
     "redactedPill": "Redacted",
-    "redacted": "Secret value hidden; the code identifies the value without revealing it"
+    "redacted": "Secret value hidden; the code identifies the value without revealing it",
+    "redactedAria": "Redacted value, code {fp}",
+    "errorReason": "The audit log could not be read. Check the filters in the address bar, then try again.",
+    "emptyKey": "(empty key)",
+    "tables": {
+      "account_topups": "Account top-ups",
+      "accounts": "Accounts",
+      "cash_collections": "Cash collections",
+      "exchange_rates": "Exchange rates",
+      "expenses": "Expenses",
+      "fixed_fees": "Fixed fees",
+      "integration_configs": "Integrations",
+      "option_sets": "Option sets",
+      "options": "Options",
+      "product_costs": "Product costs",
+      "product_option_values": "Product option values",
+      "product_forms": "Order forms",
+      "product_offers": "Offers",
+      "product_options": "Product options",
+      "product_pricing": "Product pricing",
+      "reviews": "Reviews",
+      "season_periods": "Season periods",
+      "seasons": "Seasons",
+      "settings": "Settings",
+      "store_pages": "Store pages",
+      "status_label_overrides": "Status labels",
+      "stores": "Stores",
+      "wilaya_fees": "Wilaya fees",
+      "zr_shipments": "ZR shipments"
+    }
   },
   "variants": {
+    "valuePlaceholder": "Value",
+    "optionFallback": "Option {n}",
+    "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",
     "hint": "Options (for example Size, Color) and their values. Each combination is a size you can count and sell.",
     "empty": "No options yet. Add an option such as Size to track stock per size.",
@@ -1240,10 +1409,14 @@
     "removeOption": "Remove option {name}",
     "moveOptionUp": "Move option {name} up",
     "moveOptionDown": "Move option {name} down",
+    "removeOptionUnnamed": "Remove {name}",
+    "moveOptionUpUnnamed": "Move {name} up",
+    "moveOptionDownUnnamed": "Move {name} down",
     "optionName": "Option name",
     "valueLabel": "Value",
     "addValue": "Add value to {name}",
     "removeValue": "Remove value {label}",
+    "removeValueUnnamed": "Remove {label}",
     "moveValueEarlier": "Move {label} earlier",
     "moveValueLater": "Move {label} later",
     "optionsLocked": "Options cannot be added or removed once sizes exist. You can still add or rename values.",
@@ -1287,6 +1460,30 @@
     "outOfStock": "Out of stock",
     "related": "You may also like",
     "noPhoto": "No photo",
+    "sizeguide": {
+      "title": "Size guide",
+      "region": "Size table, scrollable",
+      "size": "Size",
+      "fits": "Fits",
+      "shoulders": "Shoulders (cm)",
+      "chest": "Chest (cm)",
+      "waist": "Waist (cm)",
+      "weight": "Weight (kg)"
+    },
+    "reviews": {
+      "title": "Customer reviews",
+      "stars": "{n} out of 5 stars",
+      "ratingLink": "See reviews",
+      "verified": "Order confirmed",
+      "anonymous": "Customer",
+      "more": "Show more reviews ({n})",
+      "countZero": "{n} reviews",
+      "countOne": "1 review",
+      "countTwo": "{n} reviews",
+      "countFew": "{n} reviews",
+      "countMany": "{n} reviews",
+      "countOther": "{n} reviews"
+    },
     "galleryAlt": "Photo {n} of {total}",
     "defaultTitle": "Store",
     "notFound": {
@@ -1300,7 +1497,6 @@
     },
     "loading": "Loading",
     "admin": {
-      "breadcrumbRoot": "Store",
       "hub": {
         "title": "Store",
         "purpose": "Your public store: create it, build product pages and publish them.",
@@ -1321,6 +1517,58 @@
         "slugTaken": "This address is taken or reserved.",
         "invalid": "Check the name and the address.",
         "failed": "Could not save. Try again."
+      },
+      "reviews": {
+        "title": "Reviews",
+        "purpose": "Record real customer reviews and approve the ones to show on a product page. Customers cannot post reviews themselves.",
+        "newTitle": "Add a review",
+        "fieldProduct": "Product",
+        "pickProduct": "Choose a product",
+        "searchProduct": "Search products",
+        "noProductsFound": "No product found",
+        "fieldName": "Customer name",
+        "nameHint": "shown as first name + initial",
+        "fieldRating": "Rating",
+        "ratingOption": "{n} out of 5",
+        "fieldBody": "Review",
+        "fieldOrder": "Order #",
+        "orderHint": "optional, marks the review as order confirmed",
+        "agreed": "The customer agreed to have this review shown",
+        "add": "Add review",
+        "added": "Review added. It stays hidden until approved.",
+        "counter": "{n} / {max}",
+        "errInvalid": "Check the fields: rating 1 to 5, a name, a review and the customer's agreement.",
+        "errFailed": "Could not save. Try again.",
+        "errOrderNotFound": "No order with this number.",
+        "errOrderNotVerifiable": "This order is for another product, is not confirmed, or is excluded.",
+        "filterProduct": "Product",
+        "allProducts": "All products",
+        "filterStatus": "Status",
+        "all": "All",
+        "approved": "Approved",
+        "hidden": "Hidden",
+        "colReview": "Review",
+        "colProduct": "Product",
+        "colOrder": "Order",
+        "colStatus": "Status",
+        "approveLabel": "Approved: {name}",
+        "nowApproved": "Review approved",
+        "nowHidden": "Review hidden",
+        "delete": "Delete",
+        "deleteLabel": "Delete the review by {name}",
+        "deleteConfirm": "Delete this review for good?",
+        "deleted": "Review deleted",
+        "rated": "{n} out of 5",
+        "orderLink": "Order #{n}",
+        "noOrder": "No order",
+        "capped": "Showing the latest {n} reviews. Filter by product to narrow down.",
+        "anonymous": "Customer",
+        "emptyNone": "No review yet. Add the first one above.",
+        "emptyNoMatch": "No review matches these filters.",
+        "clear": "Clear filters",
+        "noPage": "No store page",
+        "emptyNoPages": "Create a product page first, reviews belong to a product.",
+        "goPages": "Go to product pages"
       },
       "pages": {
         "title": "Product pages",
@@ -1346,6 +1594,29 @@
         "open": "Edit"
       },
       "editor": {
+        "typeSizeguide": "Size guide",
+        "typeReviews": "Reviews",
+        "addSizeguide": "Add size guide",
+        "addReviews": "Add reviews",
+        "onlyOne": "Only one per page",
+        "sgTitle": "Table title",
+        "sgNote": "Note under the table",
+        "sgRow": "Row {n}",
+        "sgUp": "Move size row {n} up",
+        "sgDown": "Move size row {n} down",
+        "sgRemove": "Remove size row {n}",
+        "sgRemoved": "Row {n} removed",
+        "sgMoved": "Row moved to position {n}",
+        "sgSize": "Size",
+        "sg_fits": "Fits",
+        "sg_shoulders": "Shoulders (cm)",
+        "sg_chest": "Chest (cm)",
+        "sg_waist": "Waist (cm)",
+        "sg_weight": "Weight (kg)",
+        "sgAddRow": "Add a size row",
+        "sgMax": "Up to 12 rows.",
+        "reviewsHint": "Shows the approved reviews of this product, and a rating line under the title. Nothing shows until a review is approved.",
+        "reviewsLink": "Manage reviews",
         "title": "Edit page",
         "purpose": "Arrange the text blocks under the product. The photos, price and order form are fixed.",
         "lockedGallery": "Photos (from the product)",
@@ -1399,6 +1670,7 @@
         "errInvalid": "Some fields are not valid.",
         "errSlugTaken": "This address is already used.",
         "errNeedsProduct": "A published page needs a product.",
+        "unlinkLocked": "Unpublish the page to change its product.",
         "errProductTaken": "This product already has a page.",
         "errFailed": "Could not save. Try again.",
         "published": "Published",
@@ -1427,13 +1699,180 @@
         "saved": "Settings saved",
         "publicNote": "These details are public. Never enter a password or key."
       },
-      "loading": "Loading store"
+      "loading": "Loading store",
+      "selling": {
+        "title": "Selling",
+        "purpose": "How this product is priced, the quantity offers and bump, and the order-form fields.",
+        "viewOnStore": "View on store",
+        "viewOnStoreNone": "Publish a page for this product to view it on the store.",
+        "errorTitle": "The Selling tab could not load",
+        "save": "Save",
+        "saving": "Saving",
+        "saved": "Saved",
+        "unsaved": "Unsaved changes",
+        "retry": "Retry",
+        "errors": {
+          "invalid": "Check the values and try again.",
+          "notFound": "This product was not found.",
+          "forbidden": "Only an admin can change this.",
+          "bump": "This bump product cannot be used: it must be active, priced, and have no sizes.",
+          "failed": "Could not save. Try again."
+        },
+        "pricing": {
+          "title": "Pricing",
+          "base": "Base price {price} (set in Details).",
+          "noBase": "Set a sale price in Details first.",
+          "modeLabel": "Pricing mode",
+          "mode": {
+            "uniform": "Same price",
+            "per_value": "By option value",
+            "per_variant": "Per size"
+          },
+          "modeHint": {
+            "uniform": "Every size costs the base price.",
+            "per_value": "Each option value adds or removes an amount from the base price (for example XL +300).",
+            "per_variant": "Set a price for individual sizes. A size left empty uses the base price."
+          },
+          "noSizes": "Add options and sizes in Details (Stock tab) to price sizes differently.",
+          "confirmDiscard": "Switching mode discards the amounts you entered for the current mode. Continue?",
+          "compareAt": "Crossed-out price",
+          "compareHint": "Shown only when higher than the price the visitor pays.",
+          "colSize": "Size",
+          "colOverride": "Price",
+          "colCompare": "Crossed-out price",
+          "colPrice": "Visitor pays",
+          "overrideFor": "Price for {label}",
+          "compareOverrideFor": "Crossed-out price for {label}",
+          "deltaFor": "Price change for {label}",
+          "notSellable": "Not sellable (price is 0 or less)"
+        },
+        "offers": {
+          "title": "Quantity offers and bump",
+          "hint": "A quantity offer is a fixed total for a number of pieces. Delivery is added at checkout.",
+          "empty": "No offer yet. Add one to sell more pieces per order.",
+          "add": "Add offer",
+          "max": "Up to {n} offers",
+          "label": "Offer name",
+          "qty": "Pieces",
+          "total": "Total price",
+          "from": "Starts",
+          "to": "Ends",
+          "default": "Preselected",
+          "active": "Active",
+          "unnamed": "Offer {n}",
+          "moveUp": "Move {name} up",
+          "moveDown": "Move {name} down",
+          "remove": "Remove {name}",
+          "removeConfirm": "Remove \"{name}\"?",
+          "saves": "Saves {n} against buying the pieces one by one.",
+          "savesNothing": "Saves nothing at the base price: the store hides this offer.",
+          "incomplete": "Every offer needs a name, pieces and a total price.",
+          "bumpIncomplete": "The bump needs a product, a name and a price.",
+          "bumpTitle": "Bump",
+          "bumpHint": "One extra product offered next to the order button, at its own price.",
+          "bumpNoCandidates": "No other active, priced product without sizes is available.",
+          "bumpProduct": "Bump product",
+          "bumpNone": "No bump",
+          "bumpLabel": "Shown as",
+          "bumpPrice": "Bump price"
+        },
+        "form": {
+          "title": "Order form",
+          "hint": "The fields a visitor fills in. Name, phone, wilaya, commune and delivery are always required.",
+          "builtin": {
+            "name": "Full name",
+            "phone": "Phone",
+            "wilaya": "Wilaya",
+            "commune": "Commune",
+            "delivery": "Delivery method",
+            "note": "Note",
+            "email": "Email"
+          },
+          "labelFor": "Label for {name}",
+          "defaultLabel": "Default label (Arabic)",
+          "alwaysRequired": "Always required",
+          "enabled": "Shown",
+          "required": "Required",
+          "customTitle": "Extra fields",
+          "customEmpty": "No extra field.",
+          "customLabel": "Label (shown in Arabic)",
+          "customType": "Type",
+          "typeText": "Text",
+          "typeSelect": "Choice",
+          "options": "Choices, one per line (2 to 10)",
+          "addCustom": "Add field",
+          "maxCustom": "Up to {n} extra fields",
+          "removeField": "Remove field {name}",
+          "incomplete": "Every extra field needs a label, and a choice field needs at least two choices.",
+          "invalid": "A label has HTML, an emoji, or is too long.",
+          "deliveryTitle": "Delivery methods",
+          "delivery": {
+            "home": "Home delivery",
+            "stopdesk": "Stop desk pickup"
+          },
+          "deliveryHint": "At least one method stays on. Delivery prices are added when orders open."
+        },
+        "preview": {
+          "label": "Preview, not live",
+          "note": "Orders are not sent from this preview.",
+          "narrow": "Phone width (390)",
+          "wide": "Full width"
+        }
+      }
+    },
+    "order": {
+      "title": "Order now",
+      "lead": "Fill in your details and we will call you to confirm the order.",
+      "soonTitle": "Orders open soon",
+      "soonBody": "We are getting the order form ready. Come back shortly or contact us on WhatsApp.",
+      "soldOutTitle": "Sold out",
+      "soldOutBody": "Every size is out of stock for now. Come back soon.",
+      "sizeLabel": "Size",
+      "chooseSize": "Choose a size",
+      "offersTitle": "Choose a quantity",
+      "offersInfoTitle": "Quantity offers",
+      "single": "One piece",
+      "offerSave": "Save {n}",
+      "piece": "Piece {n}",
+      "sameSize": "Same size for all pieces",
+      "startingFrom": "From {price}",
+      "savePct": "Save {pct}%",
+      "fields": {
+        "name": "Full name",
+        "phone": "Phone number",
+        "wilaya": "Wilaya",
+        "commune": "Commune",
+        "delivery": "Delivery method",
+        "note": "Note",
+        "email": "Email",
+        "chooseWilaya": "Choose your wilaya",
+        "home": "To your home",
+        "stopdesk": "To a delivery desk (Stop desk)",
+        "optional": "optional",
+        "choose": "Choose"
+      },
+      "errors": {
+        "required": "This field is required.",
+        "phone": "The phone number must start with 05, 06 or 07 and have 10 digits.",
+        "email": "The email address is not valid.",
+        "size": "Choose a size.",
+        "delivery": "Choose a delivery method."
+      },
+      "summary": {
+        "product": "Product price",
+        "saving": "Saving",
+        "total": "Total",
+        "deliveryNote": "The delivery price is added when the order is confirmed."
+      },
+      "bumpAdd": "Add {name}",
+      "submit": "Order now",
+      "cod": "Cash on delivery"
     }
   },
   "notFoundPage": {
     "title": "Page not found",
     "body": "This page doesn't exist, or you don't have access to it.",
-    "back": "Back to the dashboard"
+    "back": "Back to your home page"
   },
   "orderViews": {
     "views": "Views",
@@ -1479,5 +1918,183 @@
       "notFound": "This view no longer exists or is not yours to change.",
       "failed": "Something went wrong. Try again."
     }
+  },
+  "statistics": {
+    "title": "Statistics",
+    "subtitle": "Confirmation, delivery and return rates by wilaya and commune. Open a wilaya to see its communes; every count opens the orders behind it.",
+    "received": "Received",
+    "confirmation": "Confirmation",
+    "delivery": "Delivery",
+    "returnRate": "Return",
+    "notEnoughData": "Not enough data yet",
+    "expand": "Show communes of {name}",
+    "collapse": "Hide communes of {name}",
+    "commune": "Commune",
+    "unknownCommune": "Unknown commune",
+    "noCommunes": "No orders in this wilaya for the selected filters.",
+    "avgDays": "Avg days to deliver",
+    "sample": "{n} delivered",
+    "home": "Home",
+    "stopdesk": "Stop desk",
+    "communeError": "Couldn't load the communes.",
+    "retry": "Try again",
+    "errorTitle": "Statistics couldn't load",
+    "emptyTitle": "No orders match these filters",
+    "emptyBody": "Clear the filters to see wilaya rates.",
+    "unknownWilaya": "Unknown wilaya",
+    "allOrders": "Open all orders",
+    "errorBody": "Could not load wilaya figures. Your data is safe: try again, and if it keeps failing, check your connection.",
+    "loadError": "Couldn't load the statistics.",
+    "clearFilters": "Clear filters",
+    "filters": {
+      "season": "Season",
+      "year": "Year",
+      "latestYear": "Latest year",
+      "yearNeedsSeason": "Choose a season first.",
+      "more": "More filters ({n})",
+      "noCategories": "No product categories yet.",
+      "deliveryType": "Delivery type",
+      "overridden": "overridden",
+      "overriddenNote": "The dates in the period filter override the season.",
+      "invalidSeason": "That season no longer exists, so it was ignored.",
+      "invalidYear": "That year has no dates for this season, so the latest year is shown.",
+      "noPeriods": "This season has no dates yet. Add them in Settings > Seasons.",
+      "remove": "Remove filter: {name}",
+      "dropped": "The {name} filter was ignored: that value is not available.",
+      "seasonsError": "Couldn't load the seasons. Try again.",
+      "active": "Active filters"
+    },
+    "compare": {
+      "title": "{name} across years",
+      "noPeriods": "{name} has no dates yet.",
+      "openSettings": "Add dates in Settings > Seasons",
+      "inProgress": "In progress",
+      "selected": "Selected",
+      "yearError": "Couldn't load {year}.",
+      "noOrders": "No orders",
+      "more": "Showing the latest {shown} of {total} years."
+    }
+  },
+  "seasons": {
+    "names": {
+      "ramadan": "Ramadan",
+      "eid_al_fitr": "Eid al-Fitr",
+      "eid_al_adha": "Eid al-Adha",
+      "summer": "Summer",
+      "back_to_school": "Back to school",
+      "winter": "Winter"
+    }
+  },
+  "navPurpose": {
+    "home": "Today at a glance: orders, revenue and what needs attention.",
+    "confirmation": "Call new orders and confirm or cancel them.",
+    "shipping": "Hand confirmed orders to couriers and follow delivery.",
+    "all": "Every order, with filters, search and history.",
+    "customers": "Your customers and their order history.",
+    "statistics": "Orders and results by wilaya.",
+    "products": "Your products, variants and costs.",
+    "stock": "What is on the shelf and what is running low.",
+    "pricing": "Work out prices and margins before you sell.",
+    "storeHub": "Your online store at a glance.",
+    "storePages": "Product landing pages customers order from.",
+    "storeReviews": "Approve and reply to customer reviews.",
+    "storeSettings": "Store name, branding and checkout options.",
+    "financeOverview": "Revenue, costs and profit in one view.",
+    "accounts": "Cash, bank and wallet balances.",
+    "expenses": "Record and review business expenses.",
+    "adSpend": "Daily advertising spend per platform.",
+    "courierCash": "Cash couriers collected and still owe you.",
+    "income": "Money received outside of orders.",
+    "suppliers": "The suppliers you buy from.",
+    "tasks": "Work to do, by status.",
+    "meetings": "Meeting notes and decisions.",
+    "rules": "How the team works, written down.",
+    "performance": "How each team member is doing.",
+    "settingsOverview": "Workspace-wide preferences.",
+    "usersRoles": "Invite people and set what they can do.",
+    "seasons": "Seasons used to group products and results.",
+    "audit": "Who changed what, and when.",
+    "groupSell": "Take orders from first call to delivery.",
+    "groupCatalog": "Products, stock and pricing.",
+    "groupStore": "Your public storefront.",
+    "groupMoney": "Income, costs and cash.",
+    "groupTeam": "Tasks, meetings and performance.",
+    "groupSettings": "Workspace, people and logs.",
+    "myDay": "Your queue, tasks and next meeting."
+  },
+  "navSubtitle": {
+    "productsNew": "Add a product, then set its variants and costs.",
+    "supplierNew": "Add a supplier you buy from.",
+    "orderNew": "Create an order by hand.",
+    "orderNotFound": "Every order, with filters, search and history."
+  },
+  "myDay": {
+    "title": "My day",
+    "subtitle": "Your queue, your open tasks and the next meeting.",
+    "queueConfirmation": "Orders waiting for confirmation",
+    "queueDelivery": "Team queue: orders to deliver",
+    "openQueue": "Open queue",
+    "numbers": "My numbers today",
+    "numbersHelp": "Only orders assigned to you.",
+    "stat": {
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "callAgain": "To call again",
+      "handled": "Handled",
+      "delivered": "Delivered",
+      "returned": "Returned"
+    },
+    "tasks": "My open tasks",
+    "tasksEmpty": "No open tasks.",
+    "nextMeeting": "Next meeting",
+    "meetingEmpty": "No meeting scheduled."
+  },
+  "pricing": {
+    "title": "Pricing scenarios",
+    "subtitleGeneral": "COD unit-economics planner (best / medium / worst)",
+    "subtitleProduct": "COD unit-economics for this product (best / medium / worst)",
+    "autosave": "Edits save automatically.",
+    "real": "Real",
+    "profit": "Profit",
+    "loss": "Loss",
+    "netOrder": "Net profit / order",
+    "netDay": "Net profit / day",
+    "netMonth": "Net profit / month",
+    "confirmation_cost_da": "Confirmation cost (DA)",
+    "delivery_cost_da": "Delivery cost (DA)",
+    "confirmed_day": "Confirmed (day / mo)",
+    "delivered_day": "Delivered (day / mo)",
+    "returns_fee": "Returns fee / order",
+    "other_fee": "Other fee / order",
+    "cost_order": "Cost / order",
+    "scenario": {
+      "best": "Best",
+      "medium": "Medium",
+      "worst": "Worst"
+    },
+    "groups": {
+      "funnel": "Ad funnel",
+      "perOrder": "Per order",
+      "fixed": "Fixed costs"
+    },
+    "fields": {
+      "product_price": "Product price (COGS)",
+      "euro_price": "EUR → DA rate",
+      "lead_cost_eur": "Cost / lead (€)",
+      "confirmation_pct": "Confirmation %",
+      "delivery_pct": "Delivery %",
+      "delivery_price": "Delivery surcharge",
+      "confirmation_agent": "Confirmation agent",
+      "packaging_fees": "Packaging fees",
+      "sale_price": "Sale price",
+      "spend_eur_day": "Spend / day (€)",
+      "delivery_fee_da": "Delivery fee (DA)",
+      "flexy_month": "Flexy / month",
+      "location_day": "Rent + electricity / day",
+      "salary_month": "Salary / month"
+    },
+    "breakEven": "Break-even: needs ≥ {pct}% delivery rate to profit.",
+    "breakEvenNever": "Never profitable at these inputs.",
+    "incomplete": "Incomplete inputs"
   }
 }

@@ -23,6 +23,7 @@ import { CHIP_TOKENS, type StatusToken } from "@/lib/statuses";
 import { ColorDot } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmojiField } from "@/components/fields/emoji-field";
 import { Combobox } from "@/components/ui/combobox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -38,6 +39,7 @@ import {
   recolorOption,
   moveOption,
   setOptionArchived,
+  setOptionEmoji,
   mergeOption,
   deleteOption,
   type ActionResult,
@@ -260,6 +262,7 @@ function OptionRowItem({
           <ArrowDown className="h-3 w-3" />
         </button>
       </div>
+      <EmojiField value={option.emoji} disabled={busy} onPick={(e) => run(() => setOptionEmoji(option.id, e))} />
       <ColorPicker token={option.color_token} onPick={(tok) => run(() => recolorOption(option.id, tok))} />
       <span
         title={option.archived_at ? t("settings.options.archivedHint") : undefined}
