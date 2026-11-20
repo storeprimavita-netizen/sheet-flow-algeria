@@ -428,7 +428,8 @@
       "swappedTo": "Swapped to order {number}",
       "swappedFrom": "Swapped from order {number}",
       "confirm": "Swap this order? A new order will be created for the new customer with the same product.",
-      "failed": "The swap could not be created. Check the wilaya and try again."
+      "failed": "The swap could not be created. Check the wilaya and try again.",
+      "invalid": "The swap details are not valid. Check the wilaya code and try again."
     },
     "call": "Call",
     "whatsapp": "WhatsApp",

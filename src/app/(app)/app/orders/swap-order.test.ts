@@ -69,4 +69,24 @@ describe("swapOrder", () => {
     for (const c of isFn.mock.calls) expect(c).toEqual(["customer_id", null]);
     expect(updateFn).toHaveBeenCalledTimes(2);
   });
+
+  test("swapOrder returns {error} for a non-numeric wilaya_code", async () => {
+    const f = form();
+    f.set("wilaya_code", "Chlef");
+    await expect(swapOrder(A, f)).resolves.toEqual({ error: "swap.invalid" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  test("swapOrder refused for a stopped wilaya gives the stopped reason", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "delivery type home is not available in this wilaya" } });
+    const maybeSingle = vi.fn().mockResolvedValue({ data: { stop_shipping: true } });
+    const q: Record<string, unknown> = {};
+    q.select = () => q;
+    q.eq = () => q;
+    q.maybeSingle = maybeSingle;
+    from.mockReturnValue(q);
+    await expect(swapOrder(A, form())).resolves.toEqual({ error: "form.blocked.stopped" });
+    maybeSingle.mockResolvedValue({ data: { stop_shipping: false } });
+    await expect(swapOrder(A, form())).resolves.toEqual({ error: "form.blocked.type_unavailable" });
+  });
 });

@@ -503,13 +503,15 @@ const swapOrderSchema = z.object({
 export async function swapOrder(orderId: string, formData: FormData): Promise<{ error: string } | undefined> {
   const { workspaceId } = await adminProfile();
   const id = z.string().uuid().parse(orderId);
-  const input = swapOrderSchema.parse({
+  const parsedInput = swapOrderSchema.safeParse({
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone"),
     wilaya_code: formData.get("wilaya_code"),
     commune: formData.get("commune"),
     address: formData.get("address"),
   });
+  if (!parsedInput.success) return { error: "swap.invalid" };
+  const input = parsedInput.data;
 
   const supabase = await createClient();
 
@@ -525,7 +527,14 @@ export async function swapOrder(orderId: string, formData: FormData): Promise<{ 
   });
   if (swapErr || !newOrderId) {
     // the RPC refuses a delivery type the destination wilaya cannot ship; anything else is a generic failure
-    return { error: /not available/.test(swapErr?.message ?? "") ? "form.blocked.type_unavailable" : "swap.failed" };
+    if (!/not available/.test(swapErr?.message ?? "")) return { error: "swap.failed" };
+    const { data: wf } = await supabase
+      .from("wilaya_fees")
+      .select("stop_shipping")
+      .eq("workspace_id", workspaceId)
+      .eq("wilaya_code", input.wilaya_code)
+      .maybeSingle();
+    return { error: wf?.stop_shipping ? "form.blocked.stopped" : "form.blocked.type_unavailable" };
   }
 
   // only after the swap succeeded: link the customer record to the new order
