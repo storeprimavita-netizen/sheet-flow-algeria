@@ -846,5 +846,5 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Done: review-1 PASS (docs/briefs/NAV-5-I.review-1.md). Closed NAV-5-H review-2 lows: non-vacuous no-access RLS check, sign-out toast/inline tests, unknown-role and cycle tests, sell real-path test, /no-access EN+AR keyboard pass.
 - Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-I after one re-run (tsc, 1136 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
 - Evidence: first run failed only on live-DB FK race (audit_log_workspace_id_fkey) in delivery-prices.rls and reviews.rls tests; known intermittent (TEST-2), passed on re-run.
-- Owner: light-theme /no-access screenshot not re-shot (owner to confirm); optional finding 5 (deactivated user My day / Team rules blank) out of scope.
+- Owner: light-theme shots exist in docs/design/audit/NAV-5-I/ (en-light-*); optional finding 5 (deactivated user My day / Team rules blank) out of scope.
 - Next: none for NAV-5-I; merge to v3 pending.
