@@ -87,7 +87,7 @@ export default async function StockHubPage() {
                       </td>
                       <td className="text-muted-foreground">{p.sku ?? "—"}</td>
                       <td>
-                        <Chip token={isOut ? "danger" : isLow ? "warning" : "neutral"} size="sm">
+                        <Chip token={isOut ? "danger" : isLow ? "warning" : "neutral"} size="sm" className="whitespace-nowrap">
                           <span className="num">{p.stock}</span>
                           {isOut ? ` · ${t("stock.out")}` : isLow ? ` · ${t("stock.low")}` : ""}
                         </Chip>

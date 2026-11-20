@@ -12,6 +12,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { tableClass } from "@/components/field";
 import { missingCombos, variantLabel, type VariantOption } from "@/lib/variants";
 import { saveVariantConfig, type VariantResult } from "../actions";
+import { VariantsFeedback } from "./variants-feedback";
 
 type EditorVariant = { id: string; sku: string; isActive: boolean; stock: number; values: Record<string, string>; saved: boolean };
 
@@ -94,22 +95,6 @@ export function VariantsEditor({
       router.refresh();
     }
   }
-
-  const message = result
-    ? result.ok
-      ? t("saved")
-      : result.code === "duplicate_value"
-        ? t("duplicateValue")
-        : result.code === "duplicate_variant"
-          ? t("duplicateVariant")
-          : result.code === "in_use"
-            ? t("inUse")
-            : result.code === "stale"
-              ? t("stale")
-            : result.code === "invalid"
-              ? t("invalid")
-              : t("failed", { reason: result.error })
-    : null;
 
   return (
     <section className="card-surface space-y-5 rounded-xl p-5" aria-labelledby="variants-title" aria-busy={busy}>
@@ -268,12 +253,7 @@ export function VariantsEditor({
         <Button type="button" onClick={save} disabled={busy}>
           {t("save")}
         </Button>
-        {unsaved && !message ? <p className="text-xs text-muted-foreground">{t("unsavedHint")}</p> : null}
-        {message ? (
-          <p role={result?.ok ? "status" : "alert"} className={result?.ok ? "text-sm text-success" : "rounded-md bg-danger-bg px-3 py-2 text-sm text-danger"}>
-            {message}
-          </p>
-        ) : null}
+        <VariantsFeedback unsaved={unsaved} result={result} />
       </div>
       <Dialog open={confirmDeactivate !== null} onOpenChange={(o) => !o && setConfirmDeactivate(null)}>
         <DialogContent

@@ -18,16 +18,8 @@ import { OrderTaxonomyCard } from "./order-taxonomy-card";
 import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
 import { VariantCard } from "./variant-card";
+import { Meta, SizeMeta, WilayaValue } from "./order-meta";
 import { loadProductVariants } from "@/lib/catalog/variants-data";
-
-function Meta({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-0.5">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-sm">{children}</div>
-    </div>
-  );
-}
 
 export default async function OrderDetailPage({
   params,
@@ -148,6 +140,7 @@ export default async function OrderDetailPage({
   }
 
   const productSizes = isAdmin && order.product_id ? ((await loadProductVariants(supabase, [order.product_id])).get(order.product_id)?.variants ?? []) : [];
+  const showsCard = isAdmin && productSizes.length > 0;
 
   const phone = order.customer?.phone ?? order.customer_phone;
   const queueHref = role === "delivery_agent" ? "/app/orders/delivery" : role === "confirmation_agent" ? "/app/orders/confirmation" : "/app/orders/all";
@@ -182,11 +175,7 @@ export default async function OrderDetailPage({
 
       <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
-        {order.variant ? (
-          <Meta label={t("orders.sizeTitle")}>
-            <bdi>{order.variant}</bdi>
-          </Meta>
-        ) : null}
+        {order.variant && !showsCard ? <SizeMeta label={t("orders.sizeTitle")} size={order.variant} /> : null}
         <Meta label={t("fields.customer")}>
           <div>{order.customer?.name ?? order.customer_name ?? "—"}</div>
           {phone ? <PhoneLinks phone={phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
@@ -199,7 +188,7 @@ export default async function OrderDetailPage({
         <Meta label={t("orders.toCollect")}>
           <span className="num font-medium">{formatCurrency((order.sale_price ?? 0) * order.quantity + (order.delivery_fee ?? 0))}</span>
         </Meta>
-        <Meta label={t("fields.wilaya")}>{order.wilaya ? `${order.wilaya_code}-${order.wilaya.name}` : "—"}</Meta>
+        <Meta label={t("fields.wilaya")}>{order.wilaya ? <WilayaValue code={order.wilaya_code} name={order.wilaya.name} /> : "—"}</Meta>
         <Meta label={t("fields.city")}>{order.commune ?? "—"}</Meta>
         <Meta label={t("fields.address")}>{order.address ?? "—"}</Meta>
         <Meta label={t("fields.source")}>{t(`status.order_source.${order.source}`)}</Meta>
@@ -215,7 +204,7 @@ export default async function OrderDetailPage({
         </div>
       ) : null}
 
-      {isAdmin && productSizes.length ? (
+      {showsCard ? (
         <VariantCard
           orderId={order.id}
           currentId={order.variant_id}
