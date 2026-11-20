@@ -856,3 +856,10 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Screenshots `docs/design/audit/SEC-1-I/` (chrome-devtools, cookies `theme`/`locale`; a temporary local audit_log row with a redacted api_key was inserted for the seed workspace and deleted afterwards). `html` lang/dir verified ar/rtl. Focused vs unfocused pill (EN light and dark): `cmp` reports they differ; `:focus-visible` true. Pill contrast measured from computed styles: light 7.02, dark 6.37. Filter open: EN dark (1440) and AR light (1440) show labelled, sorted tables.
 - Caveat: the MCP window cannot go below 500 px wide, so "390" shots are 500 px viewports (no horizontal scroll, scrollWidth 500).
 - Page closed back to about:blank.
+
+## SEC-1-I: done
+- Done: review-1 PASS (docs/briefs/SEC-1-I.review-1.md). Closed SEC-1-H review-1 lows and missing tests; audit table filter labelled (en+ar); timezone note in docs/DB.md; stale SEC-1-G ar shots removed. Lows 1-4 carried to SEC-1-J.
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-I (tsc, 1140 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: screenshots in docs/design/audit/SEC-1-I/; pill contrast light 7.02, dark 6.37 (computed styles).
+- Owner: `+01:00` audit timezone is an assumption (no workspace tz setting); the review did not re-measure contrast.
+- Next: SEC-1-J (review-1 lows 1-4).
