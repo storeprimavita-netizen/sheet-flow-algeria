@@ -19,7 +19,7 @@ import { OrderTaxonomyCard } from "./order-taxonomy-card";
 import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
 import { VariantCard } from "./variant-card";
-import { Meta, SizeMeta, WilayaValue } from "./order-meta";
+import { Meta, showsSizeCell, SizeMeta, WilayaValue } from "./order-meta";
 import { loadProductVariants } from "@/lib/catalog/variants-data";
 
 export default async function OrderDetailPage({
@@ -177,7 +177,7 @@ export default async function OrderDetailPage({
 
       <div className="card-surface grid grid-cols-2 gap-4 rounded-xl p-5 sm:grid-cols-3 lg:grid-cols-4">
         <Meta label={t("fields.product")}>{order.product?.name ?? "—"}</Meta>
-        {order.variant && !showsCard ? <SizeMeta label={t("orders.sizeTitle")} size={order.variant} /> : null}
+        {showsSizeCell(isAdmin, productSizes.length, order.variant) ? <SizeMeta label={t("orders.sizeTitle")} size={order.variant ?? ""} /> : null}
         <Meta label={t("fields.customer")}>
           <div>{order.customer?.name ?? order.customer_name ?? "—"}</div>
           {phone ? <PhoneLinks phone={phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
