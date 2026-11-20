@@ -32,7 +32,7 @@ describe("audit states", () => {
     const html = renderToStaticMarkup(tree);
     expect(html).toContain('role="alert"');
     expect(html).toContain("audit.errorReason");
-    const btn = find(tree, (e) => typeof e.props?.onClick === "function");
+    const btn = find(tree, (e) => (e.props as { type?: string }).type === "button" && typeof e.props?.onClick === "function");
     expect(btn).not.toBeNull();
     btn!.props.onClick!();
     expect(retry).toHaveBeenCalledTimes(1);
