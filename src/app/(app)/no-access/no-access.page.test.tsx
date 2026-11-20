@@ -51,9 +51,10 @@ describe("/no-access page", () => {
     expect(find(tree, (_, t) => t === LocaleSwitcher)).toBe(true);
     expect(find(tree, (p, t) => t === "bdi" && p.children === "a@b.dz")).toBe(true);
   });
-  test("no self-redirect", async () => {
+  test("unknown role renders without redirect", async () => {
     getUser.mockResolvedValue({ id: "u" });
-    getProfile.mockResolvedValue(null);
-    await expect(NoAccessPage()).resolves.toBeTruthy();
+    getProfile.mockResolvedValue({ role: "mystery_role", workspaceId: "w" });
+    const tree = await NoAccessPage();
+    expect(find(tree, (_, t) => t === "h1")).toBe(true);
   });
 });

@@ -33,12 +33,19 @@ import MyDayLayout from "../app/my-day/layout";
 import { requireAdmin } from "@/lib/rbac";
 import AppNotFound from "../app/not-found";
 import NoAccessPage from "./page";
+import UnmatchedAppRoute from "../app/[...rest]/page";
 import { isValidElement } from "react";
 
 type Step = () => Promise<unknown>;
 const pages: Record<string, Step> = {
   "/": () => Home(),
   "/app/dashboard": () => AppLayout({ children: null }),
+  // proxy.ts (updateSession): a signed-in user on /login is sent to /app/dashboard
+  "/login": async () => {
+    throw new Error("redirect:/app/dashboard");
+  },
+  // unmatched /app/** URL: the layout guard runs before the catch-all page
+  "/app/[...rest]": () => AppLayout({ children: null }),
   "/app/orders": () => OrdersIndexPage(),
   "/app/my-day": () => MyDayLayout({ children: null }),
   "/app/sell/orders": () => AdminGuardLayout({ children: null }),
@@ -73,9 +80,15 @@ describe("null profile never cycles", () => {
       expect(await hops(start)).toBeLessThanOrEqual(2);
     });
   }
-  test("/app/dashboard section guard resolves too", async () => {
-    pages["/app/dashboard"] = () => AppLayout({ children: null });
+  test("/app/dashboard section guard resolves in one hop", async () => {
     expect(await hops("/app/dashboard")).toBe(1);
+  });
+  test("[...rest]: guard redirects, and the page itself only calls notFound", async () => {
+    expect(await hops("/app/[...rest]")).toBe(1);
+    await expect(Promise.resolve().then(() => UnmatchedAppRoute())).rejects.toThrow("notFound");
+  });
+  test("/login signed-in null profile <= 2 hops", async () => {
+    expect(await hops("/login")).toBe(2);
   });
   test("not-found link ends at /no-access", async () => {
     const tree = await AppNotFound();

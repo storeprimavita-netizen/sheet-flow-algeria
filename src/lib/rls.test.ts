@@ -551,8 +551,9 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
         .maybeSingle();
       expect(!!row?.is_active && !!row?.workspace_id).toBe(false);
       for (const table of BUSINESS) {
-        const { data } = await u.client.from(table).select("id").limit(1);
-        expect(data ?? []).toHaveLength(0);
+        const { count, error } = await u.client.from(table).select("*", { count: "exact", head: true });
+        expect(error).toBeNull();
+        expect(count).toBe(0);
       }
     });
   });

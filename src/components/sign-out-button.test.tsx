@@ -17,6 +17,8 @@ const replace = vi.fn();
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
 vi.mock("next-intl", () => ({ useTranslations: () => (k: string) => `t:${k}` }));
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 const signOut = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { signOut } }) }));
 
@@ -38,6 +40,7 @@ describe("SignOutButton", () => {
     signOut.mockReset();
     replace.mockReset();
     refresh.mockReset();
+    toastError.mockReset();
     state.busy = false;
     state.failed = false;
   });
@@ -67,5 +70,29 @@ describe("SignOutButton", () => {
     const btn = find(tree, (p) => typeof p.onClick === "function")!;
     expect(btn["aria-busy"]).toBe(true);
     expect(btn.disabled).toBe(true);
+  });
+
+  test("toast mode: toasts, no inline alert, clears busy", async () => {
+    signOut.mockResolvedValue({ error: new Error("x") });
+    const click = find(SignOutButton({ errorAs: "toast" }), (p) => typeof p.onClick === "function")!
+      .onClick as () => Promise<void>;
+    const pending = click();
+    expect(state.busy).toBe(true);
+    await pending;
+    expect(toastError).toHaveBeenCalledWith("t:signOutFailed");
+    expect(replace).not.toHaveBeenCalled();
+    expect(state.busy).toBe(false);
+    const el = SignOutButton({ errorAs: "toast" });
+    expect(find(el, (p) => p.role === "alert")).toBeNull();
+    expect(find(el, (p) => typeof p.onClick === "function")!["aria-busy"]).toBe(false);
+  });
+
+  test("inline mode: shows alert", async () => {
+    signOut.mockResolvedValue({ error: new Error("x") });
+    const click = find(SignOutButton({ errorAs: "inline" }), (p) => typeof p.onClick === "function")!
+      .onClick as () => Promise<void>;
+    await click();
+    expect(toastError).not.toHaveBeenCalled();
+    expect(find(SignOutButton({ errorAs: "inline" }), (p) => p.role === "alert")).not.toBeNull();
   });
 });

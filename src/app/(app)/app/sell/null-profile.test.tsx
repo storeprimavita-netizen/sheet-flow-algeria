@@ -26,3 +26,23 @@ describe("sell detail pages with a null profile", () => {
     await expect(OrderDetailPage({ params })).rejects.toThrow("redirect:/no-access");
   });
 });
+
+describe("sell detail page through the real getProfile -> requireProfile", () => {
+  test("real getProfile redirects to /no-access", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/rbac", async (orig) => {
+      const actual = await orig<typeof import("@/lib/rbac")>();
+      return actual;
+    });
+    vi.doUnmock("@/lib/rbac");
+    vi.doMock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), cache: <T,>(f: T) => f }));
+    vi.doMock("@/lib/supabase/server", () => ({
+      createClient: async () => ({
+        auth: { getUser: async () => ({ data: { user: { id: "u" } } }) },
+        from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }),
+      }),
+    }));
+    const Page = (await import("./orders/[id]/page")).default;
+    await expect(Page({ params })).rejects.toThrow("redirect:/no-access");
+  });
+});
