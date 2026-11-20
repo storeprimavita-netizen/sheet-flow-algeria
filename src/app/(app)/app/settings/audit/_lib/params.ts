@@ -50,7 +50,7 @@ export function parseAuditParams(sp: Record<string, string | string[] | undefine
   };
 }
 
-/** Algeria is UTC+1 all year (no DST): day boundaries in that fixed zone. */
+/** Algeria is UTC+1 all year (no DST): day boundaries in that fixed zone. There is no workspace timezone setting, so this is a constant (see docs/DB.md, audit_log). */
 export const AUDIT_TZ = "+01:00";
 export const dayStart = (d: string) => `${d}T00:00:00${AUDIT_TZ}`;
 export const nextDayStart = (d: string) => {
