@@ -632,3 +632,10 @@ P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-
 - Brief: `delivery-prices.ts` Unicode-digit strip deleted as dead code; the `${HOME}٣|${HOME}:500` test stays as a pin.
 - Screenshot self-critique (chrome-devtools, 390 px, admin seed): CSV import hint EN dark and AR dark wrap cleanly, no horizontal overflow (scrollWidth = innerWidth). ZR card swapped reason on order #0045: AR dark and EN light read correctly. Not shot: CSV hint in light, ZR `status` reason (same component and layout as swapped), AR light.
 - Pre-existing (note only): unconfirmed order shows `canSend` true; server refuses in English.
+
+## P1-7-H done (ship)
+- Done: follow-ups from D84 2e (ZR link-only before create guards, exact refusal strings, card `canSend` predicate, CSV `\p{Nd}` pin, decimals and malformed-row tests) merged from v3-P1-7-H.
+- Verify: scripts/gate.sh GATE OK (tsc, 912 tests, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/P1-7-H.review-2.md VERDICT: PASS; screenshot pass noted above (not shot: CSV hint light, ZR status reason, AR light).
+- Owner: none for this task. Pre-existing note: unconfirmed order shows `canSend` true; server refuses in English.
+- Next: STORE-1-H, STORE-2-H, then TEST-2 (intermittent live-DB failures).
