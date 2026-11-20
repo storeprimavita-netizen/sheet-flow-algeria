@@ -1,14 +1,46 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
+ * Audited workspace-owned tables (those with an audit_row() trigger), children before parents.
+ * Their cascade-delete would fire audit_row() for a workspace that is already gone and break
+ * audit_log_workspace_id_fkey (23503), so deleteWorkspaces empties them first. test-cleanup.test.ts
+ * fails when a table gets an audit_row() trigger without being listed here.
+ */
+export const AUDITED_WORKSPACE_TABLES = [
+  "season_periods",
+  "seasons",
+  "status_label_overrides",
+  "reviews",
+  "cash_collections",
+  "zr_shipments",
+  "expenses",
+  "account_topups",
+  "accounts",
+  "product_option_values",
+  "product_options",
+  "product_pricing",
+  "product_costs",
+  "fixed_fees",
+  "exchange_rates",
+  "integration_configs",
+  "store_pages",
+  "stores",
+  "wilaya_fees",
+  "options",
+  "option_sets",
+  "settings",
+] as const;
+
+/** Not audited, but they reference audited option tables, which cannot be deleted while variants exist. */
+const VARIANT_TABLES = ["product_variant_values", "product_variants"] as const;
+
+/**
  * Test-only: delete workspaces, retrying up to 3 times when Postgres reports a deadlock (40P01).
- * Audited tables seeded for every workspace (seasons, 00061) are emptied first: their cascade-delete
- * would fire audit_row() for a workspace that is already gone and break audit_log_workspace_id_fkey.
+ * Audited tables are emptied first (see AUDITED_WORKSPACE_TABLES). Only the given workspaces are touched.
  */
 export async function deleteWorkspaces(svc: SupabaseClient, ids: string[]) {
-  await svc.from("season_periods").delete().in("workspace_id", ids);
-  await svc.from("seasons").delete().in("workspace_id", ids);
-  await svc.from("status_label_overrides").delete().in("workspace_id", ids);
+  for (const t of VARIANT_TABLES) await svc.from(t).delete().in("workspace_id", ids);
+  for (const t of AUDITED_WORKSPACE_TABLES) await svc.from(t).delete().in("workspace_id", ids);
   let res = await svc.from("workspaces").delete().in("id", ids);
   for (let i = 1; i < 3 && res.error?.code === "40P01"; i++) {
     await new Promise((r) => setTimeout(r, 200 * i));
@@ -28,7 +60,6 @@ export async function deleteLeakedWorkspaces(svc: SupabaseClient, prefix: string
   if (!ids.length) return 0;
   const { data: members } = await svc.from("profiles").select("user_id").in("workspace_id", ids);
   for (const m of members ?? []) await svc.auth.admin.deleteUser(m.user_id as string);
-  for (const t of ["options", "option_sets", "settings", "wilaya_fees"]) await svc.from(t).delete().in("workspace_id", ids);
   await deleteWorkspaces(svc, ids);
   return ids.length;
 }

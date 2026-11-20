@@ -889,3 +889,15 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Done: `docs/ANTIGRAVITY.md` rewritten (install, sign-in, models, permissions, night run, parallel agents); `scripts/agy-setup.sh`, `scripts/agy-night.sh`, `scripts/agy-parallel.sh`; `.agents/` rules and `loop-auto` skill updated to the current loop (one task per session, `nodb`, `as:<name>`, RUN-END line); `dev-up.sh` takes `APP_PORT`; gate honours `GATE_SKIP_LIVE=1` for no-database workers; `night-run.sh` runs a list of task ids and stashes leftovers instead of committing them (D91).
 - Not verified: `agy` is not installed here, so none of the Antigravity scripts has run. Model names from the docs: Orchestrator (Argon), Gemini 4 Argon, Gemini 4 Hydrogen.
 - Next: merge the four finished features (STORE-3, CONF-1, VAR-1, CHART-1), then STORE-4.
+
+## TEST-2 — flaky live-DB suites
+Root cause (repro: 4x `npx vitest run` + per-file workspace-count diff, logs in $TMPDIR/t2): (1) the seasons backfill test ran the raw 00061 insert for EVERY workspace, racing other files' teardown (audit_log FK 23503); (2) `deleteWorkspaces` emptied only 3 audited tables, so cascades fired `audit_row()` after the workspace row was gone; (3) `store/data.test.ts` ignored the delete error and leaked one workspace per run (audit rows blocked by product_variant_values -> product_option_values FK).
+Fixes: backfill scoped to its own workspace; `AUDITED_WORKSPACE_TABLES` (+ variant tables) in `src/lib/test-cleanup.ts`, checked against pg_trigger by `test-cleanup.test.ts`; data.test.ts asserts the delete. No timeouts seen, so no per-file timeouts added (step 4 skipped: no evidence). Ad-hoc teardown in other suites left as is (redundant, harmless).
+Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60 constant across runs.
+
+## TEST-2 — DONE (branch v3-TEST-2)
+- Done: root cause fixed (seasons backfill scoped to own workspace; shared audited-table teardown in `test-cleanup.ts` incl. variant tables; `store/data.test.ts` asserts delete). See the TEST-2 entry above for evidence.
+- Verify: `scripts/gate.sh` GATE OK on v3-TEST-2 at merge time (tsc, 1145 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: no review file (brief risk low, surface none). The 5x consecutive green run is not re-measured in this pass.
+- Owner: none.
+- Next: merge to v3 (ship step).

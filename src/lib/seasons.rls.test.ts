@@ -270,7 +270,8 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
       expect((await svc.from("option_sets").insert({ workspace_id: w3, key: "order_tag", label: "Tags", allows_multi: true })).error).toBeNull();
       const sql = readFileSync("supabase/migrations/00061_seasons.sql", "utf8");
       const start = sql.indexOf("insert into public.seasons (workspace_id, name, name_key, sort)\nselect w.id");
-      const backfill = sql.slice(start, sql.indexOf(";", start) + 1);
+      // scoped to w3 only: the raw statement would otherwise seed every workspace, including ones other suites are deleting
+      const backfill = sql.slice(start, sql.indexOf(";", start) + 1).replace("\non conflict", `\nwhere w.id = '${w3}'\non conflict`);
       expect(start).toBeGreaterThan(-1);
       psql(backfill);
       psql(backfill); // idempotent

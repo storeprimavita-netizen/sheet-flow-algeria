@@ -33,7 +33,7 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
     await svc.from("orders").delete().eq("workspace_id", ws);
     await svc.from("store_pages").delete().eq("workspace_id", ws);
     await svc.from("stores").delete().eq("workspace_id", ws);
-    await deleteWorkspaces(svc, [ws]);
+    expect((await deleteWorkspaces(svc, [ws])).error).toBeNull();
   });
 
   test("published page renders; DTO key-set snapshot (nested variants)", async () => {
