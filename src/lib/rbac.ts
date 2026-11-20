@@ -33,6 +33,17 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   return { role: data.role as Role, workspaceId: data.workspace_id };
 });
 
+/**
+ * Profile for pages that need one. A missing profile (no row, inactive, no
+ * workspace) goes to /no-access; layouts do not re-run on in-app navigation,
+ * so each page checks for itself.
+ */
+export async function requireProfile(): Promise<Profile> {
+  const profile = await getProfile();
+  if (!profile) redirect("/no-access");
+  return profile;
+}
+
 export async function getCurrentUserRole(): Promise<Role | null> {
   return (await getProfile())?.role ?? null;
 }

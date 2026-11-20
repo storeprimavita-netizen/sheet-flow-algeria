@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
+import { getCurrentUserRole, isCurrentUserAdmin, requireProfile } from "@/lib/rbac";
 import { formatCurrency, formatDateTime, formatOrderNo, ltr } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
 
@@ -65,7 +65,7 @@ export default async function OrderDetailPage({
   );
 
   const isAdmin = await isCurrentUserAdmin();
-  const { workspaceId } = (await getProfile())!;
+  const { workspaceId } = await requireProfile();
   const [tags, reasons, { data: orderTags }] = await Promise.all([
     getOptionSet(workspaceId, "order_tag"),
     getOptionSet(workspaceId, "cancellation_reason"),

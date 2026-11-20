@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile, requireAdmin } from "@/lib/rbac";
+import { requireAdmin, requireProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { realKpiForProduct, toRealKpiSlice } from "@/lib/pricing-real";
 import { sanitizeSparse } from "@/lib/pricing-form";
@@ -12,7 +12,7 @@ export default async function ProductPricingPage({ params }: { params: Promise<{
   await requireAdmin("/app/orders"); // admin-only money: re-checked here, not only in the layout
   const { id } = await params;
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
 
   const supabase = await createClient();
   const [{ data: product }, { data: cost }, { data: pricing }, defaults, realKpi] = await Promise.all([

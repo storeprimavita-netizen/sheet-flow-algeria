@@ -6,7 +6,7 @@ import { resolveStatusLabel } from "@/lib/status-label";
 import { getStatusLabelOverrides } from "@/lib/status-labels";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile, isCurrentUserAdmin } from "@/lib/rbac";
+import { isCurrentUserAdmin, requireProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Field, tableClass } from "@/components/field";
@@ -39,7 +39,7 @@ export default async function CustomerDetailPage({
   const locale = await getLocale();
   const overrides = await getStatusLabelOverrides();
   const sl = (kind: "confirmation" | "delivery", key: string, fallback: string) => resolveStatusLabel(overrides, kind, key, locale, fallback);
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const isAdmin = await isCurrentUserAdmin();
 
   const supabase = await createClient();
