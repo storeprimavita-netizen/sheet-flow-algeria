@@ -810,3 +810,10 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-5-F.review-1.md FIX, docs/briefs/NAV-5-F.review-2.md PASS.
 - Owner: screenshots at 390 px (light/dark, EN/AR) not taken in this run; owed via NAV-5-G; 768 px overflow not re-measured live.
 - Next: NAV-5-G.
+
+## NAV-5-G — NAV-5 screenshots at 390 px (2026-11-20) — DONE (screenshots), real phone owed
+- Done: chrome-devtools emulation, local stack, seed users. Shots in `docs/design/audit/NAV-5/g-*`: admin dashboard + orders + More drawer, confirmation agent My day + More, delivery agent My day; each 390 px, EN+AR, light+dark. 1280 px admin and delivery: bottom bar `display:none`. 768 px AR and 844x390 landscape AR: bar hidden (md breakpoint = 768), sidebar shown, page scrollWidth == viewport (only the orders table scrolls inside its own wrapper), so no page overflow.
+- Measured: header 56 px; bar items 51 px high, 78 px wide (admin); last content bottom 764 px < bar top 792 px; AR bar order mirrored; "99+" badge fits inside its link; viewport meta is `width=device-width, initial-scale=1` (no viewport-fit); no hardcoded-color look in either theme. Defects: none, clean. No code changed.
+- Not covered: empty My day (no seed user lacks the seeded meeting; tasks-empty state is shown), populated confirmation tasks. Dev-tools "N" badge overlaps the first bar item in shots (dev-only).
+- Real iPhone/Android check NOT done (no device) and stays owner-owed, incl. keyboard-open bar. Review-1 low #9 (iOS bottom padding 0 without `cover`) stays open per D87.
+- Flag: D87 item 7 (no-role/inactive redirect loop, risk H) has no plan row; owner/decide to confirm.
