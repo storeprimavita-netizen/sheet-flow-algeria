@@ -819,3 +819,10 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Not covered: populated confirmation tasks (no seed tasks). Thin coverage at 1280/768/844x390 (one AR dark shot each).
 - Real iPhone/Android check NOT done (no device) and stays owner-owed, incl. keyboard-open bar. Review-1 low #9 (iOS bottom padding 0 without `cover`) stays open per D87.
 - Flag: D87 item 7 (no-role/inactive redirect loop, risk H) has no plan row; owner/decide to confirm.
+
+## NAV-5-G: done
+- Done: 390 px screenshots (light/dark, EN/AR) in `docs/design/audit/NAV-5/g-*`; review-1 FIX landed (re-shot AR dark orders, empty My day, 99+ shot, scrolled-end shot); review-2 PASS (ui-reviewer). No code changed.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-G (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan). One earlier run hit the reviews.rls.test.ts:74 FK teardown race; green on rerun.
+- Evidence: docs/briefs/NAV-5-G.review-1.md FIX, docs/briefs/NAV-5-G.review-2.md PASS.
+- Owner: real iPhone/Android check and keyboard-open bar (no device); review-1 low #9 (iOS bottom padding without viewport-fit=cover) open per D87; D87 item 7 (no-role/inactive redirect loop) has no plan row.
+- Next: none for NAV-5-G; owner decides on D87 item 7 row.
