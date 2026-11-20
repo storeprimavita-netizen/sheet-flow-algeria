@@ -863,3 +863,13 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Evidence: screenshots in docs/design/audit/SEC-1-I/; pill contrast light 7.02, dark 6.37 (computed styles).
 - Owner: `+01:00` audit timezone is an assumption (no workspace tz setting); the review did not re-measure contrast.
 - Next: SEC-1-J (review-1 lows 1-4).
+
+## Run report — /auto 5 (2026-11-20, batch after NAV-5)
+- Shipped 5: NAV-5-F (fc5e98f, was built + review PASS, only the merge was missing) · NAV-5-G (eaf3ef5) · NAV-5-H (f65c3b7) · NAV-5-I (2238319) · SEC-1-I (3cdb00e).
+- Decided by Claude: D88 — the no-role / inactive-profile redirect loop named in D87 (7) got its own row NAV-5-H (risk H, sec); NAV-5-G stayed the screenshots task. NAV-5-H is built: such a user now lands on `/no-access` with Try again + Sign out.
+- New follow-up rows: NAV-5-I (done), SEC-1-J (todo).
+- Questions still open: Q-18 (CONF-1), Q-26 (VAR-1), Q-28 (CHART-1); STORE-3 also waits for the owner's OK. No new question.
+- Blocked, unchanged: CONF-1, VAR-1, CHART-1, STORE-3 (owner OK), NAV-4-F (review rounds exhausted). Nothing parked in this run.
+- TEST-2 (intermittent live-DB tests) hit every task of this run: 9 gate runs failed and passed on re-run with no code change (seasons.rls, reviews.rls, delivery-prices.rls, kpi, variants.rls: FK races and 5 s timeouts). One cause found: pages left open in the chrome-devtools browser held a renderer at 100% CPU (load 10); closing them made the NAV-5-H merge gate pass. It still failed afterwards on a quiet machine, so the FK race is separate. Worth running TEST-2 before more tasks.
+- Owner-owed, unchanged: bottom bar and My day on a real iPhone/Android (NAV-5-G shots are emulated; "390 px" shots of SEC-1-I are 500 px, the tool's minimum).
+- Next `/auto` picks: SEC-1-J, NAV-1-H, NAV-2-F, NAV-3-F, then P1-1-F.
