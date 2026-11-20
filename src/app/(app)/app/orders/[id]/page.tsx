@@ -14,6 +14,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
 import { ZRShipmentCard } from "./zr-shipment-card";
+import { zrSendState } from "@/lib/integrations/zr-sendable";
 import { OrderTaxonomyCard } from "./order-taxonomy-card";
 import { SwapBadge } from "@/components/swap-badge";
 import { SwapCard } from "./swap-card";
@@ -91,6 +92,7 @@ export default async function OrderDetailPage({
   // agents can't see the ZR card but still need to know the order was pushed (locks cancel-reason)
   const { data: zrExists } = await supabase.from("zr_shipments").select("order_id").eq("order_id", order.id).maybeSingle();
   // admin escape hatch: a stop-desk order whose wilaya became home-only can be switched to home
+  const sendState = zrSendState(order);
   let canSwitchToHome = false;
   if (isAdmin && !zrExists && order.delivery_type === "stopdesk" && order.wilaya_code) {
     const { data: fr } = await supabase
@@ -234,7 +236,7 @@ export default async function OrderDetailPage({
         />
       ) : null}
 
-      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} canSwitchToHome={canSwitchToHome} swapped={!!order.swapped_to_order_id || order.delivery_status !== "wait_for_deposit"} /> : null}
+      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} canSwitchToHome={canSwitchToHome} canSend={sendState.ok} notSendableReason={sendState.ok ? null : sendState.reason} /> : null}
 
       {isAdmin ? (
         <SwapCard

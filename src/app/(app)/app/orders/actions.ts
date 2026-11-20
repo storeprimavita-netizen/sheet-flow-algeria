@@ -130,12 +130,13 @@ export async function switchOrderToHome(orderId: string): Promise<UpdateResult> 
   const { workspaceId } = await adminProfile();
   const id = z.string().uuid().parse(orderId);
   const supabase = await createClient();
-  const { data: order } = await supabase
+  const { data: order, error: readError } = await supabase
     .from("orders")
     .select("wilaya_code, delivery_type, delivery_status")
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
+  if (readError) return { ok: false, error: "orders.zrexpress.switch.failed" };
   if (!order?.wilaya_code) return { ok: false, error: "orders.zrexpress.switch.needsWilaya" };
   if (order.delivery_status !== "wait_for_deposit") return { ok: false, error: "orders.zrexpress.switch.status" };
   if (order.delivery_type === "home") return { ok: false, error: "orders.zrexpress.switch.alreadyHome" };

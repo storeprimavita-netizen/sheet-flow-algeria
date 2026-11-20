@@ -16,7 +16,8 @@ export function ZRShipmentCard({
   shipment,
   stopDesk,
   canSwitchToHome,
-  swapped,
+  canSend,
+  notSendableReason,
 }: {
   orderId: string;
   shipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null;
@@ -24,8 +25,10 @@ export function ZRShipmentCard({
   stopDesk: boolean;
   /** stop-desk order in a wilaya that is now home-only: admin may switch it to home */
   canSwitchToHome: boolean;
-  /** order was swapped to another order: nothing to send (a shipment, if any, still shows) */
-  swapped: boolean;
+  /** zrSendState(order).ok — false: nothing to send (a shipment, if any, still shows) */
+  canSend: boolean;
+  /** why it cannot be sent; shown when there is no shipment to show instead */
+  notSendableReason: "swapped" | "status" | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -56,8 +59,6 @@ export function ZRShipmentCard({
     }
     router.refresh();
   }
-
-  if (swapped && !shipment) return null;
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-5">
@@ -91,6 +92,10 @@ export function ZRShipmentCard({
             {busy ? t("actions.saving") : t("orders.zrexpress.refresh")}
           </Button>
         </div>
+      ) : !canSend ? (
+        <p className="text-sm text-muted-foreground">
+          {t(`orders.zrexpress.notSendable.${notSendableReason ?? "status"}`)}
+        </p>
       ) : stopDesk && !hubs ? (
         <Button type="button" variant="outline" size="sm" disabled={busy} onClick={loadHubs}>
           {t("settings.zrexpress.loadHubs")}

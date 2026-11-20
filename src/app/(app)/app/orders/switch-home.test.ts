@@ -4,6 +4,7 @@ const rpc = vi.fn();
 const from = vi.fn();
 const update = vi.fn();
 let updateError: { message: string } | null = null;
+let readError: { message: string } | null = null;
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
@@ -19,7 +20,8 @@ vi.mock("@/lib/integrations/zrexpress", () => ({ getZRCredentials: vi.fn(), getZ
 vi.mock("@/lib/integrations/zrexpress-webhook", () => ({ applyZRParcelState: vi.fn() }));
 vi.mock("@/lib/integrations/zrexpress-push", () => ({ hubsForOrder: vi.fn(), pushToZR: vi.fn() }));
 
-import { switchOrderToHome } from "./actions";
+import { pushOrdersToZRExpress, switchOrderToHome } from "./actions";
+import { pushToZR } from "@/lib/integrations/zrexpress-push";
 
 const A = "11111111-1111-4111-8111-111111111111";
 
@@ -27,7 +29,7 @@ function table(data: unknown) {
   const q: Record<string, unknown> = {};
   q.select = () => q;
   q.eq = () => q;
-  q.maybeSingle = async () => ({ data });
+  q.maybeSingle = async () => ({ data, error: readError });
   q.update = (...a: unknown[]) => {
     update(...a);
     return { eq: () => ({ eq: async () => ({ error: updateError }) }) };
@@ -47,6 +49,7 @@ describe("switchOrderToHome", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateError = null;
+    readError = null;
   });
 
   test("refuses an order past the waiting stage", async () => {
@@ -74,6 +77,20 @@ describe("switchOrderToHome", () => {
   test("needs a wilaya when the order is missing or unreadable", async () => {
     setup({ order: null });
     await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.needsWilaya" });
+  });
+  test("failed on read error", async () => {
+    setup({});
+    readError = { message: "boom" };
+    await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.failed" });
+    expect(update).not.toHaveBeenCalled();
+  });
+  test("bulk send reports the refused order and sends the rest", async () => {
+    const B = "22222222-2222-4222-8222-222222222222";
+    vi.mocked(pushToZR).mockImplementation(async (_s, _w, id) =>
+      id === A ? { ok: false, error: "refused" } : { ok: true },
+    );
+    await expect(pushOrdersToZRExpress([A, B])).resolves.toEqual({ ok: true, sent: 1, failed: [{ id: A, error: "refused" }] });
+    expect(pushToZR).toHaveBeenCalledTimes(2);
   });
   test("needs a wilaya when the order has none", async () => {
     setup({ order: { wilaya_code: null, delivery_type: "stopdesk", delivery_status: "wait_for_deposit" } });

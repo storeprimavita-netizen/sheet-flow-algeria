@@ -626,3 +626,16 @@ P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-
 - Gate: intermittent live-DB failures (`seasons.rls.test.ts`, `kpi.test.ts`), green on rerun each time; logged as TEST-2. The review step twice returned before its reviewers finished; the coordinator assembled `P1-7-F.review-4.md` and `STORE-1-G.review-2.md` from their reports.
 - Follow-ups added: P1-7-H, STORE-1-H, STORE-2-H, TEST-2.
 - Next `/auto`: first eligible `todo` in plan order (P1-7-H, STORE-1-H, STORE-2-H, then CARRIER-0-G, SEC-1-G, NAV-1-G, NAV-2).
+
+## P1-7-H build notes (round 2)
+- Review-1 fixed: link-only branch now runs right after the credentials read, before the wilaya/commune, phone and `wilaya_fees` guards (create path only keeps them); tests for unpriced/missing-field link, finder throw, 23505, other insert error, `zrSendState` swap, card `swapped` reason (role-based button match).
+- Brief: `delivery-prices.ts` Unicode-digit strip deleted as dead code; the `${HOME}٣|${HOME}:500` test stays as a pin.
+- Screenshot self-critique (chrome-devtools, 390 px, admin seed): CSV import hint EN dark and AR dark wrap cleanly, no horizontal overflow (scrollWidth = innerWidth). ZR card swapped reason on order #0045: AR dark and EN light read correctly. Not shot: CSV hint in light, ZR `status` reason (same component and layout as swapped), AR light.
+- Pre-existing (note only): unconfirmed order shows `canSend` true; server refuses in English.
+
+## P1-7-H done (ship)
+- Done: follow-ups from D84 2e (ZR link-only before create guards, exact refusal strings, card `canSend` predicate, CSV `\p{Nd}` pin, decimals and malformed-row tests) merged from v3-P1-7-H.
+- Verify: scripts/gate.sh GATE OK (tsc, 912 tests, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/P1-7-H.review-2.md VERDICT: PASS; screenshot pass noted above (not shot: CSV hint light, ZR status reason, AR light).
+- Owner: none for this task. Pre-existing note: unconfirmed order shows `canSend` true; server refuses in English.
+- Next: STORE-1-H, STORE-2-H, then TEST-2 (intermittent live-DB failures).
