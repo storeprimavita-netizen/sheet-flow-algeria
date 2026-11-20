@@ -400,7 +400,7 @@ export function AppShell({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem destructive asChild>
-                  <SignOutButton className="w-full justify-start border-0 bg-transparent shadow-none hover:bg-transparent" />
+                  <SignOutButton errorAs="toast" className="w-full justify-start border-0 bg-transparent shadow-none hover:bg-transparent" />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

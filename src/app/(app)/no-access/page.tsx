@@ -33,7 +33,7 @@ export default async function NoAccessPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="card-surface w-full max-w-md rounded-2xl p-8">
         <div className="mb-6 flex items-center justify-end">
-          <LocaleSwitcher />
+          <LocaleSwitcher className="min-h-11" />
         </div>
 
         <div className="mb-6 text-center">

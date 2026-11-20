@@ -50,6 +50,7 @@ describe("SignOutButton", () => {
     expect(state.failed).toBe(true);
     expect(state.busy).toBe(false);
     const el = SignOutButton({});
+    expect(find(el, (p) => typeof p.onClick === "function")!["aria-busy"]).toBe(false);
     expect(find(el, (p) => p.role === "alert")).not.toBeNull();
   });
 

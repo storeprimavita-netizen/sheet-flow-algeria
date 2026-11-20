@@ -8,11 +8,12 @@ vi.mock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), c
 
 let user: { id: string } | null = { id: "u1" };
 let row: unknown = null;
+let rowError: { message: string } | null = null;
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user } }) },
     from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row }) }) }),
+      select: () => ({ eq: () => ({ maybeSingle: async () => (rowError ? { data: null, error: rowError } : { data: row, error: null }) }) }),
     }),
   }),
 }));
@@ -23,6 +24,7 @@ describe("getProfile", () => {
   beforeEach(() => {
     user = { id: "u1" };
     row = null;
+    rowError = null;
     redirect.mockClear();
   });
   test("null for no row", async () => expect(await getProfile()).toBeNull());
@@ -35,7 +37,7 @@ describe("getProfile", () => {
     expect(await getProfile()).toBeNull();
   });
   test("null for query error", async () => {
-    row = undefined; // supabase returns data: null on error
+    rowError = { message: "boom" };
     expect(await getProfile()).toBeNull();
   });
   test("profile for active row", async () => {

@@ -26,6 +26,10 @@ describe("statistics layout guard", () => {
   });
   test("no profile goes to /no-access before requireAdmin", async () => {
     getProfile.mockResolvedValueOnce(null);
-    await expect(StatsLayout({ children: "x" })).rejects.toThrow("NEXT_REDIRECT");
+    requireAdmin.mockClear();
+    const err = await StatsLayout({ children: "x" }).catch((e: { message: string; digest?: string }) => e);
+    expect((err as { message: string }).message).toBe("NEXT_REDIRECT");
+    expect((err as { digest?: string }).digest).toContain("/no-access");
+    expect(requireAdmin).not.toHaveBeenCalled();
   });
 });
