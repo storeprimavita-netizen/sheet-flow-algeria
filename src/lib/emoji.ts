@@ -16,6 +16,12 @@ export function startsWithEmoji(s: string): boolean {
   return !first.done && PICTOGRAPHIC.test(first.value.segment);
 }
 
+/** True when the text is emoji only (no readable word), so it needs a screen-reader name. */
+export function isEmojiOnly(s: string): boolean {
+  const parts = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s.trim())].map((x) => x.segment);
+  return parts.length > 0 && parts.every((g) => PICTOGRAPHIC.test(g));
+}
+
 /** Exactly one emoji grapheme; blank clears (null). */
 export const emojiSchema = z
   .string()

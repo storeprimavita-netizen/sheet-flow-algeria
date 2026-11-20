@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { Chip } from "@/components/ui/chip";
 import { useStatusLabel } from "@/components/status-labels-provider";
-import { startsWithEmoji } from "@/lib/emoji";
+import { isEmojiOnly, startsWithEmoji } from "@/lib/emoji";
 import { getStatus, type StatusKind } from "@/lib/statuses";
 
 /** The one status renderer: dot + icon + label, tinted bg + strong fg.
@@ -47,6 +47,7 @@ export function StatusPill({
       size={size}
       icon={iconShown ? <Icon className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} /> : undefined}
     >
+      {overridden && isEmojiOnly(text) ? <span className="sr-only">{fullDefault}</span> : null}
       {compact && overridden ? (
         <span className="max-w-[9rem] truncate" title={text}>
           {text}

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { emojiSchema, labelSchema, startsWithEmoji } from "@/lib/emoji";
+import { emojiSchema, labelSchema, isEmojiOnly, startsWithEmoji } from "@/lib/emoji";
 
 describe("emojiSchema", () => {
   test("one grapheme, including ZWJ and skin-tone sequences", () => {
@@ -25,5 +25,20 @@ describe("startsWithEmoji", () => {
     expect(startsWithEmoji("🔥 Hot")).toBe(true);
     expect(startsWithEmoji("Hot 🔥")).toBe(false);
     expect(startsWithEmoji("")).toBe(false);
+  });
+});
+
+describe("flags and keycaps", () => {
+  test("schema accepts them and startsWithEmoji sees them", () => {
+    for (const e of ["🇩🇿", "#️⃣", "1️⃣"]) {
+      expect(emojiSchema.parse(e)).toBe(e);
+      expect(startsWithEmoji(`${e} Label`)).toBe(true);
+    }
+  });
+  test("isEmojiOnly", () => {
+    expect(isEmojiOnly("✅")).toBe(true);
+    expect(isEmojiOnly("🇩🇿 ✅")).toBe(false);
+    expect(isEmojiOnly("✅ Ok")).toBe(false);
+    expect(isEmojiOnly("")).toBe(false);
   });
 });

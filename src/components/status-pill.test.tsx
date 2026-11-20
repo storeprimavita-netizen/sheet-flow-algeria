@@ -36,6 +36,14 @@ describe("StatusPill", () => {
   });
 });
 
+describe("StatusPill emoji-only override", () => {
+  test("keeps the default label as sr-only text; a text override gets none", () => {
+    const html = render({ confirmation: { confirmed: { en: "✅", ar: null } } }, <StatusPill kind="confirmation" status="confirmed" compact />);
+    expect(html).toContain('<span class="sr-only">status.confirmation_status.confirmed</span>');
+    expect(render(emojiOv, <StatusPill kind="confirmation" status="confirmed" />)).not.toContain("sr-only");
+  });
+});
+
 describe("Chip emoji", () => {
   test("decorative (aria-hidden) beside text; emoji-only gets an sr-only name", () => {
     expect(renderToStaticMarkup(<Chip emoji="🔥">Hot</Chip>)).toContain('aria-hidden="true"');
