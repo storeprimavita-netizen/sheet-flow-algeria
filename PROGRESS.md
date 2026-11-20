@@ -989,3 +989,10 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - `pnl-waterfall.tsx` kept: finance/overview still uses it (only `WaterfallBand` removed).
 
 CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, D83), toggles min-h-11 below sm, daily series runs to the last order day (00069), reversed range swapped on All orders, weekday names in banner and full AR short names. Finding 3: code already pins on touch tap (use-chart.ts onClick, preventDefault); not re-checked with touch emulation, and no screenshots taken this round (no browser tool used).
+
+### Ship (CHART-1)
+- Done: CHART-1 merged as built under D89/D94 (review-4 ESCALATE, no high). Follow-up CHART-1-B (366-day cap first, no-costs empty state, table links).
+- Verify: scripts/gate.sh GATE OK (tsc, 1363 tests, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: branch v3-CHART-1; merge into v3 pending in this run.
+- Owner: remote migration 00078 is local only; remote `db push` is yours.
+- Next: CHART-1-B.
