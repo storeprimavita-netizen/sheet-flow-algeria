@@ -922,3 +922,6 @@ Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60
 - Decisions by Claude: none. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
 ### STORE-3 round 5 (D61 follow-up, last allowed round)
 Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Merged origin/v3 (P1-7), db reset, types regenerated. Fixed review-4 mediums: pricing payload is now a pure `buildPricingPayload` (unit test + live test: per_value then uniform leaves every `price_delta` 0); the public page shows a sold-out state (Arabic, no offers, no order slot) when every size is out, with a test. Low 3 fixed (offer-price header). Screenshot: `docs/design/audit/STORE-3/r5-store-light-390-soldout.png` (390 light, checked by eye). Rest stays in `docs/briefs/STORE-3.followups.md`.
+
+## STORE-3 — shipped (merge D89)
+Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved under `catalog/products/[id]`, product_offers/product_forms added to the audit lists + labels. Gate OK (1193 pass). Open mediums → STORE-3-F; lows → BACKLOG.
