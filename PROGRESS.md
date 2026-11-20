@@ -646,3 +646,10 @@ P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-
 - Screenshot self-critique (chrome-devtools, docs/design/audit/STORE-1-H-ui/): product edit EN light 1280 full page; stock hub 390 EN light and AR dark with Out (0) and Low (3) chips, each chip one line (height 20); unnamed option EN 390 light shows placeholder "Option 1". Local seed stock reverted via correction movements, temp product deleted. Not shot: stock EN dark, AR light. Observed (out of scope): empty value input has no placeholder.
 
 STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; showsSizeCell and showsCard match, showsSizeCell is already unit-tested). New `products/actions.test.ts` calls `saveVariantConfig` and asserts `{ok:false, code:"invalid", error:"variant_values"}` with no RPC and no client created (the old "needs a session" note was wrong). Stock chip test now uses `en.stock.*`; chip label wrapped in `<bdi>`. Guard test: one repeatable-read psql call, one bare size in each of two workspaces (pre + 2), clean case scoped to a fresh workspace with no deletes, asserts guard has `raise exception`; spare delete in finally. Value input placeholder "Value"/"القيمة" (new key `variants.valuePlaceholder`). Screenshots added (chrome-devtools, 390): stock-390-en-dark, stock-390-ar-light, value-placeholder-390-ar-dark (placeholder lab L 67.5 on L 3.7, well over 4.5:1). Seed stock has no Out/Low rows, so those stock shots show no chips (chip layout covered by the earlier AR dark shot). Not shot: unnamed option EN dark.
+
+## STORE-1-H done (ship)
+- Done: STORE-1-G review-2/3 lows fixed (guard count and clean-data tests, exact grant checks, `showsSizeCell`/`StockLevelChip` tests, whitespace option trim, value and option placeholders, `satisfies VariantResult`).
+- Verify: scripts/gate.sh GATE OK (tsc, 923 tests 5 skipped, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/STORE-1-H.review-2.md VERDICT: PASS; screenshots in docs/design/audit/STORE-1-H-ui/.
+- Owner: none. Not shot: unnamed option EN dark.
+- Next: STORE-2-H, then TEST-2 (intermittent live-DB failures).
