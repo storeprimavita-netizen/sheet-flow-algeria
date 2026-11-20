@@ -53,7 +53,7 @@ async function DailyCharts({ scope }: { scope: Scope }) {
     label: `${d.day.slice(8, 10)}/${d.day.slice(5, 7)}/${d.day.slice(0, 4)}`,
     short: `${d.day.slice(8, 10)}/${d.day.slice(5, 7)}`,
     immature: d.immature,
-    href: ordersQs({ ...scope.filters, from: d.day, to: d.day }),
+    href: ordersQs({ ...scope.filters, from: d.day, to: d.day }, { drill: "received" }),
   }));
   const empty = days.length ? null : emptyOrders(t("emptyDaily"), t("allOrders"));
   const orders: LineSeries[] = [
@@ -81,14 +81,6 @@ const OUTCOME_COLORS: Record<string, string> = {
   in_progress: "var(--info)",
 };
 const OUTCOME_ORDER = ["delivered", "returned", "cancelled", "unconfirmed", "in_progress"];
-const OUTCOME_DRILL: Record<string, Record<string, string>> = {
-  delivered: { delivery_status: "delivered" },
-  returned: { delivery_status: "returned" },
-  cancelled: { confirmation_status: "cancelled" },
-  unconfirmed: { confirmation_status: "wait_for_confirmation" },
-  in_progress: { confirmation_status: "confirmed" },
-};
-
 async function OutcomeChart({ scope }: { scope: Scope }) {
   const t = await getTranslations("statistics.charts");
   const supabase = await createClient();
@@ -105,7 +97,7 @@ async function OutcomeChart({ scope }: { scope: Scope }) {
     ...s,
     display: formatInt(s.value),
     color: OUTCOME_COLORS[s.key] ?? "var(--neutral)",
-    href: ordersQs(scope.filters, OUTCOME_DRILL[s.key] ?? {}),
+    href: ordersQs(scope.filters, { drill: `out_${s.key}` }),
   }));
   return (
     <DonutChart
@@ -137,7 +129,7 @@ async function ProductChart({ scope }: { scope: Scope }) {
     value: kpiPct(r.rates.delivery) ?? 0,
     display: formatPercent(kpiPct(r.rates.delivery)),
     sub: t("ordersCount", { n: formatInt(r.rates.counts.received) }),
-    href: ordersQs(scope.filters, { product_id: r.id }),
+    href: ordersQs(scope.filters, { product_id: r.id, drill: "received" }),
     color: r.rates.delivery.matured ? undefined : "var(--neutral)",
   }));
   return (
@@ -203,9 +195,8 @@ async function WhenCharts({ scope }: { scope: Scope }) {
   };
   // ISO weekdays: the week starts on Saturday in Arabic and on Monday in English (locale choice)
   const order = locale === "ar" ? [6, 7, 1, 2, 3, 4, 5] : [1, 2, 3, 4, 5, 6, 7];
-  const href = ordersQs(scope.filters);
-  const weekdays: BarItem[] = order.map((d) => ({ key: `w${d}`, label: t(`weekday.${d}`), short: t(`weekdayShort.${d}`), value: count("weekday", d), display: formatInt(count("weekday", d)), href }));
-  const hours: BarItem[] = Array.from({ length: 24 }, (_, h) => ({ key: `h${h}`, label: `${String(h).padStart(2, "0")}:00`, short: String(h).padStart(2, "0"), value: count("hour", h), display: formatInt(count("hour", h)), href }));
+  const weekdays: BarItem[] = order.map((d) => ({ key: `w${d}`, label: t(`weekday.${d}`), short: t(`weekdayShort.${d}`), value: count("weekday", d), display: formatInt(count("weekday", d)), href: ordersQs(scope.filters, { drill: "received", weekday: String(d) }) }));
+  const hours: BarItem[] = Array.from({ length: 24 }, (_, h) => ({ key: `h${h}`, label: `${String(h).padStart(2, "0")}:00`, short: String(h).padStart(2, "0"), value: count("hour", h), display: formatInt(count("hour", h)), href: ordersQs(scope.filters, { drill: "received", hour: String(h) }) }));
   const total = weekdays.reduce((s, x) => s + x.value, 0);
   const empty = total === 0 ? emptyOrders(t("emptyOutcomes"), t("allOrders")) : null;
   return (

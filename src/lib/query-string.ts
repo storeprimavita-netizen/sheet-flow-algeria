@@ -47,7 +47,7 @@ export const communeLinkable = (key: string) => key.length <= MAX_COMMUNE_KEY;
 export const communeBannerLabel = (key: string, label: string) =>
   label.trim().toLowerCase() === key ? label.trim() : key;
 /** Params that only exist in statistics drill mode (the key filters are DRILL_FILTER_KEYS); any other filter change removes them all. */
-export const DRILL_PARAMS = ["drill", "commune_key", "commune_unknown", "commune_label"] as const;
+export const DRILL_PARAMS = ["drill", "commune_key", "commune_unknown", "commune_label", "weekday", "hour"] as const;
 /** `commune_unknown=1` on /app/orders/all means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
 export const COMMUNE_UNKNOWN_PARAM = "commune_unknown";
 
@@ -79,6 +79,8 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
 
 /** Drill metric -> the orders behind a /app/statistics count (`kpi_drill_orders`, same predicate as the SQL count). */
 export type DrillMetric = "received" | "confirmed" | "delivered" | "return" | "shipped";
+/** Donut slice drills: `out_<outcome>` (kpi_drill_orders lists the same CASE kpi_outcomes counts). */
+export const OUTCOME_DRILLS = ["out_delivered", "out_returned", "out_cancelled", "out_unconfirmed", "out_in_progress"] as const;
 
 /** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (communeKey null = no commune). */
 export const drillHref = (
@@ -173,6 +175,7 @@ export function statsDrillFilters(f: StatsFilters, range: { from?: string; to?: 
     from: range.from,
     to: range.to,
     product: f.product,
+    wilaya: f.wilaya,
     source: f.source,
     category: f.category,
     conf_agent: f.agent,

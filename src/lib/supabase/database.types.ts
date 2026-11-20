@@ -1694,6 +1694,9 @@ isOneToOne: false
 "bootstrap_workspace":
 { Args: { "p_email": string,"p_workspace_name"?: string }; Returns: string
                            },
+"chart_range_ok":
+{ Args: { "p_from": string,"p_to": string }; Returns: boolean
+                           },
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -1772,6 +1775,9 @@ isOneToOne: false
                            },
 "normalize_dz_phone":
 { Args: { "p": string }; Returns: string
+                           },
+"order_outcome":
+{ Args: { "p_confirmation": string,"p_delivery": string,"p_swapped": string }; Returns: string
                            },
 "order_stock_target":
 { Args: { "p_confirmation": Database["public"]['Enums']["confirmation_status"],"p_linked_original": boolean,"p_qty": number,"p_replacement": boolean,"p_status": Database["public"]['Enums']["delivery_status"] }; Returns: number

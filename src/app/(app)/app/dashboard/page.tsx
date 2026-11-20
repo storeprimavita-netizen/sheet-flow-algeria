@@ -42,6 +42,8 @@ export default async function DashboardPage({
   // Only period + product filter the dashboard; other params are ignored.
   const filters: DashboardFilters = { from: get("from") || undefined, to: get("to") || undefined, product: get("product") || undefined };
 
+  if (filters.from && filters.to && filters.from > filters.to) [filters.from, filters.to] = [filters.to, filters.from];
+
   const products0 = await supabase.from("products").select("id, name").order("name");
   // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
   if (filters.product && !(products0.data ?? []).some((p) => p.id === filters.product)) filters.product = undefined;

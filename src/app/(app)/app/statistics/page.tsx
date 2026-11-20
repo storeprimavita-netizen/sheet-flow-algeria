@@ -63,7 +63,9 @@ export default async function StatisticsPage({
     id: s.id, name: s.name, name_key: s.name_key, sort: s.sort, periods: s.season_periods ?? [],
   }));
   const season = resolveSeason({ season: f.season, year: f.year, from: f.from, to: f.to }, seasons);
-  const range = { from: season.from, to: season.to };
+  // a reversed period (typed or shared URL) is read the other way round, never an RPC error
+  const reversed = season.from && season.to && season.from > season.to;
+  const range = reversed ? { from: season.to, to: season.from } : { from: season.from, to: season.to };
   const seasonOpts = seasons.map((s) => ({ id: s.id, label: seasonLabel(t, s), years: periodYears(s) }));
   const notes: string[] = [];
   const parsed: [string, string, unknown][] = [

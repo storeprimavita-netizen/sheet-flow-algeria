@@ -466,6 +466,13 @@
       "delivered": "Delivered orders",
       "return": "Returned orders",
       "shipped": "Shipped orders",
+      "out_delivered": "Outcome: delivered",
+      "out_returned": "Outcome: returned",
+      "out_cancelled": "Outcome: cancelled",
+      "out_unconfirmed": "Outcome: not confirmed yet",
+      "out_in_progress": "Outcome: in progress",
+      "weekday": "Weekday {n}",
+      "hour": "Hour {n}:00",
       "clear": "Show all orders"
     }
   },
@@ -1721,7 +1728,7 @@
       "emptyDaily": "No orders in this period.",
       "emptyOutcomes": "No orders in this period.",
       "allOrders": "All orders",
-      "immatureNote": "Dashed recent days are not final: deliveries are still coming in.",
+      "immatureNote": "Dashed recent days are not final: orders are still arriving.",
       "hourNote": "Hours are Algiers time."
     },
     "sections": {
