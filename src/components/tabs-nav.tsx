@@ -3,7 +3,7 @@ import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/rbac";
 
 /**
- * Admin-only section tab switcher — shared shape behind OrderTabs, ContactTabs,
+ * Admin-only section tab switcher — shared shape behind OrderTabs,
  * TeamTabs (agents never see these; each section has at most one queue/view
  * for them, nothing to switch between).
  */
@@ -22,6 +22,7 @@ export async function TabsNav<K extends string>({
         <Link
           key={tab.key}
           href={tab.href}
+          aria-current={tab.key === active ? "page" : undefined}
           className={
             tab.key === active
               ? "shrink-0 whitespace-nowrap border-b-2 border-primary px-3 py-2 font-medium text-foreground"

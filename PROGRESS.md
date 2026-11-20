@@ -727,3 +727,13 @@ Breadcrumb in top bar (shared, `CrumbRecord` for record names), required `PageHe
 - Evidence: docs/briefs/NAV-2.review-3.md VERDICT: PASS. Screenshots from build: /app/money hub, /app/orders/new breadcrumb overflow.
 - Owner: light theme, EN, 1280px, agent hub, product/order record tails not captured.
 - Next: NAV-3.
+
+## NAV-3 — canonical URLs (v3-NAV-3)
+Moved orders/contacts/products/stock/pricing/finance routes under sell|catalog|money; 308 table in `src/lib/legacy-redirects.ts` (+ test); courier cash now one page with `?tab=collections|income`. Browser check: old income/cash/products URLs land correctly (AR dark, 1280); screenshots in docs/design/audit/NAV-3 (not full light/EN/390 matrix).
+
+## NAV-3 ship
+- Done: canonical /app URLs (sell|catalog|money), 308 legacy redirects (`src/lib/legacy-redirects.ts`), one Courier cash page `?tab=collections|income`. Plan row NAV-3 = done.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-3 (tsc, 1021 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-3.review-2.md VERDICT: PASS; shots docs/design/audit/NAV-3.
+- Owner: light theme, EN, 390px matrix for NAV-3 not captured.
+- Next: NAV-5 (MONEY-2, RES-1, P1-5 also unblocked by NAV-3).

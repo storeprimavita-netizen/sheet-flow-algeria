@@ -48,7 +48,7 @@ export default async function StorePagesPage() {
       {(products ?? []).length === 0 ? (
         <Empty>
           <p className="mb-3">{t("pages.emptyNoProducts")}</p>
-          <ButtonLink href="/app/products/new">{t("pages.goProducts")}</ButtonLink>
+          <ButtonLink href="/app/catalog/products/new">{t("pages.goProducts")}</ButtonLink>
         </Empty>
       ) : free.length > 0 ? (
         <CreatePageForm storeId={store.id} products={free} />

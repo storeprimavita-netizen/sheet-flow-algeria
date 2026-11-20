@@ -108,7 +108,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | SEC-1-H | Follow-up from SEC-1-G (D85): (a) backfill test lock_timeout and skip without DB (low 7); (b) pill focus-visible ring, real focused shots both themes, contrast measured; (c) retake 1440 and 390 px shots with colliding-path row, indices as `[0]`, quote keys with `.` or " › "; (d) lows 4,5,6,8,9; (e) missing tests in docs/briefs/SEC-1-G.review-3.md | – | L | ui | – | shell | SEC-1-G | done |
 | NAV-1-G | Follow-up: NAV-1-F review-2 lows; Arabic ⌘K fuzzy-match noise; RTL shows "K⌘" for the shortcut hint | NAV | L | ui | – | shell | NAV-1-F | done |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | done |
-| NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | claimed:claude |
+| NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | done |
 | NAV-4 | Emoji in option labels and saved views; label overrides for system statuses | NAV | L | ui | M | shell | NAV-1 | todo |
 | NAV-5 | Mobile bottom bar; agent "My day" home | NAV | L | ui | – | shell | NAV-3 | todo |
 

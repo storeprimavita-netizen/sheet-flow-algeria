@@ -10,7 +10,6 @@ import {
   BarChart3,
   Receipt,
   Megaphone,
-  Banknote,
   HandCoins,
   Landmark,
   Users,
@@ -68,10 +67,10 @@ export const GROUPS: NavGroup[] = [
     key: "groupSell",
     href: "/app/sell",
     items: [
-      { key: "confirmation", href: "/app/orders/confirmation", icon: PhoneCall, counter: "confirmation" },
-      { key: "shipping", oldKey: "delivery", href: "/app/orders/delivery", icon: Truck, counter: "delivery" },
-      { key: "all", href: "/app/orders/all", match: ["/app/orders"], icon: ListChecks, adminOnly: true },
-      { key: "customers", oldKey: "contacts", href: "/app/contacts", icon: Users, adminOnly: true },
+      { key: "confirmation", href: "/app/sell/confirmation", icon: PhoneCall, counter: "confirmation" },
+      { key: "shipping", oldKey: "delivery", href: "/app/sell/shipping", icon: Truck, counter: "delivery" },
+      { key: "all", href: "/app/sell/orders", icon: ListChecks, adminOnly: true },
+      { key: "customers", oldKey: "contacts", href: "/app/sell/customers", icon: Users, adminOnly: true },
       { key: "statistics", href: "/app/statistics", icon: MapPinned, adminOnly: true },
     ],
   },
@@ -79,9 +78,9 @@ export const GROUPS: NavGroup[] = [
     key: "groupCatalog",
     href: "/app/catalog",
     items: [
-      { key: "products", href: "/app/products", icon: Package, adminOnly: true },
-      { key: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
-      { key: "pricing", oldKey: "planner", href: "/app/pricing", icon: Calculator, adminOnly: true },
+      { key: "products", href: "/app/catalog/products", icon: Package, adminOnly: true },
+      { key: "stock", href: "/app/catalog/stock", icon: Boxes, adminOnly: true },
+      { key: "pricing", oldKey: "planner", href: "/app/catalog/pricing", icon: Calculator, adminOnly: true },
     ],
   },
   {
@@ -98,13 +97,12 @@ export const GROUPS: NavGroup[] = [
     key: "groupMoney",
     href: "/app/money",
     items: [
-      { key: "financeOverview", href: "/app/finance/overview", icon: BarChart3, adminOnly: true },
-      { key: "accounts", href: "/app/finance/accounts", icon: Landmark, adminOnly: true },
-      { key: "expenses", href: "/app/finance/expenses", icon: Receipt, adminOnly: true },
-      { key: "adSpend", href: "/app/finance/ad-spend", icon: Megaphone, adminOnly: true },
-      { key: "courierCash", oldKey: "cash", href: "/app/orders/cash", icon: HandCoins, adminOnly: true },
-      { key: "income", href: "/app/finance/income", icon: Banknote, adminOnly: true },
-      { key: "suppliers", href: "/app/contacts/suppliers", icon: Building2, adminOnly: true },
+      { key: "financeOverview", href: "/app/money/overview", icon: BarChart3, adminOnly: true },
+      { key: "accounts", href: "/app/money/accounts", icon: Landmark, adminOnly: true },
+      { key: "expenses", href: "/app/money/expenses", icon: Receipt, adminOnly: true },
+      { key: "adSpend", href: "/app/money/ad-spend", icon: Megaphone, adminOnly: true },
+      { key: "courierCash", oldKey: "cash", href: "/app/money/courier-cash", icon: HandCoins, adminOnly: true },
+      { key: "suppliers", href: "/app/money/suppliers", icon: Building2, adminOnly: true },
     ],
   },
   {
@@ -191,7 +189,7 @@ export function crumbsFor(role: Role | null, pathname: string): Crumb[] {
   if (hub) return [{ labelKey: `nav.${hub.key}` }];
   let href = activeLeafHref(role, pathname);
   // Order records belong to "All orders", which agents cannot see: file them under their own queue.
-  if (!href && pathname.startsWith("/app/orders/") && role !== "admin") href = groups[0]?.items[0]?.href;
+  if (!href && pathname.startsWith("/app/sell/orders/") && role !== "admin") href = groups[0]?.items[0]?.href;
   const group = groups.find((g) => g.items.some((l) => l.href === href));
   const leaf = group?.items.find((l) => l.href === href);
   if (!group || !leaf) return [];

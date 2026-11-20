@@ -131,14 +131,14 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
                     <p className="mt-1 break-words text-muted-foreground">{r.body}</p>
                   </td>
                   <td>
-                    <Link href={`/app/products/${r.product_id}`} className="hover:underline">
+                    <Link href={`/app/catalog/products/${r.product_id}`} className="hover:underline">
                       {names.get(r.product_id) ?? "—"}
                     </Link>
                     {hasPage.has(r.product_id) ? null : <p className="text-xs text-muted-foreground">{t("noPage")}</p>}
                   </td>
                   <td>
                     {r.order_id && orders.has(r.order_id) ? (
-                      <Link href={`/app/orders/${r.order_id}`} className="num hover:underline">
+                      <Link href={`/app/sell/orders/${r.order_id}`} className="num hover:underline">
                         <bdi>{t("orderLink", { n: orders.get(r.order_id)! })}</bdi>
                       </Link>
                     ) : (

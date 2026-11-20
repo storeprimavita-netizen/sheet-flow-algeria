@@ -83,10 +83,10 @@ export function CommandPalette({ role, children }: { role: Role | null; children
   const actions =
     role === "admin"
       ? [
-          { key: "newOrder", href: "/app/orders/new", Icon: PlusCircle },
-          { key: "newProduct", href: "/app/products/new", Icon: Package },
-          { key: "newSupplier", href: "/app/contacts/suppliers/new", Icon: Building2 },
-          { key: "addAdSpend", href: "/app/finance/ad-spend", Icon: Megaphone },
+          { key: "newOrder", href: "/app/sell/orders/new", Icon: PlusCircle },
+          { key: "newProduct", href: "/app/catalog/products/new", Icon: Package },
+          { key: "newSupplier", href: "/app/money/suppliers/new", Icon: Building2 },
+          { key: "addAdSpend", href: "/app/money/ad-spend", Icon: Megaphone },
         ]
       : [];
 
@@ -135,7 +135,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
                 <CommandItem
                   value={`orders:${query}`}
                   forceMount
-                  onSelect={() => go(`/app/orders/all?q=${encodeURIComponent(query.trim())}`)}
+                  onSelect={() => go(`/app/sell/orders?q=${encodeURIComponent(query.trim())}`)}
                 >
                   <Hash />
                   {t("cmd.searchOrders", { q: query.trim() })}
@@ -144,7 +144,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
               <CommandItem
                 value={`customers:${query}`}
                 forceMount
-                onSelect={() => go(`/app/contacts?q=${encodeURIComponent(query.trim())}`)}
+                onSelect={() => go(`/app/sell/customers?q=${encodeURIComponent(query.trim())}`)}
               >
                 <Users />
                 {t("cmd.searchCustomers", { q: query.trim() })}

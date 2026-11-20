@@ -59,7 +59,7 @@ export async function ProductScorecard({ rows, hasProducts }: { rows: ScorecardR
             {rows.map((r) => (
               <li key={r.productId} className="card-surface space-y-3 rounded-xl p-4">
                 <div className="flex items-baseline justify-between gap-3">
-                  <Link href={`/app/products/${r.productId}/statistics`} className="min-w-0 truncate font-medium hover:underline">
+                  <Link href={`/app/catalog/products/${r.productId}/statistics`} className="min-w-0 truncate font-medium hover:underline">
                     {r.name}
                   </Link>
                   <span className={`num whitespace-nowrap text-sm font-semibold ${profitClass(r)}`}>{formatCurrency(r.netProfit)}</span>
@@ -98,7 +98,7 @@ export async function ProductScorecard({ rows, hasProducts }: { rows: ScorecardR
                 {rows.map((r) => (
                   <tr key={r.productId}>
                     <td>
-                      <Link href={`/app/products/${r.productId}/statistics`} className="hover:underline">
+                      <Link href={`/app/catalog/products/${r.productId}/statistics`} className="hover:underline">
                         {r.name}
                       </Link>
                     </td>
