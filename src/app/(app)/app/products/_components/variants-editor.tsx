@@ -147,7 +147,7 @@ export function VariantsEditor({
                   <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("moveValueLater", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })} disabled={j === o.values.length - 1} onClick={() => setOption(i, { values: move(o.values, j, 1) })}>
                     <ChevronRight className="rtl:-scale-x-100" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={t("removeValue", { label: v.label || t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9" aria-label={v.label ? t("removeValue", { label: v.label }) : t("removeValueUnnamed", { label: t("valueNumbered", { n: j + 1, option: optName(o, i) }) })}
                     disabled={variants.some((x) => x.saved && x.values[o.id] === v.id)}
                     onClick={() => {
                       setVariants(variants.filter((x) => x.values[o.id] !== v.id));
