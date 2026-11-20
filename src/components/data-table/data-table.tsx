@@ -278,6 +278,7 @@ export function DataTable<T>({
                       "px-3 py-2 font-medium text-muted-foreground",
                       colStart(c),
                       c.width,
+                      c.className,
                       c.sticky && "sticky start-0 z-20 bg-surface "
                         + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                     )}
@@ -360,6 +361,7 @@ export function DataTable<T>({
                               "px-3",
                               colStart(c),
                               c.width,
+                              c.className,
                               c.numeric && "num",
                               c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors "
                                 + (focus === i && tableFocused ? "ring-2 ring-inset ring-ring " : "")

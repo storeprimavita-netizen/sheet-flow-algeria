@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { ButtonLink } from "@/components/button-link";
 import { DataTable } from "@/components/data-table/data-table";
@@ -26,7 +26,7 @@ function Value({ v }: { v: DiffValue }) {
       tabIndex={0}
       title={t("audit.redacted")}
       aria-label={t("audit.redactedAria", { fp: v.fingerprint ?? "" })}
-      className="inline-block whitespace-nowrap rounded border border-border bg-secondary px-1"
+      className="inline-block whitespace-nowrap rounded border border-border bg-secondary px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {t("audit.redactedPill")} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
     </span>
@@ -35,11 +35,12 @@ function Value({ v }: { v: DiffValue }) {
 
 export function ChangeList({ changes }: { changes: DiffChange[] }) {
   const t = useTranslations();
+  const locale = useLocale();
   return (
     <ul className="space-y-1 py-2 text-xs text-muted-foreground">
       {changes.map((c) => (
         <li key={c.id} dir="ltr" className="text-start">
-          <bdi className="break-all">{c.key === "" ? t("audit.emptyKey") : c.key}</bdi>: <Value v={c.from} /> → <Value v={c.to} />
+          <bdi className="break-all">{c.key === "" ? <bdi dir={locale === "ar" ? "rtl" : undefined}>{t("audit.emptyKey")}</bdi> : c.key}</bdi>: <Value v={c.from} /> → <Value v={c.to} />
         </li>
       ))}
     </ul>
@@ -51,7 +52,7 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
 
   // Below sm the changes stack under the table name (the table scrolls sideways otherwise and hides them).
   const columns: Column<AuditRow>[] = [
-    { id: "created_at", header: t("fields.date"), width: "hidden sm:table-cell", sticky: true, cell: (r) => <bdi dir="ltr" className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</bdi> },
+    { id: "created_at", header: t("fields.date"), className: "hidden sm:table-cell", sticky: true, cell: (r) => <bdi dir="ltr" className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</bdi> },
     { id: "table", header: t("team.table"), cell: (r) => (
         <>
           {r.table_name}
@@ -60,9 +61,9 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
           {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
         </>
       ) },
-    { id: "action", width: "hidden sm:table-cell", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
-    { id: "actor", width: "hidden sm:table-cell", header: t("fields.agent"), cell: (r) => r.actor_name },
-    { id: "changes", width: "hidden sm:table-cell", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : <div className="hidden sm:block"><ChangeList changes={r.changes} /></div> },
+    { id: "action", className: "hidden sm:table-cell", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
+    { id: "actor", className: "hidden sm:table-cell", header: t("fields.agent"), cell: (r) => r.actor_name },
+    { id: "changes", className: "hidden sm:table-cell", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : <div className="hidden sm:block"><ChangeList changes={r.changes} /></div> },
   ];
 
   return (

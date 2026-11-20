@@ -54,4 +54,25 @@ describe("AuditTable", () => {
   test("empty key gets a label", () => {
     expect(render("en")).toContain(en.audit.emptyKey);
   });
+  test("filtered empty state: Clear link goes to the unfiltered page", () => {
+    expect(render("en", [], true)).toContain(`href="/app/settings/audit"`);
+    expect(render("en", [], false)).not.toContain(`href="/app/settings/audit"`);
+  });
+  test("empty state without filters shows the none copy", () => {
+    expect(render("en", [], false)).toContain(en.team.auditNone);
+  });
+  test("ar: empty-key label is wrapped in an rtl bdi; en is not", () => {
+    expect(render("ar")).toContain(`<bdi dir="rtl">${ar.audit.emptyKey}</bdi>`);
+    expect(render("en")).not.toContain(`<bdi dir="rtl">`);
+  });
+  test("pill has a focus-visible ring", () => {
+    expect(render("en")).toMatch(/role="note"[^>]*focus-visible:ring-2/);
+  });
+  test("colliding labels are both visible", () => {
+    const both = diffRows({ "a.b": 1, a: { b: 1 }, "x › y": 1 }, { "a.b": 2, a: { b: 2 }, "x › y": 2 });
+    const html = render("en", [{ ...row, changes: both }]).replace(/<[^>]*>/g, "");
+    expect(html).toContain("&quot;x › y&quot;");
+    expect(html).toContain("&quot;a.b&quot;");
+    expect(html).toContain("a › b");
+  });
 });

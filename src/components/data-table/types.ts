@@ -19,6 +19,8 @@ export type Column<T> = {
   alwaysVisible?: boolean;
   /** fixed width utility class, e.g. "w-10" */
   width?: string;
+  /** extra classes applied to both the header and body cells, e.g. "hidden sm:table-cell" */
+  className?: string;
 };
 
 export type SortState = { id: string; dir: "asc" | "desc" } | null;
