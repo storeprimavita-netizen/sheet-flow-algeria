@@ -19,6 +19,15 @@ const DB_CONTAINER = process.env.LOCAL_DB_CONTAINER ?? "supabase_db_mnw-erp";
 const SEED_PASSWORD = "SeedDev!2026";
 const SECRET = "whsec_TESTSEED" + crypto.randomUUID();
 
+const dbContainerUp = (() => {
+  try {
+    execFileSync("docker", ["inspect", DB_CONTAINER], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
 const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
 describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
@@ -163,7 +172,14 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(del_row).toBeDefined();
   });
 
-  test("00071 backfill UPDATE scrubs raw rows, leaves clean rows untouched (xmin), rolls back", () => {
+  test("1-arg audit_redact(j) is not executable by agent or anon (42501)", async () => {
+    for (const c of [agent, client(ANON_KEY)]) {
+      const r = await c.rpc("audit_redact", { j: { secret: "x" } });
+      expect(r.error?.code).toBe("42501");
+    }
+  });
+
+  test.skipIf(!dbContainerUp)("00071 backfill UPDATE scrubs raw rows, leaves clean rows untouched (xmin), rolls back", () => {
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/00071_audit_redact_idempotent.sql"), "utf8");
     const update = sql.slice(sql.indexOf("update public.audit_log a"));
     expect(update).toContain("is distinct from");
@@ -180,7 +196,7 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
         const probe = `select id || '|' || xmin::text || '|' || coalesce(old_row::text,'') || '|' || coalesce(new_row::text,'') from public.audit_log where id in (${ids.join(",")}) order by id;`;
         const parse = (o: string) => new Map(o.trim().split("\n").filter((l) => /^\d+\|/.test(l)).map((l) => { const [id, xmin, o2, n] = l.split("|"); return [Number(id), { xmin, o2, n }] as const; }));
         const before = parse(psql(probe));
-        const out = parse(psql(`begin;\n${update}\n${probe}\nrollback;`));
+        const out = parse(psql(`begin;\nset lock_timeout='5s';\n${update}\n${probe}\nrollback;`));
         const rawAfter = out.get(raw.data!.id)!;
         expect(rawAfter.o2).not.toMatch(/RAW_a|RAW_slash|RAW_plural/);
         expect(rawAfter.o2).toContain("[redacted:");

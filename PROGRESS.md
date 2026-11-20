@@ -694,3 +694,15 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: focused-pill PNG is not a focus shot; 1440 px images predate " › " labels; pill contrast 7.0:1 light / 6.4:1 dark is builder's figure.
 - Owner: remote `db push` of 00071 and 00072 (O-2); D49 amendment ack pending; Q-21 open.
 - Next: SEC-1-H (todo).
+
+## SEC-1-H build notes
+- Done: backfill test sets `lock_timeout='5s'` and skips without the DB container; 1-arg `audit_redact` 42501 test (agent, anon); parity cases for trailing-newline token and uppercase-hex; diff `label()` (`[0]` indices, `.`/` › ` keys JSON-quoted); `_lib/params.ts` (`parseAuditParams`, real-date check, `AUDITED_TABLES` = 21 tables from the DB, fixed +01:00 day bounds with `lt` next-day) + tests incl. live trigger-list check; `Column.className`; pill focus ring; rtl `<bdi>` on the AR empty-key label; render tests (empty, filtered Clear href, rtl bdi, ring, colliding labels, loading, error retry).
+- Contrast `text-muted-foreground` on `bg-secondary` (computed, canvas-resolved): light 7.02:1, dark 6.37:1.
+- Screenshots `docs/design/audit/SEC-1-H/{en,ar}-{dark,light}-{1440,390}.png` (viewport shots at the seeded top row) + `en-{dark,light}-390-focused-pill.png` (differ from unfocused, `cmp`). Earlier SEC-1-G "ar" shots may have been English (cookie is `locale`, not `NEXT_LOCALE`). No horizontal scroll at 390. Timezone +01:00 assumed (no workspace tz setting found).
+
+## SEC-1-H ship
+- Done: audit follow-ups (backfill lock_timeout + skip without DB, 1-arg `audit_redact` 42501 test, parity cases, diff `label()` quoting, `_lib/params.ts` with 21 audited tables and +01:00 day bounds, `Column.className`, pill focus ring, rtl bdi, render tests). Plan row SEC-1-H = done.
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-H (tsc, 1004 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/SEC-1-H.review-1.md VERDICT: PASS; shots docs/design/audit/SEC-1-H/ (en/ar, dark/light, 1440/390, focused pill).
+- Owner: remote `db push` (none new in H); Q-21 open; D49 amendment ack pending.
+- Next: none from H; SEC-1-G carry-overs per its entry.

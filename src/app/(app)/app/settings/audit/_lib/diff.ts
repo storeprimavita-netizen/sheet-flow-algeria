@@ -3,7 +3,7 @@ import { auditRedact } from "@/lib/audit-redact";
 
 /** `redacted` values carry only a fingerprint; the UI composes the localised pill from it. */
 export type DiffValue = { text: string; redacted: boolean; fingerprint?: string };
-/** `id` is unique per path (React key); `key` is display only (segments joined by " › "; array indices are numbers in the id so they never collide with object keys; "" = empty key, the UI labels it). */
+/** `id` is unique per path (React key); `key` is display only (see `label`; "" = empty key, the UI labels it). */
 export type DiffChange = { id: string; key: string; from: DiffValue; to: DiffValue };
 
 const MASKED = /^\[redacted:([0-9a-f]{8})\]$/;
@@ -41,6 +41,10 @@ function leaves(safe: Record<string, unknown> | null) {
   return out;
 }
 
+/** Display label: indices as `[n]`, keys containing "." or " › " JSON-quoted, so distinct paths never look alike. */
+const label = (segments: (string | number)[]) =>
+  segments.map((s) => (typeof s === "number" ? `[${s}]` : s.includes(".") || s.includes(" › ") ? JSON.stringify(s) : s)).join(" › ");
+
 const isTimestamp = (s: (string | number)[]) => s.length === 1 && (s[0] === "updated_at" || s[0] === "created_at");
 
 /** Redacted, display-ready diff of an audit row. Redaction happens here, on the server. */
@@ -53,7 +57,7 @@ export function diffRows(rawOld: Record<string, unknown> | null, rawNew: Record<
     const to = n.get(id);
     const segments = (from ?? to)!.segments;
     if (isTimestamp(segments)) continue;
-    if (JSON.stringify(from?.safe) !== JSON.stringify(to?.safe)) changes.push({ id, key: segments.join(" › "), from: show(from), to: show(to) });
+    if (JSON.stringify(from?.safe) !== JSON.stringify(to?.safe)) changes.push({ id, key: label(segments), from: show(from), to: show(to) });
   }
   return changes;
 }
