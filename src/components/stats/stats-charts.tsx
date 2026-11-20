@@ -64,7 +64,8 @@ async function DailyCharts({ scope }: { scope: Scope }) {
     { key: "confirmation", label: t("confirmation"), color: "var(--chart-1)", marker: "circle", values: days.map((d) => pct(d.rates.confirmation)), format: "percent" },
     { key: "delivery", label: t("delivery"), color: "var(--chart-2)", dash: "6 4", marker: "square", values: days.map((d) => pct(d.rates.delivery)), format: "percent" },
   ];
-  const note = days.some((d) => d.immature) ? t("immatureNote") : undefined;
+  const notes = [days.length >= 366 ? t("windowNote", { n: days.length }) : null, days.some((d) => d.immature) ? t("immatureNote") : null].filter(Boolean);
+  const note = notes.length ? notes.join(" ") : undefined;
   return (
     <>
       <LineChart title={t("ordersPerDay")} xs={xs} series={orders} empty={empty} note={note} />

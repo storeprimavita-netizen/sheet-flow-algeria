@@ -51,8 +51,11 @@ describe("LineChart", () => {
     expect(html).toContain("a3.5,3.5"); // circle marker
     expect(html).toMatch(/M[\d.]+,[\d.]+L[\d.]+,[\d.]+L[\d.]+,[\d.]+L[\d.]+,[\d.]+Z/); // diamond
   });
-  test("immature tail is dashed", () => {
-    expect(render(<LineChart title="Money" xs={xs} series={series} />)).toContain('stroke-dasharray="1 5"');
+  test("immature days are shaded and keep each series' own dash", () => {
+    const html = render(<LineChart title="Money" xs={xs} series={series} />);
+    expect(html).toContain("data-immature");
+    expect(html).not.toContain('stroke-dasharray="1 5"');
+    expect(html).toContain("data-anchor"); // tooltip anchors to the marker ring
   });
   test("RTL: oldest point is at the right (first x > last x); LTR the opposite", () => {
     const ltr = cx(render(<LineChart title="M" xs={xs} series={[series[1]]} />));

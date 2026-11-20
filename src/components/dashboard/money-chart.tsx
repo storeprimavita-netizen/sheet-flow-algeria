@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/format";
 import { cumulative } from "@/lib/chart-math";
 import { LineChart, type LineSeries, type LineX } from "@/components/charts/line-chart";
 
@@ -26,11 +27,14 @@ export type MoneyDay = {
 /**
  * Revenue, total costs and net profit per day (SQL `kpi_daily`), with a cumulative toggle
  * and the period total. Three series differ by colour, dash and marker. Recent days are
- * dashed and noted: revenue counts by order date, ads by spend date.
+ * shaded and noted: revenue counts by order date, ads by spend date.
  */
 export function MoneyChart({ days, total, emptyAction }: { days: MoneyDay[]; total: string | null; emptyAction: { label: string; href: string } }) {
   const t = useTranslations("dashboard.v2.money.chart");
   const [cum, setCum] = React.useState(false);
+  // the SQL series is capped at the last 366 days; then the total is that window's own sum
+  const capped = days.length >= 366;
+  const windowNet = Math.round(days.reduce((a, d) => a + d.net, 0) * 100) / 100;
   const hasData = days.some((d) => d.revenue !== 0 || d.costs !== 0);
 
   const xs: LineX[] = days.map((d) => ({ key: d.key, label: d.label, short: d.short, immature: d.immature, href: d.href }));
@@ -48,7 +52,8 @@ export function MoneyChart({ days, total, emptyAction }: { days: MoneyDay[]; tot
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          {t("periodTotal")} <span className="num font-semibold text-foreground">{total ?? "—"}</span>
+          {capped ? t("windowTotal", { n: days.length }) : t("periodTotal")}{" "}
+          <span className="num font-semibold text-foreground">{capped ? formatCurrency(windowNet) : (total ?? "—")}</span>
         </p>
         <Button type="button" variant="outline" size="sm" aria-pressed={cum} onClick={() => setCum((v) => !v)}>
           <TrendingUp className="h-3.5 w-3.5" />

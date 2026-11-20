@@ -181,7 +181,7 @@ export function ChartTooltip({
   point,
   pinned,
 }: {
-  shown: { x: number; y: number; width: number } | null;
+  shown: { x: number; y: number; h?: number; width: number } | null;
   point: Pt | null;
   pinned: boolean;
 }) {
@@ -211,7 +211,7 @@ export function ChartTooltip({
         "absolute z-10 w-max max-w-[200px] rounded-lg border border-border-strong bg-popover px-3 py-2 text-xs shadow-[var(--shadow-raised)]",
         !pinned && "pointer-events-none",
       )}
-      style={{ left, top: (below ? shown.y + 24 : shown.y - 6) + dy, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
+      style={{ left, top: (below ? shown.y + (shown.h ?? 18) + 6 : shown.y - 6) + dy, transform: below ? "translateX(-50%)" : "translate(-50%, -100%)" }}
     >
       <p className="mb-1 font-medium">
         <bdi>{point.title}</bdi>

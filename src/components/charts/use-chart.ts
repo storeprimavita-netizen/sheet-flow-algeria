@@ -23,7 +23,7 @@ export function useChartWidth(ref: React.RefObject<HTMLElement | null>, initial 
 }
 
 type Pos = { s: number; i: number };
-type Shown = Pos & { x: number; y: number; width: number };
+type Shown = Pos & { x: number; y: number; h: number; width: number };
 
 /**
  * Roving-tabindex navigation over a series x index grid of points (null = no point).
@@ -48,8 +48,9 @@ export function useChartNav(grid: (Pt | null)[][], rtl: boolean, axis: "x" | "y"
     const box = boxRef.current;
     if (!box) return;
     const b = box.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    setShown({ s, i, x: r.left - b.left + r.width / 2, y: r.top - b.top, width: b.width });
+    // a marker ring (data-anchor) is the anchor when present, so the tooltip never covers the point
+    const r = (el.querySelector("[data-anchor]") ?? el).getBoundingClientRect();
+    setShown({ s, i, x: r.left - b.left + r.width / 2, y: r.top - b.top, h: el.querySelector("[data-anchor]") ? r.height : 18, width: b.width });
   }, []);
 
   const dismiss = useCallback(() => {
@@ -143,5 +144,6 @@ export function useChartNav(grid: (Pt | null)[][], rtl: boolean, axis: "x" | "y"
   });
 
   const point = shown ? grid[shown.s]?.[shown.i] ?? null : null;
-  return { boxRef, bind, onKeyDown, show, shown, point, pinned, dismiss };
+  const pin = useCallback(() => setPinned(true), []);
+  return { boxRef, bind, onKeyDown, show, pin, shown, point, pinned, dismiss };
 }

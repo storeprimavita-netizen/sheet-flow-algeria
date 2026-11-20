@@ -37,12 +37,24 @@ export function lineTable(title: string, xs: LineX[], series: LineSeries[], noVa
   };
 }
 
+/** [first, last] index of every consecutive run of immature points */
+function immatureRuns(flags: boolean[]): [number, number][] {
+  const out: [number, number][] = [];
+  flags.forEach((f, i) => {
+    if (!f) return;
+    const last = out[out.length - 1];
+    if (last && last[1] === i - 1) last[1] = i;
+    else out.push([i, i]);
+  });
+  return out;
+}
+
 const H = 240;
 const M = { top: 12, bottom: 28, left: 8, right: 8 };
 
 /**
  * Time-series lines. Oldest at the right in RTL with the Y axis on the right. A null value is
- * a gap (never 0). The segment into an immature point is dashed. Every point links to `x.href`.
+ * a gap (never 0). Recent (immature) days are shaded as a band, so every series keeps its own dash. Every point links to `x.href`.
  */
 export function LineChart(props: Props) {
   return (
@@ -95,9 +107,30 @@ function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Pr
     if (el) nav.show(si, i, el);
   };
 
+  // touch: tap or horizontal scrub anywhere in the plot snaps to the nearest day (bands are too thin to hit)
+  const touchAt = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType !== "touch") return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - box.left;
+    const w = (right - left) / Math.max(n, 1);
+    const k = Math.min(n - 1, Math.max(0, Math.floor((x - left) / w)));
+    const want = rtl ? n - 1 - k : k;
+    let best = -1;
+    for (let d = 0; d < n && best < 0; d++) {
+      for (const i of [want - d, want + d]) if (i >= 0 && i < n && series.some((s) => s.values[i] != null)) { best = i; break; }
+    }
+    if (best < 0) return;
+    const si = series.findIndex((s) => s.values[best] != null);
+    const el = nav.boxRef.current?.querySelector(`[data-pt="${si}-${best}"]`);
+    if (el) {
+      nav.show(si, best, el);
+      nav.pin();
+    }
+  };
+
   const plot = (
     <div ref={nav.boxRef} className="relative w-full min-w-0" onKeyDown={nav.onKeyDown}>
-      <svg width={width} height={H} role="group" aria-label={title} style={{ touchAction: "pan-y" }} className="block overflow-visible">
+      <svg width={width} height={H} role="group" aria-label={title} style={{ touchAction: "pan-y" }} onPointerDown={touchAt} onPointerMove={(e) => { if (e.buttons) touchAt(e); }} className="block overflow-visible">
         {dom.ticks.map((tk) => (
           <g key={tk}>
             <line x1={left} x2={right} y1={y(tk)} y2={y(tk)} strokeWidth={1} className={tk === 0 ? "stroke-[var(--border-strong)]" : "stroke-[var(--border)]"} />
@@ -111,6 +144,13 @@ function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Pr
             {xs[i].short}
           </text>
         ))}
+        {immatureRuns(immature).map(([a, z]) => {
+          const ba = bandAt(a, n, left, right, rtl);
+          const bz = bandAt(z, n, left, right, rtl);
+          const x0 = Math.min(ba.x, bz.x) - ba.w / 2;
+          const x1 = Math.max(ba.x, bz.x) + ba.w / 2;
+          return <rect key={`im-${a}`} data-immature="" x={x0} y={M.top} width={x1 - x0} height={H - M.top - M.bottom} className="fill-[var(--text-muted)]" opacity={0.14} pointerEvents="none" />;
+        })}
         {xs.map((x, i) => {
           const b = bandAt(i, n, left, right, rtl);
           return <rect key={x.key} x={b.x - b.w / 2} y={M.top} width={b.w} height={H - M.top - M.bottom} fill="none" pointerEvents="all" onPointerEnter={(e) => { if (e.pointerType === "mouse") hoverBand(i); }} />;
@@ -119,15 +159,15 @@ function LineChartInner({ title, xs, series, empty, note, axis = "compact" }: Pr
           const ys = s.values.map((v) => (v == null ? null : y(v)));
           return (
             <g key={s.key}>
-              {lineSegments(xsPx, ys, immature).map((seg, k) => (
-                <path key={k} d={seg.d} fill="none" stroke={s.color} strokeWidth={2} strokeLinecap="round" strokeDasharray={seg.dashed ? "1 5" : s.dash} opacity={seg.dashed ? 0.7 : 1} />
+              {lineSegments(xsPx, ys).map((seg, k) => (
+                <path key={k} d={seg.d} fill="none" stroke={s.color} strokeWidth={2} strokeLinecap="round" strokeDasharray={s.dash} />
               ))}
               {s.values.map((v, i) =>
                 v == null ? null : (
                   <Link key={xs[i].key} href={xs[i].href ?? "#"} aria-label={grid[si][i]?.aria} className="group outline-none" {...nav.bind(si, i)}>
                     <rect x={xsPx[i] - pitch / 2} y={M.top} width={pitch} height={H - M.top - M.bottom} fill="none" pointerEvents="all" />
                     {showMarkers ? <path d={markerPath(s.marker, xsPx[i], y(v), 3.5)} fill={s.color} stroke="var(--surface)" strokeWidth={1} /> : null}
-                    <circle cx={xsPx[i]} cy={y(v)} r={9} fill="none" strokeWidth={2} className="stroke-[var(--focus)] opacity-0 group-focus-visible:opacity-100" />
+                    <circle data-anchor="" cx={xsPx[i]} cy={y(v)} r={9} fill="none" strokeWidth={2} className="stroke-[var(--focus)] opacity-0 group-focus-visible:opacity-100" />
                   </Link>
                 ),
               )}
