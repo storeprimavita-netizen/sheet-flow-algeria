@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin, requireProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
-import { CONFIRMATION_STATUS } from "@/lib/statuses";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -11,7 +10,10 @@ import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { DRILL_FILTER_KEYS, parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
-import { parseOrderSeqQuery, sanitizeOrderTextQuery } from "@/lib/order-search";
+import { CLEARED, effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { listViews, resolveView } from "../_lib/views-data";
+import { InvalidViewNotice, ViewTabs } from "../view-tabs";
+import { applyOrderConfig, orderSort } from "../_lib/order-query";
 import { Empty } from "@/components/empty";
 import { DrillBanner } from "@/components/stats/drill-banner";
 import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY } from "@/lib/query-string";
@@ -19,12 +21,6 @@ import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
 const PAGE_SIZE = 25;
-
-// columns the DataTable exposes as sortable → real order-able DB columns
-const SORT_COLUMNS: Record<string, string> = {
-  order_seq: "order_seq",
-  placed_at: "placed_at",
-};
 
 export default async function AllOrdersPage({
   searchParams,
@@ -97,53 +93,24 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
-  const q = get("q").trim().slice(0, 80);
+  const viewsResult = await listViews("all");
+  const { active, invalid } = resolveView(viewsResult.views, sp.view);
+  const cfg = effectiveConfig(active?.config ?? null, sp);
+  const q = cfg.q ?? "";
   if (drillIds) {
     // the id page is the whole filter in drill mode
     query = query.in("id", drillIds.length ? drillIds : ["00000000-0000-0000-0000-000000000000"]);
   } else {
-  if (deliveryType) query = query.eq("delivery_type", deliveryType as Enums<"delivery_type">);
-  if (get("confirmation_status")) {
-    // one status, or a comma list (dashboard "To retry" = no_answer,closed_phone); unknown values are ignored
-    const statuses = get("confirmation_status")
-      .split(",")
-      .filter((x) => x in CONFIRMATION_STATUS) as Enums<"confirmation_status">[];
-    if (statuses.length) query = query.in("confirmation_status", statuses);
+    query = applyOrderConfig(query, cfg);
+    // statistics-only filters (URL only, never stored in a view)
+    if (deliveryType) query = query.eq("delivery_type", deliveryType as Enums<"delivery_type">);
+    if (confAgent) query = query.eq("assigned_confirmation_agent", confAgent);
+    if (category) {
+      const { data: inCategory } = await supabase.from("products").select("id").eq("category_option_id", category);
+      query = query.in("product_id", (inCategory ?? []).map((p) => p.id).concat("00000000-0000-0000-0000-000000000000"));
+    }
   }
-  if (get("delivery_status"))
-    query = query.eq("delivery_status", get("delivery_status") as Enums<"delivery_status">);
-  if (get("product_id")) query = query.eq("product_id", get("product_id"));
-  if (confAgent) query = query.eq("assigned_confirmation_agent", confAgent);
-  if (category) {
-    const { data: inCategory } = await supabase.from("products").select("id").eq("category_option_id", category);
-    query = query.in("product_id", (inCategory ?? []).map((p) => p.id).concat("00000000-0000-0000-0000-000000000000"));
-  }
-  if (get("wilaya_code")) query = query.eq("wilaya_code", Number(get("wilaya_code")));
-  if (get("source")) query = query.eq("source", get("source") as Enums<"order_source">);
-  if (get("duplicates")) query = query.eq("is_duplicate_suspect", true);
-  // .or() takes a raw PostgREST filter string — validate the shape first.
-  const agentId = /^[0-9a-f-]{36}$/i.test(get("agent")) ? get("agent") : "";
-  if (agentId)
-    query = query.or(`assigned_confirmation_agent.eq.${agentId},assigned_delivery_agent.eq.${agentId}`);
-  const seq = q ? parseOrderSeqQuery(q) : null;
-  if (seq !== null) {
-    const digits = q.replace(/\D/g, "");
-    // 5+ digits may be a partial phone number as well as a running number.
-    query = digits.length >= 5
-      ? query.or(`order_seq.eq.${seq},customer_phone.ilike.%${digits}%`)
-      : query.eq("order_seq", seq);
-  } else if (q) {
-    const text = sanitizeOrderTextQuery(q);
-    if (text)
-      query = query.or(`customer_name.ilike.%${text}%,customer_phone.ilike.%${text}%,order_number.ilike.%${text}%`);
-  }
-  if (get("from")) query = query.gte("placed_at", get("from"));
-  if (get("to")) query = query.lte("placed_at", `${get("to")}T23:59:59`);
-
-  }
-
-  const sortCol = SORT_COLUMNS[get("sort")] ?? "created_at";
-  const ascending = sortCol === "created_at" ? false : get("dir") !== "desc";
+  const { column: sortCol, ascending } = orderSort(cfg);
 
   const from = drillIds ? 0 : (page - 1) * PAGE_SIZE;
   // drill mode: the id page already has its order (re-ranked below), so no DB sort
@@ -242,7 +209,9 @@ export default async function AllOrdersPage({
   const agentOpts: Opt[] = members.map((a) => ({ value: a.id, label: a.name }));
   const categoryOpts: Opt[] = categoryOptions.map((o) => ({ value: o.id, label: o.label }));
   const isAdmin = await isCurrentUserAdmin();
+  const restParams = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : [])));
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
+  if (active?.config.q) withoutQ.set("q", CLEARED); // the view's own q must be cleared too
   const clearQueryHref = `/app/sell/orders${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
 
   return (
@@ -252,6 +221,18 @@ export default async function AllOrdersPage({
       </PageHeader>
 
       <OrderTabs active="all" />
+
+      <ViewTabs
+        scope="all"
+        views={viewsResult.views}
+        activeId={active?.id ?? null}
+        effective={cfg}
+        dirty={active ? isDirty(active.config, sp) : false}
+        isAdmin={isAdmin}
+        loadError={!!viewsResult.error}
+        keep=""
+      />
+      {invalid ? <InvalidViewNotice rest={restParams.toString()} /> : null}
 
       {drillMetric ? (
         <DrillBanner
@@ -269,6 +250,8 @@ export default async function AllOrdersPage({
         products={productOpts}
         wilayas={wilayaOpts}
         agents={agentOpts}
+        values={Object.fromEntries(serializeConfig(cfg))}
+        viewKeys={Object.keys(active?.config ?? {})}
         categories={categoryOpts}
         drill={drillChecked}
         dropped={droppedDrill}

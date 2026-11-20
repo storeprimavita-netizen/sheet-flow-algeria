@@ -377,6 +377,14 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 - Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
 - Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.
 
+## CONF-1 built (branch v3-CONF-1, pending /verify)
+- Done: `order_views` (00056, RLS, seeds new/no_answer/duplicates), `src/lib/order-views.ts`, shared `orders/_lib/order-query.ts`, views strip + modified bar + dialogs on all / confirmation / delivery. Types generated with `--local`. Owner note: 00056 applies before the parked 00051 on a remote push.
+- Not done: screenshots (step 9) were not taken; no browser run in this session. Page-level tests (delivery stays confirmed-only, agent opening an admin view) and UI keyboard tests are not written.
+- Gate: GATE OK.
+
+CONF-1 round 2: review-1 FIX. Save-as-view on Default, QueueFilterBar (q + status) on confirmation/delivery, 00057 hardening (trim/seed_key/position checks, DB cap trigger), URL parse leniency, rename prefill, clear-q marker, invalid ?view stripped via history API, duplicate error no longer Retry. Screenshot: delivery admin AR dark 390 only (r2-*); light/EN not retaken. No jsdom, so UI keyboard/focus tests not automated. Reviewer test views gone after db-reset.
+
+CONF-1 round 4 (D63): search box rebuilt on `search-param-sync.ts` (own writes recognised, outside address changes win, status merged via `mergeInto`). Browser check at slow network found two FAIL cases (type then tap a view pill / Reset while the address change is still loading: the 300 ms write fired from the old address and overwrote it). Fix: `hold()` on the sync object, called from a capture-phase pointerdown on any other link/button (not the status select); the waiting write is delayed 5 s so the outside address arrives first and wins (tests m, n, o). Retaken r4-1, r4-2 (PASS), r4-4 (PASS). Existing r4-5/6/7 kept. No other browser case re-run.
 STATS-2 build: screenshots taken in dark EN only (empty state, populated, drilled Alger) with chrome-devtools; light theme, AR and 390px NOT verified. Fixed Return column clipping by stacking the map below the table until 2xl.
 
 STATS-2 round 2 (review-1 FIX): fixed findings 1-8, 10-13 (drill error -> retry block, drill banner + drop drill params on filter/sort change, Unknown wilaya row without drill, 390px compact table with no horizontal scroll, commune panel capped to viewport + sticky name column, statistics error reason, extras gated by is_admin in migration 00060, shared ISO_DATE, `commune_unknown=1` param, visible drill-link underline, 44px chevron hit area, empty-state action). Not done: 9 (home/stop-desk drill), 14 (no breadcrumb component exists app-wide). Screenshots (chrome-devtools): light 390 EN and AR with the commune panel open, empty state, drill banner in docs/design/audit/STATS-2/. Agent redirect checked (307 to /app/orders, no data in body). Real error state not forced (no safe way to make the RPC fail locally).
@@ -931,3 +939,9 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - The merge resolution itself had no review round (rounds were used up, D89); STORE-3-F carries the two review-5 mediums, lows are in `docs/BACKLOG.md`.
 - Decisions by Claude: none new. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
 - Next `/auto`: first eligible `todo` row in plan order.
+### CONF-1 done (ship)
+- Done: saved order views (table layout) for confirmation/shipping/all, tabs, URL state, seeded shared views (migration 00056).
+- Verify: gate.sh OK on v3-CONF-1 (tsc, 1257 tests incl. live RLS, i18n parity, color lint, build, secret scan). Review-5 VERDICT: PASS.
+- Evidence: docs/briefs/CONF-1.md, docs/briefs/CONF-1.review-5.md.
+- Owner: 00056 applies before 00051 (parked on STORE-3) on a remote push; open mediums in CONF-1-F, lows in docs/BACKLOG.md.
+- Next: CONF-1-F, then CONF-2.

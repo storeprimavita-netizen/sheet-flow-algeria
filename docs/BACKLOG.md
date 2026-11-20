@@ -14,3 +14,7 @@ STORE-3 · order-form · "save X" label must follow the chosen size (#9)
 STORE-3 · src/lib/store/data.ts · related cards load in one batch of queries (#10)
 STORE-3 · app chrome · touch targets under 44 px in the 390 preview (#11)
 STORE-3 · selling/actions · curl 404 status on a production build; AR save-error gender; sale price above compare price saved through the product action untested
+CONF-1 · src/app/(app)/app/sell/orders/saved-view-bar.tsx · Save does not cancel the waiting search write when the saved search is unchanged (review-4 #3)
+CONF-1 · src/components/fields/search-param-sync.ts · `pairKey` joins decoded pairs with `&`, so typing `a&status=x` matches an outside `q=a&status=x`; compare JSON.stringify of sorted entries (review-4 #4)
+CONF-1 · src/components/fields/search-param-sync.ts · a navigation slower than the 5 s hold can outlast it (review-4 #5, not reproduced live)
+CONF-1 · confirmation/shipping pages · search with no match shows "Queue is empty" plus New order instead of "no match" and a clear action (review-4 #6, pre-existing; also in CONF-1-F)

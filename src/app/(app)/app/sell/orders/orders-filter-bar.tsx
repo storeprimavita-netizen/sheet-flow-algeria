@@ -18,13 +18,17 @@ import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses"
 
 export type Opt = { value: string; label: string; token?: StatusToken };
 
-const ALL = "__all"; // Radix Select needs a non-empty sentinel for the "All" row
+import { CLEARED } from "@/lib/order-views";
+
+const ALL = CLEARED; // Radix Select needs a non-empty sentinel for the "All" row; same marker clears a view filter in the URL
 
 /** Filters that live in the URL and drive the All-orders server query. */
 export function OrdersFilterBar({
   products,
   wilayas,
   agents,
+  values,
+  viewKeys,
   categories,
   drill,
   dropped,
@@ -32,6 +36,10 @@ export function OrdersFilterBar({
   products: Opt[];
   wilayas: Opt[];
   agents: Opt[];
+  /** effective filter values (active view merged with the URL), serialized */
+  values: Record<string, string>;
+  /** filters the active view sets: clearing one writes the cleared marker instead of deleting the param */
+  viewKeys: string[];
   categories: Opt[];
   /** Statistics-only filters, already checked by the page. */
   drill: DrillFilters;
@@ -43,7 +51,8 @@ export function OrdersFilterBar({
   const pathname = usePathname();
   const sp = useSearchParams();
 
-  const get = (k: string) => sp.get(k) ?? "";
+  const get = (k: string) => values[k] ?? "";
+  const clear = (next: URLSearchParams, k: string) => (viewKeys.includes(k) ? next.set(k, CLEARED) : next.delete(k));
 
   /** Any other filter change leaves statistics drill mode (drill ids would otherwise override it). */
   const inDrill = inDrillMode(sp);
@@ -55,19 +64,28 @@ export function OrdersFilterBar({
     const next = new URLSearchParams(sp.toString());
     for (const [k, v] of [["from", from], ["to", to]] as const) {
       if (v) next.set(k, v);
-      else next.delete(k);
+      else clear(next, k);
     }
     leaveDrill(next);
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
   function setParam(k: string, v: string | null) {
     const next = new URLSearchParams(sp.toString());
-    if (!v || v === ALL) next.delete(k);
+    if (!v || v === ALL) clear(next, k);
     else next.set(k, v);
     leaveDrill(next);
     next.delete("page"); // any filter change resets pagination
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
+  /** Clear everything but the view itself; the view's own filters get the cleared marker. */
+  function clearAll() {
+    const next = new URLSearchParams();
+    if (sp.get("view")) next.set("view", sp.get("view")!);
+    for (const k of viewKeys) next.set(k, CLEARED);
+    router.push(next.size ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   }
 
   const DRILL_KEYS = new Set<string>(DRILL_FILTER_KEYS);
@@ -180,7 +198,7 @@ export function OrdersFilterBar({
               </Chip>
             </button>
           ))}
-          <Button type="button" variant="ghost" size="sm" onClick={() => router.push(pathname, { scroll: false })}>
+          <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
             {t("orders.clearFilters")}
           </Button>
         </div>
@@ -188,7 +206,7 @@ export function OrdersFilterBar({
       {dropped.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {chips.length === 0 ? (
-            <Button type="button" variant="ghost" size="sm" onClick={() => router.push(pathname, { scroll: false })}>
+            <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
               {t("orders.clearFilters")}
             </Button>
           ) : null}

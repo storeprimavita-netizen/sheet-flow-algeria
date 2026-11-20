@@ -527,6 +527,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"order_views": {
+                  Row: {
+                    "config": NonNullable<Json>,"created_at": string,"emoji": string | null,"id": string,"layout": string,"name": string,"owner_id": string | null,"position": number,"scope": string,"seed_key": string | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"emoji"?: string | null,"id"?: string,"layout"?: string,"name": string,"owner_id"?: string | null,"position"?: number,"scope": string,"seed_key"?: string | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"emoji"?: string | null,"id"?: string,"layout"?: string,"name"?: string,"owner_id"?: string | null,"position"?: number,"scope"?: string,"seed_key"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_views_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"orders": {
                   Row: {
                     "address": string | null,"assigned_confirmation_agent": string | null,"assigned_delivery_agent": string | null,"cancellation_reason_option_id": string | null,"commune": string | null,"confirmation_attempts": number,"confirmation_comment": string | null,"confirmation_status": Database["public"]['Enums']["confirmation_status"],"created_at": string,"created_by": string | null,"customer_id": string | null,"customer_name": string | null,"customer_phone": string | null,"delivery_fee": number | null,"delivery_fee_source": Database["public"]['Enums']["delivery_fee_source"],"delivery_status": Database["public"]['Enums']["delivery_status"],"delivery_type": Database["public"]['Enums']["delivery_type"],"duplicate_of": string | null,"excluded_reason": string | null,"external_id": string | null,"id": string,"is_duplicate_suspect": boolean,"order_number": string | null,"order_seq": number,"placed_at": string | null,"product_id": string | null,"quantity": number,"sale_price": number | null,"source": Database["public"]['Enums']["order_source"],"swapped_to_order_id": string | null,"updated_at": string,"variant": string | null,"variant_id": string | null,"webhook_event_id": string | null,"wilaya_code": number | null,"workspace_id": string
@@ -1919,6 +1939,9 @@ isOneToOne: false
                            },
 "save_variant_config":
 { Args: { "p_config": Json,"p_product": string }; Returns: undefined
+                           },
+"seed_order_views":
+{ Args: { "ws": string }; Returns: undefined
                            },
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined

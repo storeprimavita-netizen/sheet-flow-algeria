@@ -387,7 +387,9 @@ numbers would not open the list of orders behind them. Their own confirmation
 numbers are already planned on the agent home page ("My day"). Say so if you
 want agents to see this page as well. Nothing is blocked.
 
-### Q-18 · CONF-1 · 2026-11-19
+### Q-18 · CONF-1 · 2026-11-19 · answered-by-default
+**Applied by default (D92):** CONF-1 is merged as built under D89/D40. Problems 1 and 2 below go to the follow-up task CONF-1-F; nothing waits for you. Original question:
+
 Saved views for the orders pages (confirmation, delivery, all orders) are built
 and the database side has been clean since the second review. The fourth and
 last allowed review still did not pass, because of the search box on the
@@ -427,7 +429,7 @@ How do you want to finish it?
   of while typing (it removes this whole family of timing problems, but it is a
   change of behaviour on these pages).
 
-Blocked until you answer: CONF-1 is parked and not merged, and CONF-2 (kanban),
+Was blocked until you answered; no longer (D92). CONF-2 (kanban),
 CONF-3 (customer score card) and CONF-4 (call attempts and callbacks) wait on
 it. Other work continues. Details: `docs/briefs/CONF-1.review-4.md`.
 

@@ -5,30 +5,68 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { createSearchSync } from "./search-param-sync";
+
+export type SearchBoxHandle = { mergeInto: (params: URLSearchParams) => void };
 
 /** Search-as-you-type bound to a URL param (default `q`), debounced 300ms;
  * the server page reads the param, so results stay shareable/bookmarkable. */
-export function SearchParamInput({ placeholder, param = "q" }: { placeholder: string; param?: string }) {
+export function SearchParamInput({
+  placeholder,
+  param = "q",
+  inherited = "",
+  clearedMarker,
+  syncRef,
+}: {
+  placeholder: string;
+  param?: string;
+  /** value that applies when the URL has none (e.g. from a saved view) */
+  inherited?: string;
+  /** written instead of deleting the param, so a saved view's own value is cleared too */
+  clearedMarker?: string;
+  /** lets another writer in the same bar send the box text with its own change */
+  syncRef?: React.Ref<SearchBoxHandle>;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const [value, setValue] = React.useState(sp.get(param) ?? "");
-
+  const query = sp.toString();
+  const [value, setValue] = React.useState(() => {
+    const u = sp.get(param);
+    return u === null ? inherited : u === clearedMarker ? "" : u;
+  });
+  const writeRef = React.useRef<(qs: string) => void>(() => {});
   React.useEffect(() => {
-    if (value === (sp.get(param) ?? "")) return;
-    const id = setTimeout(() => {
-      const next = new URLSearchParams(sp.toString());
-      if (value.trim()) next.set(param, value.trim());
-      else next.delete(param);
-      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-    }, 300);
-    return () => clearTimeout(id);
-  }, [value, sp, param, pathname, router]);
+    writeRef.current = (qs) => router.replace(`${pathname}?${qs}`, { scroll: false });
+  });
+  const [sync] = React.useState(() =>
+    createSearchSync({ write: (qs) => writeRef.current(qs), onText: setValue, param, clearedMarker, initialText: value }),
+  );
+  React.useImperativeHandle(syncRef, () => ({ mergeInto: sync.mergeInto }), [sync]);
+  React.useEffect(() => {
+    sync.seen(query, inherited);
+  }, [sync, query, inherited]);
+  React.useEffect(() => () => sync.cancel(), [sync]);
+  const box = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    // a tap on another link or button (view pill, Reset, ...) starts an address change that may still be loading
+    const onDown = (e: PointerEvent) => {
+      const el = e.target instanceof Element ? e.target : null;
+      if (!el || box.current?.contains(el)) return;
+      if (el.closest("[role=combobox], [role=listbox], [role=option]")) return;
+      if (el.closest("a[href], button")) sync.hold();
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [sync]);
 
   return (
-    <div className="relative max-w-sm">
+    <div ref={box} className="relative max-w-sm">
       <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input type="search" value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} className="ps-9" aria-label={placeholder} />
+      <Input type="search" value={value} onChange={(e) => {
+          setValue(e.target.value);
+          sync.type(e.target.value);
+        }} placeholder={placeholder} className="ps-9" aria-label={placeholder} />
     </div>
   );
 }
