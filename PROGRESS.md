@@ -666,3 +666,14 @@ STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; sh
 - Evidence: docs/briefs/STORE-2-H.review-1.md VERDICT: PASS; screenshots in docs/design/audit/STORE-2-H/.
 - Owner: none. Not shot: related-card placeholder only inside full-page captures for the one-broken case.
 - Next: TEST-2 (intermittent live-DB failures); STORE-3 expects a conflict at store.css `.store-top`.
+
+## CARRIER-0-G screenshot pass
+Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, session locale was AR; window min width rendered 500) with a focused map cell, focus ring visible; /app/dashboard scrolled, filter bar static and scrolled away; /app/statistics at 1280, no regression. 58 cells focusable. Table scroll fade in AR not separately captured. Follow-up: wilaya Arabic names need a migration (no name_ar column). Shots in docs/design/audit/CARRIER-0-G/.
+- CARRIER-0-G review-1 FIX: focus/hover ring is now a 3.5-wide token overlay path drawn above all cells; key handler extracted and tested; cells only focusable with onSelect. Screenshots docs/design/audit/CARRIER-0-G/r2-stats-390-{en,ar}-{dark,light}-focus.png (ring clearly visible). Left: roving tabindex (optional), AR wilaya names (no name_ar column, follow-up row), bidi isolation in title string.
+
+## CARRIER-0-G done (ship)
+- Done: map keyboard access on /app/statistics (cells focusable only with onSelect, key handler extracted and tested, token focus ring overlay); sticky filter panel no longer covers the map on phones (review-2 #5, #6).
+- Verify: scripts/gate.sh GATE OK (tsc, 941 passed 5 skipped incl. live RLS suite, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/CARRIER-0-G.review-2.md VERDICT: PASS; screenshots in docs/design/audit/CARRIER-0-G/.
+- Owner: none. Not shot: table scroll fade in AR.
+- Next: wilaya Arabic names need a migration (no name_ar column); roving tabindex optional.
