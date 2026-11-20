@@ -80,6 +80,24 @@ Finally regenerate types:
 | `seasons` | 00061 | STATS-3: named seasons per workspace (name, `name_key` for the 6 seeded names, sort); unique (workspace, name) and (id, workspace); seeded by `seed_workspace` (Ramadan, Eid al-Fitr, Eid al-Adha, Summer, Back to school, Winter; no dates) | admin only |
 | `season_periods` | 00061 | one date range per season and year (`year` = year of `date_from`, `date_from <= date_to`); unique (workspace_id, season_id, year); composite FK (season, workspace) -> `seasons` so a period cannot point at another workspace's season | admin only |
 
+## anon grants (00075, NAV-4-S2)
+
+`anon` has no grant on any relation in `public` (tables, views, sequences), and
+`postgres` default privileges in `public` give it none, so new tables inherit
+none. After creating a table, no anon grant is expected. Schema USAGE stays.
+Check (owner, also after any remote `db push`):
+`select count(*) from information_schema.role_table_grants where grantee='anon' and table_schema='public';` = 0,
+and no anon entry in `pg_default_acl` for `postgres`/public (r, S). Do not toggle
+`auto_expose_new_tables` (config.toml) or the cloud Data API equivalent: it may
+re-add anon defaults; re-run the check if toggled, and after
+`supabase stop && supabase start`. `supabase_admin` default ACLs are
+platform-owned and untouched (owner-only).
+Follow-up NAV-4-S3 (functions, not done): (a) until it lands, every new
+SECURITY DEFINER RPC needs its own revoke from public/anon (00046 pattern);
+(b) PUBLIC execute is only removed by a global
+`alter default privileges for role postgres revoke execute on functions from public`
+(no `in schema`); 26 public functions are still anon-executable.
+
 ## Order triggers (00004)
 
 1. `orders_guard_fields` — agents can't cross stages nor touch
