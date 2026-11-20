@@ -826,3 +826,6 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-5-G.review-1.md FIX, docs/briefs/NAV-5-G.review-2.md PASS.
 - Owner: real iPhone/Android check and keyboard-open bar (no device); review-1 low #9 (iOS bottom padding without viewport-fit=cover) open per D87; D87 item 7 (no-role/inactive redirect loop) has no plan row.
 - Next: none for NAV-5-G; owner decides on D87 item 7 row.
+
+## NAV-5-H review-1 fixes — screenshot self-critique
+Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local user): `/no-access` EN+AR x dark+light at 390 and 1280, plus the sign-out error state (AR, light, 390). Light muted text is about 8:1 on the card. RTL: exit icon mirrors, locale switcher sits top-end, error alert is centered, retry/sign-out are 44 px high. Signed-out visit lands on `/login`. Not done: keyboard pass and the sign-out pending state were not captured (pending is too brief to screenshot). Live RLS test for users a/b/c added in `src/lib/rls.test.ts` and passing against the local stack.
