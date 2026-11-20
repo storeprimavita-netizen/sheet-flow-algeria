@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { ButtonLink } from "@/components/button-link";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatDateTime } from "@/lib/format";
@@ -16,36 +17,36 @@ export type AuditRow = {
   changes: DiffChange[];
 };
 
-function Value({ v, label, pill }: { v: DiffValue; label: string; pill: string }) {
+function Value({ v }: { v: DiffValue }) {
+  const t = useTranslations();
   if (!v.redacted) return <>{v.text}</>;
   return (
     <span
-      dir="ltr"
+      role="note"
       tabIndex={0}
-      title={label}
-      className="inline-block rounded border border-border bg-secondary px-1"
+      title={t("audit.redacted")}
+      aria-label={t("audit.redactedAria", { fp: v.fingerprint ?? "" })}
+      className="inline-block whitespace-nowrap rounded border border-border bg-secondary px-1"
     >
-      {pill} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
+      {t("audit.redactedPill")} <bdi dir="ltr" className="font-mono">{v.fingerprint}</bdi>
     </span>
   );
 }
 
-function ChangeList({ changes }: { changes: DiffChange[] }) {
+export function ChangeList({ changes }: { changes: DiffChange[] }) {
   const t = useTranslations();
   return (
     <ul className="space-y-1 py-2 text-xs text-muted-foreground">
       {changes.map((c) => (
-        <li key={c.key} className="text-start">
-          <bdi dir="ltr" className="inline-block">
-            {c.key}: <Value v={c.from} label={t("audit.redacted")} pill={t("audit.redactedPill")} /> → <Value v={c.to} label={t("audit.redacted")} pill={t("audit.redactedPill")} />
-          </bdi>
+        <li key={c.id} dir="ltr" className="text-start">
+          <span className="break-all">{c.key === "" ? t("audit.emptyKey") : c.key}</span>: <Value v={c.from} /> → <Value v={c.to} />
         </li>
       ))}
     </ul>
   );
 }
 
-export function AuditTable({ rows }: { rows: AuditRow[] }) {
+export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filtered?: boolean }) {
   const t = useTranslations();
 
   // Below sm the changes stack under the table name (the table scrolls sideways otherwise and hides them).
@@ -68,7 +69,10 @@ export function AuditTable({ rows }: { rows: AuditRow[] }) {
       columns={columns}
       rows={rows}
       rowKey={(r) => String(r.id)}
-      empty={{ title: t("team.auditNone") }}
+      empty={{
+        title: t("team.auditNone"),
+        action: filtered ? <ButtonLink href="/app/settings/audit" variant="outline">{t("orders.clearFilters")}</ButtonLink> : undefined,
+      }}
     />
   );
 }

@@ -45,10 +45,11 @@ export default async function AuditPage({
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", `${to}T23:59:59`);
 
-  const [{ data: rows }, { data: profiles }] = await Promise.all([
+  const [{ data: rows, error: rowsError }, { data: profiles }] = await Promise.all([
     query,
     supabase.from("profiles").select("user_id, display_name").eq("workspace_id", workspaceId),
   ]);
+  if (rowsError) throw new Error(`audit_log: ${rowsError.message}`); // error.tsx shows the reason + retry
   const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? p.user_id]));
 
   const auditRows: AuditRow[] = (rows ?? []).map((r) => {
@@ -69,7 +70,7 @@ export default async function AuditPage({
       <SettingsTabs active="audit" />
 
       <AuditFilterBar tables={AUDITED_TABLES} actors={profiles ?? []} />
-      <AuditTable rows={auditRows} />
+      <AuditTable rows={auditRows} filtered={Boolean(table || actor || from || to)} />
     </div>
   );
 }

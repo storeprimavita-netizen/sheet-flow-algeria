@@ -1321,7 +1321,9 @@
   },
   "audit": {
     "redactedPill": "Redacted",
-    "redacted": "Secret value hidden; the code identifies the value without revealing it"
+    "redacted": "Secret value hidden; the code identifies the value without revealing it",
+    "redactedAria": "Redacted value, code {fp}",
+    "emptyKey": "(empty key)"
   },
   "variants": {
     "valuePlaceholder": "Value",
