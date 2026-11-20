@@ -132,7 +132,7 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
             warnings.push({ type: "malformed_row", code, text: part });
             // The kind still counts: a later home label is never promoted.
             const head = i < 0 ? part : part.slice(0, i);
-            if (labelKind(head.replace(/[\s\d.]+$/, "")) === "home") homeSeen = true;
+            if (labelKind(head.replace(/[\s\p{Nd}.]+$/u, "")) === "home") homeSeen = true;
             continue;
           }
           const label = part.slice(0, i);
@@ -153,7 +153,7 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
             homeSeen = true;
           }
           const raw = part.slice(i + 1).trim();
-          const fee = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : NaN;
+          const fee = /^\d{1,10}(\.\d{1,2})?$/.test(raw) ? Number(raw) : NaN;
           if (!Number.isFinite(fee)) {
             warnings.push({ type: "malformed_row", code, text: part });
             continue;

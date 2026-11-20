@@ -16,6 +16,7 @@ export function ZRShipmentCard({
   shipment,
   stopDesk,
   canSwitchToHome,
+  swapped,
 }: {
   orderId: string;
   shipment: { trackingNumber: string | null; state: string | null; stateUpdatedAt: string | null } | null;
@@ -23,6 +24,8 @@ export function ZRShipmentCard({
   stopDesk: boolean;
   /** stop-desk order in a wilaya that is now home-only: admin may switch it to home */
   canSwitchToHome: boolean;
+  /** order was swapped to another order: nothing to send (a shipment, if any, still shows) */
+  swapped: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -53,6 +56,8 @@ export function ZRShipmentCard({
     }
     router.refresh();
   }
+
+  if (swapped && !shipment) return null;
 
   return (
     <div className="card-surface space-y-3 rounded-xl p-5">

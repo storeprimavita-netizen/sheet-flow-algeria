@@ -31,6 +31,7 @@ export function Combobox({
   value,
   onChange,
   name,
+  id,
   placeholder,
   searchPlaceholder = "Search…",
   emptyText = "No matches.",
@@ -45,6 +46,7 @@ export function Combobox({
   value?: string;
   onChange?: (value: string) => void;
   name?: string;
+  id?: string;
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -74,6 +76,7 @@ export function Combobox({
     <Popover open={open} onOpenChange={setOpen}>
       {name ? <input type="hidden" name={name} value={current} /> : null}
       <PopoverTrigger
+        id={id}
         disabled={disabled}
         aria-label={ariaLabel}
         title={disabled ? disabledReason : undefined}

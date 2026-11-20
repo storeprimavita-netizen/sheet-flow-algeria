@@ -35,7 +35,7 @@ describe("parseDeliveryCsv", () => {
   });
   describe("hostile fee parts (P1-7-F)", () => {
     const one = (custom: string) => parseDeliveryCsv(`${H}DZ,8-Béchar,,,rate,,${custom}\n`);
-    it.each(["abc", "-5", ""])("home:%s|home:720 leaves home null, second stays stop-desk", (bad) => {
+    it.each(["abc", "-5", "", "0.001", "10000000000", "1350.004"])("home:%s|home:720 leaves home null, second stays stop-desk", (bad) => {
       const r = one(`${HOME}:${bad}|${HOME}:720`);
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
       expect(r.warnings.map((w) => w.type)).toContain("repeated_label");
@@ -67,6 +67,18 @@ describe("parseDeliveryCsv", () => {
       const r = one(`${HOME} ${d}:720`);
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
       expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it("home:1350:720|home:500 raises exactly one malformed_row", () => {
+      const r = one(`${HOME}:1350:720|${HOME}:500`);
+      expect(r.warnings.filter((w) => w.type === "malformed_row")).toHaveLength(1);
+    });
+    it("a colon-less Arabic-Indic suffix on a home label still marks home seen", () => {
+      const r = one(`${HOME}٣|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 500, priced: false });
+    });
+    it("an explicit desk label after two home labels is the stop-desk price", () => {
+      const r = one(`${HOME}:1350|${HOME}:720|${DESK}:900`);
+      expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: 720 });
     });
     it("desk:900:720 after a good home keeps home, no stop-desk", () => {
       const r = one(`${HOME}:1350|${DESK}:900:720`);

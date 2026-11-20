@@ -234,7 +234,7 @@ export default async function OrderDetailPage({
         />
       ) : null}
 
-      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} canSwitchToHome={canSwitchToHome} /> : null}
+      {isAdmin ? <ZRShipmentCard orderId={order.id} shipment={zrShipment} stopDesk={order.delivery_type === "stopdesk"} canSwitchToHome={canSwitchToHome} swapped={!!order.swapped_to_order_id || order.delivery_status !== "wait_for_deposit"} /> : null}
 
       {isAdmin ? (
         <SwapCard

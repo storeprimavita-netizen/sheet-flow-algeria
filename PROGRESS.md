@@ -602,3 +602,17 @@ STORE-2-G review 1 FIX: tests added for DoD 4 (draft link), 6 (publish with zero
 - Evidence: docs/briefs/STORE-2-G.review-2.md; screenshots docs/design/audit/STORE-2-G/.
 - Owner: none.
 - Next: STORE-2-H (lows from review-2 and review-1 4–8); STORE-3 expects a `.store-top` merge conflict (review-2 low 6).
+
+## P1-7-G (build)
+Review-4 lows closed: Nd regex, pushToZR swapped guard + card hide, swap-card label/chevron, Combobox `id`, CSV hint bdi, switch-home tests, csvSuccessToast helper. Browser pass (chrome-devtools): swap card closed/open at 1280 dark and 390 (theme emulation did not flip the app's own theme, so light not verified); chevron rotates (rotate: 180deg when open); label tied to trigger. Swapped-order screen not captured: DB guard blocks writing swapped_to_order_id outside swap_order (covered by unit test). Order-history "< 1m" bidi left (formatter not in this task's files). Tests skipped: oversize fee / home:0.001 (parser has no such rule).
+
+P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-7-G/` named screen-locale-theme-width. Swap card closed/open EN+AR x light+dark x 1280+390 (16 shots; html class checked before each, theme via the `theme` cookie the app reads, no media emulation; chevron rotates open). Real swap done through the card on local returned order #0045 (-> #0084, local DB only): the original then shows "Swapped to order" and no ZR Express card/send row (`swapped-no-zr-send-en-light-1280.png`). Arabic CSV dialog (light 1280, dark 1280, dark 390). Fix from shots: at 390 the hint's parentheses sat outside the LTR `bdi` and mirrored/split ("Area,)" ... "(Rate_or_extra"); parentheses moved inside `<cols>` in en+ar `formatHint`. Still seen, left: AR history "< 1m" renders as "1m >" (formatter not in this task).
+
+- P1-7-G fix round 1: swap guard now state-based (delivery_status), fee parser rejects >2 decimals / >=1e10, CSV hint is a block LTR line (AR 390 shot retaken, reads in order; theme shown was the app default, not re-toggled). `< 1m` bidi deferral stands.
+
+## P1-7-G done (2026-11-20, review-2 PASS)
+- Done: review-2 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); task set to done; the 7 review-2 lows and the still-open review-1 lows (L1-L3, notes L4-L6) moved to P1-7-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-P1-7-G (891 passed, 5 skipped).
+- Evidence: docs/briefs/P1-7-G.review-2.md; screenshots docs/design/audit/P1-7-G/.
+- Owner: none.
+- Next: P1-7-H (lows from review-2 and review-1 L1-L3).

@@ -3,7 +3,7 @@
 import { formatOrderNo, ltr } from "@/lib/format";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 
 import { useActionState, useState, type FormEvent } from "react";
 import { useSubmitAction } from "@/lib/use-submit-action";
@@ -74,8 +74,11 @@ export function SwapCard({
         </p>
       ) : null}
       {canSwap ? (
-        <details>
-          <summary className="cursor-pointer text-sm font-medium">{t("title")}</summary>
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium [&::-webkit-details-marker]:hidden">
+            {t("title")}
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
           <form method="post" onSubmit={onSubmit} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t("customerName")} htmlFor="swap-name">
               <Input id="swap-name" name="customer_name" required />
@@ -83,10 +86,11 @@ export function SwapCard({
             <Field label={t("customerPhone")} htmlFor="swap-phone">
               <PhoneField id="swap-phone" name="customer_phone" required />
             </Field>
-            <Field label={t("wilaya")}>
+            <Field label={t("wilaya")} htmlFor="swap-wilaya">
               <WilayaCombobox
                 wilayas={wilayas.map((w) => ({ code: String(w.code), name: w.name }))}
                 name="wilaya_code"
+                id="swap-wilaya"
                 value={wilaya}
                 onChange={(v) => {
                   setWilaya(v);
