@@ -616,3 +616,13 @@ P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-
 - Evidence: docs/briefs/P1-7-G.review-2.md; screenshots docs/design/audit/P1-7-G/.
 - Owner: none.
 - Next: P1-7-H (lows from review-2 and review-1 L1-L3).
+
+## Run report (2026-11-20, /auto 5)
+- Shipped 5: ORD-1-F `8971b68`, P1-7-F `a1c3415`, STORE-1-G `196da9c` (migration 00070), STORE-2-G `b740ee2`, P1-7-G `e1ca2f3`.
+- Parked 1: CHART-1 `blocked:Q-28`. Built on `v3-CHART-1`, gate OK, review-4 ESCALATE with no high and 3 mediums (far-future order lifts the 366-day cap, Finance no-costs empty state never shown, cost-bar table view has no drill links). Its migrations 00068 + 00069 clash with `v3-VAR-1`'s 00068; the second to merge renumbers.
+- Decided by Claude (owner may overturn): D83 the profit waterfall is removed from Finance overview too and CHART-1 got a 4th round (Q-27); D84 P1-7-F got one last narrow round, merge only on PASS (it passed).
+- Open questions: Q-28 CHART-1, Q-26 VAR-1, Q-18 CONF-1; STORE-3 also waits for the owner's merge OK. Phone push was not delivered (Remote Control inactive).
+- Owner before a remote `db push`: run the 00070 guard's count on the remote; the migration aborts if value-less sizes exist.
+- Gate: intermittent live-DB failures (`seasons.rls.test.ts`, `kpi.test.ts`), green on rerun each time; logged as TEST-2. The review step twice returned before its reviewers finished; the coordinator assembled `P1-7-F.review-4.md` and `STORE-1-G.review-2.md` from their reports.
+- Follow-ups added: P1-7-H, STORE-1-H, STORE-2-H, TEST-2.
+- Next `/auto`: first eligible `todo` in plan order (P1-7-H, STORE-1-H, STORE-2-H, then CARRIER-0-G, SEC-1-G, NAV-1-G, NAV-2).
