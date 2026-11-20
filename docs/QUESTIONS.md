@@ -8,6 +8,74 @@ owner may overturn").
 
 ## Open
 
+### Q-28 · CHART-1 · 2026-11-20
+The charts are built: your money as a line per day on the Dashboard, charts on
+Statistics, and the cost bar that replaced the waterfall on Money › Overview
+(Q-27). The fourth and last allowed review found nothing serious. The roles
+hold (agents and other workspaces see nothing), the amounts per day add up
+exactly to the period total, and the five fixes of that round hold. The rule
+set before that round (D83) says the task then waits for you: no fifth round
+and no merge without your word. Three medium points are left:
+1. **One order with a date far in the future slows the Dashboard.** The fourth
+   round made the daily chart run up to the date of the last order, so that an
+   order dated in the future is counted in the total. Side effect: if an order
+   arrives from an outside store with a wrong date years ahead (the review
+   tried the year 2099), the chart draws every day up to that date, and the
+   Dashboard and Statistics become very slow or freeze until that order is
+   corrected or deleted. Orders created in the app always take today's date,
+   so only an order sent from outside with a wrong date can do this. The
+   amounts stay right. The fix is known: the chart never shows more than 366
+   days.
+2. **Money › Overview on a period with no costs at all** shows an empty bar
+   and five lines of "0 DA" instead of the sentence "no data yet".
+3. **The table view of the two cost bars has no links.** On the bar, each cost
+   opens its list. In "show as table" the same lines are plain text. On a
+   phone the thinnest parts of the bar (return fees, expenses) are hard to
+   tap, and the table would be the easy way to reach them.
+
+How do you want to finish it?
+- **(a) Recommended: merge as it is.** The three points go first in the
+  follow-up task CHART-1-B, point 1 at the top, and that task is done before
+  this reaches the live app. Why: nothing touches the amounts, the orders or
+  what a role can see; you asked for these charts because the cards and the
+  waterfall were not readable, and this puts them in front of you now; point 1
+  needs an order with a wrong date years ahead, which your own screens cannot
+  create. It is your rule of 18 November (nothing serious open after the
+  allowed rounds: merge, and follow up).
+- **(b) One more short round for these three points**, then merge only if the
+  review passes. Each fix is small and written in the review. But the count of
+  points went 5, 4, 3, 3, and two of these three were brought by the fourth
+  round itself, so a fifth round may bring its own.
+- **(c) Keep it parked** until you have looked at it yourself.
+
+Blocked until you answer: CHART-1 is parked and not merged, so the Dashboard
+keeps the old waterfall and Statistics its cards; only the follow-up CHART-1-B
+waits on it. Other work continues. Details: `docs/briefs/CHART-1.review-4.md`
+on branch `v3-CHART-1`.
+
+### Q-27 · CHART-1 · 2026-11-20 · answered-by-default
+The new charts are built: your money as a line per day on the Dashboard, and
+charts in place of the walls of cards on Statistics. The third review found
+nothing serious, and nothing wrong in the roles or the totals. One point needed
+a choice: the profit waterfall you called not understandable is gone from the
+Dashboard, but the same picture was still on Money › Overview, in the "Profit &
+loss" card. **Applied by default (D83):** it is removed there too. That card
+now shows Revenue, then one bar "Where the money goes" split into product cost,
+return fees, ad spend, expenses and fixed fees (each with its amount, its share
+and its link, and a table view), then Net profit. Same numbers as before,
+nothing recalculated. The other option was to keep the waterfall on that one
+screen.
+
+One more short review round runs (the fourth; the count of points went 5, 4,
+3). It also makes two small buttons under the charts big enough for a thumb,
+checks that a tap on a chart point shows its numbers before opening the orders,
+fixes a total that was off when an order carries a future date, and writes the
+Arabic day names in full. If that review passes, the task is merged; the
+smaller points go to a follow-up task.
+
+Say so if you would rather keep the waterfall on Money › Overview: it is one
+card to put back. Nothing is blocked.
+
 ### Q-26 · VAR-1 · 2026-11-19
 Product options are built: "+ Size" and "+ Color" buttons, a colour swatch per
 value, your own size names saved as reusable size sets, and adding an option to
