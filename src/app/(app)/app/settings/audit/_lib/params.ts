@@ -20,6 +20,8 @@ export const AUDITED_TABLES = [
   "option_sets",
   "options",
   "product_costs",
+  "product_forms",
+  "product_offers",
   "product_option_values",
   "product_options",
   "product_pricing",

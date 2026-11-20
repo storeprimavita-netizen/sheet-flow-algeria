@@ -41,8 +41,11 @@ function BlockView({ block }: { block: Block }) {
 const INLINE_BLOCKS = new Set<Block["type"]>(["heading", "text", "image", "list"]);
 
 /** The product page body. Used by the public route and by the admin preview, so both render the same thing. */
-export function ProductView({ dto }: { dto: PublicProductPage }) {
+export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderSlot?: React.ReactNode }) {
   const unit = st("currency");
+  const { price, compareAt } = dto.product;
+  const pct = price !== null && compareAt !== null && compareAt > price ? Math.round(((compareAt - price) / compareAt) * 100) : 0;
+  const soldOut = dto.variants.length > 0 && dto.variants.every((v) => !v.inStock);
   const hasReviews = dto.page.blocks.some((b) => b.type === "reviews");
   const sizeguide = dto.page.blocks.find((b) => b.type === "sizeguide");
   return (
@@ -61,13 +64,23 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
             <h1 className="store-title">{dto.product.name}</h1>
             {hasReviews && dto.reviews.count > 0 && dto.reviews.items.length > 0 ? <RatingLine reviews={dto.reviews} /> : null}
             <hr className="store-rule" />
-            <p className="store-price store-price-row">{formatCurrency(dto.product.price, unit)}</p>
-            {dto.variants.length > 0 ? (
+            <p className="store-price store-price-row">
+              {dto.product.priceFrom && price !== null ? st("order.startingFrom", { price: formatCurrency(price, unit) }) : formatCurrency(price, unit)}
+              {compareAt !== null && pct > 0 ? (
+                <>
+                  {" "}
+                  <s className="store-price-old">{formatCurrency(compareAt, unit)}</s>
+                  {" "}
+                  <span className="store-badge">{st("order.savePct", { pct })}</span>
+                </>
+              ) : null}
+            </p>
+            {!orderSlot && dto.variants.length > 0 ? (
               <div>
                 <p className="store-label">{st("sizes")}</p>
                 <ul className="store-sizes">
                   {dto.variants.map((v) => (
-                    <li key={v.label} className="store-size" data-out={!v.inStock}>
+                    <li key={v.id} className="store-size" data-out={!v.inStock}>
                       <bdi>{v.label}</bdi>
                       {v.inStock ? null : <span className="store-sr">{st("outOfStock")}</span>}
                     </li>
@@ -75,8 +88,39 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
                 </ul>
               </div>
             ) : null}
-            {/* order form slot (STORE-3) */}
-            <div id="order" hidden />
+            {!orderSlot && !soldOut && dto.offers.length > 0 ? (
+              <div>
+                <p className="store-label">{st("order.offersInfoTitle")}</p>
+                <ul className="store-offers-info">
+                  {dto.offers.map((o) => (
+                    <li key={o.id}>
+                      <span>
+                        {o.label}
+                        <span className="store-offer-save"> {st("order.offerSave", { n: formatCurrency(o.saving, unit) })}</span>
+                      </span>
+                      <span className="store-price">{formatCurrency(o.total, unit)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {/* sizes and offers above are shown only while the order form is absent: the form has its own pickers */}
+            {/* no live submit until STORE-4: an honest state, never a button that does nothing */}
+            <div id="order">
+              {soldOut ? (
+                <section className="store-soon" aria-labelledby="order-soldout">
+                  <h2 id="order-soldout">{st("order.soldOutTitle")}</h2>
+                  <p className="store-form-lead">{st("order.soldOutBody")}</p>
+                </section>
+              ) : (
+                (orderSlot ?? (
+                  <section className="store-soon" aria-labelledby="order-soon">
+                    <h2 id="order-soon">{st("order.soonTitle")}</h2>
+                    <p className="store-form-lead">{st("order.soonBody")}</p>
+                  </section>
+                ))
+              )}
+            </div>
           </div>
         </div>
   

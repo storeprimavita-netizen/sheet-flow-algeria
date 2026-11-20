@@ -675,16 +675,146 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"product_option_values": {
+                },"product_forms": {
                   Row: {
-                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                    "delivery_methods": (string)[],"fields": NonNullable<Json>,"product_id": string,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                    "delivery_methods"?: (string)[],"fields"?: NonNullable<Json>,"product_id": string,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "delivery_methods"?: (string)[],"fields"?: NonNullable<Json>,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_offers": {
+                  Row: {
+                    "active_from": string | null,"active_to": string | null,"bump_price": number | null,"bump_product_id": string | null,"created_at": string,"id": string,"is_active": boolean,"is_default": boolean,"kind": string,"label": string,"position": number,"product_id": string,"qty": number | null,"total_price": number | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active_from"?: string | null,"active_to"?: string | null,"bump_price"?: number | null,"bump_product_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"kind": string,"label": string,"position"?: number,"product_id": string,"qty"?: number | null,"total_price"?: number | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "active_from"?: string | null,"active_to"?: string | null,"bump_price"?: number | null,"bump_product_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"kind"?: string,"label"?: string,"position"?: number,"product_id"?: string,"qty"?: number | null,"total_price"?: number | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_option_values": {
+                  Row: {
+                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"price_delta": number,"product_id": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"price_delta"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"price_delta"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -945,14 +1075,14 @@ isOneToOne: false
                   ]
                 },"product_variants": {
                   Row: {
-                    "created_at": string,"id": string,"is_active": boolean,"product_id": string,"sku": string | null,"stock": number,"updated_at": string,"workspace_id": string
+                    "compare_at_override": number | null,"created_at": string,"id": string,"is_active": boolean,"price_override": number | null,"product_id": string,"sku": string | null,"stock": number,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id": string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id": string
+                    "compare_at_override"?: number | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"price_override"?: number | null,"product_id": string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id"?: string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id"?: string
+                    "compare_at_override"?: number | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"price_override"?: number | null,"product_id"?: string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -995,14 +1125,14 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "category_option_id": string | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"low_stock_threshold": number,"name": string,"notes": string | null,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
+                    "category_option_id": string | null,"compare_at_price": number | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"low_stock_threshold": number,"name": string,"notes": string | null,"pricing_mode": string,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name": string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
+                    "category_option_id"?: string | null,"compare_at_price"?: number | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name": string,"notes"?: string | null,"pricing_mode"?: string,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
                   }
                   Update: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name"?: string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
+                    "category_option_id"?: string | null,"compare_at_price"?: number | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name"?: string,"notes"?: string | null,"pricing_mode"?: string,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
                   }
                   Relationships: [
                     {

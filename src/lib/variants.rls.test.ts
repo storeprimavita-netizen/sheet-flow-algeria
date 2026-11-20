@@ -111,7 +111,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
       const r = await confAgent.from(table).select("*").eq("product_id", p);
       expect(r.error).toBeNull();
       expect(r.data!.length).toBeGreaterThan(0);
-      expect(Object.keys(r.data![0]).filter((k) => /cost|price|margin|profit/i.test(k))).toEqual([]);
+      expect(Object.keys(r.data![0]).filter((k) => /cost|price|margin|profit/i.test(k) && !/^(price_delta|price_override|compare_at_override)$/.test(k))).toEqual([]);
       expect((await anon.from(table).select("*")).error).not.toBeNull();
     }
     expect((await confAgent.from("product_options").insert({ workspace_id: ws, product_id: p, name: "X" })).error).not.toBeNull();

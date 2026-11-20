@@ -16,6 +16,8 @@ export const AUDITED_WORKSPACE_TABLES = [
   "expenses",
   "account_topups",
   "accounts",
+  "product_forms",
+  "product_offers",
   "product_option_values",
   "product_options",
   "product_pricing",

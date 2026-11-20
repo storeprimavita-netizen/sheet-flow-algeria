@@ -333,6 +333,21 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Known issue: the fast gate failed once in 4 runs right after the STORE-1 merge (test clean-up deadlock, reduced not gone — STORE-1-F).
 - Owner: migrations 00039–00050 wait for the production push (O-2). Products with sizes show "Count needed" until counted once.
 - Next /auto: STORE-3 (pricing modes, offers, order form fields), then P1-7, STORE-4.
+
+## STORE-3 — build done (pending /verify)
+- Done: migration 00051 (pricing mode, compare price, per-value delta, per-size override, `product_offers` quantity + bump, `product_forms`); pure `offer-price.ts` (unit price, offer charge, mixed-size `piecesCharge`, "starting from") shared with STORE-4; `form-fields.ts` zod contract; public DTO with pricing, offers, bump and form fields (no cost, sku, stock count, free delivery); admin Selling tab (mode switch, offers + bump, form editor, "View on store"); `OrderForm` component rendered only in the admin preview (inert, `method="post"`); public page shows an honest "orders open soon" state, no button.
+- Moved: D58 stock rule into `variant-stock.ts` (same behaviour); store layout queries (`.store-top`, `.store-grid`) now use a container query on `.store-main` so the 390 preview frame lays out like a phone.
+- Tests: live RLS `offers.rls.test.ts`, DTO tests in `data.test.ts`, `offer-price`, `form-fields`, `selling-schemas`, order-form markup. Existing `variants.rls.test.ts` "no cost field" check now allows the three selling-price columns.
+- Screenshots: NOT done in this build session (no browser run); the ui review must take the 390 + 1280, light + dark, AR + EN set listed in the brief.
+
+## STORE-3 — review 1 fixes
+- Fixed: 1 integer number field no longer joins digits across a dot ("2500.00" -> 2500, `integerInput` + test) · 2 sized products show the crossed-out price of the cheapest size · 3 all sizes unsellable -> public page 404 (admin preview still renders) · 5 per_value crossed-out price adds the size delta. Tests added for each.
+- Local store: `scripts/seed-dev.ts` now seeds a live store `demo` with `/s/demo/abaya-luxe` (S/M/L, S out of stock, 2 offers, bump, compare 6500) and `/s/demo/hijab-soie` (plain). Re-run the seed command in docs/TOOLING.md (idempotent).
+- Screenshots (Chrome DevTools MCP): store page 390 light AR, 1280 dark AR, 860 light AR (2-column layout holds, container query ok); admin preview 1280 dark AR with the order form and the validation-error state. Not captured: EN locale, 390 dark, preview in light, the 4-column related grid (no related blocks in the seed), 0-offer page.
+- Not fixed (LOW, left for later): 6 non-atomic `saveOffers` (must be resolved before STORE-4 stores offer ids), 7, 8, 9, 10 .
+
+## STORE-3 — round 4 (D61)
+- Fixed review-3 #1, #3, #4, #5 (tests: price-0 sizeless 404, mixed-size piecesCharge). Screenshots: not captured here (no browser run); ui-reviewer to capture r4-* list. Follow-ups rewritten in docs/briefs/STORE-3.followups.md.
 - P1-7 screenshots (browser MCP, AR + light + 1280 only): CSV dialog preview, fee grid after apply, order form. Not covered: dark, EN, 390px, warning/failed/applying dialog states, commune picker open. Fixed from screenshots: before/after values forced LTR in the preview cards.
 - P1-7 round 2 (review 1 FIX): push refuses any unpriced wilaya; swap recomputes the fee (migration 00053, also hardens apply input); admin "switch to home" action; createOrder/swap/saveWilayaFees return inline i18n errors; alert under Wilaya; grid scrolls with the page on phones; CSV dialog follows page direction, translated file picker, client size check, 2-col footer, Apply off at 0 changes; re-enabling a wilaya needs a fee above 0. New tests: push guard/COD/workspace scope, createOrder block, saveWilayaFees, syncZRFees, swap fee, parser fixture. Screenshots in docs/design/audit/P1-7-r2 (grid EN dark 390, grid AR light 1280, dialog preview AR light 1280, order form unpriced EN dark 390). Not covered: dialog warning/failed/applying/oversize states, commune picker open, stop_shipping wilaya, other theme/locale combos. Known: a failed grid save resets unsaved edits (React form reset).
 
@@ -905,3 +920,5 @@ Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60
 ### Run report (auto TEST-2)
 - Shipped: TEST-2 (merge b45aa09). Causes: seasons backfill ran on all workspaces, `deleteWorkspaces` emptied 3 of 22 audited tables, data.test leaked a workspace per run.
 - Decisions by Claude: none. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
+### STORE-3 round 5 (D61 follow-up, last allowed round)
+Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Merged origin/v3 (P1-7), db reset, types regenerated. Fixed review-4 mediums: pricing payload is now a pure `buildPricingPayload` (unit test + live test: per_value then uniform leaves every `price_delta` 0); the public page shows a sold-out state (Arabic, no offers, no order slot) when every size is out, with a test. Low 3 fixed (offer-price header). Screenshot: `docs/design/audit/STORE-3/r5-store-light-390-soldout.png` (390 light, checked by eye). Rest stays in `docs/briefs/STORE-3.followups.md`.
