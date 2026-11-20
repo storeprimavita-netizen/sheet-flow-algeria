@@ -549,3 +549,14 @@ STORE-2-F round 4 screenshots (D79 f), chrome-devtools MCP, local stack (dev ser
 - Evidence: screenshots in docs/design/audit/STORE-2-F/ (r4-*); store-http.test.ts 5/5 against `next start` (local stack).
 - Owner: store 404 `<h1>` missing from initial HTML is a Next framework behaviour; needs an owner decision (see round 1 notes).
 - Next: STORE-2-G (review-3 lows 5 to 10, missing tests, photo-failure placeholder, EN store shots not taken).
+
+ORD-1-F: sticky frozen cell now paints its own inset ring when the row is current and the table focused; CSV "Order" header uses `fields.order` (the brief's `orders.col.order` does not exist; `fields.order` exists in en and ar); `db-reset.sh` prints `PostgREST not ready after 30s` and exits 1. Error-path test: no pure seam (decision is inline at orders/all page.tsx:156), no refactor per brief, so the check stays browser-only (no DOM env, D55; `?product_id=x` checked in ORD-1 round 4).
+
+ORD-1-F browser pass (chrome-devtools MCP, local dev :3000, admin and confirmation@seed.mnw). Real `press_key Tab` from the control before the table lands on the table (activeElement TABLE); ArrowDown makes exactly one row current (one tr ring, one sticky-td ring) on orders/all, delivery and product orders. Checked: EN light/dark, AR light/dark, scrolled sideways (ring intact over the frozen cell), 390 px (skeleton then table, no overflow), row click AND Enter both open the order sheet (review-3's "sheet does not open" no longer reproduces), Escape closes it, order page AR light, agent session (orders/all redirects the agent to the confirmation queue, `#0001` listed). Defect found and fixed: after Escape the command palette dropped focus to BODY (no Radix trigger); `command-palette.tsx` now restores focus to the previously focused element (verified: Search button). Still open, not fixed: Escape from the order sheet also leaves focus on BODY (not the table row); hover-on-row shot not taken (hover tool not available). Screenshots: docs/design/audit/ORD-1/f-* (all-en-light/dark, all-ar-light/dark focus, scrolled, 390, delivery, product-orders, order sheet click/Enter, order page, agent, palette).
+
+## ORD-1-F done (2026-11-20)
+- Done: review-2 PASS (VERDICT: PASS, surface ui); focus ring across frozen column, real Tab walk, command-palette focus restore, CSV header translated; task set to done.
+- Verify: `scripts/gate.sh` GATE OK on v3-ORD-1-F (815 passed, 5 skipped).
+- Evidence: screenshots in docs/design/audit/ORD-1/f-*; browser pass in the entry above.
+- Owner: none for this task.
+- Next: open item from the browser pass: Escape from the order sheet leaves focus on BODY, not the table row (not fixed).

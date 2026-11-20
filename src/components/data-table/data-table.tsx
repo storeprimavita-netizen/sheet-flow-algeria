@@ -362,6 +362,7 @@ export function DataTable<T>({
                               c.width,
                               c.numeric && "num",
                               c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors "
+                                + (focus === i && tableFocused ? "ring-2 ring-inset ring-ring " : "")
                                 + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                             )}
                           >
