@@ -3,7 +3,8 @@ import { z } from "zod";
 /** Bidi/zero-width controls: they can reorder or hide text, so neither emoji nor labels may carry them. */
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g;
-const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
+// pictographs, flags (regional-indicator pairs) and keycaps (e.g. 1️⃣)
+const PICTOGRAPHIC = /\p{Extended_Pictographic}|\p{Regional_Indicator}{2}|[0-9#*]\uFE0F?\u20E3/u;
 
 export function graphemeCount(s: string): number {
   return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)].length;
