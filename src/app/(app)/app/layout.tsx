@@ -17,11 +17,10 @@ export default async function AppLayout({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const role = await getCurrentUserRole();
-  const overrides = await getStatusLabelOverrides();
-
   // Live nav counters — RLS-scoped, so agents see their own queue counts.
-  const [confirmation, delivery, tasks] = await Promise.all([
+  const [role, overrides, confirmation, delivery, tasks] = await Promise.all([
+    getCurrentUserRole(),
+    getStatusLabelOverrides(),
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })

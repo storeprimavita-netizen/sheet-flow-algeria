@@ -37,13 +37,14 @@ export default async function CustomerDetailPage({
   const { id } = await params;
   const t = await getTranslations();
   const locale = await getLocale();
-  const overrides = await getStatusLabelOverrides();
   const sl = (kind: "confirmation" | "delivery", key: string, fallback: string) => resolveStatusLabel(overrides, kind, key, locale, fallback);
-  const profile = (await getProfile())!;
-  const isAdmin = await isCurrentUserAdmin();
 
   const supabase = await createClient();
-  const [{ data: customer }, { data: stat }, { data: wilayas }, { data: orders }, weights] = await Promise.all([
+  const profilePromise = getProfile();
+  const [overrides, profile, isAdmin, { data: customer }, { data: stat }, { data: wilayas }, { data: orders }, weights] = await Promise.all([
+    getStatusLabelOverrides(),
+    profilePromise.then((p) => p!),
+    isCurrentUserAdmin(),
     supabase.from("customers").select("*").eq("id", id).maybeSingle(),
     supabase.from("customer_stats").select("*").eq("id", id).maybeSingle(),
     supabase.from("wilayas").select("code, name").order("code"),
@@ -52,7 +53,7 @@ export default async function CustomerDetailPage({
       .select("id, order_seq, quantity, sale_price, confirmation_status, delivery_status, placed_at, product:products(name)")
       .eq("customer_id", id)
       .order("placed_at", { ascending: false }),
-    getSetting(profile.workspaceId, "risk_weights"),
+    profilePromise.then((p) => getSetting(p!.workspaceId, "risk_weights")),
   ]);
 
   if (!customer) notFound();
