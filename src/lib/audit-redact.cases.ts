@@ -42,3 +42,9 @@ PARITY_CASES.push(
   nest(65, "[redacted:aaaaaaaa]"),
   { "api/key": "S1", "api key": "S2", secretkeys: "S3", privatekeys: ["S4"] },
 );
+// Anchoring: a mask token with a trailing newline is not a mask; uppercase hex is not a fingerprint.
+PARITY_CASES.push(
+  { note: "[redacted:aaaaaaaa]\n" },
+  { secret: "[redacted:AAAAAAAA]" },
+  { secret: "[redacted:aaaaaaaa]\n" },
+);
