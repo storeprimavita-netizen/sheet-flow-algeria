@@ -669,3 +669,4 @@ STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; sh
 
 ## CARRIER-0-G screenshot pass
 Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, session locale was AR; window min width rendered 500) with a focused map cell, focus ring visible; /app/dashboard scrolled, filter bar static and scrolled away; /app/statistics at 1280, no regression. 58 cells focusable. Table scroll fade in AR not separately captured. Follow-up: wilaya Arabic names need a migration (no name_ar column). Shots in docs/design/audit/CARRIER-0-G/.
+- CARRIER-0-G review-1 FIX: focus/hover ring is now a 3.5-wide token overlay path drawn above all cells; key handler extracted and tested; cells only focusable with onSelect. Screenshots docs/design/audit/CARRIER-0-G/r2-stats-390-{en,ar}-{dark,light}-focus.png (ring clearly visible). Left: roving tabindex (optional), AR wilaya names (no name_ar column, follow-up row), bidi isolation in title string.

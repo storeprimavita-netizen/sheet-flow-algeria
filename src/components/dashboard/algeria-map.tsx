@@ -174,7 +174,7 @@ export function AlgeriaMap({
           d={activeD}
           aria-hidden
           className="pointer-events-none fill-none stroke-ring"
-          strokeWidth={2.5}
+          strokeWidth={3.5}
           strokeLinejoin="round"
         />
       ) : null}
