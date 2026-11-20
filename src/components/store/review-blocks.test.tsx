@@ -10,8 +10,11 @@ const rev = { avg: 4.5, count: 1, items: [{ name: "Amina B.", rating: 5, text: "
 const dto = (blocks: PublicProductPage["page"]["blocks"], reviews: PublicProductPage["reviews"]): PublicProductPage => ({
   store: { slug: "s", name: "Luxe", theme: {}, settings: {} },
   page: { slug: "p", title: "P", blocks, seo: {} },
-  product: { name: "Abaya", price: 100, images: [] },
+  product: { name: "Abaya", price: 100, compareAt: null, pricingMode: "uniform", priceFrom: false, images: [] },
   variants: [],
+  offers: [],
+  bump: null,
+  form: { fields: [], deliveryMethods: ["home"] },
   related: [],
   reviews,
 } as unknown as PublicProductPage);

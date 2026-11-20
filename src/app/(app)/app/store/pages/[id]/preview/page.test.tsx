@@ -12,7 +12,7 @@ vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) =>
 vi.mock("@/components/store/product-view", () => ({ ProductView: () => null }));
 vi.mock("@/components/store/store.css", () => ({}));
 vi.mock("@/components/button-link", () => ({ ButtonLink: () => null }));
-vi.mock("@/lib/store/data", () => ({ assembleProductPage: async () => ({}) }));
+vi.mock("@/lib/store/data", () => ({ assembleProductPage: async () => ({ store: { slug: "s" }, page: { slug: "x" }, product: { price: 1, pricingMode: "uniform" }, variants: [], offers: [], bump: null, form: { fields: [], deliveryMethods: ["home"] } }) }));
 vi.mock("../../../_lib/data", () => ({ requireStoreAdmin: async () => ({}) }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({

@@ -58,6 +58,7 @@ describe("public page has no live submit", () => {
     offers: [],
     bump: null,
     form: { fields: [], deliveryMethods: ["home"] },
+    reviews: { avg: 0, count: 0, items: [] },
     related: [],
   };
   test("no button, no form, honest state", () => {
