@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 const rpc = vi.fn();
 const from = vi.fn();
 const update = vi.fn();
+let updateError: { message: string } | null = null;
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
@@ -29,7 +30,7 @@ function table(data: unknown) {
   q.maybeSingle = async () => ({ data });
   q.update = (...a: unknown[]) => {
     update(...a);
-    return { eq: () => ({ eq: async () => ({ error: null }) }) };
+    return { eq: () => ({ eq: async () => ({ error: updateError }) }) };
   };
   return q;
 }
@@ -43,7 +44,10 @@ function setup(o: { order?: object | null; sent?: object | null; stopped?: boole
 }
 
 describe("switchOrderToHome", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    updateError = null;
+  });
 
   test("refuses an order past the waiting stage", async () => {
     setup({ order: { wilaya_code: 5, delivery_type: "stopdesk", delivery_status: "in_transit" } });
@@ -66,5 +70,23 @@ describe("switchOrderToHome", () => {
     setup({});
     await expect(switchOrderToHome(A)).resolves.toEqual({ ok: true });
     expect(update).toHaveBeenCalledWith({ delivery_type: "home", delivery_fee: 700, delivery_fee_source: "wilaya_table" });
+  });
+  test("needs a wilaya when the order is missing or unreadable", async () => {
+    setup({ order: null });
+    await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.needsWilaya" });
+  });
+  test("needs a wilaya when the order has none", async () => {
+    setup({ order: { wilaya_code: null, delivery_type: "stopdesk", delivery_status: "wait_for_deposit" } });
+    await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.needsWilaya" });
+  });
+  test("refuses when no home fee exists (null)", async () => {
+    setup({ fee: null });
+    await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.unavailable" });
+    expect(update).not.toHaveBeenCalled();
+  });
+  test("reports failed when the update errors", async () => {
+    setup({});
+    updateError = { message: "boom" };
+    await expect(switchOrderToHome(A)).resolves.toEqual({ ok: false, error: "orders.zrexpress.switch.failed" });
   });
 });

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { csvSuccessToast } from "./fees-csv-toast";
 import { AlertTriangle, ArrowRight, FileUp, Loader2, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,8 @@ export function FeesCsvDialog() {
       if (!res.ok) return setPhase({ name: "failed", data, error: res.error });
       // a commune-only file changes no fee: say what did change instead of "No prices changed"
       const communeRows = data.diff.rows.filter((r) => r.communesAdded.length || r.communesRemoved.length).length;
-      toast.success(res.changed === 0 && communeRows > 0 ? t("successCommunes", { count: communeRows }) : t("success", { count: res.changed }));
+      const msg = csvSuccessToast(res.changed, communeRows);
+      toast.success(t(msg.key, { count: msg.count }));
       setOpen(false);
       reset();
       router.refresh();
@@ -120,7 +122,7 @@ export function FeesCsvDialog() {
                 aria-describedby="csv-format-hint"
               />
               <p id="csv-format-hint" className="text-xs text-muted-foreground">
-                {t.rich("formatHint", { cols: (c) => <bdi>{c}</bdi> })}
+                {t.rich("formatHint", { cols: (c) => <bdi dir="ltr">{c}</bdi> })}
               </p>
             </div>
 
