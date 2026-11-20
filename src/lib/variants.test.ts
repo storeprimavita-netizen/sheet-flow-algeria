@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countBySizeSchema, missingCombos, notAssigned, variantConfigSchema, variantLabel, variantStatus, type VariantOption } from "./variants";
+import { countBySizeSchema, mergeSizeSet, missingCombos, sizeSetSchema, skuSuggestion, notAssigned, variantConfigSchema, variantLabel, variantStatus, isSizeOption, storeOptionHeadingKey, variantFailureCode, type VariantOption } from "./variants";
 
 const u = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const size: VariantOption = { id: u(1), name: "Size", values: [{ id: u(2), label: "S" }, { id: u(3), label: "M" }] };
@@ -66,5 +66,102 @@ describe("countBySizeSchema", () => {
     expect(countBySizeSchema.safeParse([{ variant_id: u(10), count: -1 }]).success).toBe(false);
     expect(countBySizeSchema.safeParse([{ variant_id: u(10), count: 1.5 }]).success).toBe(false);
     expect(countBySizeSchema.safeParse([]).success).toBe(false);
+  });
+});
+
+describe("variantConfigSchema backfill (VAR-1)", () => {
+  const base = () => ({
+    options: [
+      { id: u(1), name: "Size", values: [{ id: u(2), label: "S" }] },
+      { id: u(4), name: "Color", kind: "color", values: [{ id: u(5), label: "Red", swatch_color: "#ff0000" }, { id: u(6), label: "Blue" }] },
+    ],
+    variants: [{ id: u(10), sku: null, is_active: true, existing: true, values: { [u(1)]: u(2), [u(4)]: u(5) } }],
+    backfill: { [u(4)]: u(5) },
+  });
+  it("passes when saved sizes carry the backfilled value and new ones choose their own", () => {
+    const c = base();
+    c.variants.push({ id: u(11), sku: null, is_active: true, existing: false, values: { [u(1)]: u(2), [u(4)]: u(6) } } as never);
+    expect(variantConfigSchema.safeParse(c).success).toBe(true);
+  });
+  it("refuses a saved size whose copy differs from the backfill, or a foreign backfill value", () => {
+    const c = base();
+    c.variants[0].values[u(4)] = u(6);
+    expect(variantConfigSchema.safeParse(c).success).toBe(false);
+    const d = base();
+    d.backfill = { [u(4)]: u(2) };
+    expect(variantConfigSchema.safeParse(d).success).toBe(false);
+    const e = base();
+    e.backfill = { [u(1)]: u(2), [u(4)]: u(5) };
+    expect(variantConfigSchema.safeParse(e).success).toBe(true); // keyed by a payload option: SQL refuses an existing one
+  });
+  it("swatches: hex or https only, never both, only on color options, one color option", () => {
+    const ok = (mut: (c: ReturnType<typeof base>) => void) => {
+      const c = base();
+      mut(c);
+      return variantConfigSchema.safeParse(c).success;
+    };
+    const val = (c: ReturnType<typeof base>) => c.options[1].values[1] as Record<string, unknown>;
+    expect(ok((c) => (val(c).swatch_image = "https://cdn.example.com/a.jpg"))).toBe(true);
+    for (const bad of ["http://a/x.png", "javascript:alert(1)", "https://a/x.png)", "https://a/x y.png", 'https://a/"x', "https://a/x'"]) {
+      expect(ok((c) => (val(c).swatch_image = bad))).toBe(false);
+    }
+    expect(ok((c) => (val(c).swatch_color = "red"))).toBe(false);
+    expect(ok((c) => ((val(c).swatch_color = "#00ff00"), (val(c).swatch_image = "https://a/x.png")))).toBe(false);
+    expect(ok((c) => ((c.options[0] as Record<string, unknown>).swatch = 1, (c.options[0].values[0] as Record<string, unknown>).swatch_color = "#00ff00"))).toBe(false);
+    expect(ok((c) => ((c.options[0] as Record<string, unknown>).kind = "color"))).toBe(false);
+  });
+});
+
+describe("skuSuggestion", () => {
+  it("joins code and value initials, uppercased", () => {
+    expect(skuSuggestion("aba-01", [{ label: "Medium", index: 2 }, { label: "Red", index: 0 }], [])).toBe("ABA01-MED-RED");
+  });
+  it("falls back to the position for Arabic values", () => {
+    expect(skuSuggestion("ABA", [{ label: "أحمر", index: 1 }], [])).toBe("ABA-2");
+  });
+  it("adds -2, -3 on collisions, case-insensitively", () => {
+    expect(skuSuggestion("A", [{ label: "M", index: 0 }], ["a-m", "A-M-2"])).toBe("A-M-3");
+  });
+});
+
+describe("size sets", () => {
+  it("trims, rejects blanks, >60 chars and >40 items", () => {
+    expect(sizeSetSchema.parse({ name: " Adults ", items: [" S ", "M"] })).toEqual({ name: "Adults", items: ["S", "M"] });
+    expect(sizeSetSchema.safeParse({ name: "x", items: [" "] }).success).toBe(false);
+    expect(sizeSetSchema.safeParse({ name: "x", items: ["a".repeat(61)] }).success).toBe(false);
+    expect(sizeSetSchema.safeParse({ name: "x", items: Array.from({ length: 41 }, (_, i) => String(i)) }).success).toBe(false);
+    expect(sizeSetSchema.safeParse({ name: "x", items: [] }).success).toBe(false);
+  });
+  it("merge keeps existing values and appends only missing names", () => {
+    expect(mergeSizeSet(["S", "m"], ["S", "M", "L", "l"])).toEqual(["L"]);
+  });
+});
+
+describe("isSizeOption (VAR-1)", () => {
+  it("treats legacy Variant and any-locale Size as the size option", () => {
+    for (const name of ["Variant", " size ", "المقاس", "SIZE"]) expect(isSizeOption({ name, kind: "text" })).toBe(true);
+  });
+  it("ignores colour options and other names", () => {
+    expect(isSizeOption({ name: "Size", kind: "color" })).toBe(false);
+    expect(isSizeOption({ name: "Material" })).toBe(false);
+  });
+});
+
+describe("storeOptionHeadingKey (VAR-1)", () => {
+  it("sizes, colour, or the owner's own name", () => {
+    for (const name of ["Size", " size ", "Variant", "المقاس"]) expect(storeOptionHeadingKey({ name, kind: "text" })).toBe("sizes");
+    for (const kind of ["color", "text"] as const)
+      for (const name of ["Color", "Colour", "اللون"]) expect(storeOptionHeadingKey({ name, kind })).toBe("color");
+    for (const name of ["Material", "القماش"]) expect(storeOptionHeadingKey({ name, kind: "text" })).toBeNull();
+  });
+});
+
+describe("variantFailureCode (VAR-1)", () => {
+  it("maps database errors to codes only", () => {
+    expect(variantFailureCode({ message: "incomplete size" })).toBe("invalid");
+    expect(variantFailureCode({ message: "every size needs exactly one value for each option" })).toBe("invalid");
+    expect(variantFailureCode({ message: "stale" })).toBe("stale");
+    expect(variantFailureCode({ code: "23503", message: "fk" })).toBe("in_use");
+    expect(variantFailureCode({ message: "relation foo exploded" })).toBe("failed");
   });
 });

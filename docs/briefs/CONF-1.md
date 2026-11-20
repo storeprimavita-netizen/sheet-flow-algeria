@@ -44,3 +44,12 @@ views row under OrderTabs (admin, agent) · dirty bar · name dialog with duplic
 
 ## Edge cases / status
 Deleting the active view; same name in shared and personal; two edits colliding (last wins). Assumptions confirmed: no `order_views`/`callback_at` exist; filter keys per `all/page.tsx`. Stale: spec's "Today confirmed" and "Callbacks due" seeds (deferred to CONF-4). No new DECISIONS row required unless `/decide` overturns a default above.
+
+## MERGE PLAN (rev 2, D89; supersedes build steps above, build is done on `v3-CONF-1`, review-4 ESCALATE, Q-18)
+Task now = merge, no new feature code, no round 5. Orders moved to `app/sell/orders` and `shipping` on v3.
+1. Claim, `git checkout v3-CONF-1`, `git merge v3`. Conflicts (found by dry run): `sell/orders/(list)/page.tsx`, `orders-filter-bar.tsx`, `sell/shipping/page.tsx`, `messages/{en,ar}.json` (keep both key sets). Move the branch's `app/orders/_lib/{order-query,views-data}(.test).ts` and other `app/orders/*` files to `app/sell/orders/`. Delivery page is now `sell/shipping`.
+2. Migrations 00056/00057 do not collide (v3 has 00055, 00058+). Remote push needs `--include-all` because 00058-00077 are newer: tell owner, never push. Regenerate types locally (`--local`) only if the merge breaks them.
+3. Run `scripts/gate.sh` with live RLS suite; fix only merge breakage. Never edit gate or tests.
+4. Add ONE follow-up row `CONF-1-F` to MASTER_PLAN with the 2 open mediums: (1) status lost when typing during load, fix `search-param-sync.ts:58` build from `sent.at(-1) ?? lastQs`; (2) `hold()` too broad/narrow (`search-param-input.tsx:49-60`; cancel on link click, Save via box handle). Lows (Save not cancelling write, `pairKey` collision, slow nav outlasting hold, misleading empty state) go to `docs/BACKLOG.md`.
+5. Mark Q-18 answered by D89 in QUESTIONS.md; tick CONF-1; unblocks CONF-2/3/4, NAV-4-V.
+Risk stays high (RLS/migration); surface ui: screenshots already exist under `docs/design/audit/CONF-1/`; re-screenshot only if the merge touched the views UI.

@@ -15,7 +15,7 @@ import { SeasonCompare, SeasonCompareSkeleton } from "@/components/stats/season-
 import { StatsFilterBar, type StatsOpt } from "@/components/stats/stats-filter-bar";
 import { activeStatsFilters } from "@/components/stats/stats-filter-edit";
 import { getOptionSet } from "@/lib/option-sets";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { ORDER_SOURCES, DELIVERY_TYPES } from "@/lib/enums";
 
 // Per-wilaya confirmation/delivery table + commune drill-down (STATS-2, D64).
@@ -37,7 +37,7 @@ export default async function StatisticsPage({
   // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
   if (f.product && !(products ?? []).some((p) => p.id === f.product)) f.product = undefined;
   const productOpts: StatsOpt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
-  const { workspaceId } = (await getProfile())!;
+  const { workspaceId } = await requireProfile();
   const [categoryOptions, { data: wilayaRows }, { data: team }] = await Promise.all([
     getOptionSet(workspaceId, "product_category"),
     supabase.from("wilayas").select("code, name").order("code"),
@@ -189,7 +189,7 @@ export default async function StatisticsPage({
                 {keep.size ? (
                   <ButtonLink href="/app/statistics" size="sm">{t("statistics.clearFilters")}</ButtonLink>
                 ) : (
-                  <ButtonLink href="/app/orders/all" size="sm">{t("statistics.allOrders")}</ButtonLink>
+                  <ButtonLink href="/app/sell/orders" size="sm">{t("statistics.allOrders")}</ButtonLink>
                 )}
               </div>
             )}

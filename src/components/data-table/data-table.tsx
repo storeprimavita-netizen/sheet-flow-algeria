@@ -278,6 +278,7 @@ export function DataTable<T>({
                       "px-3 py-2 font-medium text-muted-foreground",
                       colStart(c),
                       c.width,
+                      c.className,
                       c.sticky && "sticky start-0 z-20 bg-surface "
                         + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                     )}
@@ -360,8 +361,10 @@ export function DataTable<T>({
                               "px-3",
                               colStart(c),
                               c.width,
+                              c.className,
                               c.numeric && "num",
                               c.sticky && "sticky start-0 z-10 bg-(--row-bg) transition-colors "
+                                + (focus === i && tableFocused ? "ring-2 ring-inset ring-ring " : "")
                                 + "after:pointer-events-none after:absolute after:inset-y-0 after:end-0 after:w-px after:bg-border-strong",
                             )}
                           >
@@ -410,7 +413,7 @@ export function DataTable<T>({
 
       {/* floating bulk bar */}
       {selectable && selected.size > 0 ? (
-        <div className="surface-raised fixed bottom-6 start-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 rtl:translate-x-1/2">
+        <div className="surface-raised fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] start-1/2 md:bottom-6 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 rtl:translate-x-1/2">
           <span className="num text-sm font-medium">
             {selected.size} {t("common.selected")}
           </span>

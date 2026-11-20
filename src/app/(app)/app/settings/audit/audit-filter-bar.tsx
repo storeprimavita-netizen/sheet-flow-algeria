@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
+import { useTableLabel } from "./_lib/table-label";
 
 const ALL = "__all";
 
@@ -20,10 +21,13 @@ export function AuditFilterBar({
   actors: { user_id: string; display_name: string | null }[];
 }) {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const get = (k: string) => sp.get(k) ?? "";
+  const tableLabel = useTableLabel();
+  const sortedTables = [...tables].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), locale));
 
   function setDates(from: string, to: string) {
     const next = new URLSearchParams(sp.toString());
@@ -42,7 +46,7 @@ export function AuditFilterBar({
   }
 
   const chips: { key: string; label: string }[] = [];
-  if (get("table")) chips.push({ key: "table", label: `${t("team.table")}: ${get("table")}` });
+  if (get("table")) chips.push({ key: "table", label: `${t("team.table")}: ${tableLabel(get("table"))}` });
   if (get("actor")) {
     const name = actors.find((a) => a.user_id === get("actor"))?.display_name ?? get("actor");
     chips.push({ key: "actor", label: `${t("fields.agent")}: ${name}` });
@@ -57,13 +61,13 @@ export function AuditFilterBar({
           <span className="text-xs font-medium text-muted-foreground">{t("team.table")}</span>
           <Select value={get("table") || ALL} onValueChange={(v) => setParam("table", v)}>
             <SelectTrigger>
-              <SelectValue>{get("table") || t("common.all")}</SelectValue>
+              <SelectValue>{get("table") ? tableLabel(get("table")) : t("common.all")}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>{t("common.all")}</SelectItem>
-              {tables.map((n) => (
+              {sortedTables.map((n) => (
                 <SelectItem key={n} value={n}>
-                  {n}
+                  {tableLabel(n)}
                 </SelectItem>
               ))}
             </SelectContent>

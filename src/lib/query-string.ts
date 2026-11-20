@@ -23,7 +23,7 @@ export type DashboardFilters = {
   agent?: string;
   confirmation_status?: string;
   delivery_status?: string;
-  /** Statistics drill only: option uuid (`/app/orders/all?category=`), compared like `kpi_order_set`. */
+  /** Statistics drill only: option uuid (`/app/sell/orders?category=`), compared like `kpi_order_set`. */
   category?: string;
   /** Statistics drill only: confirmation agent only (`conf_agent`); `agent` keeps its confirmation-OR-delivery meaning. */
   conf_agent?: string;
@@ -48,11 +48,11 @@ export const communeBannerLabel = (key: string, label: string) =>
   label.trim().toLowerCase() === key ? label.trim() : key;
 /** Params that only exist in statistics drill mode (the key filters are DRILL_FILTER_KEYS); any other filter change removes them all. */
 export const DRILL_PARAMS = ["drill", "commune_key", "commune_unknown", "commune_label", "weekday", "hour"] as const;
-/** `commune_unknown=1` on /app/orders/all means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
+/** `commune_unknown=1` on /app/sell/orders means "no commune" (`is null`); it is a separate param so it can never collide with a real key (lower(trim(commune))). */
 export const COMMUNE_UNKNOWN_PARAM = "commune_unknown";
 
 /**
- * `/app/orders/all`'s URL-param shape (product_id/wilaya_code/agent/…). Takes
+ * `/app/sell/orders`'s URL-param shape (product_id/wilaya_code/agent/…). Takes
  * a plain filters object rather than a closure so client components (e.g. the
  * choropleth's hover/click) can call it directly instead of receiving a
  * function prop from a server component (RSC forbids that).
@@ -74,7 +74,7 @@ export function ordersQs(filters: DashboardFilters, extra: Record<string, string
     if (v) params.set(k, v);
     else params.delete(k);
   }
-  return `/app/orders/all?${params.toString()}`;
+  return `/app/sell/orders?${params.toString()}`;
 }
 
 /** Drill metric -> the orders behind a /app/statistics count (`kpi_drill_orders`, same predicate as the SQL count). */
@@ -82,7 +82,7 @@ export type DrillMetric = "received" | "confirmed" | "delivered" | "return" | "s
 /** Donut slice drills: `out_<outcome>` (kpi_drill_orders lists the same CASE kpi_outcomes counts). */
 export const OUTCOME_DRILLS = ["out_delivered", "out_returned", "out_cancelled", "out_unconfirmed", "out_in_progress"] as const;
 
-/** `/app/orders/all` drill link: same period/product, one wilaya, optionally one commune key (communeKey null = no commune). */
+/** `/app/sell/orders` drill link: same period/product, one wilaya, optionally one commune key (communeKey null = no commune). */
 export const drillHref = (
   filters: DashboardFilters,
   metric: DrillMetric,

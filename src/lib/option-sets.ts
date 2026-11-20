@@ -12,6 +12,7 @@ export type OptionRow = {
   label: string;
   color_token: StatusToken;
   icon: string | null;
+  emoji: string | null;
   sort_order: number;
   archived_at: string | null;
 };
@@ -37,7 +38,7 @@ export async function getOptionSet(workspaceId: string, key: OptionSetKey): Prom
   if (!set) return [];
   const { data } = await supabase
     .from("options")
-    .select("id, label, color_token, icon, sort_order, archived_at")
+    .select("id, label, color_token, icon, emoji, sort_order, archived_at")
     .eq("set_id", set.id)
     .order("sort_order");
   return (data ?? []) as OptionRow[];

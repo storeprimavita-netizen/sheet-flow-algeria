@@ -6,7 +6,7 @@ context: fork
 ---
 Task: the id in $ARGUMENTS, else the first `todo` task in docs/MASTER_PLAN.md whose deps are all `done`. If it needs an owner input that the plan lists as open, stop and say which.
 
-Claim it: on `v3` (`git checkout v3 && git pull --rebase`), set its status to `claimed:claude`, then `scripts/step.sh "<id>: claim"`. If the push is rejected, pull, and if the task is now claimed by someone else pick the next one.
+Claim it: on `v3` (`git checkout v3 && git pull --rebase`), set its status to `claimed:claude` (or `claimed:<name>` when the caller passed `as:<name>`), then `scripts/step.sh "<id>: claim"`. If the push is rejected, pull, and if the task is now claimed by someone else pick the next one.
 
 Read the spec the task names (`docs/specs/<EPIC>.md`) and the DECISIONS rows it cites. Then read the REAL code, migrations and policies the task touches — the plan may have drifted (orient with `graphify query` if installed, else targeted Grep). Never read docs/PROGRESS_ARCHIVE.md. No feature code.
 

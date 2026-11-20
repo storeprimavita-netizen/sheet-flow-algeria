@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 import { CreateStoreForm } from "./_components/create-store-form";
-import { Crumbs } from "./_components/crumbs";
 import { getStore } from "./_lib/data";
 
 export default async function StoreHubPage() {
@@ -19,7 +18,6 @@ export default async function StoreHubPage() {
     return (
       <div className="space-y-6">
         <div>
-          <Crumbs items={[]} />
           <PageHeader title={t("hub.title")} subtitle={t("hub.purpose")} />
         </div>
         <CreateStoreForm />
@@ -42,7 +40,6 @@ export default async function StoreHubPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Crumbs items={[]} />
         <PageHeader title={t("hub.title")} subtitle={t("hub.purpose")}>
           {firstLive ? (
             <ButtonLink href={`/s/${store.slug}/${firstLive.slug}`} variant="outline">

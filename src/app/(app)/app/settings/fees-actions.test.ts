@@ -5,6 +5,7 @@ type Row = {
   priced: boolean; stopdesk_available: boolean; updated_at: string;
 };
 let stored: Row[];
+let failTable: string | null = null;
 let upserts: Record<string, unknown>[][];
 const getZRRates = vi.fn();
 
@@ -16,7 +17,9 @@ vi.mock("@/lib/supabase/server", () => ({
       const q: Record<string, unknown> = {};
       q.select = () => q;
       q.eq = () => q;
-      q.then = (ok: (v: unknown) => unknown) => ok({ data: t === "wilayas" ? [{ code: 1 }, { code: 33 }] : stored, error: null });
+      q.order = () => q;
+      q.range = () => q;
+      q.then = (ok: (v: unknown) => unknown) => ok(t === failTable ? { data: null, error: { message: "boom" } } : { data: t === "wilayas" ? [{ code: 1 }, { code: 33 }] : stored, error: null });
       q.upsert = async (rows: Record<string, unknown>[]) => (upserts.push(rows), { error: null });
       return q;
     },
@@ -33,7 +36,7 @@ vi.mock("@/lib/integrations/zrexpress", () => ({
   zrErrorMessage: vi.fn(),
 }));
 
-import { saveWilayaFees, syncZRFees } from "./actions";
+import { applyDeliveryCsv, previewDeliveryCsv, saveWilayaFees, syncZRFees } from "./actions";
 
 const T0 = "2026-01-01T00:00:00.000Z";
 const row = (over: Partial<Row> = {}): Row => ({
@@ -120,5 +123,28 @@ describe("syncZRFees", () => {
     upserts = [];
     expect(await syncZRFees()).toEqual({ ok: true, updated: 0, off: 0 });
     expect(upserts).toHaveLength(0);
+  });
+});
+
+describe("delivery CSV reads stored fees", () => {
+  const csv = () => {
+    const f = new FormData();
+    f.set("file", new File(["a,b,c,d,e,f,g\nDZ,1-Adrar,,,rate,,\u062a\u0648\u0635\u064a\u0644 \u0644\u0644\u0645\u0646\u0632\u0644:1400\n"], "p.csv"));
+    f.set("snapshot", T0);
+    return f;
+  };
+  beforeEach(() => {
+    stored = [row()];
+  });
+  test.each(["wilaya_fees", "wilaya_communes"])("a failed %s read is an error, not an all-changed preview", async (t) => {
+    failTable = t;
+    try {
+      const pre = await previewDeliveryCsv(csv());
+      expect(pre.ok).toBe(false);
+      const ap = await applyDeliveryCsv(csv());
+      expect(ap.ok).toBe(false);
+    } finally {
+      failTable = null;
+    }
   });
 });

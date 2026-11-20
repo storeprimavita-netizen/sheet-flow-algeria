@@ -17,7 +17,8 @@ step() { # name, logfile, command...
 
 step "tsc" "$logdir/mnw-gate-tsc.log" npx tsc --noEmit
 
-if curl -s -m 2 -o /dev/null http://127.0.0.1:54321/rest/v1/ ; then
+if [ "${GATE_SKIP_LIVE:-}" = "1" ]; then mode="unit only — live suite skipped: parallel worker without database tasks"
+elif curl -s -m 2 -o /dev/null http://127.0.0.1:54321/rest/v1/ ; then
   export LOCAL_SUPABASE_URL=http://127.0.0.1:54321; mode="with live RLS suite"
 else mode="unit only — local Supabase down, RLS suite SKIPPED"; fi
 step "tests ($mode)" "$logdir/mnw-gate-test.log" npx vitest run

@@ -185,7 +185,7 @@ export default async function PerformancePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} />
+      <PageHeader title={t("nav.performance")} subtitle={t("navPurpose.performance")} />
       <TeamTabs active="performance" />
       <PerformanceFilterBar />
       <div className="card-surface flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl p-5">

@@ -20,7 +20,7 @@ const render = (node: React.ReactNode, locale: "en" | "ar" = "en") =>
     </NextIntlClientProvider>,
   );
 
-const xs: LineX[] = ["01", "02", "03", "04"].map((d, i) => ({ key: `2026-01-${d}`, label: `${d}/01`, short: d, immature: i === 3, href: `/app/orders/all?from=2026-01-${d}` }));
+const xs: LineX[] = ["01", "02", "03", "04"].map((d, i) => ({ key: `2026-01-${d}`, label: `${d}/01`, short: d, immature: i === 3, href: `/app/sell/orders?from=2026-01-${d}` }));
 const series: LineSeries[] = [
   { key: "rev", label: "Revenue", color: "var(--chart-1)", marker: "circle", values: [100, 200, null, 300], format: "dzd" },
   { key: "cost", label: "Costs", color: "var(--chart-2)", dash: "6 4", marker: "square", values: [50, 80, 90, 100], format: "dzd" },
@@ -33,7 +33,7 @@ describe("LineChart", () => {
   test("every point is a link with drill href, aria label and exactly one roving tab stop", () => {
     const html = render(<LineChart title="Money" xs={xs} series={series} />);
     expect(html).toContain('role="group"');
-    expect(html).toContain('href="/app/orders/all?from=2026-01-02"');
+    expect(html).toContain('href="/app/sell/orders?from=2026-01-02"');
     expect(html).toContain(`01/01: Revenue ${formatCurrency(100)}`);
     expect(html.match(/tabindex="0"/g)).toHaveLength(1);
     // revenue 3 points + costs 4 + net 3 (gaps skipped)
@@ -103,14 +103,14 @@ describe("ChartPanel table toggle", () => {
 
 describe("BarChart", () => {
   const items = [
-    { key: "a", label: "Alger", value: 5, display: "5", href: "/app/orders/all?wilaya_code=16" },
-    { key: "b", label: "Oran", value: 10, display: "10", href: "/app/orders/all?wilaya_code=31" },
+    { key: "a", label: "Alger", value: 5, display: "5", href: "/app/sell/orders?wilaya_code=16" },
+    { key: "b", label: "Oran", value: 10, display: "10", href: "/app/sell/orders?wilaya_code=31" },
   ];
   test("horizontal rows are 44px links, Latin names isolated with bdi", () => {
     const html = render(<BarChart title="Where" items={items} orientation="h" valueHead="Orders" />);
     expect(html).toContain("min-h-11");
     expect(html).toContain("<bdi>Alger</bdi>");
-    expect(html).toContain('href="/app/orders/all?wilaya_code=31"');
+    expect(html).toContain('href="/app/sell/orders?wilaya_code=31"');
   });
   test("vertical RTL mirrors the order", () => {
     const rects = (h: string) => [...h.matchAll(/<rect x="([\d.]+)"[^>]*rx="2"/g)].map((m) => Number(m[1]));
@@ -123,13 +123,13 @@ describe("BarChart", () => {
 
 describe("Donut / StackedBar", () => {
   const raw = Array.from({ length: 8 }, (_, i) => ({ key: `k${i}`, label: `L${i}`, value: 10 - i }));
-  const slices = collapseSlices(raw, 5, "Other").map((s) => ({ ...s, display: `${s.value} DA`, color: "var(--chart-1)", href: `/app/orders/all?x=${s.key}` }));
+  const slices = collapseSlices(raw, 5, "Other").map((s) => ({ ...s, display: `${s.value} DA`, color: "var(--chart-1)", href: `/app/sell/orders?x=${s.key}` }));
   test("donut collapses to 5 slices incl. Other, legend carries amount and %", () => {
     const html = render(<DonutChart title="Outcome" slices={slices} totalLabel="orders" totalDisplay="52" head={["Outcome", "Orders", "Share"]} />);
     expect(html.match(/data-pt=/g)).toHaveLength(5);
     expect(html).toContain("Other");
     expect(html).toContain("%");
-    expect(html).toContain('href="/app/orders/all?x=other"');
+    expect(html).toContain('href="/app/sell/orders?x=other"');
   });
   test("share table lists the same numbers as the slices", () => {
     const t = shareTable("Outcome", ["a", "b", "c"], slices, 52);

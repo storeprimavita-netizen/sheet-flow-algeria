@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { deleteLeakedWorkspaces, deleteWorkspaces } from "@/lib/test-cleanup";
 
-/** Live CHART-1 checks (migration 00068): admin-only series, money = pnl_lines, Algiers days, rates via kpi_rates. */
+/** Live CHART-1 checks (migration 00078): admin-only series, money = pnl_lines, Algiers days, rates via kpi_rates. */
 const URL = process.env.LOCAL_SUPABASE_URL;
 const ANON_KEY =
   process.env.LOCAL_SUPABASE_ANON_KEY ??
@@ -34,7 +34,7 @@ const FROM = "2026-03-10";
 const TO = "2026-03-16";
 const RPCS = ["kpi_daily", "kpi_by_weekday_hour", "kpi_by_product", "kpi_outcomes"] as const;
 
-describe.skipIf(!URL)("chart series (live DB, 00068)", () => {
+describe.skipIf(!URL)("chart series (live DB, 00078)", () => {
   let svc: SupabaseClient;
   let admin: SupabaseClient;
   let agent: SupabaseClient;

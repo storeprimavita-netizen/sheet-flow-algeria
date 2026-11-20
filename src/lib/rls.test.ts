@@ -501,4 +501,60 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       expect((data ?? []).every((o) => o.workspace_id === workspaceId)).toBe(true);
     });
   });
+
+  describe("users without a usable profile see nothing (NAV-5-H)", () => {
+    const BUSINESS = ["orders", "customers", "products", "settings"] as const;
+    const made: string[] = [];
+
+    async function makeUser(tag: string, profile: null | { is_active: boolean; workspace_id: string | null }) {
+      const email = `noaccess-${tag}-${Date.now()}@seed.mnw`;
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        password: SEED_PASSWORD,
+        email_confirm: true,
+      });
+      if (error) throw new Error(error.message);
+      made.push(data.user.id);
+      // the signup trigger may create a profile row; normalise to the case under test
+      await admin.from("profiles").delete().eq("user_id", data.user.id);
+      if (profile) {
+        const { error: pe } = await admin
+          .from("profiles")
+          .insert({ user_id: data.user.id, role: "confirmation_agent", ...profile });
+        if (pe) throw new Error(pe.message);
+      }
+      return { id: data.user.id, client: await signIn(LOCAL_URL!, email) };
+    }
+
+    afterAll(async () => {
+      for (const id of made) {
+        await admin.from("profiles").delete().eq("user_id", id);
+        await admin.auth.admin.deleteUser(id);
+      }
+    });
+
+    const cases = [
+      ["a: no profile row", null],
+      ["b: is_active = false", { is_active: false, workspace_id: "WS" }],
+      ["c: null workspace", { is_active: true, workspace_id: null }],
+    ] as const;
+
+    test.each(cases)("%s: own profile only, zero business rows", async (name, profile) => {
+      const u = await makeUser(name[0], profile && { ...profile, workspace_id: profile.workspace_id && workspaceId });
+      const { data: own } = await u.client.from("profiles").select("user_id");
+      expect((own ?? []).map((r) => r.user_id)).toEqual(profile ? [u.id] : []);
+      // same predicate as getProfile(): inactive or workspace-less -> null
+      const { data: row } = await u.client
+        .from("profiles")
+        .select("role, workspace_id, is_active")
+        .eq("user_id", u.id)
+        .maybeSingle();
+      expect(!!row?.is_active && !!row?.workspace_id).toBe(false);
+      for (const table of BUSINESS) {
+        const { count, error } = await u.client.from(table).select("*", { count: "exact", head: true });
+        expect(error).toBeNull();
+        expect(count).toBe(0);
+      }
+    });
+  });
 });

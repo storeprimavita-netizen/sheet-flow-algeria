@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import { GroupHub } from "@/components/group-hub";
 
-/** Team section landing — users/audit moved to settings; redirect to rules. */
 export default function TeamPage() {
-  redirect("/app/team/rules");
+  return <GroupHub groupKey="groupTeam" />;
 }

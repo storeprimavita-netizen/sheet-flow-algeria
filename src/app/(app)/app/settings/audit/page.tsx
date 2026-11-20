@@ -6,18 +6,8 @@ import { PageHeader } from "@/components/page-header";
 import { SettingsTabs } from "../settings-tabs";
 import { AuditFilterBar } from "./audit-filter-bar";
 import { diffRows } from "./_lib/diff";
+import { AUDITED_TABLES, dayStart, nextDayStart, parseAuditParams } from "./_lib/params";
 import { AuditTable, type AuditRow } from "./audit-table";
-
-// Tables with an `audit_row()` trigger attached (00002_settings.sql, 00003_products.sql).
-const AUDITED_TABLES = [
-  "wilaya_fees",
-  "settings",
-  "fixed_fees",
-  "exchange_rates",
-  "integration_configs",
-  "expenses",
-  "product_costs",
-] as const;
 
 export default async function AuditPage({
   searchParams,
@@ -25,10 +15,7 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const table = typeof sp.table === "string" ? sp.table : "";
-  const actor = typeof sp.actor === "string" ? sp.actor : "";
-  const from = typeof sp.from === "string" ? sp.from : "";
-  const to = typeof sp.to === "string" ? sp.to : "";
+  const { table, actor, from, to } = parseAuditParams(sp);
 
   const t = await getTranslations();
   const { workspaceId } = await requireAdminProfile();
@@ -42,13 +29,14 @@ export default async function AuditPage({
     .limit(100);
   if (table) query = query.eq("table_name", table);
   if (actor) query = query.eq("actor", actor);
-  if (from) query = query.gte("created_at", from);
-  if (to) query = query.lte("created_at", `${to}T23:59:59`);
+  if (from) query = query.gte("created_at", dayStart(from));
+  if (to) query = query.lt("created_at", nextDayStart(to));
 
-  const [{ data: rows }, { data: profiles }] = await Promise.all([
+  const [{ data: rows, error: rowsError }, { data: profiles }] = await Promise.all([
     query,
     supabase.from("profiles").select("user_id, display_name").eq("workspace_id", workspaceId),
   ]);
+  if (rowsError) throw new Error(`audit_log: ${rowsError.message}`); // error.tsx shows the reason + retry
   const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? p.user_id]));
 
   const auditRows: AuditRow[] = (rows ?? []).map((r) => {
@@ -69,7 +57,7 @@ export default async function AuditPage({
       <SettingsTabs active="audit" />
 
       <AuditFilterBar tables={AUDITED_TABLES} actors={profiles ?? []} />
-      <AuditTable rows={auditRows} />
+      <AuditTable rows={auditRows} filtered={Boolean(table || actor || from || to)} />
     </div>
   );
 }

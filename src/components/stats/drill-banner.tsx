@@ -1,6 +1,6 @@
 import { ButtonLink } from "@/components/button-link";
 
-/** Banner over /app/orders/all in statistics drill mode: the metric, then wilaya / delivery type / commune
+/** Banner over /app/sell/orders in statistics drill mode: the metric, then wilaya / delivery type / commune
  * (empty parts are skipped), and the way back to every order (which also drops the drill params). */
 export function DrillBanner({ metric, parts, clearLabel }: { metric: string; parts: string[]; clearLabel: string }) {
   return (
@@ -11,7 +11,7 @@ export function DrillBanner({ metric, parts, clearLabel }: { metric: string; par
           {parts.map((p) => p.trim()).filter(Boolean).map((p) => ` · ${p}`).join("")}
         </span>
       </p>
-      <ButtonLink href="/app/orders/all" size="sm" variant="outline">{clearLabel}</ButtonLink>
+      <ButtonLink href="/app/sell/orders" size="sm" variant="outline">{clearLabel}</ButtonLink>
     </div>
   );
 }

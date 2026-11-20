@@ -11,15 +11,19 @@ export function WilayaCombobox({
   value,
   onChange,
   name,
+  id,
   placeholder = "Wilaya",
   disabled,
+  ariaLabel,
 }: {
   wilayas: { code: string; name: string }[];
   value?: string;
   onChange?: (value: string) => void;
   name?: string;
+  id?: string;
   placeholder?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const options = wilayas.map((w) => ({
     value: w.code,
@@ -32,8 +36,10 @@ export function WilayaCombobox({
       value={value}
       onChange={onChange}
       name={name}
+      id={id}
       placeholder={placeholder}
       disabled={disabled}
+      ariaLabel={ariaLabel}
     />
   );
 }
@@ -77,6 +83,7 @@ export function ProductCombobox({
   name,
   placeholder = "Product",
   disabled,
+  ariaLabel,
 }: {
   products: { id: string; name: string; image?: string | null; status?: string | null }[];
   value?: string;
@@ -84,6 +91,7 @@ export function ProductCombobox({
   name?: string;
   placeholder?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const options = products.map((p) => ({
     value: p.id,
@@ -109,6 +117,7 @@ export function ProductCombobox({
       name={name}
       placeholder={placeholder}
       disabled={disabled}
+      ariaLabel={ariaLabel}
     />
   );
 }

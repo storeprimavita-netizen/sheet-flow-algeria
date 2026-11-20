@@ -431,14 +431,14 @@ isOneToOne: false
                   ]
                 },"options": {
                   Row: {
-                    "archived_at": string | null,"color_token": string,"created_at": string,"created_by": string | null,"icon": string | null,"id": string,"label": string,"set_id": string,"sort_order": number,"updated_at": string,"workspace_id": string
+                    "archived_at": string | null,"color_token": string,"created_at": string,"created_by": string | null,"emoji": string | null,"icon": string | null,"id": string,"label": string,"set_id": string,"sort_order": number,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"icon"?: string | null,"id"?: string,"label": string,"set_id": string,"sort_order"?: number,"updated_at"?: string,"workspace_id": string
+                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"emoji"?: string | null,"icon"?: string | null,"id"?: string,"label": string,"set_id": string,"sort_order"?: number,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"icon"?: string | null,"id"?: string,"label"?: string,"set_id"?: string,"sort_order"?: number,"updated_at"?: string,"workspace_id"?: string
+                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"emoji"?: string | null,"icon"?: string | null,"id"?: string,"label"?: string,"set_id"?: string,"sort_order"?: number,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -521,6 +521,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "order_tags_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"order_views": {
+                  Row: {
+                    "config": NonNullable<Json>,"created_at": string,"emoji": string | null,"id": string,"layout": string,"name": string,"owner_id": string | null,"position": number,"scope": string,"seed_key": string | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"emoji"?: string | null,"id"?: string,"layout"?: string,"name": string,"owner_id"?: string | null,"position"?: number,"scope": string,"seed_key"?: string | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "config"?: NonNullable<Json>,"created_at"?: string,"emoji"?: string | null,"id"?: string,"layout"?: string,"name"?: string,"owner_id"?: string | null,"position"?: number,"scope"?: string,"seed_key"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_views_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
@@ -675,16 +695,146 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"product_option_values": {
+                },"product_forms": {
                   Row: {
-                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                    "delivery_methods": (string)[],"fields": NonNullable<Json>,"product_id": string,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                    "delivery_methods"?: (string)[],"fields"?: NonNullable<Json>,"product_id": string,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "delivery_methods"?: (string)[],"fields"?: NonNullable<Json>,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_forms_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_offers": {
+                  Row: {
+                    "active_from": string | null,"active_to": string | null,"bump_price": number | null,"bump_product_id": string | null,"created_at": string,"id": string,"is_active": boolean,"is_default": boolean,"kind": string,"label": string,"position": number,"product_id": string,"qty": number | null,"total_price": number | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active_from"?: string | null,"active_to"?: string | null,"bump_price"?: number | null,"bump_product_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"kind": string,"label": string,"position"?: number,"product_id": string,"qty"?: number | null,"total_price"?: number | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "active_from"?: string | null,"active_to"?: string | null,"bump_price"?: number | null,"bump_product_id"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"kind"?: string,"label"?: string,"position"?: number,"product_id"?: string,"qty"?: number | null,"total_price"?: number | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_bump_product_id_workspace_id_fkey"
+      columns: ["bump_product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_product_id_workspace_id_fkey"
+      columns: ["product_id","workspace_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id","workspace_id"]
+    },{
+      foreignKeyName: "product_offers_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"product_option_values": {
+                  Row: {
+                    "created_at": string,"id": string,"label": string,"option_id": string,"position": number,"price_delta": number,"product_id": string,"swatch_color": string | null,"swatch_image": string | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"label": string,"option_id": string,"position"?: number,"price_delta"?: number,"product_id": string,"swatch_color"?: string | null,"swatch_image"?: string | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"label"?: string,"option_id"?: string,"position"?: number,"price_delta"?: number,"product_id"?: string,"swatch_color"?: string | null,"swatch_image"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -733,14 +883,14 @@ isOneToOne: false
                   ]
                 },"product_options": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
+                    "created_at": string,"id": string,"kind": string,"name": string,"position": number,"product_id": string,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"id"?: string,"kind"?: string,"name": string,"position"?: number,"product_id": string,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"id"?: string,"kind"?: string,"name"?: string,"position"?: number,"product_id"?: string,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -945,14 +1095,14 @@ isOneToOne: false
                   ]
                 },"product_variants": {
                   Row: {
-                    "created_at": string,"id": string,"is_active": boolean,"product_id": string,"sku": string | null,"stock": number,"updated_at": string,"workspace_id": string
+                    "compare_at_override": number | null,"created_at": string,"id": string,"is_active": boolean,"price_override": number | null,"product_id": string,"sku": string | null,"stock": number,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id": string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id": string
+                    "compare_at_override"?: number | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"price_override"?: number | null,"product_id": string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"product_id"?: string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id"?: string
+                    "compare_at_override"?: number | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"price_override"?: number | null,"product_id"?: string,"sku"?: string | null,"stock"?: number,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -995,14 +1145,14 @@ isOneToOne: false
                   ]
                 },"products": {
                   Row: {
-                    "category_option_id": string | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"low_stock_threshold": number,"name": string,"notes": string | null,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
+                    "category_option_id": string | null,"compare_at_price": number | null,"created_at": string,"created_by": string | null,"fabric_option_id": string | null,"id": string,"images": (string)[],"is_active": boolean,"low_stock_threshold": number,"name": string,"notes": string | null,"pricing_mode": string,"sale_price": number | null,"sku": string | null,"status": Database["public"]['Enums']["product_status"],"stock": number,"updated_at": string,"variants": NonNullable<Json>,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name": string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
+                    "category_option_id"?: string | null,"compare_at_price"?: number | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name": string,"notes"?: string | null,"pricing_mode"?: string,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id": string
                   }
                   Update: {
-                    "category_option_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name"?: string,"notes"?: string | null,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
+                    "category_option_id"?: string | null,"compare_at_price"?: number | null,"created_at"?: string,"created_by"?: string | null,"fabric_option_id"?: string | null,"id"?: string,"images"?: (string)[],"is_active"?: boolean,"low_stock_threshold"?: number,"name"?: string,"notes"?: string | null,"pricing_mode"?: string,"sale_price"?: number | null,"sku"?: string | null,"status"?: Database["public"]['Enums']["product_status"],"stock"?: number,"updated_at"?: string,"variants"?: NonNullable<Json>,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1181,6 +1331,46 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "settings_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"size_sets": {
+                  Row: {
+                    "created_at": string,"id": string,"items": (string)[],"name": string,"position": number,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"items": (string)[],"name": string,"position"?: number,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"items"?: (string)[],"name"?: string,"position"?: number,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "size_sets_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"status_label_overrides": {
+                  Row: {
+                    "id": string,"kind": string,"label_ar": string | null,"label_en": string | null,"status_key": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"kind": string,"label_ar"?: string | null,"label_en"?: string | null,"status_key": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "id"?: string,"kind"?: string,"label_ar"?: string | null,"label_en"?: string | null,"status_key"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "status_label_overrides_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
@@ -1796,8 +1986,14 @@ isOneToOne: false
 "save_variant_config":
 { Args: { "p_config": Json,"p_product": string }; Returns: undefined
                            },
+"seed_order_views":
+{ Args: { "ws": string }; Returns: undefined
+                           },
 "seed_workspace":
 { Args: { "p_ws": string }; Returns: undefined
+                           },
+"size_set_items_ok":
+{ Args: { "p_items": (string)[] }; Returns: boolean
                            },
 "stock_count_variants":
 { Args: { "p_counts": Json,"p_product": string }; Returns: number

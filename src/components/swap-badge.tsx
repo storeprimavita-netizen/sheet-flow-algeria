@@ -14,7 +14,7 @@ export function SwapBadge({ to }: { to: { id: string; orderSeq: number } }) {
   const number = ltr(formatOrderNo(to.orderSeq));
   const label = t("swappedTo", { number });
   return (
-    <Link href={`/app/orders/${to.id}`} title={label} aria-label={label} onClick={(e) => e.stopPropagation()} className="inline-flex max-w-full shrink-0">
+    <Link href={`/app/sell/orders/${to.id}`} title={label} aria-label={label} onClick={(e) => e.stopPropagation()} className="inline-flex max-w-full shrink-0">
       <Chip token="violet" size="sm" icon={<ArrowRightLeft className="h-3 w-3 shrink-0 rtl:-scale-x-100" />}>
         <span className="whitespace-nowrap">{t("badge")} <OrderNo seq={to.orderSeq} className="num" /></span>
       </Chip>

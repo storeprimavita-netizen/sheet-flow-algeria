@@ -97,7 +97,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     if (!svc) return;
     const wss = [ws, ws2].filter(Boolean);
     await svc.from("product_variant_values").delete().in("workspace_id", wss);
-    for (const t of ["product_option_values", "product_options", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
+    for (const t of ["product_option_values", "product_options", "size_sets", "options", "option_sets", "settings", "wilaya_fees", "fixed_fees", "exchange_rates", "expenses", "product_costs", "cash_collections", "zr_shipments", "integration_configs"] as const) {
       await svc.from(t).delete().in("workspace_id", wss);
     }
     expect((await deleteWorkspaces(svc, wss)).error).toBeNull();
@@ -111,7 +111,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
       const r = await confAgent.from(table).select("*").eq("product_id", p);
       expect(r.error).toBeNull();
       expect(r.data!.length).toBeGreaterThan(0);
-      expect(Object.keys(r.data![0]).filter((k) => /cost|price|margin|profit/i.test(k))).toEqual([]);
+      expect(Object.keys(r.data![0]).filter((k) => /cost|price|margin|profit/i.test(k) && !/^(price_delta|price_override|compare_at_override)$/.test(k))).toEqual([]);
       expect((await anon.from(table).select("*")).error).not.toBeNull();
     }
     expect((await confAgent.from("product_options").insert({ workspace_id: ws, product_id: p, name: "X" })).error).not.toBeNull();
@@ -348,7 +348,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
   // ---- save_variant_config (00048, D55) -----------------------------------
   const uid = () => crypto.randomUUID();
   const bare = async (workspace = ws) => (await svc.from("products").insert({ workspace_id: workspace, name: tag() }).select("id").single()).data!.id as string;
-  type Cfg = { options: { id: string; name: string; values: { id: string; label: string }[] }[]; variants: { id: string; sku: string | null; is_active: boolean; values: Record<string, string> }[] };
+  type Cfg = { options: { id: string; name: string; kind?: string; values: { id: string; label: string; swatch_color?: string | null; swatch_image?: string | null }[] }[]; variants: { id: string; sku: string | null; is_active: boolean; values: Record<string, string> }[]; backfill?: unknown };
   const save = (c: SupabaseClient, p: string, cfg: Cfg) => c.rpc("save_variant_config", { p_product: p, p_config: cfg });
   const counts = async (p: string) => ({
     options: (await svc.from("product_options").select("id", { count: "exact", head: true }).eq("product_id", p)).count,
@@ -437,7 +437,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     // the two-writer race is not reproducible in a single-connection test: the lock is covered by reasoning (same hashtext key in both functions)
   });
 
-  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option after sizes exist is refused", async () => {
+  test("save_variant_config: the stale-tab scenario is refused and writes nothing; a new option without a backfill value is refused (VAR-1: was stale)", async () => {
     const p = await bare();
     const o = uid(), s = uid(), m = uid();
     const tabA: Cfg = { options: [{ id: o, name: "Size", values: [{ id: s, label: "S" }, { id: m, label: "M" }] }], variants: [] };
@@ -459,7 +459,7 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     expect(await counts(p)).toEqual({ options: 2, variants: 2 });
     // a new option once sizes exist
     const extra: Cfg = { ...tabB, options: [...tabB.options, { id: uid(), name: "Fit", values: [{ id: uid(), label: "Slim" }] }] };
-    expect((await save(adminUser, p, extra)).error?.message).toBe("stale");
+    expect((await save(adminUser, p, extra)).error?.message).toBe("incomplete size");
     expect(await counts(p)).toEqual({ options: 2, variants: 2 });
   });
 
@@ -592,6 +592,317 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
       // a direct patch of the label cannot disagree with the size
       expect((await svc.from("orders").update({ variant: "hacked" }).eq("id", o)).error).toBeNull();
       expect((await svc.from("orders").select("variant").eq("id", o).single()).data!.variant).toBe("L");
+    }
+  });
+
+  // ---- VAR-1: add an option to a product that has sizes (00068) -------------
+  /** product with sizes S, M (stock 5 and 3), one order on S */
+  async function withSizes() {
+    const a = await product(["S", "M"]);
+    await buy(a.p, 8);
+    await svc.from("product_variants").update({ is_active: false }).eq("id", a.variants.M);
+    const ord = await order(a.p, a.variants.S);
+    const cfg: Cfg = {
+      options: [{ id: a.o, name: "Size", values: [{ id: a.values.S, label: "S" }, { id: a.values.M, label: "M" }] }],
+      variants: [
+        { id: a.variants.S, sku: "X-S", is_active: true, values: { [a.o]: a.values.S } },
+        { id: a.variants.M, sku: null, is_active: false, values: { [a.o]: a.values.M } },
+      ],
+    };
+    return { ...a, cfg, ord };
+  }
+  const colorOpt = () => {
+    const c = uid(), red = uid(), blue = uid();
+    return { c, red, blue, opt: { id: c, name: "Color", kind: "color", values: [{ id: red, label: "Red", swatch_color: "#ff0000" }, { id: blue, label: "Blue", swatch_image: "https://cdn.example.com/b.jpg" }] } };
+  };
+
+  test("adds a colour option to a product with sizes: backfill, stock, ids, is_active, orders unchanged", async () => {
+    const a = await withSizes();
+    const k = colorOpt();
+    await svc.from("product_variants").update({ stock: 5 }).eq("id", a.variants.S);
+    const stockBefore = await vstock(a.variants.S);
+    const cfg: Cfg = {
+      options: [...a.cfg.options, k.opt],
+      variants: a.cfg.variants.map((v, i) => ({ ...v, values: { ...v.values, [k.c]: k.red } })),
+      backfill: { [k.c]: k.red },
+    };
+    const r = await save(adminUser, a.p, cfg);
+    expect(r.error).toBeNull();
+    const rows = (await svc.from("product_variants").select("id, stock, is_active, sku").eq("product_id", a.p)).data!;
+    expect(rows.map((x) => x.id).sort()).toEqual([a.variants.S, a.variants.M].sort());
+    expect(await vstock(a.variants.S)).toBe(stockBefore);
+    expect(rows.find((x) => x.id === a.variants.M)!.is_active).toBe(false);
+    const vv = (await svc.from("product_variant_values").select("variant_id, option_id, value_id").eq("product_id", a.p)).data!;
+    expect(vv).toHaveLength(4);
+    expect(vv.filter((x) => x.option_id === k.c).every((x) => x.value_id === k.red)).toBe(true);
+    expect(vv.find((x) => x.variant_id === a.variants.S && x.option_id === a.o)!.value_id).toBe(a.values.S);
+    const o = (await svc.from("orders").select("variant_id, variant").eq("id", a.ord).single()).data!;
+    expect(o.variant_id).toBe(a.variants.S);
+    expect(o.variant).toBe("S");
+    // swatches stored; the label is now "S / Red" for new lookups
+    expect((await svc.from("product_option_values").select("swatch_color, swatch_image").eq("id", k.blue).single()).data).toEqual({ swatch_color: null, swatch_image: "https://cdn.example.com/b.jpg" });
+    expect((await svc.rpc("variant_label", { p_variant: a.variants.S })).data).toBe("S / Red");
+  });
+
+  test("a new option without backfill, or with a bad backfill, is refused as incomplete size and writes nothing", async () => {
+    const a = await withSizes();
+    const k = colorOpt();
+    const other = colorOpt();
+    const mk = (backfill: unknown, extra: Partial<Cfg> = {}): Cfg => ({
+      options: [...a.cfg.options, k.opt],
+      variants: a.cfg.variants.map((v) => ({ ...v, values: { ...v.values, [k.c]: k.red } })),
+      backfill,
+      ...extra,
+    });
+    for (const bad of [undefined, {}, "x", [k.red], null, { [a.o]: a.values.S, [k.c]: k.red }, { [k.c]: other.red }, { [k.c]: a.values.S }, { [uid()]: k.red, [k.c]: k.red }, { [k.c]: 5 }]) {
+      const r = await save(adminUser, a.p, mk(bad));
+      expect(r.error?.message, JSON.stringify(bad)).toBe("incomplete size");
+    }
+    expect(await counts(a.p)).toEqual({ options: 1, variants: 2 });
+    expect((await svc.from("product_variant_values").select("variant_id").eq("product_id", a.p)).data).toHaveLength(2);
+  });
+
+  test("backfill: saved sizes, a new option and new sizes in one payload pass; a value-less size is not backfilled", async () => {
+    const a = await withSizes();
+    const k = colorOpt();
+    const nv = uid();
+    const cfg: Cfg = {
+      options: [{ ...a.cfg.options[0], values: [...a.cfg.options[0].values, { id: uid(), label: "L" }] }, k.opt],
+      variants: [
+        ...a.cfg.variants.map((v) => ({ ...v, values: { ...v.values, [k.c]: k.red } })),
+        { id: nv, sku: null, is_active: true, values: { [a.o]: a.values.S, [k.c]: k.blue } },
+      ],
+      backfill: { [k.c]: k.red },
+    };
+    expect((await save(adminUser, a.p, cfg)).error).toBeNull();
+    expect(await counts(a.p)).toEqual({ options: 2, variants: 3 });
+    expect((await svc.from("product_variant_values").select("value_id").eq("variant_id", nv).eq("option_id", k.c).single()).data!.value_id).toBe(k.blue);
+    // a size without value rows (D55 legacy) is left alone by the backfill
+    const b = await bare();
+    const so = uid(), sv = uid();
+    await svc.from("product_options").insert({ id: so, workspace_id: ws, product_id: b, name: "Size" });
+    await svc.from("product_option_values").insert({ id: sv, workspace_id: ws, product_id: b, option_id: so, label: "S" });
+    const bare1 = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: b }).select("id").single()).data!.id as string;
+    const k2 = colorOpt();
+    const cfg2: Cfg = { options: [{ id: so, name: "Size", values: [{ id: sv, label: "S" }] }, k2.opt], variants: [{ id: bare1, sku: null, is_active: true, values: { [so]: sv, [k2.c]: k2.red } }], backfill: { [k2.c]: k2.red } };
+    expect((await save(adminUser, b, cfg2)).error).toBeNull();
+    expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", bare1)).data).toHaveLength(2);
+  });
+
+  test("backfill: a value-less size given one of two options' values, another given {}, plus a new option, is refused and nothing changes (D82)", async () => {
+    const b = await bare();
+    const so = uid(), sv = uid(), po = uid(), pv = uid();
+    const ins = await svc.from("product_options").insert([{ id: so, workspace_id: ws, product_id: b, name: "Size", position: 0 }, { id: po, workspace_id: ws, product_id: b, name: "Fit", position: 1 }]);
+    expect(ins.error).toBeNull();
+    await svc.from("product_option_values").insert([{ id: sv, workspace_id: ws, product_id: b, option_id: so, label: "S" }, { id: pv, workspace_id: ws, product_id: b, option_id: po, label: "Slim" }]);
+    const v1 = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: b }).select("id").single()).data!.id as string;
+    const v2 = (await svc.from("product_variants").insert({ workspace_id: ws, product_id: b }).select("id").single()).data!.id as string;
+    const k = colorOpt();
+    const cfg: Cfg = {
+      options: [{ id: so, name: "Size", values: [{ id: sv, label: "S" }] }, { id: po, name: "Fit", values: [{ id: pv, label: "Slim" }] }, k.opt],
+      variants: [
+        { id: v1, sku: null, is_active: true, values: { [so]: sv, [k.c]: k.red } },
+        { id: v2, sku: null, is_active: true, values: {} },
+      ],
+      backfill: { [k.c]: k.red },
+    };
+    expect((await save(adminUser, b, cfg)).error?.message).toMatch(/incomplete size|exactly one value/);
+    expect((await svc.from("product_options").select("id").eq("product_id", b)).data).toHaveLength(2);
+    expect((await svc.from("product_variant_values").select("option_id").eq("variant_id", v1)).data).toHaveLength(0);
+  });
+
+  test("removing a used VALUE is in_use (23503); removing an option on a product with sizes is stale; without sizes it is free", async () => {
+    const a = await withSizes();
+    const used: Cfg = { options: [{ ...a.cfg.options[0], values: [{ id: a.values.S, label: "S" }] }], variants: a.cfg.variants };
+    expect((await save(adminUser, a.p, used)).error?.code).toBe("23503");
+    expect((await save(adminUser, a.p, { options: [], variants: [] })).error?.message).toBe("stale");
+    expect(await counts(a.p)).toEqual({ options: 1, variants: 2 });
+    const b = await bare();
+    const k = colorOpt();
+    expect((await save(adminUser, b, { options: [k.opt], variants: [] })).error).toBeNull();
+    expect((await save(adminUser, b, { options: [], variants: [] })).error).toBeNull();
+    expect(await counts(b)).toEqual({ options: 0, variants: 0 });
+  });
+
+  test("swatch rules: bad url or hex, both set, on a text option, two color options are refused", async () => {
+    const b = await bare();
+    const k = colorOpt();
+    const withValue = (extra: Record<string, unknown>, kind = "color"): Cfg => ({ options: [{ id: k.c, name: "Color", kind, values: [{ id: k.red, label: "Red", ...extra }] }], variants: [] });
+    for (const bad of ["http://a/x.png", "javascript:alert(1)", "https://a/x.png)", "https://a/x y.png", 'https://a/"x', "https://a/x'", "https://a/<x>", "https://a/\\x"]) {
+      expect((await save(adminUser, b, withValue({ swatch_image: bad }))).error, bad).not.toBeNull();
+    }
+    expect((await save(adminUser, b, withValue({ swatch_color: "red" }))).error).not.toBeNull();
+    expect((await save(adminUser, b, withValue({ swatch_color: "#ff0000", swatch_image: "https://a/x.png" }))).error).not.toBeNull();
+    expect((await save(adminUser, b, withValue({ swatch_color: "#ff0000" }, "text"))).error?.message).toMatch(/swatch needs a color option/);
+    const two: Cfg = { options: [k.opt, { ...colorOpt().opt }], variants: [] };
+    expect((await save(adminUser, b, two)).error?.message).toMatch(/product_options_one_color/);
+    expect(await counts(b)).toEqual({ options: 0, variants: 0 });
+    // kind back to text clears the swatches
+    expect((await save(adminUser, b, { options: [k.opt], variants: [] })).error).toBeNull();
+    const text: Cfg = { options: [{ id: k.c, name: "Color", kind: "text", values: [{ id: k.red, label: "Red" }, { id: k.blue, label: "Blue" }] }], variants: [] };
+    expect((await save(adminUser, b, text)).error).toBeNull();
+    expect((await svc.from("product_option_values").select("swatch_color, swatch_image").eq("option_id", k.c)).data!.every((x) => !x.swatch_color && !x.swatch_image)).toBe(true);
+  });
+
+  test("an agent cannot call save_variant_config with a backfill; another workspace's product is refused", async () => {
+    const a = await withSizes();
+    const k = colorOpt();
+    const cfg: Cfg = { options: [...a.cfg.options, k.opt], variants: a.cfg.variants.map((v) => ({ ...v, values: { ...v.values, [k.c]: k.red } })), backfill: { [k.c]: k.red } };
+    expect((await save(confAgent, a.p, cfg)).error).not.toBeNull();
+    const foreign = await withSizes();
+    const userWs2 = await userIn(ws2, "admin");
+    expect((await save(userWs2, foreign.p, cfg)).error).not.toBeNull();
+    expect(await counts(a.p)).toEqual({ options: 1, variants: 2 });
+  });
+
+  // ---- size_sets ------------------------------------------------------------
+  test("size_sets: admin only, own workspace, unique name per workspace, item checks, no anon", async () => {
+    const name = tag();
+    const ins = await adminUser.from("size_sets").insert({ workspace_id: ws, name, items: ["S", "M"] }).select("id").single();
+    expect(ins.error).toBeNull();
+    const id = ins.data!.id as string;
+    expect((await adminUser.from("size_sets").insert({ workspace_id: ws, name: name.toUpperCase(), items: ["S"] })).error?.code).toBe("23505");
+    for (const items of [[], [" S"], [""], ["a".repeat(61)], Array.from({ length: 41 }, (_, i) => String(i))]) {
+      expect((await adminUser.from("size_sets").insert({ workspace_id: ws, name: tag(), items })).error, JSON.stringify(items).slice(0, 30)).not.toBeNull();
+    }
+    expect((await adminUser.from("size_sets").insert({ workspace_id: ws2, name: tag(), items: ["S"] })).error).not.toBeNull();
+    // agent: no read, no write
+    expect((await confAgent.from("size_sets").select("id")).data ?? []).toEqual([]);
+    expect((await confAgent.from("size_sets").insert({ workspace_id: ws, name: tag(), items: ["S"] })).error).not.toBeNull();
+    expect((await confAgent.from("size_sets").update({ name: "x" }).eq("id", id).select("id")).data ?? []).toEqual([]);
+    expect((await confAgent.from("size_sets").delete().eq("id", id).select("id")).data ?? []).toEqual([]);
+    expect((await anon.from("size_sets").select("id")).error).not.toBeNull();
+    // other workspace's admin sees nothing; workspace_id cannot be moved
+    const other = await userIn(ws2, "admin");
+    expect((await other.from("size_sets").select("id").eq("id", id)).data ?? []).toEqual([]);
+    expect((await adminUser.from("size_sets").update({ workspace_id: ws2 }).eq("id", id)).error).not.toBeNull();
+    expect((await adminUser.from("size_sets").delete().eq("id", id).select("id")).data).toHaveLength(1);
+  });
+
+  // ---- 00070 hardening ------------------------------------------------------
+  test("00070: no role can change an existing product_variant_values row (update and upsert paths)", async () => {
+    // Built by hand: a second option must exist before any size does. 3 Size values, 2 sizes, so value L
+    // is used by no size and the older uniqueness triggers cannot be what refuses the change.
+    const ins = async (table: string, r: Record<string, unknown>) => {
+      const x = await svc.from(table).insert({ workspace_id: ws, ...r }).select("id").single();
+      expect(x.error, table).toBeNull();
+      return x.data!.id as string;
+    };
+    const p = await ins("products", { name: tag() });
+    const o = await ins("product_options", { product_id: p, name: "Size", position: 0 });
+    const o2 = await ins("product_options", { product_id: p, name: "Color", position: 1 });
+    const val = (option_id: string, label: string, position: number) => ins("product_option_values", { product_id: p, option_id, label, position });
+    const [S, M, L] = [await val(o, "S", 0), await val(o, "M", 1), await val(o, "L", 2)];
+    const [red, blue] = [await val(o2, "Red", 0), await val(o2, "Blue", 1)];
+    const vS = await ins("product_variants", { product_id: p });
+    const vM = await ins("product_variants", { product_id: p });
+    const jv = (variant_id: string, option_id: string, value_id: string) => ({ variant_id, option_id, value_id, product_id: p, workspace_id: ws });
+    expect((await svc.from("product_variant_values").insert([jv(vS, o, S), jv(vS, o2, red), jv(vM, o, M), jv(vM, o2, blue)])).error).toBeNull();
+    const spare = await ins("product_variants", { product_id: p });
+    const row = (over: Record<string, string>) => ({ variant_id: vS, option_id: o, value_id: S, product_id: p, workspace_id: ws, ...over });
+    const changes: Record<string, Record<string, string>> = {
+      value_id: { value_id: L },
+      option_id: { option_id: o2, value_id: blue }, // conflicts with S's Color row (Red): upsert turns into a value change
+      variant_id: { variant_id: spare },
+    };
+    try {
+      for (const who of [svc, adminUser]) {
+        for (const [name, over] of Object.entries(changes)) {
+          const upd = await who.from("product_variant_values").update(over).eq("variant_id", vS).eq("option_id", o);
+          expect(upd.error?.message, `update ${name}`).toMatch(/immutable/);
+          if (name === "variant_id") continue; // the upsert key itself changes: not a conflict path
+          const ups = await who.from("product_variant_values").upsert(row(over), { onConflict: "variant_id,option_id" });
+          expect(ups.error?.message, `upsert ${name}`).toMatch(/immutable/);
+        }
+      }
+      expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
+      const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
+      expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
+    } finally {
+      // the value-less size must not outlive the test: the 00070 guard test counts them
+      expect((await svc.from("product_variants").delete().eq("id", spare)).error).toBeNull();
+    }
+  });
+
+  test("00070: authenticated lost TRUNCATE/TRIGGER/REFERENCES and keeps SELECT/INSERT/UPDATE/DELETE on the four variant tables", () => {
+    for (const t of ["product_options", "product_option_values", "product_variants", "product_variant_values"]) {
+      const has = (priv: string) => psql(`select has_table_privilege('authenticated','public.${t}','${priv}');`).trim();
+      for (const priv of ["TRUNCATE", "TRIGGER", "REFERENCES"]) expect(has(priv)).toBe("f");
+      for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) expect(has(priv)).toBe("t");
+    }
+  });
+
+  test("00070: an admin product delete still commits with variants present", async () => {
+    const a = await product(["S", "M"]);
+    const del = await adminUser.from("products").delete().eq("id", a.p).select("id");
+    expect(del.error).toBeNull();
+    expect(del.data).toHaveLength(1);
+  });
+
+  test("00070: zod refuses a size with no values (variant_values), with or without options", async () => {
+    const { variantConfigSchema } = await import("@/lib/variants");
+    const id = () => crypto.randomUUID();
+    const o = { id: id(), name: "Size", values: [{ id: id(), label: "S" }] };
+    const bare = { id: id(), sku: null, is_active: true, values: {} };
+    for (const cfg of [{ options: [o], variants: [bare] }, { options: [], variants: [bare] }]) {
+      const r = variantConfigSchema.safeParse(cfg);
+      expect(r.success).toBe(false);
+      expect(!r.success && r.error.issues.some((i) => i.message === "variant_values")).toBe(true);
+    }
+  });
+
+  const guardSql = () => {
+    const sql = readFileSync("supabase/migrations/00070_variant_values_hardening.sql", "utf8");
+    const guard = sql.slice(sql.indexOf("-- guard:begin"), sql.indexOf("-- guard:end"));
+    expect(guard).toContain("raise exception");
+    return guard;
+  };
+  const noValues = "select count(*) from public.product_variants v where not exists (select 1 from public.product_variant_values x where x.variant_id = v.id)";
+  const addBare = (w: string) => `with p as (insert into products(workspace_id, name) values ('${w}', 'guard-${crypto.randomUUID()}') returning id)
+      insert into product_variants(workspace_id, product_id) select '${w}', id from p;`;
+
+  test("00070 guard: refuses a value-less size in any workspace, deletes nothing; count is pre-count + 2", () => {
+    const guard = guardSql();
+    // one snapshot transaction: concurrent suites cannot move the count between pre and post
+    const run = `begin isolation level repeatable read;
+      select 'pre=' || (${noValues});
+      ${addBare(ws)}
+      ${addBare(ws2)}
+      savepoint g;
+      ${guard}
+      rollback;`;
+    let out = "";
+    let msg = "";
+    try {
+      out = psql(run);
+    } catch (e) {
+      const err = e as { stdout?: unknown; stderr?: unknown };
+      out = String(err.stdout ?? "");
+      msg = String(err.stderr ?? e);
+    }
+    const pre = Number(out.match(/pre=(\d+)/)?.[1]);
+    const m = msg.match(/guard: (\d+) size\(s\) have no value rows/);
+    expect(Number.isNaN(pre), out + msg).toBe(false);
+    expect(m, msg).not.toBeNull();
+    expect(Number(m![1])).toBe(pre + 2);
+  });
+
+  test("00070 guard: clean data (guard scoped to a fresh workspace, no deletes) does not throw", () => {
+    const fresh = crypto.randomUUID();
+    const guard = guardSql().replace("where not exists", `where v.workspace_id = '${fresh}' and not exists`);
+    expect(guard).toContain(`v.workspace_id = '${fresh}'`);
+    expect(() => psql(`begin;\ninsert into workspaces(id, name) values ('${fresh}', 'clean-${fresh}');\n${guard}\nrollback;`)).not.toThrow();
+  });
+
+  test("00070: anon and PUBLIC lack TRUNCATE/TRIGGER/REFERENCES on the four variant tables", () => {
+    for (const t of ["product_options", "product_option_values", "product_variants", "product_variant_values"]) {
+      for (const priv of ["TRUNCATE", "TRIGGER", "REFERENCES"]) {
+        expect(psql(`select has_table_privilege('anon','public.${t}','${priv}');`).trim(), `anon ${t} ${priv}`).toBe("f");
+        expect(
+          psql(`select exists (select 1 from information_schema.role_table_grants where grantee='PUBLIC' and table_schema='public' and table_name='${t}' and privilege_type='${priv}');`).trim(),
+          `PUBLIC ${t} ${priv}`,
+        ).toBe("f");
+      }
     }
   });
 });

@@ -49,9 +49,7 @@ export function FeesSection({
       </div>
       <div className="space-y-1 text-xs text-muted-foreground">
         <p>{t("settings.fees.purpose")}</p>
-        <p>
-          <bdi>{t("settings.deliveryCsv.formatHint")}</bdi>
-        </p>
+        <p>{t.rich("settings.deliveryCsv.formatHint", { cols: (c) => <bdi>{c}</bdi> })}</p>
       </div>
 
       <form method="post" key={gridKey} onSubmit={onSubmit} className="space-y-4">
@@ -123,7 +121,7 @@ function FeeGridRow({ row: r, auto }: { row: FeeRow; auto: boolean }) {
         <span className="md:hidden">{t("settings.fees.colDesk")}</span>
         <Switch
           name={`desk_${r.wilaya_code}`}
-          checked={desk}
+          checked={priced && desk}
           onCheckedChange={setDesk}
           disabled={!priced}
           aria-label={t("settings.fees.deskFor", { name })}

@@ -18,7 +18,7 @@ const TOP = 10;
 
 type Scope = { from?: string; to?: string; product?: string; pFilters: Record<string, string> | undefined; filters: DashboardFilters };
 const rpcArgs = (s: Scope) => ({ p_from: s.from, p_to: s.to, p_product: s.product ? [s.product] : undefined, p_filters: s.pFilters });
-const emptyOrders = (title: string, action: string) => ({ title, action: { label: action, href: "/app/orders/all" } });
+const emptyOrders = (title: string, action: string) => ({ title, action: { label: action, href: "/app/sell/orders" } });
 
 /** One section of the Statistics page: a heading and its charts. */
 export function StatSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {

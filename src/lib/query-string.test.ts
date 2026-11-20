@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { communeLinkable, COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, isRealIsoDate, MAX_COMMUNE_KEY, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
-import { dropOneKey, leaveDrillKeys } from "@/app/(app)/app/orders/_lib/drill-filters";
+import { dropOneKey, leaveDrillKeys } from "@/app/(app)/app/sell/orders/_lib/drill-filters";
 
 describe("drillHref", () => {
   test("whole wilaya keeps period and product, no commune params", () => {

@@ -84,7 +84,7 @@ export function asKpiGroup(rates: unknown, extras: unknown): KpiGroup | null {
   return { rates: rates as unknown as KpiGroupRates, extras: extras as unknown as KpiGroupExtras };
 }
 
-/** One day of `kpi_daily` (00068, admin only). `money` is null when a non-product filter is set. */
+/** One day of `kpi_daily` (00078, admin only). `money` is null when a non-product filter is set. */
 export type KpiDailyMoney = { revenue: number; cogs: number; return_fees: number; ad_spend: number; expenses: number; fixed: number; costs: number; net_profit: number };
 export type KpiDailyRow = { day: string; rates: KpiGroupRates; money: KpiDailyMoney | null; immature: boolean };
 

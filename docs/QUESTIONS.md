@@ -8,50 +8,41 @@ owner may overturn").
 
 ## Open
 
-### Q-28 · CHART-1 · 2026-11-20
-The charts are built: your money as a line per day on the Dashboard, charts on
-Statistics, and the cost bar that replaced the waterfall on Money › Overview
-(Q-27). The fourth and last allowed review found nothing serious. The roles
-hold (agents and other workspaces see nothing), the amounts per day add up
-exactly to the period total, and the five fixes of that round hold. The rule
-set before that round (D83) says the task then waits for you: no fifth round
-and no merge without your word. Three medium points are left:
-1. **One order with a date far in the future slows the Dashboard.** The fourth
-   round made the daily chart run up to the date of the last order, so that an
-   order dated in the future is counted in the total. Side effect: if an order
-   arrives from an outside store with a wrong date years ahead (the review
-   tried the year 2099), the chart draws every day up to that date, and the
-   Dashboard and Statistics become very slow or freeze until that order is
-   corrected or deleted. Orders created in the app always take today's date,
-   so only an order sent from outside with a wrong date can do this. The
-   amounts stay right. The fix is known: the chart never shows more than 366
-   days.
-2. **Money › Overview on a period with no costs at all** shows an empty bar
-   and five lines of "0 DA" instead of the sentence "no data yet".
-3. **The table view of the two cost bars has no links.** On the bar, each cost
-   opens its list. In "show as table" the same lines are plain text. On a
-   phone the thinnest parts of the bar (return fees, expenses) are hard to
-   tap, and the table would be the easy way to reach them.
+### Q-16 · STORE-3 · 2026-11-19 · answered-by-default
+A customer whose phone is in dark mode opens your store. Should she see the
+store in dark colours? **Applied by default (D61):** yes. The store is ivory
+and burgundy for everyone else, and switches to the dark version of your
+palette (dark wine background, rose prices) only when her phone asks for dark.
+This is what your approved colour table already says: it has a dark value for
+every colour. The other option: the store is always light, whatever the phone
+says, so every customer sees exactly the ivory brand look. It is a one-line
+change. Say so if you want it. Nothing is blocked.
 
-How do you want to finish it?
-- **(a) Recommended: merge as it is.** The three points go first in the
-  follow-up task CHART-1-B, point 1 at the top, and that task is done before
-  this reaches the live app. Why: nothing touches the amounts, the orders or
-  what a role can see; you asked for these charts because the cards and the
-  waterfall were not readable, and this puts them in front of you now; point 1
-  needs an order with a wrong date years ahead, which your own screens cannot
-  create. It is your rule of 18 November (nothing serious open after the
-  allowed rounds: merge, and follow up).
-- **(b) One more short round for these three points**, then merge only if the
-  review passes. Each fix is small and written in the review. But the count of
-  points went 5, 4, 3, 3, and two of these three were brought by the fourth
-  round itself, so a fifth round may bring its own.
-- **(c) Keep it parked** until you have looked at it yourself.
-
-Blocked until you answer: CHART-1 is parked and not merged, so the Dashboard
-keeps the old waterfall and Statistics its cards; only the follow-up CHART-1-B
-waits on it. Other work continues. Details: `docs/briefs/CHART-1.review-4.md`
-on branch `v3-CHART-1`.
+### Q-15 · STORE-3 · 2026-11-19 · answered-by-default
+You make an offer "2 pieces for 9,000 DZD". May the customer take two
+different sizes (one M and one L)? **Applied by default (D61):** yes. The offer
+is for any 2 pieces of that product. She pays 9,000, and never more than the
+two pieces would cost one by one. Example with a different price per size, S
+5,000 and XL 7,000: S + XL costs 9,000 instead of 12,000. Reason: two sizes in
+one order is the usual case (for her and her sister), and refusing the offer
+there loses the sale. The other option: the offer only counts when both pieces
+are the same size. Say so if you want it; it is decided before the order form
+goes live, so no customer has been charged either way. Nothing is blocked.
+### Q-29 · NAV-5 · 2026-11-20 · answered-by-default
+On a phone the app gets a bar at the bottom of the screen, and your agents get
+a home page, "My day". The plan listed "Tasks" in the agents' bar, but today
+the Tasks, Meetings and Rules pages open for admins only. **Applied by default
+(D86):** agents do not get these pages. Their bar is My day · Confirmation ·
+More, and My day shows their own open tasks and the next meeting to read, with
+nothing to click or change. Reason: which pages an agent can open is your
+call, and this way nothing changes in what they can open. The other option:
+agents open the Tasks page (to read, or also to tick their own tasks as done)
+and "Tasks" goes back into their bar. Say so if you want it.
+Also on My day, "your orders today" counts the orders an agent confirmed,
+cancelled or left to call again, among the orders assigned to them. An agent
+takes an order by handling it, so their own work is all counted; only an order
+you give to another agent afterwards leaves the first agent's count. Nothing
+is blocked.
 
 ### Q-27 · CHART-1 · 2026-11-20 · answered-by-default
 The new charts are built: your money as a line per day on the Dashboard, and
@@ -243,6 +234,81 @@ with no option value. No screen can create such a size (only the tests do), so
 it was settled as a technical point in D82: such a size is never filled in by
 guessing.
 
+It came up a fourth time on 20 November, on the delivery prices follow-up task
+(P1-7-F: the small points left on the price sheet upload, the swap card and the
+order form). Its third review found nothing serious, and two medium points.
+First, in a price sheet, when a `:` is typed where the `|` should be between
+the two prices of a wilaya (for example "home:1350:720" instead of
+"home:1350|home:720"), the app reads 720 as the home delivery price and says
+nothing. Second, some of the screenshots that show the screens were checked
+are missing, and one carries the wrong name. **Applied the same way (D84):**
+one last short round for these two points, merged only if the review passes;
+if not, it waits for your OK. What changes for you: a price that is not
+written exactly as "name:number" is no longer read at all. The preview shows a
+warning for that line and the wilaya appears with no price (shipping off)
+until the line is corrected; no price is ever guessed. Your current sheet is
+not affected: its 106 prices are all written correctly (checked), so it gives
+the same result before and after. One thing to know: the app you have today
+reads this typing mistake wrongly too, so until this task is merged, look at
+the home price column in the preview before you press Apply on a new sheet.
+The other option was to read "home:1350:720" as home 1,350 and stop-desk 720;
+it was not taken because it is a guess about a price your customers pay.
+
+It came up a fifth time on 20 November, on the audit log follow-up task
+(SEC-1-G: in Settings › Audit log, secret values are now hidden the same way
+every time, and more ways of writing a secret's name are hidden). This time it
+was not a tie. The third review found nothing serious and nothing wrong in the
+hiding of secrets, but the medium points went from 1 to 2, so the rule allows
+no further round. **Applied your rule of 18 November (D85):** the task is
+merged as it is into the working branch (not the live app), and its open
+points go into the follow-up task SEC-1-H. Two points to know, both on the
+screen only, on a page only admins open:
+1. When you move with the Tab key onto a hidden value ("Redacted …"), the
+   outline that shows where you are is the browser's own one. It was not
+   checked in dark and light, and the picture that should prove it was a copy
+   of another picture.
+2. The review said two different changed fields show the same name. Checked:
+   that came from old pictures. The current screen already tells them apart
+   ("a.b" and "a › b"). The wide-screen pictures are to be retaken.
+
+The other option was to keep the task waiting for your OK, as the product
+options and charts tasks do (Q-26, Q-28). It was not taken because the fix that
+hides secrets would then wait for a keyboard outline and screenshots. Say so if
+you want such tasks to wait for you each time (point 2 above); the merge can
+be taken back.
+
+It came up a sixth time on 20 November, on the phone bar and "My day" task
+(NAV-5: the bar at the bottom of the screen on a phone, and the agents' home
+page). Not a tie either: the third review found nothing serious and nothing
+wrong in what agents can see (no money on My day, each role lands on its own
+page), but the medium points went 3, then 1, then 3, so the rule allows no
+further round. All three were on iPhones with a notch, and none was in the bar
+or in My day. To give the bar a little extra space above the home line of an
+iPhone, the app had been told to draw itself over the whole screen, notch
+included. From then on every edge had to be handled by the app, and each round
+fixed one edge and broke another: the top of the menu under the notch, the
+narrow side menu crushed when the phone is held sideways, the page too close to
+the notch on the side. **Applied (D87):** that instruction is taken out, so the
+phone keeps the app inside the safe part of the screen by itself, as it did
+before this task, and the three points disappear together. Then the task is
+merged into the working branch (not the live app) under your rule of 18
+November, and the smaller points go into the follow-up task NAV-5-F. Two
+things to know:
+1. On an iPhone the bar has no extra space above the home line, and with the
+   phone held sideways there are plain strips beside the app. On Android
+   nothing changes.
+2. Nobody has looked at this on a real iPhone: the reviews imitated the notch
+   on a computer. If you or your agents use the app on an iPhone, open it once
+   and say whether the bar sits too close to the bottom edge. The proper
+   version (the app drawn up to the edges, every side handled) is written in
+   NAV-5-F and is built only when it can be checked on a real iPhone.
+
+The other options were one more round for the three points (the rule says no,
+and the last two rounds of this same work each brought new ones), merging with
+the three points still there (the menu behind the "More" button would start
+under the notch on iPhones), or keeping the task waiting for your OK. Say so
+if you prefer one; it is one line to put back.
+
 Nothing is blocked.
 
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default
@@ -276,7 +342,9 @@ numbers would not open the list of orders behind them. Their own confirmation
 numbers are already planned on the agent home page ("My day"). Say so if you
 want agents to see this page as well. Nothing is blocked.
 
-### Q-18 · CONF-1 · 2026-11-19
+### Q-18 · CONF-1 · 2026-11-19 · answered-by-default
+**Applied by default (D92):** CONF-1 is merged as built under D89/D40. Problems 1 and 2 below go to the follow-up task CONF-1-F; nothing waits for you. Original question:
+
 Saved views for the orders pages (confirmation, delivery, all orders) are built
 and the database side has been clean since the second review. The fourth and
 last allowed review still did not pass, because of the search box on the
@@ -316,7 +384,7 @@ How do you want to finish it?
   of while typing (it removes this whole family of timing problems, but it is a
   change of behaviour on these pages).
 
-Blocked until you answer: CONF-1 is parked and not merged, and CONF-2 (kanban),
+Was blocked until you answered; no longer (D92). CONF-2 (kanban),
 CONF-3 (customer score card) and CONF-4 (call attempts and callbacks) wait on
 it. Other work continues. Details: `docs/briefs/CONF-1.review-4.md`.
 
@@ -501,3 +569,4 @@ blocked.
 - **2026-11-18 · P0-8 · Q-5** — Make the stock log add-only? → Owner: yes. → D35.
 - **2026-11-18 · P-1, K-1, T-1** — Calculator formulas, pixel ids, Telegram bot →
   Owner: settings the owner fills in the app, like Shopify. → D38.
+- **2026-11-20 · CHART-1 (Q-28)** — merge as built, or another round? → Answered by default (a): merge; the three mediums go to CHART-1-B (cap the chart at 366 days first). → D94.

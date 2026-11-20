@@ -333,6 +333,21 @@ PRICE-2 review-1 fixes: blur reports clamped value, typed/saved overrides pinned
 - Known issue: the fast gate failed once in 4 runs right after the STORE-1 merge (test clean-up deadlock, reduced not gone — STORE-1-F).
 - Owner: migrations 00039–00050 wait for the production push (O-2). Products with sizes show "Count needed" until counted once.
 - Next /auto: STORE-3 (pricing modes, offers, order form fields), then P1-7, STORE-4.
+
+## STORE-3 — build done (pending /verify)
+- Done: migration 00051 (pricing mode, compare price, per-value delta, per-size override, `product_offers` quantity + bump, `product_forms`); pure `offer-price.ts` (unit price, offer charge, mixed-size `piecesCharge`, "starting from") shared with STORE-4; `form-fields.ts` zod contract; public DTO with pricing, offers, bump and form fields (no cost, sku, stock count, free delivery); admin Selling tab (mode switch, offers + bump, form editor, "View on store"); `OrderForm` component rendered only in the admin preview (inert, `method="post"`); public page shows an honest "orders open soon" state, no button.
+- Moved: D58 stock rule into `variant-stock.ts` (same behaviour); store layout queries (`.store-top`, `.store-grid`) now use a container query on `.store-main` so the 390 preview frame lays out like a phone.
+- Tests: live RLS `offers.rls.test.ts`, DTO tests in `data.test.ts`, `offer-price`, `form-fields`, `selling-schemas`, order-form markup. Existing `variants.rls.test.ts` "no cost field" check now allows the three selling-price columns.
+- Screenshots: NOT done in this build session (no browser run); the ui review must take the 390 + 1280, light + dark, AR + EN set listed in the brief.
+
+## STORE-3 — review 1 fixes
+- Fixed: 1 integer number field no longer joins digits across a dot ("2500.00" -> 2500, `integerInput` + test) · 2 sized products show the crossed-out price of the cheapest size · 3 all sizes unsellable -> public page 404 (admin preview still renders) · 5 per_value crossed-out price adds the size delta. Tests added for each.
+- Local store: `scripts/seed-dev.ts` now seeds a live store `demo` with `/s/demo/abaya-luxe` (S/M/L, S out of stock, 2 offers, bump, compare 6500) and `/s/demo/hijab-soie` (plain). Re-run the seed command in docs/TOOLING.md (idempotent).
+- Screenshots (Chrome DevTools MCP): store page 390 light AR, 1280 dark AR, 860 light AR (2-column layout holds, container query ok); admin preview 1280 dark AR with the order form and the validation-error state. Not captured: EN locale, 390 dark, preview in light, the 4-column related grid (no related blocks in the seed), 0-offer page.
+- Not fixed (LOW, left for later): 6 non-atomic `saveOffers` (must be resolved before STORE-4 stores offer ids), 7, 8, 9, 10 .
+
+## STORE-3 — round 4 (D61)
+- Fixed review-3 #1, #3, #4, #5 (tests: price-0 sizeless 404, mixed-size piecesCharge). Screenshots: not captured here (no browser run); ui-reviewer to capture r4-* list. Follow-ups rewritten in docs/briefs/STORE-3.followups.md.
 - P1-7 screenshots (browser MCP, AR + light + 1280 only): CSV dialog preview, fee grid after apply, order form. Not covered: dark, EN, 390px, warning/failed/applying dialog states, commune picker open. Fixed from screenshots: before/after values forced LTR in the preview cards.
 - P1-7 round 2 (review 1 FIX): push refuses any unpriced wilaya; swap recomputes the fee (migration 00053, also hardens apply input); admin "switch to home" action; createOrder/swap/saveWilayaFees return inline i18n errors; alert under Wilaya; grid scrolls with the page on phones; CSV dialog follows page direction, translated file picker, client size check, 2-col footer, Apply off at 0 changes; re-enabling a wilaya needs a fee above 0. New tests: push guard/COD/workspace scope, createOrder block, saveWilayaFees, syncZRFees, swap fee, parser fixture. Screenshots in docs/design/audit/P1-7-r2 (grid EN dark 390, grid AR light 1280, dialog preview AR light 1280, order form unpriced EN dark 390). Not covered: dialog warning/failed/applying/oversize states, commune picker open, stop_shipping wilaya, other theme/locale combos. Known: a failed grid save resets unsaved edits (React form reset).
 
@@ -362,6 +377,14 @@ P1-7 round 5 (last allowed round; findings 8 → 3 → 2 → 1): fixed the one m
 - Owner: migrations 00052-00055 await the production push (O-2). Run the D62 read-only count query before the update; wilayas with a 0 home or stop-desk price go off until a sheet is uploaded or the switch is on.
 - Next: STORE-3 (blocked on merge OK), then STORE-4 once P1-7 is merged to v3; P1-7-F after the owner's priority rows.
 
+## CONF-1 built (branch v3-CONF-1, pending /verify)
+- Done: `order_views` (00056, RLS, seeds new/no_answer/duplicates), `src/lib/order-views.ts`, shared `orders/_lib/order-query.ts`, views strip + modified bar + dialogs on all / confirmation / delivery. Types generated with `--local`. Owner note: 00056 applies before the parked 00051 on a remote push.
+- Not done: screenshots (step 9) were not taken; no browser run in this session. Page-level tests (delivery stays confirmed-only, agent opening an admin view) and UI keyboard tests are not written.
+- Gate: GATE OK.
+
+CONF-1 round 2: review-1 FIX. Save-as-view on Default, QueueFilterBar (q + status) on confirmation/delivery, 00057 hardening (trim/seed_key/position checks, DB cap trigger), URL parse leniency, rename prefill, clear-q marker, invalid ?view stripped via history API, duplicate error no longer Retry. Screenshot: delivery admin AR dark 390 only (r2-*); light/EN not retaken. No jsdom, so UI keyboard/focus tests not automated. Reviewer test views gone after db-reset.
+
+CONF-1 round 4 (D63): search box rebuilt on `search-param-sync.ts` (own writes recognised, outside address changes win, status merged via `mergeInto`). Browser check at slow network found two FAIL cases (type then tap a view pill / Reset while the address change is still loading: the 300 ms write fired from the old address and overwrote it). Fix: `hold()` on the sync object, called from a capture-phase pointerdown on any other link/button (not the status select); the waiting write is delayed 5 s so the outside address arrives first and wins (tests m, n, o). Retaken r4-1, r4-2 (PASS), r4-4 (PASS). Existing r4-5/6/7 kept. No other browser case re-run.
 STATS-2 build: screenshots taken in dark EN only (empty state, populated, drilled Alger) with chrome-devtools; light theme, AR and 390px NOT verified. Fixed Return column clipping by stacking the map below the table until 2xl.
 
 STATS-2 round 2 (review-1 FIX): fixed findings 1-8, 10-13 (drill error -> retry block, drill banner + drop drill params on filter/sort change, Unknown wilaya row without drill, 390px compact table with no horizontal scroll, commune panel capped to viewport + sticky name column, statistics error reason, extras gated by is_admin in migration 00060, shared ISO_DATE, `commune_unknown=1` param, visible drill-link underline, 44px chevron hit area, empty-state action). Not done: 9 (home/stop-desk drill), 14 (no breadcrumb component exists app-wide). Screenshots (chrome-devtools): light 390 EN and AR with the commune panel open, empty state, drill banner in docs/design/audit/STATS-2/. Agent redirect checked (307 to /app/orders, no data in body). Real error state not forced (no safe way to make the RPC fail locally).
@@ -550,8 +573,418 @@ STORE-2-F round 4 screenshots (D79 f), chrome-devtools MCP, local stack (dev ser
 - Owner: store 404 `<h1>` missing from initial HTML is a Next framework behaviour; needs an owner decision (see round 1 notes).
 - Next: STORE-2-G (review-3 lows 5 to 10, missing tests, photo-failure placeholder, EN store shots not taken).
 
+VAR-1 screenshot self-critique pass (2026-11-19), chrome-devtools MCP, admin@seed.mnw, local stack. Files in docs/design/audit/VAR-1/ (34 PNGs). Captured:
+- Backfill dialog (product Veste Sarah / Abaya Noor, "+ Color" with Red/Blue, backfill choice): EN dark 1280, EN light 1280, EN light 390; AR dark 1280, AR light 1280, AR dark 390, AR light 390.
+- Options editor, saved product with sizes: EN dark 1280; "+ Color" added (dialog over page) EN dark 1280. Color option with Burgundy/Ivory swatches saved: EN and AR, dark and light, 1280 and 390 (8 files).
+- Swatch popover (colour/photo, hex, presets, remove): EN dark and light, 1280 and 390.
+- Settings > Options > Size sets: empty EN dark 1280, add form EN dark 1280, one set with 9 sizes EN and AR dark and light 1280 and 390.
+- Store product page (chips, burgundy swatch dot): AR dark and light, 1280 and 390.
+Not captured: store EN (store is Arabic-only); out-of-stock chip (variant stock only changes through stock movements, so no sold-out size was made; code path data-out reads fine); size-set error state; swatch Photo mode and invalid-hex error; swatch popover in AR; the 200-variant and 8+ value wrap cases; EN dark 390 backfill dialog; value-less Ivory chip (a value with no size is hidden on the store by design).
+Local seed data added for the shots (local DB only): store `luxe-audit` + published page `abaya-noor` for Abaya Noor, Color option (Burgundy, Ivory) on Abaya Noor, size set "Women", a Red/Blue option was NOT saved on Veste Sarah.
+Fixes from the screenshots: swatch popover overflowed its right edge by 13 px at 390 (field was w-72 inside a w-72 padded popover; now w-full, hex input min-w-0); dialog content now max-h with overflow-y-auto and overscroll-contain (short phones, scroll chaining); swatch field errors get aria-describedby via useId (accessible-error-announcement guide). modern-web-guidance retrieved: dialog, accessible-error-announcement, validate-input-after-interaction; the app keeps Radix dialog/popover per AGENTS.md (native dialog guide not applied), the colour input stays the documented exception. No `color` input guide exists in the CLI (search returned none).
+Gate: `scripts/gate.sh --fast` GATE OK (first run failed once in kpi.test.ts teardown, audit_log FK 23503 on workspace delete, unrelated and green on rerun).
+
+## VAR-1 round 4 (D82)
+- Store option headings come from `storeOptionHeadingKey` (size/colour by name and kind, else name as typed); `VariantResult` failure has code only, raw DB text logged server-side; `variants.failed` / `loadFailed` lose `{reason}`. Unit + live tests added (value-less size, D82).
+- Screens (chrome-devtools, local): `docs/design/audit/VAR-1/r4-store-product-ar-{light,dark}-390.png` (headings read المقاسات / اللون, chips 44 px). `r4-settings-options-en-dark-1280.png` (app was in dark EN, not light).
+- Second pass (chrome-devtools, emulate 390 true viewport, locale/theme cookies, `html` class + `lang` checked before each shot), `docs/design/audit/VAR-1/`: `r4-settings-options-ar-light-390.png` (size sets visible), `r4-settings-options-en-light-1280.png`, `r4-size-sets-error-en-light-1280.png` (size_sets renamed locally, "Could not load size sets. Try again." + Retry, no raw reason; renamed back), `r4-backfill-dialog-ar-dark-1280.png` (opened with a real Enter key; Escape via `press_key` returned focus to the "Add option" button, confirmed by activeElement), `r4-store-wrap-oos-ar-{light,dark}-390.png` (8 sizes wrap to a second row, chips 44 px, struck dashed 7XL chip with the sold-out label, headings read in Arabic, no sideways scroll). Out-of-stock needed the product's unassigned stock at 0 (D54.4): done by stock movements (purchase/correction), reverted by compensating corrections (movements are add-only, so audit rows remain); product and variant stock back to 142 total / 0 per size. 13 extra variants created by the backfill button stay in the local DB (Abaya Noor now has 16).
+- No code change: no screenshot showed a defect on a VAR-1 screen. Not captured: AR dark 1280 backfill dialog with a filled form / error line; EN dark 390 backfill. Left for VAR-1-B.
+ORD-1-F: sticky frozen cell now paints its own inset ring when the row is current and the table focused; CSV "Order" header uses `fields.order` (the brief's `orders.col.order` does not exist; `fields.order` exists in en and ar); `db-reset.sh` prints `PostgREST not ready after 30s` and exits 1. Error-path test: no pure seam (decision is inline at orders/all page.tsx:156), no refactor per brief, so the check stays browser-only (no DOM env, D55; `?product_id=x` checked in ORD-1 round 4).
+
+ORD-1-F browser pass (chrome-devtools MCP, local dev :3000, admin and confirmation@seed.mnw). Real `press_key Tab` from the control before the table lands on the table (activeElement TABLE); ArrowDown makes exactly one row current (one tr ring, one sticky-td ring) on orders/all, delivery and product orders. Checked: EN light/dark, AR light/dark, scrolled sideways (ring intact over the frozen cell), 390 px (skeleton then table, no overflow), row click AND Enter both open the order sheet (review-3's "sheet does not open" no longer reproduces), Escape closes it, order page AR light, agent session (orders/all redirects the agent to the confirmation queue, `#0001` listed). Defect found and fixed: after Escape the command palette dropped focus to BODY (no Radix trigger); `command-palette.tsx` now restores focus to the previously focused element (verified: Search button). Still open, not fixed: Escape from the order sheet also leaves focus on BODY (not the table row); hover-on-row shot not taken (hover tool not available). Screenshots: docs/design/audit/ORD-1/f-* (all-en-light/dark, all-ar-light/dark focus, scrolled, 390, delivery, product-orders, order sheet click/Enter, order page, agent, palette).
+
+## ORD-1-F done (2026-11-20)
+- Done: review-2 PASS (VERDICT: PASS, surface ui); focus ring across frozen column, real Tab walk, command-palette focus restore, CSV header translated; task set to done.
+- Verify: `scripts/gate.sh` GATE OK on v3-ORD-1-F (815 passed, 5 skipped).
+- Evidence: screenshots in docs/design/audit/ORD-1/f-*; browser pass in the entry above.
+- Owner: none for this task.
+- Next: open item from the browser pass: Escape from the order sheet leaves focus on BODY, not the table row (not fixed).
+
+P1-7-F: parser hardening (invalid home fee never promotes a second home label; colon-less part warns; strict numeric regex; third label keeps first stop-desk price), swapOrder safeParse (+ stopped reason via wilaya_fees lookup, no migration), switchOrderToHome guards with translated keys, loadStoredFees returns an error on a failed read, commune-only apply summary (diff lists added/removed names), MoneyField keeps a typed 0 visible, order-form error clears on edit and is not duplicated, a11y names, bdi, ICU plural for warnings. Browser pass (chrome-devtools, local :3000, admin): Delivery fees grid refused-0 case (dark, EN: 0 stays shown, error under grid, nothing saved) and new-order form (AR, dark). Not done: light theme, 390 px (viewport emulation reset on navigation), swap card refused/success shots, CSV commune-only preview shot (no fixture file); covered by unit tests only.
+
+P1-7-F round 2: order-form error now clears on any field edit (form-level onChange plus quantity stepper clicks; verified: AR dark 390, error gone after typing a name). Screenshots (chrome-devtools, local, admin, theme/locale via cookies) in docs/design/audit/P1-7-F/: swap card on returned order #0045 (light EN/AR 1280, dark EN/AR 390, light AR 390 refused = pick a wilaya error) and order-form error (light EN, dark AR 390, cleared dark AR). Not taken: CSV commune-only preview (no fixture file), fees grid at 390, swap success (would create a real order), light 1280 grid beyond the existing shot. Lows 3-8 of the review not addressed this round.
+
+P1-7-F round 4 (D84): parser now splits each Custom_rates part on the FIRST colon; a part is priced only as label, one colon, one number (no digit `\p{Nd}` in the label, number must match `^\d+(\.\d+)?$`); `home:1350:720` and `home 1350:720` give a `malformed_row` warning and no price, kind still read so a later home label is never promoted. Five tests added in the "hostile fee parts" block; no existing test changed. Screenshots (chrome-devtools MCP, local DB, theme/locale cookies, `<html>` class/lang and innerWidth checked before naming) `docs/design/audit/P1-7-F/r4-*`: fees-refused-zero (EN light 1280, AR dark 390), csv-preview-communes and csv-toast-communes (EN dark 1280, AR light 390), swap-refused-stopped (EN light 1280, AR dark 390; Béjaïa stopped, server reason on screen), swap-success (EN dark 390, AR light 1280). Removed `settings-light-en-1280.png` (dark Settings overview) and `swap-refused-light-ar-390.png` (theme unchecked). Notes: the AR 390 fees shot hides the middle wilaya cards in the DOM (58 tall cards put the reason 15000 px below the 0); the stopped wilaya was switched via SQL on the local DB and restored, not through the grid; the Next dev-tools button was hidden in the two swap-success shots because it covered the card text; the toasts were captured during their fade-in and look translucent (shared toast, not touched). Round trip: unchanged sheet applied, commune-only copy (Timekten removed, Zzz Testville added) previewed and applied, original re-applied; a new preview of the unchanged sheet shows 0 changed and Apply disabled. Local DB now holds two extra swap orders (#0068, #0069).
+"1 Issue" badge (d): not an app error. Chrome DevTools issues on the order page, no console errors: "No label associated with a form field" (5), "An element doesn't have an autocomplete attribute" (1), "A form field element should have an id or name attribute" (2). They appear before and after both refusals (client "Choose a wilaya", server "stopped") and also without opening the swap card; the swap card's wilaya Field has no htmlFor (review-3 low 8). Not caused by a file this round changed; goes to the P1-7-G follow-up, no fix here.
+
+P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates part on the first colon; priced only as label (no digit, `\p{Nd}`), one colon, one number; otherwise one malformed_row warning and no price, kind still read so a later home label is never promoted.
+- Done: round 4 fixes, five "hostile fee parts" tests, r4-* screenshots (10) in docs/design/audit/P1-7-F/; task set to done.
+- Verify: `scripts/gate.sh` GATE OK on v3-P1-7-F first run (839 passed, 5 skipped); seasons.rls not failing this run, so no rerun needed.
+- Evidence: docs/briefs/P1-7-F.review-4.md (VERDICT: PASS, qa-reviewer + ui-reviewer).
+- Owner: none for the merge (D84 gate condition met).
+- Next: P1-7-G (lows, ZR-swap outside item, missing tests from review-4 and review-3).
+
+## STORE-1-G
+- 00070 (revoke truncate/trigger/references, immutable variant-values trigger, value-less size guard); tests in variants.rls.test.ts; stock-stages 00029 re-run scoped to workspace; DB.md updated.
+- i18n option names ("Option {n}" / "الخيار رقم {n}", templates drop the noun); stock level chip nowrap; order Size cell hidden only when admin size card shows; wilaya code/name explicit order; VariantsFeedback + order-meta extracted with rendered tests.
+- Screenshots (chrome-devtools) complete in docs/design/audit/STORE-1-G-ui/ (20 files): order EN/AR light+dark 390/1280 + EN agent 390; product edit with unnamed option EN/AR x light/dark x 390/1280; stale message EN light 1280 + AR dark 390; stock EN dark, EN light, AR light at 390 with low/out/Count-needed chips on one line. Fix round 1: 00070 update/upsert tests now prove the trigger (verified failing with it disabled); removeValue keeps its noun; null wilaya code no dash.
+- Fix round 2: option buttons read "Remove option {name}" / "Move option {name} up|down" for named options, separate Unnamed keys for the fallback (EN+AR, tested). Low and out chips at 390 px: `docs/design/audit/STORE-1-G-ui/stock-en-dark-390.png`, `stock-en-light-390.png` (EN), `stock-ar-light-390.png` (AR). Lows 3-8 not done this round.
+
+## STORE-1-G done (2026-11-20, review-3 PASS)
+- Done: review-3 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); migration 00070 kept (00068/00069 taken by parked v3-VAR-1 and v3-CHART-1); task set to done; lows and missing tests of review-2 and review-3 moved to STORE-1-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-1-G (856 passed, 5 skipped). Brief asked for fast gate green 3 runs in a row: not repeated at ship, so that is not verified here.
+- Evidence: docs/briefs/STORE-1-G.review-3.md; screenshots docs/design/audit/STORE-1-G-ui/.
+- Owner: before a remote `db push`, run the 00070 guard's `count(*)` on the remote; the migration aborts if value-less sizes exist (00067 still exempts service_role).
+- Next: STORE-1-H (follow-up lows and missing tests from review-2 and review-3).
+
+## STORE-2-G
+- Tests: invalidate busts store-public; hub/pages list throw on DB error; error.tsx reason+retry (EN+AR); ws2 agent RLS; publish/link eq filters; catch-all notFound; DocumentTitle unmount/pathname; StorePhoto (hook-harness, no jsdom in repo).
+- Fixes: publish UPDATE filters product_id (0 rows -> needs_product); assertPublishable, publish read and preview throw on DB error; DocumentTitle guard; StorePhoto placeholder (gallery, related, image block); `.store-top` align start; Unlink hidden while published (hint contrast 7.2 dark / 7.1 light); sidebar scrolls the active row clear of the edge fade (the "disabled" Store settings was the D33 bottom fade over the active item at <=800 px height).
+- Screenshots (chrome-devtools): docs/design/audit/STORE-2-G/ (store light/dark 390/1280 working + broken image; editor AR light/dark; sidebar EN/AR light/dark at 720 px; hub error EN dark; agent not-found EN dark). The store is Arabic-only (never reads the locale), so no EN store shots. Local demo store "luxe" recreated with picsum https photos (DAL accepts https only, so a local /public file cannot be shown); local DB only.
+- Logged, not built: advisory-lock createStore race and DB trigger for deactivated linked product (need migration + DECISIONS row). Store-http "luxe modesty" grep untouched. Sold-out block stays STORE-3.
+
+STORE-2-G review 1 FIX: tests added for DoD 4 (draft link), 6 (publish with zero rows updated), 7 (read errors throw in publish, assertPublishable, link); StorePhoto now exports `imageFailed()` (the before-hydration check) with unit tests plus a server-render test. No DOM library is installed (jsdom would be a new dependency), so a real client mount is not tested; the placeholder after a failed load was seen live in the browser (veste page). Image block alt text is now the placeholder label. Screenshots re-shot with locale in the name: `store-{veste-broken,jupe-ok}-ar-{390,1280}-{light,dark}.png` (8 files, store is Arabic-only so no EN), before-fix shots removed. `.store-buy` next to hidden `#order` visible at 1280. Not shown: a related-card placeholder (the demo pages have no related products). Not done: review lows 4-8, hint contrast measurement.
+
+## STORE-2-G done (2026-11-20, review-2 PASS)
+- Done: review-2 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); task set to done; the six review-2 lows and review-1 lows 4–8 moved to STORE-2-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-2-G (876 passed, 5 skipped).
+- Evidence: docs/briefs/STORE-2-G.review-2.md; screenshots docs/design/audit/STORE-2-G/.
+- Owner: none.
+- Next: STORE-2-H (lows from review-2 and review-1 4–8); STORE-3 expects a `.store-top` merge conflict (review-2 low 6).
+
+## P1-7-G (build)
+Review-4 lows closed: Nd regex, pushToZR swapped guard + card hide, swap-card label/chevron, Combobox `id`, CSV hint bdi, switch-home tests, csvSuccessToast helper. Browser pass (chrome-devtools): swap card closed/open at 1280 dark and 390 (theme emulation did not flip the app's own theme, so light not verified); chevron rotates (rotate: 180deg when open); label tied to trigger. Swapped-order screen not captured: DB guard blocks writing swapped_to_order_id outside swap_order (covered by unit test). Order-history "< 1m" bidi left (formatter not in this task's files). Tests skipped: oversize fee / home:0.001 (parser has no such rule).
+
+P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-7-G/` named screen-locale-theme-width. Swap card closed/open EN+AR x light+dark x 1280+390 (16 shots; html class checked before each, theme via the `theme` cookie the app reads, no media emulation; chevron rotates open). Real swap done through the card on local returned order #0045 (-> #0084, local DB only): the original then shows "Swapped to order" and no ZR Express card/send row (`swapped-no-zr-send-en-light-1280.png`). Arabic CSV dialog (light 1280, dark 1280, dark 390). Fix from shots: at 390 the hint's parentheses sat outside the LTR `bdi` and mirrored/split ("Area,)" ... "(Rate_or_extra"); parentheses moved inside `<cols>` in en+ar `formatHint`. Still seen, left: AR history "< 1m" renders as "1m >" (formatter not in this task).
+
+- P1-7-G fix round 1: swap guard now state-based (delivery_status), fee parser rejects >2 decimals / >=1e10, CSV hint is a block LTR line (AR 390 shot retaken, reads in order; theme shown was the app default, not re-toggled). `< 1m` bidi deferral stands.
+
+## P1-7-G done (2026-11-20, review-2 PASS)
+- Done: review-2 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); task set to done; the 7 review-2 lows and the still-open review-1 lows (L1-L3, notes L4-L6) moved to P1-7-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-P1-7-G (891 passed, 5 skipped).
+- Evidence: docs/briefs/P1-7-G.review-2.md; screenshots docs/design/audit/P1-7-G/.
+- Owner: none.
+- Next: P1-7-H (lows from review-2 and review-1 L1-L3).
+
+## Run report (2026-11-20, /auto 5)
+- Shipped 5: ORD-1-F `8971b68`, P1-7-F `a1c3415`, STORE-1-G `196da9c` (migration 00070), STORE-2-G `b740ee2`, P1-7-G `e1ca2f3`.
+- Parked 1: CHART-1 `blocked:Q-28`. Built on `v3-CHART-1`, gate OK, review-4 ESCALATE with no high and 3 mediums (far-future order lifts the 366-day cap, Finance no-costs empty state never shown, cost-bar table view has no drill links). Its migrations 00068 + 00069 clash with `v3-VAR-1`'s 00068; the second to merge renumbers.
+- Decided by Claude (owner may overturn): D83 the profit waterfall is removed from Finance overview too and CHART-1 got a 4th round (Q-27); D84 P1-7-F got one last narrow round, merge only on PASS (it passed).
+- Open questions: Q-28 CHART-1, Q-26 VAR-1, Q-18 CONF-1; STORE-3 also waits for the owner's merge OK. Phone push was not delivered (Remote Control inactive).
+- Owner before a remote `db push`: run the 00070 guard's count on the remote; the migration aborts if value-less sizes exist.
+- Gate: intermittent live-DB failures (`seasons.rls.test.ts`, `kpi.test.ts`), green on rerun each time; logged as TEST-2. The review step twice returned before its reviewers finished; the coordinator assembled `P1-7-F.review-4.md` and `STORE-1-G.review-2.md` from their reports.
+- Follow-ups added: P1-7-H, STORE-1-H, STORE-2-H, TEST-2.
+- Next `/auto`: first eligible `todo` in plan order (P1-7-H, STORE-1-H, STORE-2-H, then CARRIER-0-G, SEC-1-G, NAV-1-G, NAV-2).
+
+## P1-7-H build notes (round 2)
+- Review-1 fixed: link-only branch now runs right after the credentials read, before the wilaya/commune, phone and `wilaya_fees` guards (create path only keeps them); tests for unpriced/missing-field link, finder throw, 23505, other insert error, `zrSendState` swap, card `swapped` reason (role-based button match).
+- Brief: `delivery-prices.ts` Unicode-digit strip deleted as dead code; the `${HOME}٣|${HOME}:500` test stays as a pin.
+- Screenshot self-critique (chrome-devtools, 390 px, admin seed): CSV import hint EN dark and AR dark wrap cleanly, no horizontal overflow (scrollWidth = innerWidth). ZR card swapped reason on order #0045: AR dark and EN light read correctly. Not shot: CSV hint in light, ZR `status` reason (same component and layout as swapped), AR light.
+- Pre-existing (note only): unconfirmed order shows `canSend` true; server refuses in English.
+
+## P1-7-H done (ship)
+- Done: follow-ups from D84 2e (ZR link-only before create guards, exact refusal strings, card `canSend` predicate, CSV `\p{Nd}` pin, decimals and malformed-row tests) merged from v3-P1-7-H.
+- Verify: scripts/gate.sh GATE OK (tsc, 912 tests, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/P1-7-H.review-2.md VERDICT: PASS; screenshot pass noted above (not shot: CSV hint light, ZR status reason, AR light).
+- Owner: none for this task. Pre-existing note: unconfirmed order shows `canSend` true; server refuses in English.
+- Next: STORE-1-H, STORE-2-H, then TEST-2 (intermittent live-DB failures).
+
+## STORE-1-H build notes
+- Tests: guard test asserts reported count == pre-count + 1 and nothing left behind; clean-data guard case; `spare` size deleted at test end; anon/PUBLIC lack TRUNCATE/TRIGGER/REFERENCES. The `saveVariantConfig` action needs a session mock, so that test stays a schema test and is named "zod (schema only...)".
+- Real `showsSizeCell`, `StockLevelChip` (`stock/stock-level-chip.tsx`) now exported and tested; VariantsEditor rendered with "" and "  " names (EN+AR); `as never` replaced by `satisfies VariantResult`. Editor: option name trimmed, unnamed input has `placeholder`.
+- Screenshot self-critique (chrome-devtools, docs/design/audit/STORE-1-H-ui/): product edit EN light 1280 full page; stock hub 390 EN light and AR dark with Out (0) and Low (3) chips, each chip one line (height 20); unnamed option EN 390 light shows placeholder "Option 1". Local seed stock reverted via correction movements, temp product deleted. Not shot: stock EN dark, AR light. Observed (out of scope): empty value input has no placeholder.
+
+STORE-1-H review 1 FIX (round 2): findings 1-6, 8, 9 fixed; 7 left (optional; showsSizeCell and showsCard match, showsSizeCell is already unit-tested). New `products/actions.test.ts` calls `saveVariantConfig` and asserts `{ok:false, code:"invalid", error:"variant_values"}` with no RPC and no client created (the old "needs a session" note was wrong). Stock chip test now uses `en.stock.*`; chip label wrapped in `<bdi>`. Guard test: one repeatable-read psql call, one bare size in each of two workspaces (pre + 2), clean case scoped to a fresh workspace with no deletes, asserts guard has `raise exception`; spare delete in finally. Value input placeholder "Value"/"القيمة" (new key `variants.valuePlaceholder`). Screenshots added (chrome-devtools, 390): stock-390-en-dark, stock-390-ar-light, value-placeholder-390-ar-dark (placeholder lab L 67.5 on L 3.7, well over 4.5:1). Seed stock has no Out/Low rows, so those stock shots show no chips (chip layout covered by the earlier AR dark shot). Not shot: unnamed option EN dark.
+
+## STORE-1-H done (ship)
+- Done: STORE-1-G review-2/3 lows fixed (guard count and clean-data tests, exact grant checks, `showsSizeCell`/`StockLevelChip` tests, whitespace option trim, value and option placeholders, `satisfies VariantResult`).
+- Verify: scripts/gate.sh GATE OK (tsc, 923 tests 5 skipped, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/STORE-1-H.review-2.md VERDICT: PASS; screenshots in docs/design/audit/STORE-1-H-ui/.
+- Owner: none. Not shot: unnamed option EN dark.
+- Next: STORE-2-H, then TEST-2 (intermittent live-DB failures).
+
+## STORE-2-H build notes
+- Done: `StorePhoto` skips the mount check for lazy images and takes `onFail`; new client `Gallery` (`gallery.tsx`) drops broken slides (alt keeps original n of total) and shows one placeholder only when all fail; `DocumentTitle` depends on `usePathname()`; `linkPageProduct` throws on a page read error; published-page hint uses new `store.pages.unlinkLocked` key (en+ar); RLS ws2 inserts assert `42501` and pageB title unchanged (live suite run, 8 passed); tests for photo, document-title, gallery, actions, preview page.
+- Screenshots (chrome-devtools, `docs/design/audit/STORE-2-H/`, html lang ar / dir rtl): gallery with one broken non-first image (AR light+dark, 390 and 1280; failed slide gone, related card with broken image keeps 4/5 height next to a working card); all broken (AR light+dark, 390 and 1280: one placeholder); editor with published page and hint (AR light+dark, 1280; muted token text readable). Local demo data (temp product/page, images) reverted. Not shot: related-card shot is 390/1280 inside the full-page captures only for the one-broken scenario.
+- Conflict note: `.store-top` (store.css:46) is not touched here; STORE-3 edits the same line, expect a merge conflict there.
+- Deviation: editor-hint light shot toggled the `light` class on `<html>` by script (no theme switch clicked).
+
+## STORE-2-H done (ship)
+- Done: STORE-2 follow-ups (lazy-image mount check, document-title path dependency, linkPageProduct throws on read error, unpublish hint key, ws2 RLS 42501 asserts, gallery collapses broken slides, preview page tests) merged from v3-STORE-2-H.
+- Verify: scripts/gate.sh GATE OK (tsc, 932 passed 5 skipped incl. live RLS suite, i18n parity, color lint, build, protected paths).
+- Evidence: docs/briefs/STORE-2-H.review-1.md VERDICT: PASS; screenshots in docs/design/audit/STORE-2-H/.
+- Owner: none. Not shot: related-card placeholder only inside full-page captures for the one-broken case.
+- Next: TEST-2 (intermittent live-DB failures); STORE-3 expects a conflict at store.css `.store-top`.
+
+## CARRIER-0-G screenshot pass
+Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, session locale was AR; window min width rendered 500) with a focused map cell, focus ring visible; /app/dashboard scrolled, filter bar static and scrolled away; /app/statistics at 1280, no regression. 58 cells focusable. Table scroll fade in AR not separately captured. Follow-up: wilaya Arabic names need a migration (no name_ar column). Shots in docs/design/audit/CARRIER-0-G/.
+- CARRIER-0-G review-1 FIX: focus/hover ring is now a 3.5-wide token overlay path drawn above all cells; key handler extracted and tested; cells only focusable with onSelect. Screenshots docs/design/audit/CARRIER-0-G/r2-stats-390-{en,ar}-{dark,light}-focus.png (ring clearly visible). Left: roving tabindex (optional), AR wilaya names (no name_ar column, follow-up row), bidi isolation in title string.
+
+## CARRIER-0-G done (ship)
+- Done: map keyboard access on /app/statistics (cells focusable only with onSelect, key handler extracted and tested, token focus ring overlay); sticky filter panel no longer covers the map on phones (review-2 #5, #6).
+- Verify: scripts/gate.sh GATE OK (tsc, 941 passed 5 skipped incl. live RLS suite, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/CARRIER-0-G.review-2.md VERDICT: PASS; screenshots in docs/design/audit/CARRIER-0-G/.
+- Owner: none. Not shot: table scroll fade in AR.
+- Next: wilaya Arabic names need a migration (no name_ar column); roving tabindex optional.
+
+## SEC-1-G build notes
+- Done: 00071 (`audit_redact`/`audit_is_secret_key`: masked-string and empty/masked-secret passthrough before the depth cap, separator `[^a-zA-Z0-9]`, plurals, one-pass backfill); TS twin same (`u` flag); parity cases + idempotence + `TS(SQL(x))==SQL(x)` + 42501 execute-denied + psql backfill/xmin test; `diffRows` by path segments (`id`, empty key, arrays, any mask token = pill); audit table (pill `role=note` + aria-label `audit.redactedAria`, `emptyKey`, `<li dir=ltr>`, break-all key), `loading.tsx`, `error.tsx` (page now throws on read error), empty-state clear-filters action; DB.md + D49 amendment note (owner ack pending, not blocking).
+- Screenshots (chrome-devtools, `docs/design/audit/SEC-1-G/{en,ar}-{dark,light}-{1440,390}.png` + `en-dark-390-focused-pill.png`, `en-dark-390-empty.png`): all 8 combos shot with a seeded row (pill, empty key, masked array, colliding `a.b`, long key wraps at 390, short `is_active` line). Pill contrast 7.0:1 light, 6.4:1 dark. Theme/locale switched by setting the `theme`/`NEXT_LOCALE` cookies then reloading. Loading skeleton shown briefly in dev only (not shot).
+- Step 6: no leftover `zrexpress` row after `db reset` (nothing to delete).
+- Gate note: first gate run failed `src/lib/rls.test.ts` (agents are financially blind: "sign in admin@seed.mnw: Invalid login credentials"); not touched by this branch, caused by `db reset` wiping seed users; reseeded, then green.
+
+### SEC-1-G fix round 2
+- M1: audit screenshots retaken at 390 px after review-1 fixes (chrome-devtools emulate 390x1100): `en-dark`, `en-light`, `ar-light`, `ar-dark` (seeded row: pill, empty key, masked array, colliding `a.b`, long key, short line), `en-dark-390-focused-pill`, `{en,ar}-dark-390-empty` (filtered), `en-dark-390-loading`. No horizontal scroll (scrollWidth 390). Found and fixed: AR date aligned left (bdi block); now inline bdi in a div. Pill contrast light 7.0:1. Filtered empty state shows two "Clear all" (bar and empty action), kept per L3. Not shot: unfiltered empty, error state (needs a failing query), 1440 px (old images kept).
+- L1-L7 done: DB.md line, zod URL filters, empty action/hint, error reason, test seed `api/key`+`secretkeys`, `migration up` applied 00072 locally, mobile date stack, `zr_shipments` filter.
+
+## SEC-1-G ship
+- Done: merged to v3 under D40/D85 on a review-3 ESCALATE (no PASS). Migrations 00071 + 00072 (audit redaction, DB and TS side). SEC-1-H follow-up row added.
+- Verify: `scripts/gate.sh` full on v3-SEC-1-G = GATE OK (tsc, 987 tests incl. live RLS, i18n, color lint, build, protected paths).
+- Evidence: focused-pill PNG is not a focus shot; 1440 px images predate " › " labels; pill contrast 7.0:1 light / 6.4:1 dark is builder's figure.
+- Owner: remote `db push` of 00071 and 00072 (O-2); D49 amendment ack pending; Q-21 open.
+- Next: SEC-1-H (todo).
+
+## SEC-1-H build notes
+- Done: backfill test sets `lock_timeout='5s'` and skips without the DB container; 1-arg `audit_redact` 42501 test (agent, anon); parity cases for trailing-newline token and uppercase-hex; diff `label()` (`[0]` indices, `.`/` › ` keys JSON-quoted); `_lib/params.ts` (`parseAuditParams`, real-date check, `AUDITED_TABLES` = 21 tables from the DB, fixed +01:00 day bounds with `lt` next-day) + tests incl. live trigger-list check; `Column.className`; pill focus ring; rtl `<bdi>` on the AR empty-key label; render tests (empty, filtered Clear href, rtl bdi, ring, colliding labels, loading, error retry).
+- Contrast `text-muted-foreground` on `bg-secondary` (computed, canvas-resolved): light 7.02:1, dark 6.37:1.
+- Screenshots `docs/design/audit/SEC-1-H/{en,ar}-{dark,light}-{1440,390}.png` (viewport shots at the seeded top row) + `en-{dark,light}-390-focused-pill.png` (differ from unfocused, `cmp`). Earlier SEC-1-G "ar" shots may have been English (cookie is `locale`, not `NEXT_LOCALE`). No horizontal scroll at 390. Timezone +01:00 assumed (no workspace tz setting found).
+
+## SEC-1-H ship
+- Done: audit follow-ups (backfill lock_timeout + skip without DB, 1-arg `audit_redact` 42501 test, parity cases, diff `label()` quoting, `_lib/params.ts` with 21 audited tables and +01:00 day bounds, `Column.className`, pill focus ring, rtl bdi, render tests). Plan row SEC-1-H = done.
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-H (tsc, 1004 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/SEC-1-H.review-1.md VERDICT: PASS; shots docs/design/audit/SEC-1-H/ (en/ar, dark/light, 1440/390, focused pill).
+- Owner: remote `db push` (none new in H); Q-21 open; D49 amendment ack pending.
+- Next: none from H; SEC-1-G carry-overs per its entry.
+
+## NAV-1-G build
+- Done: drawer dialog name `nav.menu`, aside tabIndex only while drawer open, `dir="ltr"` on three kbd hints, substring palette filter (`src/lib/palette-filter.ts`, Arabic-normalised) wired via `CommandDialog filter`, NAV-1-F brief example fixed. Tests in `src/lib/palette-filter.test.ts`.
+- Screenshots: not taken in this build session (no browser run); left for /verify ui-reviewer.
+
+## NAV-1-G ship
+- Done: NAV-1-G drawer dialog name, aside tabIndex only while drawer open, ltr kbd hints, substring palette filter (`src/lib/palette-filter.ts`), tests.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-1-G (tsc, 1010 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-1-G.review-1.md VERDICT: PASS. No new screenshots in this ship step.
+- Owner: none.
+- Next: none from G.
+
+## NAV-2 (build)
+Breadcrumb in top bar (shared, `CrumbRecord` for record names), required `PageHeader.subtitle` + `related`, hubs /app/sell|catalog|money|team via `GroupHub`, store Crumbs removed. Screenshots (browser MCP, dark, AR, 390px): /app/money hub, /app/orders/new breadcrumb overflow. Not captured: light theme, EN, 1280, agent hub, product/order record tails.
+
+## NAV-2 ship
+- Done: NAV-2 breadcrumb in top bar, required `PageHeader.subtitle` + `related`, group hubs /app/sell|catalog|money|team via `GroupHub`, store Crumbs removed.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-2 (tsc, 1016 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-2.review-3.md VERDICT: PASS. Screenshots from build: /app/money hub, /app/orders/new breadcrumb overflow.
+- Owner: light theme, EN, 1280px, agent hub, product/order record tails not captured.
+- Next: NAV-3.
+
+## NAV-3 — canonical URLs (v3-NAV-3)
+Moved orders/contacts/products/stock/pricing/finance routes under sell|catalog|money; 308 table in `src/lib/legacy-redirects.ts` (+ test); courier cash now one page with `?tab=collections|income`. Browser check: old income/cash/products URLs land correctly (AR dark, 1280); screenshots in docs/design/audit/NAV-3 (not full light/EN/390 matrix).
+
+## NAV-3 ship
+- Done: canonical /app URLs (sell|catalog|money), 308 legacy redirects (`src/lib/legacy-redirects.ts`), one Courier cash page `?tab=collections|income`. Plan row NAV-3 = done.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-3 (tsc, 1021 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-3.review-2.md VERDICT: PASS; shots docs/design/audit/NAV-3.
+- Owner: light theme, EN, 390px matrix for NAV-3 not captured.
+- Next: NAV-5 (MONEY-2, RES-1, P1-5 also unblocked by NAV-3).
+
+## NAV-4 (build)
+Migration 00073: `options.emoji` (admin-only, DB-checked; ZWJ allowed) and `status_label_overrides` (RLS, audited). Chip emoji + option consumers, `EmojiField` picker, `StatusLabelsProvider` + pure `resolveStatusLabel` (no ICU, i18n/request.ts untouched), pill/select/delivery advance/confirmation/filter bar/customers wired, Settings "Options & labels" block. Follow-up NAV-4-V (saved-view emoji) added to plan. Screenshots (browser MCP, docs/design/audit/NAV-4): settings AR dark 1280, emoji picker AR light 390. Not captured: EN, other themes/sizes of orders list, kanban, customers, agent session, /login.
+
+## NAV-4 (fix round 1)
+`StatusPill` is now a client component (it called a client-only hook from server components, which crashed product and stock pages). `emojiSchema`/`startsWithEmoji` accept flags and keycaps (DB CHECK already allowed them). Browser MCP sweep as admin and as confirmation agent: orders, order detail, product (+stock), stock, customers, kanban, settings, store: no error page, no console error. Screenshots in docs/design/audit/NAV-4: EN+AR, dark+light for orders/product/settings, order detail, stock, customers, kanban (1280 and one 390), agent orders, /login. Not done: review LOW findings 4-11, not in this round's scope.
+
+## NAV-4 (fix round 2)
+StatusPill renders the default label as sr-only text for an emoji-only override (`isEmojiOnly` in `src/lib/emoji.ts`, tested); the store status select uses overrides; tests for flags/keycaps. Screenshots in docs/design/audit/NAV-4-R2 (each looked at): saved overrides (flag, emoji-only, 40-char truncated in compact pill, AR text), orders (EN dark 1280, AR light 1280), confirmation (EN dark 1280, EN dark 390, AR light 390), real shipping kanban (EN dark 1280, AR light 390), labels block `?section=options` (EN dark 1280, AR light 1280, EN light 390, AR dark 390), agent session (EN dark 1280, AR light 390), /login 390 (EN light, AR dark). The 40-char label was set via SQL for that shot, overrides reset afterwards. Misleading old shots removed. Not done: LOW findings 4-11, action-layer agent-rejection tests.
+
+## NAV-4 ship
+- Done: emoji on option labels, label overrides for system statuses (migration 00073), Settings "Options & labels". Plan row NAV-4 = done; follow-ups NAV-4-F (review-3 LOWs + missing tests, ui, M) and NAV-4-S (anon grants on public.options, H / sec / M) added.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4 (tsc, 1045 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4.review-3.md VERDICT: PASS; shots docs/design/audit/NAV-4, NAV-4-R2, NAV-4-R3.
+- Owner: light theme and EN matrix for kanban, customers, agent session not fully captured (see NAV-4-F).
+- Next: NAV-4-S (H, sec) and NAV-4-F; NAV-5 next in lane order.
+
+## Run report (2026-11-20, /auto 5, second batch)
+- Shipped 5: SEC-1-H `28731eb`, NAV-1-G `ad42dc6`, NAV-2 `abd2c39` (3 review rounds), NAV-3 `ebea6f9` (2 rounds), NAV-4 `e3d04b7` (migration 00073, brief review + 3 rounds).
+- Parked: none. Decided by Claude: none (no new D-row, no new question).
+- Caught in review before merge: NAV-2 order/product detail pages looped on render; NAV-4 brief would have leaked one workspace's status labels to others and could break `/login` (redesigned before build), then `StatusPill` crashed product and stock pages.
+- Open questions unchanged: Q-28 CHART-1, Q-26 VAR-1, Q-18 CONF-1; STORE-3 also waits for the owner's merge OK.
+- Owner before a remote `db push`: 00073 is new (`options.emoji`, `status_label_overrides`).
+- Gate: intermittent live-DB failures again (`seasons.rls.test.ts`, `rls.test.ts`), green on rerun (TEST-2). NAV-3's merge gate first failed on tsc from the dev server's stale `.next/dev/types`; clean on rerun, then pushed. The review step returned once before its reviewers finished; the coordinator assembled `NAV-4.review-2.md` from their reports.
+- Follow-ups added: NAV-4-F, NAV-4-S (anon grants on `public.options`, pre-existing, RLS blocks it; H / sec), NAV-4-V (waits on CONF-1), SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F.
+- Next `/auto`: NAV-4-F, NAV-4-S, NAV-5, then SEC-1-I, NAV-1-H, NAV-2-F, NAV-3-F, P1-1-F.
+
+## NAV-4-S: done
+- Done: migration 00074 revokes anon grants on `public.options` / `option_sets`; live test; DB.md updated; follow-up NAV-4-S2 added (sweep ~36 anon grants).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4-S (tsc, 1049 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4-S.review-1.md VERDICT: PASS.
+- Owner: remote `db push` of 00074 (revokes anon grants; owner-only).
+- Next: merge to v3; NAV-4-S2 (owner/decide call) and NAV-5 in lane order.
+
+## NAV-4-S2: done
+- Done: migration 00075 revokes the remaining anon table grants in `public` (sweep plus default privileges); live anon-grants test; DB.md rule. Follow-up NAV-4-S3 (sweep anon function EXECUTE, 26 public functions) per brief.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4-S2 (tsc, 1058 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan). Coordinator rerun also GATE OK.
+- Evidence: docs/briefs/NAV-4-S2.review-1.md VERDICT: PASS (review-0 was FIX, resolved).
+- Owner: remote `db push` of 00075 (owner-only; revokes anon grants).
+- Gate note (TEST-2): one intermittent failure in `audit-redact.rls.test.ts` on this branch; green on the coordinator's full rerun. Same flaky class as before.
+- Next: NAV-4-S3 (anon function EXECUTE sweep); NAV-5 in lane order.
+
+## NAV-4-S3: done
+- Done: migration 00076 revokes anon/PUBLIC EXECUTE on public functions and the default function privilege for anon; live test; DB.md rule.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4-S3 (tsc, 1065 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4-S3.review-1.md VERDICT: PASS (review-0 was FIX, resolved).
+- Owner: remote `db push` of 00076 (owner-only; revokes anon function EXECUTE).
+- Next: NAV-5 in lane order.
+
+## NAV-5: built (awaiting /verify)
+- Done: agent `/app/my-day` (read-only, session client, D86 counts, no migration), `roleHome` landing for login/orders/not-found, `MY_DAY` + `bottomBar()` in nav-model, phone bottom bar (More = drawer, header hamburger removed).
+- Not done: screenshots (no running app/login session in this run); owner/ui-reviewer must screenshot 390 px light/dark EN/AR.
+
+## NAV-5: done
+- Done: phone bottom bar + agent "My day" home merged under D40/D87; review-3 ESCALATE resolved by D87 (commit 2a74a31 removes viewport-fit cover and top/side insets); no 4th review round.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5 (tsc, 1081 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5.review-1.md FIX, .review-2.md FIX, .review-3.md ESCALATE (answered by D87, option b).
+- Owner: screenshots at 390 px (light/dark, EN/AR) and real-phone check owed (NAV-5-G); review-1 low #9 reopened (NAV-5-F).
+- Next: NAV-5-F, NAV-5-G.
+
+## NAV-5-F: built (awaiting /verify)
+- Done: delivery count uses the last delivery-stage row per order (shared `lastPerOrder`, query no longer filters `to_status`); live fixtures (second courier, admin change adds one to call again, profile-setup error asserted); queue title "Team queue: orders to deliver" and dashboard card "Waiting for first call" (EN/AR, counts unchanged); tests for my-day layout guard, root redirect, bottom bar (sub-route, 99+, md:hidden, More ref), loading and error states.
+- Limits: no DOM test environment, so "focus returns to More" pins the ref wiring only, not the focus call itself.
+- (d) 768 px dashboard overflow: filter card now `lg:w-fit` with minmax grid columns (review 1 FIX); not re-measured live. Docs excluded from Tailwind scan.
+- (e) Not built: `viewportFit: "cover"` and top/side insets stay out (D87); no notched iPhone simulator confirmed (only `xcrun simctl` "iPhone Duo"); safe-area class test not written.
+- Screenshots (390 px, light/dark, EN/AR): not taken, no browser MCP run in this session.
+
+## NAV-5-F: done
+- Done: review-1 FIX items landed (delivery count per last delivery-stage row, live fixtures, queue/dashboard copy EN/AR, my-day layout, root redirect, bottom bar and loading/error tests); review-2 PASS (ui-reviewer, fc04611).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-F (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5-F.review-1.md FIX, docs/briefs/NAV-5-F.review-2.md PASS.
+- Owner: screenshots at 390 px (light/dark, EN/AR) not taken in this run; owed via NAV-5-G; 768 px overflow not re-measured live.
+- Next: NAV-5-G.
+
+## NAV-5-G — NAV-5 screenshots at 390 px (2026-11-20) — screenshots done, awaiting review (not DONE until review passes)
+- Done: chrome-devtools emulation, local stack, seed users. Shots in `docs/design/audit/NAV-5/g-*`: admin dashboard + orders + More drawer, confirmation agent My day + More, delivery agent My day; each 390 px, EN+AR, light+dark. 1280 px admin and delivery: bottom bar `display:none`. 768 px AR and 844x390 landscape AR: bar hidden (md breakpoint = 768), sidebar shown, page scrollWidth == viewport (only the orders table scrolls inside its own wrapper), so no page overflow.
+- Review-1 fixes: `g-admin-orders-ar-dark-390.png` re-shot (header, filters, table, bar visible). Empty My day (confirmation agent, tasks empty + no planned meeting) shot EN/AR x light/dark: `g-conf-myday-empty-*-390.png`; produced locally by setting the one planned seed meeting to `cancelled` for the shoot, then restored to `planned`. `g-conf-badge99-{ar,en}-dark-390.png` are DOM text overrides ("18" -> "99+", real count was 18, no 100 orders seeded); badge box 197-223 px sits inside its link 130-260 px. The "99+" cap logic itself is covered by the unit test, not by data. Scrolled-to-end shot `g-conf-myday-scrolled-end-en-dark-390.png`: last card ends above the bar (other roles: numeric check only, 764 < 792). The Next dev "N" overlay was hidden by CSS in the re-shot files only; older g-* shots still show it (dev-only).
+- Measured: header 56 px; bar items 51 px high, 78 px wide (admin); last content bottom 764 px < bar top 792 px; AR bar order mirrored; viewport meta is `width=device-width, initial-scale=1` (no viewport-fit); no hardcoded-color look in either theme. Defects: none, clean. No code changed.
+- Gate: scripts/gate.sh GATE OK (first run failed once on a seasons.rls.test FK race, passed on rerun; no code changed).
+- Not covered: populated confirmation tasks (no seed tasks). Thin coverage at 1280/768/844x390 (one AR dark shot each).
+- Real iPhone/Android check NOT done (no device) and stays owner-owed, incl. keyboard-open bar. Review-1 low #9 (iOS bottom padding 0 without `cover`) stays open per D87.
+- Flag: D87 item 7 (no-role/inactive redirect loop, risk H) has no plan row; owner/decide to confirm.
+
+## NAV-5-G: done
+- Done: 390 px screenshots (light/dark, EN/AR) in `docs/design/audit/NAV-5/g-*`; review-1 FIX landed (re-shot AR dark orders, empty My day, 99+ shot, scrolled-end shot); review-2 PASS (ui-reviewer). No code changed.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-G (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan). One earlier run hit the reviews.rls.test.ts:74 FK teardown race; green on rerun.
+- Evidence: docs/briefs/NAV-5-G.review-1.md FIX, docs/briefs/NAV-5-G.review-2.md PASS.
+- Owner: real iPhone/Android check and keyboard-open bar (no device); review-1 low #9 (iOS bottom padding without viewport-fit=cover) open per D87; D87 item 7 (no-role/inactive redirect loop) has no plan row.
+- Next: none for NAV-5-G; owner decides on D87 item 7 row.
+
+## NAV-5-H review-1 fixes — screenshot self-critique
+Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local user): `/no-access` EN+AR x dark+light at 390 and 1280, plus the sign-out error state (AR, light, 390). Light muted text is about 8:1 on the card. RTL: exit icon mirrors, locale switcher sits top-end, error alert is centered, retry/sign-out are 44 px high. Signed-out visit lands on `/login`. Not done: keyboard pass and the sign-out pending state were not captured (pending is too brief to screenshot). Live RLS test for users a/b/c added in `src/lib/rls.test.ts` and passing against the local stack.
+
+## NAV-5-H: done
+- Done: `/no-access` page for a signed-in user with no role, inactive profile or no workspace, with sign-out; review-1 fixes (live RLS test for users a/b/c, sign-out button, test strength); review-2 PASS (VERDICT in docs/briefs/NAV-5-H.review-2.md).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-H (tsc, 1129 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5-H.review-1.md FIX, docs/briefs/NAV-5-H.review-2.md PASS; screenshots in docs/design/audit/NAV-5-H/.
+- Owner: review-2 lows go to NAV-5-I (vacuous RLS check at src/lib/rls.test.ts:554, missing keyboard pass, untested errorAs="toast", cycle-test gaps).
+- Next: NAV-5-I.
+
+## NAV-5-I — close NAV-5-H review-2 lows (2026-11-20)
+- Done: RLS no-access check now uses `select("*", {count:"exact", head:true})` and asserts `error` null then count 0 (fail-proof: selecting `nonexistent` made all 3 cases fail; reverted). Tests added: sign-out toast/inline, unknown role on /no-access, cycle `[...rest]` and `/login` (2 hops; dead reassigned-handler case replaced), sell real `getProfile` -> `requireProfile` path. rbac query-error test already existed.
+- Browser (chrome-devtools, local stack): keyboard pass on `/no-access` EN and AR (rtl): Tab order language switcher, Retry, Sign out; box-shadow focus ring visible on each; Enter on the switcher switched language, Space on Sign out signed out. Shot: `docs/design/audit/NAV-5-H/no-access-en-focus-signout.png` (dark only; light not re-shot). Role home: a signed-in profile visiting `/login` landed on `/app/dashboard`. Sign-out landed on `/login`. Local user `noaccess-shots@seed.mnw` deleted. Page closed back to about:blank.
+- Not done: My day / Team rules blank for a deactivated user (optional finding 5, out of scope).
+
+## NAV-5-I: done
+- Done: review-1 PASS (docs/briefs/NAV-5-I.review-1.md). Closed NAV-5-H review-2 lows: non-vacuous no-access RLS check, sign-out toast/inline tests, unknown-role and cycle tests, sell real-path test, /no-access EN+AR keyboard pass.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-I after one re-run (tsc, 1136 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: first run failed only on live-DB FK race (audit_log_workspace_id_fkey) in delivery-prices.rls and reviews.rls tests; known intermittent (TEST-2), passed on re-run.
+- Owner: light-theme shots exist in docs/design/audit/NAV-5-I/ (en-light-*); optional finding 5 (deactivated user My day / Team rules blank) out of scope.
+- Next: none for NAV-5-I; merge to v3 pending.
+
+## SEC-1-I build notes
+- Closed SEC-1-H review-1: ar empty-key test reads the `dir` attribute off the parsed `<bdi>` tag; error-state test finds the retry button by `type="button"`; new `page.test.tsx` (from -> `gte T00:00:00+01:00`, to -> `lt` next day), single-render test for the changes list per breakpoint class; shared `src/lib/test-db.ts` (`DB_CONTAINER`, `dbContainerUp`) used by both live-DB tests; audit table filter + chip show `audit.tables.*` labels (en+ar, sorted by label, raw-name fallback, parity test `_lib/tables-i18n.test.ts` over all 22 AUDITED_TABLES; brief said 21).
+- Timezone: no workspace tz setting exists; `AUDIT_TZ = "+01:00"` kept, commented and noted in docs/DB.md.
+- SEC-1-G `ar-*` shots deleted (5 files existed, not 6). SEC-1-H ar shots checked: real Arabic, rtl (pill reads "مخفي").
+- Screenshots `docs/design/audit/SEC-1-I/` (chrome-devtools, cookies `theme`/`locale`; a temporary local audit_log row with a redacted api_key was inserted for the seed workspace and deleted afterwards). `html` lang/dir verified ar/rtl. Focused vs unfocused pill (EN light and dark): `cmp` reports they differ; `:focus-visible` true. Pill contrast measured from computed styles: light 7.02, dark 6.37. Filter open: EN dark (1440) and AR light (1440) show labelled, sorted tables.
+- Caveat: the MCP window cannot go below 500 px wide, so "390" shots are 500 px viewports (no horizontal scroll, scrollWidth 500).
+- Page closed back to about:blank.
+
+## SEC-1-I: done
+- Done: review-1 PASS (docs/briefs/SEC-1-I.review-1.md). Closed SEC-1-H review-1 lows and missing tests; audit table filter labelled (en+ar); timezone note in docs/DB.md; stale SEC-1-G ar shots removed. Lows 1-4 carried to SEC-1-J.
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-I (tsc, 1140 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: screenshots in docs/design/audit/SEC-1-I/; pill contrast light 7.02, dark 6.37 (computed styles).
+- Owner: `+01:00` audit timezone is an assumption (no workspace tz setting); the review did not re-measure contrast.
+- Next: SEC-1-J (review-1 lows 1-4).
+
+## Run report — /auto 5 (2026-11-20, batch after NAV-5)
+- Shipped 5: NAV-5-F (fc5e98f, was built + review PASS, only the merge was missing) · NAV-5-G (eaf3ef5) · NAV-5-H (f65c3b7) · NAV-5-I (2238319) · SEC-1-I (3cdb00e).
+- Decided by Claude: D88 — the no-role / inactive-profile redirect loop named in D87 (7) got its own row NAV-5-H (risk H, sec); NAV-5-G stayed the screenshots task. NAV-5-H is built: such a user now lands on `/no-access` with Try again + Sign out.
+- New follow-up rows: NAV-5-I (done), SEC-1-J (todo).
+- Questions still open: Q-18 (CONF-1), Q-26 (VAR-1), Q-28 (CHART-1); STORE-3 also waits for the owner's OK. No new question.
+- Blocked, unchanged: CONF-1, VAR-1, CHART-1, STORE-3 (owner OK), NAV-4-F (review rounds exhausted). Nothing parked in this run.
+- TEST-2 (intermittent live-DB tests) hit every task of this run: 9 gate runs failed and passed on re-run with no code change (seasons.rls, reviews.rls, delivery-prices.rls, kpi, variants.rls: FK races and 5 s timeouts). One cause found: pages left open in the chrome-devtools browser held a renderer at 100% CPU (load 10); closing them made the NAV-5-H merge gate pass. It still failed afterwards on a quiet machine, so the FK race is separate. Worth running TEST-2 before more tasks.
+- Owner-owed, unchanged: bottom bar and My day on a real iPhone/Android (NAV-5-G shots are emulated; "390 px" shots of SEC-1-I are 500 px, the tool's minimum).
+- Next `/auto` picks: SEC-1-J, NAV-1-H, NAV-2-F, NAV-3-F, then P1-1-F.
+
+## SEC-1-J: screenshots
+- Screenshots `docs/design/audit/SEC-1-J/` (chrome-devtools, cookies `theme`/`locale`): EN dark and AR light at 1440 and 500 px. Rows show the translated table name (ZR shipments / شحنات ZR, Settings / الإعدادات), mobile cards show it once, AR html is rtl, no horizontal scroll. Nothing to fix. Not shot: EN light and AR dark (same tokens).
+- Caveat: the MCP window cannot go below 500 px, so "390" shots are 500 px. Page closed back to about:blank.
+
+## SEC-1-J: done
+- Done: closed SEC-1-I review-1 lows 1-4 (DB.md punctuation, shared audit table label helper with raw-name fallback, structural breakpoint test, live RLS guard via dbContainerUp).
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-J (tsc, 1143 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: review-1 PASS (docs/briefs/SEC-1-J.review-1.md); screenshots in docs/design/audit/SEC-1-J/.
+- Owner: nothing new; EN light and AR dark not shot (same tokens).
+- Next: none for SEC-1-J; merge to v3 pending.
+
+## Antigravity handover prepared (2026-11-20) — DONE (branch v3)
+- Done: `docs/ANTIGRAVITY.md` rewritten (install, sign-in, models, permissions, night run, parallel agents); `scripts/agy-setup.sh`, `scripts/agy-night.sh`, `scripts/agy-parallel.sh`; `.agents/` rules and `loop-auto` skill updated to the current loop (one task per session, `nodb`, `as:<name>`, RUN-END line); `dev-up.sh` takes `APP_PORT`; gate honours `GATE_SKIP_LIVE=1` for no-database workers; `night-run.sh` runs a list of task ids and stashes leftovers instead of committing them (D91).
+- Not verified: `agy` is not installed here, so none of the Antigravity scripts has run. Model names from the docs: Orchestrator (Argon), Gemini 4 Argon, Gemini 4 Hydrogen.
+- Next: merge the four finished features (STORE-3, CONF-1, VAR-1, CHART-1), then STORE-4.
+
+## TEST-2 — flaky live-DB suites
+Root cause (repro: 4x `npx vitest run` + per-file workspace-count diff, logs in $TMPDIR/t2): (1) the seasons backfill test ran the raw 00061 insert for EVERY workspace, racing other files' teardown (audit_log FK 23503); (2) `deleteWorkspaces` emptied only 3 audited tables, so cascades fired `audit_row()` after the workspace row was gone; (3) `store/data.test.ts` ignored the delete error and leaked one workspace per run (audit rows blocked by product_variant_values -> product_option_values FK).
+Fixes: backfill scoped to its own workspace; `AUDITED_WORKSPACE_TABLES` (+ variant tables) in `src/lib/test-cleanup.ts`, checked against pg_trigger by `test-cleanup.test.ts`; data.test.ts asserts the delete. No timeouts seen, so no per-file timeouts added (step 4 skipped: no evidence). Ad-hoc teardown in other suites left as is (redundant, harmless).
+Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60 constant across runs.
+
+## TEST-2 — DONE (branch v3-TEST-2)
+- Done: root cause fixed (seasons backfill scoped to own workspace; shared audited-table teardown in `test-cleanup.ts` incl. variant tables; `store/data.test.ts` asserts delete). See the TEST-2 entry above for evidence.
+- Verify: `scripts/gate.sh` GATE OK on v3-TEST-2 at merge time (tsc, 1145 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: no review file (brief risk low, surface none). The 5x consecutive green run is not re-measured in this pass.
+- Owner: none.
+- Next: merge to v3 (ship step).
+
+### Run report (auto TEST-2)
+- Shipped: TEST-2 (merge b45aa09). Causes: seasons backfill ran on all workspaces, `deleteWorkspaces` emptied 3 of 22 audited tables, data.test leaked a workspace per run.
+- Decisions by Claude: none. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
+### STORE-3 round 5 (D61 follow-up, last allowed round)
+Round 5 ran because the D40 merge without a PASS verdict is refused by the ship step. Merged origin/v3 (P1-7), db reset, types regenerated. Fixed review-4 mediums: pricing payload is now a pure `buildPricingPayload` (unit test + live test: per_value then uniform leaves every `price_delta` 0); the public page shows a sold-out state (Arabic, no offers, no order slot) when every size is out, with a test. Low 3 fixed (offer-price header). Screenshot: `docs/design/audit/STORE-3/r5-store-light-390-soldout.png` (390 light, checked by eye). Rest stays in `docs/briefs/STORE-3.followups.md`.
+
+## STORE-3 — shipped (merge D89)
+Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved under `catalog/products/[id]`, product_offers/product_forms added to the audit lists + labels. Gate OK (1193 pass). Open mediums → STORE-3-F; lows → BACKLOG.
+
+### Run report (auto STORE-3)
+- Shipped: STORE-3 (merge 76c5a5d, bookkeeping c013e27). v3 merged into the branch first: 5 conflicts resolved, migration 00051 renumbered 00077, `selling/` moved under `catalog/products/[id]`, offers/forms tables added to the audit lists. Gate OK (1193 pass, 5 skip).
+- The merge resolution itself had no review round (rounds were used up, D89); STORE-3-F carries the two review-5 mediums, lows are in `docs/BACKLOG.md`.
+- Decisions by Claude: none new. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
+- Next `/auto`: first eligible `todo` row in plan order.
+### CONF-1 done (ship)
+- Done: saved order views (table layout) for confirmation/shipping/all, tabs, URL state, seeded shared views (migration 00056).
+- Verify: gate.sh OK on v3-CONF-1 (tsc, 1257 tests incl. live RLS, i18n parity, color lint, build, secret scan). Review-5 VERDICT: PASS.
+- Evidence: docs/briefs/CONF-1.md, docs/briefs/CONF-1.review-5.md.
+- Owner: 00056 applies before 00051 (parked on STORE-3) on a remote push; open mediums in CONF-1-F, lows in docs/BACKLOG.md.
+- Next: CONF-1-F, then CONF-2.
+
+### Run report (auto CONF-1)
+- Shipped: CONF-1 (merge f546b66). Gate OK, review-5 PASS.
+- Decisions: D92 — CONF-1 merged under D89/D40 (Q-18 answered-by-default); mediums -> CONF-1-F, lows -> BACKLOG.
+- Owner step: remote push of 00056/00057 needs `db push --include-all`.
+- Open questions: Q-15, Q-16, Q-28, Q-29 (answered-by-default, nothing blocked).
+- Next: CONF-2/3/4 and NAV-4-V now unblocked.
+
+## VAR-1 — Variants the owner can set up (2026-11-20) — DONE
+- Done: "+ Size"/"+ Color" quick buttons, colour swatches per value, reusable size sets, adding an option to a product with variants (backfill in one transaction), "Variants" title, SKU hint (migration 00068).
+- Verify: gate.sh OK on v3-VAR-1 after merging v3. Review-4 ESCALATE (no high, two medium), merged under D93 (D89/D40).
+- Evidence: docs/briefs/VAR-1.md, docs/briefs/VAR-1.review-4.md.
+- Owner: Q-26 answered-by-default; mediums in VAR-1-F, 9 lows in docs/BACKLOG.md.
+- Next: VAR-1-F, VAR-1-B (after STORE-3).
+
+### Run report (auto VAR-1)
+- Shipped: VAR-1 (merge c541910). Gate OK after merging v3 (conflicts resolved in 055bd4a); review-4 ESCALATE, no high.
+- Decisions: D93 — VAR-1 merged under D89/D40 (Q-26 answered-by-default); 2 mediums -> VAR-1-F, 9 lows -> BACKLOG.
+- Note: the `ship` skill refuses a non-PASS review, so the D89 merge was done by a one-off agent.
+- Owner step: migration 00068 (variant options, swatches, size sets) is local only; remote `db push` is yours.
+- Open questions: Q-15, Q-16, Q-26, Q-29 (answered-by-default, nothing blocked).
+- Next: CONF-2 (feature rows first), then follow-ups VAR-1-F / VAR-1-B / CONF-1-F.
 ## CHART-1 (build)
-- Charts in `components/charts` (line, bar v/h, donut, stacked), migration 00068 (`kpi_daily`, `kpi_by_weekday_hour`, `kpi_by_product`, `kpi_outcomes`; `daily` dropped from `dashboard_stats`). Dashboard band 4 = money line + stacked cost bar; Statistics = Volume / Outcomes / Where / When.
+- Charts in `components/charts` (line, bar v/h, donut, stacked), migration 00078 (`kpi_daily`, `kpi_by_weekday_hour`, `kpi_by_product`, `kpi_outcomes`; `daily` dropped from `dashboard_stats`). Dashboard band 4 = money line + stacked cost bar; Statistics = Volume / Outcomes / Where / When.
 - Screenshots (chrome devtools): dashboard AR dark 1280, statistics AR dark 1280, dashboard EN light 390; table toggle and tooltip checked by script. Fixed from screenshots: grid min-width blowing out chart width, RTL negative axis labels, fractional count ticks, server-to-client function props. Not screenshotted: pinned touch tooltip, per-chart error/empty states, >90-day thinning (covered by unit tests only).
 - `pnl-waterfall.tsx` kept: finance/overview still uses it (only `WaterfallBand` removed).
 

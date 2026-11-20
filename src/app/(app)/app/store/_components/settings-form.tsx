@@ -10,6 +10,7 @@ import { EnumSelect } from "@/components/fields/enum-select";
 import { Field } from "@/components/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useStatusLabel } from "@/components/status-labels-provider";
 
 import { saveStoreSettings } from "../actions";
 
@@ -20,6 +21,7 @@ type Props = {
 export function SettingsForm({ store }: Props) {
   const t = useTranslations("store.admin");
   const ts = useTranslations("status.store_status");
+  const statusLabel = useStatusLabel();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -69,8 +71,8 @@ export function SettingsForm({ store }: Props) {
               value={status}
               onChange={setStatus}
               options={[
-                { value: "draft", label: ts("draft") },
-                { value: "live", label: ts("live") },
+                { value: "draft", label: statusLabel("store", "draft", ts("draft")) },
+                { value: "live", label: statusLabel("store", "live", ts("live")) },
               ]}
             />
           </Field>

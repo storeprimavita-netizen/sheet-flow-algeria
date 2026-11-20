@@ -44,7 +44,7 @@ describe("WilayaTable", () => {
   test("the unknown-wilaya row has no chevron link and no drill link, and is never hovered", () => {
     const html = table([row(null)], null, null);
     expect(html).not.toContain("aria-expanded");
-    expect(html).not.toContain("/app/orders/all");
+    expect(html).not.toContain("/app/sell/orders");
     expect(html).not.toMatch(/<(tr|td) class="[^"]*bg-surface-raised/);
     // a real hovered row does get the highlight
     expect(table([row(16)], null, 16)).toMatch(/<tr class="[^"]*bg-surface-raised/);
@@ -85,7 +85,7 @@ describe("DrillBanner and drill params", () => {
   });
   test("the way out links to the bare orders list (no drill params)", () => {
     const html = renderToStaticMarkup(<DrillBanner metric="m" parts={[]} clearLabel="Show all" />);
-    expect(html).toContain('href="/app/orders/all"');
+    expect(html).toContain('href="/app/sell/orders"');
     expect(html).not.toContain("drill=");
   });
   test("leaving drill mode removes drill, commune_key, commune_unknown and commune_label", () => {
