@@ -746,3 +746,10 @@ Migration 00073: `options.emoji` (admin-only, DB-checked; ZWJ allowed) and `stat
 
 ## NAV-4 (fix round 2)
 StatusPill renders the default label as sr-only text for an emoji-only override (`isEmojiOnly` in `src/lib/emoji.ts`, tested); the store status select uses overrides; tests for flags/keycaps. Screenshots in docs/design/audit/NAV-4-R2 (each looked at): saved overrides (flag, emoji-only, 40-char truncated in compact pill, AR text), orders (EN dark 1280, AR light 1280), confirmation (EN dark 1280, EN dark 390, AR light 390), real shipping kanban (EN dark 1280, AR light 390), labels block `?section=options` (EN dark 1280, AR light 1280, EN light 390, AR dark 390), agent session (EN dark 1280, AR light 390), /login 390 (EN light, AR dark). The 40-char label was set via SQL for that shot, overrides reset afterwards. Misleading old shots removed. Not done: LOW findings 4-11, action-layer agent-rejection tests.
+
+## NAV-4 ship
+- Done: emoji on option labels, label overrides for system statuses (migration 00073), Settings "Options & labels". Plan row NAV-4 = done; follow-ups NAV-4-F (review-3 LOWs + missing tests, ui, M) and NAV-4-S (anon grants on public.options, H / sec / M) added.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-4 (tsc, 1045 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-4.review-3.md VERDICT: PASS; shots docs/design/audit/NAV-4, NAV-4-R2, NAV-4-R3.
+- Owner: light theme and EN matrix for kanban, customers, agent session not fully captured (see NAV-4-F).
+- Next: NAV-4-S (H, sec) and NAV-4-F; NAV-5 next in lane order.
