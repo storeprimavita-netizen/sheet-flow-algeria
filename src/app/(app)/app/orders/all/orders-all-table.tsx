@@ -101,7 +101,7 @@ export function OrdersAllTable({
   function exportRows(list: AllRow[]) {
     const csv = toCSV(
       [
-        { key: "order", label: "Order", value: (r: AllRow) => formatOrderNo(r.order_seq) },
+        { key: "order", label: t("fields.order"), value: (r: AllRow) => formatOrderNo(r.order_seq) },
         { key: "placed", label: "Placed", value: (r: AllRow) => r.placed_at ?? "" },
         { key: "customer", label: "Customer", value: (r: AllRow) => r.customer_name ?? "" },
         { key: "phone", label: "Phone", value: (r: AllRow) => r.customer_phone ?? "" },
