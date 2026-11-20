@@ -59,12 +59,12 @@ export function StatusSelect({
       disabled={disabled}
     >
       <SelectTrigger className={className}>
-        <StatusPill kind={kind} status={current} size="sm" compact={compact} />
+        <StatusPill kind={kind} status={current} size="sm" compact={compact} truncate={compact} />
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (
           <SelectItem key={o.key} value={o.key}>
-            <StatusPill kind={kind} status={o.key} size="sm" compact={compact} />
+            <StatusPill kind={kind} status={o.key} size="sm" compact={compact} truncate={compact} />
           </SelectItem>
         ))}
       </SelectContent>

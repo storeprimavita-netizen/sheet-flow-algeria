@@ -24,7 +24,8 @@ describe("StatusPill", () => {
   test("an emoji label hides the icon in full, compact and sm", () => {
     for (const p of [{}, { compact: true }, { size: "sm" as const }]) {
       const html = render(emojiOv, <StatusPill kind="confirmation" status="confirmed" {...p} />);
-      expect(html).toContain("🔥 Hot");
+      expect(html).toContain('<span class="shrink-0">🔥</span>');
+      expect(html).toContain("Hot");
       expect(html).not.toContain("<svg");
     }
   });
@@ -50,5 +51,26 @@ describe("Chip emoji", () => {
     const only = renderToStaticMarkup(<Chip emoji="🔥" emojiLabel="Hot" />);
     expect(only).not.toContain('aria-hidden');
     expect(only).toContain('class="sr-only"');
+  });
+});
+
+describe("StatusPill layout", () => {
+  test("no truncate class unless asked (select triggers), gap span for a leading emoji", () => {
+    const html = render(emojiOv, <StatusPill kind="confirmation" status="confirmed" size="sm" compact />);
+    expect(html).not.toContain("truncate");
+    expect(html).not.toContain("max-w-");
+    expect(html).toContain("gap-1");
+    expect(html).toContain('title="🔥 Hot"');
+    expect(render(emojiOv, <StatusPill kind="confirmation" status="confirmed" truncate />)).toContain("truncate");
+  });
+});
+
+describe("server-render smoke", () => {
+  test("a server component importing StatusPill renders (catches a lost use client)", async () => {
+    async function ServerPage() {
+      return <StatusPill kind="confirmation" status="confirmed" />;
+    }
+    const html = renderToStaticMarkup(await ServerPage());
+    expect(html).toContain("status.confirmation_status.confirmed");
   });
 });
