@@ -1780,5 +1780,25 @@
     "supplierNew": "أضف مورداً تشتري منه.",
     "orderNew": "أنشئ طلباً يدوياً.",
     "orderNotFound": "كل الطلبات مع التصفية والبحث والسجل."
+  },
+  "myDay": {
+    "title": "يومي",
+    "subtitle": "طابورك ومهامك المفتوحة والاجتماع القادم.",
+    "queueConfirmation": "طلبات بانتظار التأكيد",
+    "queueDelivery": "طلبات للتسليم",
+    "openQueue": "فتح الطابور",
+    "numbers": "أرقامي اليوم",
+    "stat": {
+      "confirmed": "مؤكدة",
+      "cancelled": "ملغاة",
+      "callAgain": "للاتصال مجددا",
+      "handled": "تمت معالجتها",
+      "delivered": "تم تسليمها",
+      "returned": "مرتجعة"
+    },
+    "tasks": "مهامي المفتوحة",
+    "tasksEmpty": "لا توجد مهام مفتوحة.",
+    "nextMeeting": "الاجتماع القادم",
+    "meetingEmpty": "لا يوجد اجتماع مجدول."
   }
 }

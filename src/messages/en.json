@@ -1780,5 +1780,25 @@
     "supplierNew": "Add a supplier you buy from.",
     "orderNew": "Create an order by hand.",
     "orderNotFound": "Every order, with filters, search and history."
+  },
+  "myDay": {
+    "title": "My day",
+    "subtitle": "Your queue, your open tasks and the next meeting.",
+    "queueConfirmation": "Orders waiting for confirmation",
+    "queueDelivery": "Orders to deliver",
+    "openQueue": "Open queue",
+    "numbers": "My numbers today",
+    "stat": {
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "callAgain": "To call again",
+      "handled": "Handled",
+      "delivered": "Delivered",
+      "returned": "Returned"
+    },
+    "tasks": "My open tasks",
+    "tasksEmpty": "No open tasks.",
+    "nextMeeting": "Next meeting",
+    "meetingEmpty": "No meeting scheduled."
   }
 }
