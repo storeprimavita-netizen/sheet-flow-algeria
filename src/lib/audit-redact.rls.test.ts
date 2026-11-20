@@ -9,7 +9,7 @@ import { deleteWorkspaces } from "./test-cleanup";
 import { DB_CONTAINER, dbContainerUp } from "./test-db";
 
 /** Live SEC-1: a secret written to integration_configs never reaches audit_log. */
-const URL = process.env.LOCAL_SUPABASE_URL;
+const URL = process.env.LOCAL_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const ANON_KEY =
   process.env.LOCAL_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
@@ -21,7 +21,7 @@ const SECRET = "whsec_TESTSEED" + crypto.randomUUID();
 
 const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
-describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
+describe.skipIf(!dbContainerUp)("audit_log redaction (live DB)", () => {
   let svc: SupabaseClient;
   let admin: SupabaseClient;
   let ws: string;

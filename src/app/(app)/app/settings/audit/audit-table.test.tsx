@@ -74,9 +74,18 @@ describe("AuditTable", () => {
   });
   test("changes list renders once per breakpoint class", () => {
     const html = render("en");
-    expect(html.match(/<div class="sm:hidden"><ul/g)).toHaveLength(1);
-    expect(html.match(/<div class="hidden sm:block"><ul/g)).toHaveLength(1);
     expect(html.match(/<ul/g)).toHaveLength(2);
+    expect(html.match(/class="[^"]*\bsm:hidden\b[^"]*"><ul/g)).toHaveLength(1);
+    expect(html.match(/class="[^"]*\bsm:block\b[^"]*"><ul/g)).toHaveLength(1);
+  });
+  test.each(["en", "ar"] as const)("%s: row shows the localized table label, raw name in title", (loc) => {
+    const label = (loc === "en" ? en : ar).audit.tables.settings;
+    const html = render(loc);
+    expect(html).toContain(`<span title="settings">${label}</span>`);
+  });
+  test("unknown table falls back to the raw name in an ltr bdi", () => {
+    const html = render("ar", [{ ...row, table_name: "mystery_table" }]);
+    expect(html).toContain('<span title="mystery_table"><bdi dir="ltr">mystery_table</bdi></span>');
   });
   test("colliding labels are both visible", () => {
     const both = diffRows({ "a.b": 1, a: { b: 1 }, "x › y": 1 }, { "a.b": 2, a: { b: 2 }, "x › y": 2 });
