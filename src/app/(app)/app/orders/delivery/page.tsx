@@ -51,15 +51,20 @@ export default async function DeliveryQueuePage({
     placed_at: o.placed_at,
   }));
 
+  const isAdmin = await isCurrentUserAdmin();
+
   return (
     <div className="space-y-6">
-      <PageHeader title={t("orders.tabs.delivery")} subtitle={t("orders.subtitle")}>
+      <PageHeader title={t("nav.shipping")}
+        subtitle={t("navPurpose.shipping")}
+        related={isAdmin ? [{ href: "/app/orders/confirmation", label: t("nav.confirmation") }] : undefined}
+      >
         <ButtonLink href={showAll ? "/app/orders/delivery" : "/app/orders/delivery?show=all"} variant="outline" size="sm">
           {showAll ? t("orders.showActionable") : t("orders.showClosed")}
         </ButtonLink>
       </PageHeader>
       <OrderTabs active="delivery" />
-      <DeliveryView rows={rows} isAdmin={await isCurrentUserAdmin()} />
+      <DeliveryView rows={rows} isAdmin={isAdmin} />
     </div>
   );
 }

@@ -9,7 +9,6 @@ import { tableClass } from "@/components/field";
 import { createClient } from "@/lib/supabase/server";
 
 import { CreatePageForm } from "../_components/create-page-form";
-import { Crumbs } from "../_components/crumbs";
 import { getStore } from "../_lib/data";
 
 export default async function StorePagesPage() {
@@ -17,7 +16,6 @@ export default async function StorePagesPage() {
   const store = await getStore();
   const head = (
     <div>
-      <Crumbs items={[{ label: t("pages.title") }]} />
       <PageHeader title={t("pages.title")} subtitle={t("pages.purpose")} />
     </div>
   );

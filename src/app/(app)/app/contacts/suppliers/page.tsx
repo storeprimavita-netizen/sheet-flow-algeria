@@ -44,7 +44,7 @@ export default async function SuppliersPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("contacts.title")} subtitle={t("contacts.subtitle")}>
+      <PageHeader title={t("nav.suppliers")} subtitle={t("navPurpose.suppliers")}>
         <ButtonLink href="/app/contacts/suppliers/new">
           <Plus />
           {t("contacts.newSupplier")}

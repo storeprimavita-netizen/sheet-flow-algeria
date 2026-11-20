@@ -717,3 +717,13 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: docs/briefs/NAV-1-G.review-1.md VERDICT: PASS. No new screenshots in this ship step.
 - Owner: none.
 - Next: none from G.
+
+## NAV-2 (build)
+Breadcrumb in top bar (shared, `CrumbRecord` for record names), required `PageHeader.subtitle` + `related`, hubs /app/sell|catalog|money|team via `GroupHub`, store Crumbs removed. Screenshots (browser MCP, dark, AR, 390px): /app/money hub, /app/orders/new breadcrumb overflow. Not captured: light theme, EN, 1280, agent hub, product/order record tails.
+
+## NAV-2 ship
+- Done: NAV-2 breadcrumb in top bar, required `PageHeader.subtitle` + `related`, group hubs /app/sell|catalog|money|team via `GroupHub`, store Crumbs removed.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-2 (tsc, 1016 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-2.review-3.md VERDICT: PASS. Screenshots from build: /app/money hub, /app/orders/new breadcrumb overflow.
+- Owner: light theme, EN, 1280px, agent hub, product/order record tails not captured.
+- Next: NAV-3.

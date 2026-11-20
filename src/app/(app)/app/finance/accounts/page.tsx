@@ -40,7 +40,9 @@ export default async function FinanceAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("accounts.title")} subtitle={t("accounts.subtitle")} />
+      <PageHeader title={t("accounts.title")} subtitle={t("accounts.subtitle")}
+        related={[{ href: "/app/finance/expenses", label: t("nav.expenses") }, { href: "/app/finance/ad-spend", label: t("nav.adSpend") }]}
+      />
       <FinanceTabs active="accounts" />
       <AccountTable accounts={rows} />
     </div>

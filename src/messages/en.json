@@ -38,7 +38,11 @@
     "storeSettings": "Store settings",
     "storeReviews": "Reviews",
     "statistics": "Statistics",
-    "seasons": "Seasons"
+    "seasons": "Seasons",
+    "newRecord": "New",
+    "breadcrumb": "Breadcrumb",
+    "related": "Related",
+    "hubEmpty": "Nothing here for your role."
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -1428,7 +1432,6 @@
     },
     "loading": "Loading",
     "admin": {
-      "breadcrumbRoot": "Store",
       "hub": {
         "title": "Store",
         "purpose": "Your public store: create it, build product pages and publish them.",
@@ -1704,5 +1707,47 @@
       "back_to_school": "Back to school",
       "winter": "Winter"
     }
+  },
+  "navPurpose": {
+    "home": "Today at a glance: orders, revenue and what needs attention.",
+    "confirmation": "Call new orders and confirm or cancel them.",
+    "shipping": "Hand confirmed orders to couriers and follow delivery.",
+    "all": "Every order, with filters, search and history.",
+    "customers": "Your customers and their order history.",
+    "statistics": "Orders and results by wilaya.",
+    "products": "Your products, variants and costs.",
+    "stock": "What is on the shelf and what is running low.",
+    "pricing": "Work out prices and margins before you sell.",
+    "storeHub": "Your online store at a glance.",
+    "storePages": "Product landing pages customers order from.",
+    "storeReviews": "Approve and reply to customer reviews.",
+    "storeSettings": "Store name, branding and checkout options.",
+    "financeOverview": "Revenue, costs and profit in one view.",
+    "accounts": "Cash, bank and wallet balances.",
+    "expenses": "Record and review business expenses.",
+    "adSpend": "Daily advertising spend per platform.",
+    "courierCash": "Cash couriers collected and still owe you.",
+    "income": "Money received outside of orders.",
+    "suppliers": "The suppliers you buy from.",
+    "tasks": "Work to do, by status.",
+    "meetings": "Meeting notes and decisions.",
+    "rules": "How the team works, written down.",
+    "performance": "How each team member is doing.",
+    "settingsOverview": "Workspace-wide preferences.",
+    "usersRoles": "Invite people and set what they can do.",
+    "seasons": "Seasons used to group products and results.",
+    "audit": "Who changed what, and when.",
+    "groupSell": "Take orders from first call to delivery.",
+    "groupCatalog": "Products, stock and pricing.",
+    "groupStore": "Your public storefront.",
+    "groupMoney": "Income, costs and cash.",
+    "groupTeam": "Tasks, meetings and performance.",
+    "groupSettings": "Workspace, people and logs."
+  },
+  "navSubtitle": {
+    "productsNew": "Add a product, then set its variants and costs.",
+    "supplierNew": "Add a supplier you buy from.",
+    "orderNew": "Create an order by hand.",
+    "orderNotFound": "Every order, with filters, search and history."
   }
 }

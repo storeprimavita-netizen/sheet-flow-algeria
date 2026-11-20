@@ -4,11 +4,11 @@ import { z } from "zod";
 
 import { ProductView } from "@/components/store/product-view";
 import { ButtonLink } from "@/components/button-link";
+import { CrumbRecord } from "@/components/breadcrumbs";
 import { assembleProductPage } from "@/lib/store/data";
 import { createClient } from "@/lib/supabase/server";
 import "@/components/store/store.css";
 
-import { Crumbs } from "../../../_components/crumbs";
 import { requireStoreAdmin } from "../../../_lib/data";
 
 // Draft preview: admin layout, session client, RLS decides. Never cached, never reachable from /s.
@@ -35,7 +35,7 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
   return (
     <div className="space-y-4">
       <div>
-        <Crumbs items={[{ label: t("pages.title"), href: "/app/store/pages" }, { label: page.title, href: `/app/store/pages/${id}` }, { label: t("editor.preview") }]} />
+        <CrumbRecord label={page.title} href={`/app/store/pages/${id}`} tail={t("editor.preview")} />
         <p className="text-sm text-muted-foreground">{t("editor.previewHint")}</p>
       </div>
       <ButtonLink href={`/app/store/pages/${id}`} variant="outline" size="sm">

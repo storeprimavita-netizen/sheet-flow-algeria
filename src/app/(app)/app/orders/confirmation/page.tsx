@@ -89,7 +89,10 @@ export default async function ConfirmationQueuePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("orders.tabs.confirmation")} subtitle={t("orders.subtitle")}>
+      <PageHeader title={t("nav.confirmation")}
+        subtitle={t("navPurpose.confirmation")}
+        related={isAdmin ? [{ href: "/app/orders/delivery", label: t("nav.shipping") }] : undefined}
+      >
         <ButtonLink href={showAll ? "/app/orders/confirmation" : "/app/orders/confirmation?show=all"} variant="outline" size="sm">
           {showAll ? t("orders.showActionable") : t("orders.showClosed")}
         </ButtonLink>

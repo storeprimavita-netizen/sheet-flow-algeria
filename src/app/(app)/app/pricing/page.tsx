@@ -50,7 +50,9 @@ export default async function PricingPortfolioPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <PageHeader title={t("title")} subtitle={t("subtitle")}
+        related={[{ href: "/app/products", label: (await getTranslations("nav"))("products") }]}
+      />
       <PortfolioView rows={rows} partial={products.data.length >= PORTFOLIO_ROW_LIMIT} />
     </div>
   );

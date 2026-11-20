@@ -46,6 +46,7 @@ export type NavLeaf = {
 
 export type NavGroup = {
   key: string; // i18n key under nav.*
+  href: string; // hub page
   items: NavLeaf[];
   pinned?: "bottom";
   defaultClosed?: boolean; // collapsed until the user opens it (still forced open when active)
@@ -65,6 +66,7 @@ export const HOME: NavLeaf = {
 export const GROUPS: NavGroup[] = [
   {
     key: "groupSell",
+    href: "/app/sell",
     items: [
       { key: "confirmation", href: "/app/orders/confirmation", icon: PhoneCall, counter: "confirmation" },
       { key: "shipping", oldKey: "delivery", href: "/app/orders/delivery", icon: Truck, counter: "delivery" },
@@ -75,6 +77,7 @@ export const GROUPS: NavGroup[] = [
   },
   {
     key: "groupCatalog",
+    href: "/app/catalog",
     items: [
       { key: "products", href: "/app/products", icon: Package, adminOnly: true },
       { key: "stock", href: "/app/stock", icon: Boxes, adminOnly: true },
@@ -83,6 +86,7 @@ export const GROUPS: NavGroup[] = [
   },
   {
     key: "groupStore",
+    href: "/app/store",
     items: [
       { key: "storeHub", href: "/app/store", icon: Store, adminOnly: true },
       { key: "storePages", href: "/app/store/pages", icon: FileText, adminOnly: true },
@@ -92,6 +96,7 @@ export const GROUPS: NavGroup[] = [
   },
   {
     key: "groupMoney",
+    href: "/app/money",
     items: [
       { key: "financeOverview", href: "/app/finance/overview", icon: BarChart3, adminOnly: true },
       { key: "accounts", href: "/app/finance/accounts", icon: Landmark, adminOnly: true },
@@ -104,6 +109,7 @@ export const GROUPS: NavGroup[] = [
   },
   {
     key: "groupTeam",
+    href: "/app/team",
     items: [
       { key: "tasks", href: "/app/team/tasks", icon: KanbanSquare, counter: "tasks", adminOnly: true },
       { key: "meetings", href: "/app/team/meetings", icon: CalendarClock, adminOnly: true },
@@ -113,6 +119,7 @@ export const GROUPS: NavGroup[] = [
   },
   {
     key: "groupSettings",
+    href: "/app/settings",
     pinned: "bottom",
     defaultClosed: true,
     items: [
@@ -137,7 +144,7 @@ export function visibleNav(role: Role | null): VisibleNav {
     role === "confirmation_agent" ? "confirmation" : role === "delivery_agent" ? "shipping" : null;
   if (!only) return { home: null, groups: [] };
   const items = GROUPS.flatMap((g) => g.items).filter((i) => i.key === only);
-  return { home: null, groups: [{ key: "groupSell", items }] };
+  return { home: null, groups: [{ key: "groupSell", href: "/app/sell", items }] };
 }
 
 /** Every visible destination, flat, in display order (⌘K). */
@@ -167,4 +174,33 @@ export function parseClosedGroups(raw: string | null): Record<string, boolean> {
   } catch {
     return {};
   }
+}
+
+/** i18n key (under navPurpose.*) of a leaf's one-line purpose. */
+export const purposeKey = (leaf: NavLeaf) => `navPurpose.${leaf.key}`;
+
+export type Crumb = { labelKey: string; href?: string };
+
+/**
+ * Breadcrumb trail for a path: Group › Page › (new). Only parts the role may
+ * see. Hub = group only; Home = none. Record names come from <CrumbRecord>.
+ */
+export function crumbsFor(role: Role | null, pathname: string): Crumb[] {
+  const { groups } = visibleNav(role);
+  const hub = groups.find((g) => g.href === pathname);
+  if (hub) return [{ labelKey: `nav.${hub.key}` }];
+  let href = activeLeafHref(role, pathname);
+  // Order records belong to "All orders", which agents cannot see: file them under their own queue.
+  if (!href && pathname.startsWith("/app/orders/") && role !== "admin") href = groups[0]?.items[0]?.href;
+  const group = groups.find((g) => g.items.some((l) => l.href === href));
+  const leaf = group?.items.find((l) => l.href === href);
+  if (!group || !leaf) return [];
+  // A group with a single visible leaf redirects to it, so its crumb is not a link.
+  const crumbs: Crumb[] = [{ labelKey: `nav.${group.key}`, href: group.items.length > 1 ? group.href : undefined }];
+  if (leaf.href !== group.href) crumbs.push({ labelKey: `nav.${leaf.key}`, href: leaf.href });
+  const prefix = [leaf.href, ...(leaf.match ?? [])]
+    .filter((p) => pathname === p || pathname.startsWith(p + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+  if (prefix && pathname.slice(prefix.length).split("/")[1] === "new") crumbs.push({ labelKey: "nav.newRecord" });
+  return crumbs;
 }
