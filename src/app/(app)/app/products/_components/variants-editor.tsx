@@ -119,13 +119,13 @@ export function VariantsEditor({
                 className="max-w-56"
                 onChange={(e) => setOption(i, { name: e.target.value })}
               />
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionUp", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionUp" : "moveOptionUpUnnamed", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
                 <ArrowUp />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("moveOptionDown", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionDown" : "moveOptionDownUnnamed", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
                 <ArrowDown />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("removeOption", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "removeOption" : "removeOptionUnnamed", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
                 <Trash2 />
               </Button>
             </div>

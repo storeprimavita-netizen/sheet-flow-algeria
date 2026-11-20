@@ -17,6 +17,21 @@ const wrap = (locale: "en" | "ar", node: React.ReactNode) =>
     </NextIntlClientProvider>,
   );
 
+describe("named option accessible names", () => {
+  const named = {
+    en: { moveUp: "Move option Size up", moveDown: "Move option Size down", remove: "Remove option Size" },
+    ar: { moveUp: "نقل الخيار Size للأعلى", moveDown: "نقل الخيار Size للأسفل", remove: "حذف الخيار Size" },
+  };
+  for (const l of ["en", "ar"] as const) {
+    test(l, () => {
+      const t = createTranslator({ locale: l, messages: locales[l], namespace: "variants" });
+      expect(t("moveOptionUp", { name: "Size" })).toBe(named[l].moveUp);
+      expect(t("moveOptionDown", { name: "Size" })).toBe(named[l].moveDown);
+      expect(t("removeOption", { name: "Size" })).toBe(named[l].remove);
+    });
+  }
+});
+
 describe("unnamed option accessible names", () => {
   const names = {
     en: { moveUp: "Move Option 1 up", moveDown: "Move Option 1 down", remove: "Remove Option 1", add: "Add value to Option 1", value: "Value 2 of Option 1" },
@@ -26,9 +41,9 @@ describe("unnamed option accessible names", () => {
     test(l, () => {
       const t = createTranslator({ locale: l, messages: locales[l], namespace: "variants" });
       const name = t("optionFallback", { n: 1 });
-      expect(t("moveOptionUp", { name })).toBe(names[l].moveUp);
-      expect(t("moveOptionDown", { name })).toBe(names[l].moveDown);
-      expect(t("removeOption", { name })).toBe(names[l].remove);
+      expect(t("moveOptionUpUnnamed", { name })).toBe(names[l].moveUp);
+      expect(t("moveOptionDownUnnamed", { name })).toBe(names[l].moveDown);
+      expect(t("removeOptionUnnamed", { name })).toBe(names[l].remove);
       expect(t("addValue", { name })).toBe(names[l].add);
       expect(t("valueNumbered", { n: 2, option: name })).toBe(names[l].value);
     });
