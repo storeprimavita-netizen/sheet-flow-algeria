@@ -639,3 +639,8 @@ P1-7-G browser pass completed (chrome-devtools): files in `docs/design/audit/P1-
 - Evidence: docs/briefs/P1-7-H.review-2.md VERDICT: PASS; screenshot pass noted above (not shot: CSV hint light, ZR status reason, AR light).
 - Owner: none for this task. Pre-existing note: unconfirmed order shows `canSend` true; server refuses in English.
 - Next: STORE-1-H, STORE-2-H, then TEST-2 (intermittent live-DB failures).
+
+## STORE-1-H build notes
+- Tests: guard test asserts reported count == pre-count + 1 and nothing left behind; clean-data guard case; `spare` size deleted at test end; anon/PUBLIC lack TRUNCATE/TRIGGER/REFERENCES. The `saveVariantConfig` action needs a session mock, so that test stays a schema test and is named "zod (schema only...)".
+- Real `showsSizeCell`, `StockLevelChip` (`stock/stock-level-chip.tsx`) now exported and tested; VariantsEditor rendered with "" and "  " names (EN+AR); `as never` replaced by `satisfies VariantResult`. Editor: option name trimmed, unnamed input has `placeholder`.
+- Screenshot self-critique (chrome-devtools, docs/design/audit/STORE-1-H-ui/): product edit EN light 1280 full page; stock hub 390 EN light and AR dark with Out (0) and Low (3) chips, each chip one line (height 20); unnamed option EN 390 light shows placeholder "Option 1". Local seed stock reverted via correction movements, temp product deleted. Not shot: stock EN dark, AR light. Observed (out of scope): empty value input has no placeholder.
