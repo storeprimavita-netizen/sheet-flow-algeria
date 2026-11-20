@@ -621,18 +621,23 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
       option_id: { option_id: o2, value_id: blue }, // conflicts with S's Color row (Red): upsert turns into a value change
       variant_id: { variant_id: spare },
     };
-    for (const who of [svc, adminUser]) {
-      for (const [name, over] of Object.entries(changes)) {
-        const upd = await who.from("product_variant_values").update(over).eq("variant_id", vS).eq("option_id", o);
-        expect(upd.error?.message, `update ${name}`).toMatch(/immutable/);
-        if (name === "variant_id") continue; // the upsert key itself changes: not a conflict path
-        const ups = await who.from("product_variant_values").upsert(row(over), { onConflict: "variant_id,option_id" });
-        expect(ups.error?.message, `upsert ${name}`).toMatch(/immutable/);
+    try {
+      for (const who of [svc, adminUser]) {
+        for (const [name, over] of Object.entries(changes)) {
+          const upd = await who.from("product_variant_values").update(over).eq("variant_id", vS).eq("option_id", o);
+          expect(upd.error?.message, `update ${name}`).toMatch(/immutable/);
+          if (name === "variant_id") continue; // the upsert key itself changes: not a conflict path
+          const ups = await who.from("product_variant_values").upsert(row(over), { onConflict: "variant_id,option_id" });
+          expect(ups.error?.message, `upsert ${name}`).toMatch(/immutable/);
+        }
       }
+      expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
+      const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
+      expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
+    } finally {
+      // the value-less size must not outlive the test: the 00070 guard test counts them
+      expect((await svc.from("product_variants").delete().eq("id", spare)).error).toBeNull();
     }
-    expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
-    const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
-    expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
   });
 
   test("00070: authenticated lost TRUNCATE/TRIGGER/REFERENCES and keeps SELECT/INSERT/UPDATE/DELETE on the four variant tables", () => {
@@ -662,14 +667,58 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
     }
   });
 
-  test("00070 guard: refuses a value-less size anywhere, deletes nothing", () => {
+  const guardSql = () => {
     const sql = readFileSync("supabase/migrations/00070_variant_values_hardening.sql", "utf8");
     const guard = sql.slice(sql.indexOf("-- guard:begin"), sql.indexOf("-- guard:end"));
-    const run = `begin;
-      with p as (insert into products(workspace_id, name) values ('${ws}', 'guard-${crypto.randomUUID()}') returning id)
-      insert into product_variants(workspace_id, product_id) select '${ws}', id from p;
+    expect(guard).toContain("raise exception");
+    return guard;
+  };
+  const noValues = "select count(*) from public.product_variants v where not exists (select 1 from public.product_variant_values x where x.variant_id = v.id)";
+  const addBare = (w: string) => `with p as (insert into products(workspace_id, name) values ('${w}', 'guard-${crypto.randomUUID()}') returning id)
+      insert into product_variants(workspace_id, product_id) select '${w}', id from p;`;
+
+  test("00070 guard: refuses a value-less size in any workspace, deletes nothing; count is pre-count + 2", () => {
+    const guard = guardSql();
+    // one snapshot transaction: concurrent suites cannot move the count between pre and post
+    const run = `begin isolation level repeatable read;
+      select 'pre=' || (${noValues});
+      ${addBare(ws)}
+      ${addBare(ws2)}
+      savepoint g;
       ${guard}
       rollback;`;
-    expect(() => psql(run)).toThrow(/guard: \d+ size\(s\) have no value rows/);
+    let out = "";
+    let msg = "";
+    try {
+      out = psql(run);
+    } catch (e) {
+      const err = e as { stdout?: unknown; stderr?: unknown };
+      out = String(err.stdout ?? "");
+      msg = String(err.stderr ?? e);
+    }
+    const pre = Number(out.match(/pre=(\d+)/)?.[1]);
+    const m = msg.match(/guard: (\d+) size\(s\) have no value rows/);
+    expect(Number.isNaN(pre), out + msg).toBe(false);
+    expect(m, msg).not.toBeNull();
+    expect(Number(m![1])).toBe(pre + 2);
+  });
+
+  test("00070 guard: clean data (guard scoped to a fresh workspace, no deletes) does not throw", () => {
+    const fresh = crypto.randomUUID();
+    const guard = guardSql().replace("where not exists", `where v.workspace_id = '${fresh}' and not exists`);
+    expect(guard).toContain(`v.workspace_id = '${fresh}'`);
+    expect(() => psql(`begin;\ninsert into workspaces(id, name) values ('${fresh}', 'clean-${fresh}');\n${guard}\nrollback;`)).not.toThrow();
+  });
+
+  test("00070: anon and PUBLIC lack TRUNCATE/TRIGGER/REFERENCES on the four variant tables", () => {
+    for (const t of ["product_options", "product_option_values", "product_variants", "product_variant_values"]) {
+      for (const priv of ["TRUNCATE", "TRIGGER", "REFERENCES"]) {
+        expect(psql(`select has_table_privilege('anon','public.${t}','${priv}');`).trim(), `anon ${t} ${priv}`).toBe("f");
+        expect(
+          psql(`select exists (select 1 from information_schema.role_table_grants where grantee='PUBLIC' and table_schema='public' and table_name='${t}' and privilege_type='${priv}');`).trim(),
+          `PUBLIC ${t} ${priv}`,
+        ).toBe("f");
+      }
+    }
   });
 });

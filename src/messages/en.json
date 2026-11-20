@@ -1324,6 +1324,7 @@
     "redacted": "Secret value hidden; the code identifies the value without revealing it"
   },
   "variants": {
+    "valuePlaceholder": "Value",
     "optionFallback": "Option {n}",
     "unsavedHint": "Unsaved changes to options and sizes. Use this Save button.",
     "title": "Options and sizes",

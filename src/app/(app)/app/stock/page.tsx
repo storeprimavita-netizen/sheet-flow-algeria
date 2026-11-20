@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
-import { Chip } from "@/components/ui/chip";
+import { StockLevelChip } from "./stock-level-chip";
 import { KpiTile } from "@/components/stats/kpi-tile";
 import { tableClass } from "@/components/field";
 import { StatusPill } from "@/components/status-pill";
@@ -87,10 +87,7 @@ export default async function StockHubPage() {
                       </td>
                       <td className="text-muted-foreground">{p.sku ?? "—"}</td>
                       <td>
-                        <Chip token={isOut ? "danger" : isLow ? "warning" : "neutral"} size="sm" className="whitespace-nowrap">
-                          <span className="num">{p.stock}</span>
-                          {isOut ? ` · ${t("stock.out")}` : isLow ? ` · ${t("stock.low")}` : ""}
-                        </Chip>
+                        <StockLevelChip stock={p.stock} isOut={isOut} isLow={isLow} labels={{ out: t("stock.out"), low: t("stock.low") }} />
                       </td>
                       <td className="num text-end">{stagesById.get(p.id)?.reserved ?? 0}</td>
                       <td className="num text-end">{stagesById.get(p.id)?.on_road ?? 0}</td>

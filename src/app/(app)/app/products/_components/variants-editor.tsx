@@ -62,7 +62,7 @@ export function VariantsEditor({
 
   // option structure is fixed once a size exists (its value rows are immutable); values stay editable
   const locked = variants.some((v) => v.saved);
-  const optName = (o: VariantOption, i: number) => o.name || t("optionFallback", { n: i + 1 });
+  const optName = (o: VariantOption, i: number) => o.name.trim() || t("optionFallback", { n: i + 1 });
 
   const setOption = (i: number, patch: Partial<VariantOption>) => {
     dirty();
@@ -114,18 +114,19 @@ export function VariantsEditor({
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 aria-label={t("optionName")}
+                placeholder={t("optionFallback", { n: i + 1 })}
                 value={o.name}
                 maxLength={60}
                 className="max-w-56"
                 onChange={(e) => setOption(i, { name: e.target.value })}
               />
-              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionUp" : "moveOptionUpUnnamed", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name.trim() ? "moveOptionUp" : "moveOptionUpUnnamed", { name: optName(o, i) })} disabled={i === 0} onClick={() => { dirty(); setOptions(move(options, i, -1)); }}>
                 <ArrowUp />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "moveOptionDown" : "moveOptionDownUnnamed", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name.trim() ? "moveOptionDown" : "moveOptionDownUnnamed", { name: optName(o, i) })} disabled={i === options.length - 1} onClick={() => { dirty(); setOptions(move(options, i, 1)); }}>
                 <ArrowDown />
               </Button>
-              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name ? "removeOption" : "removeOptionUnnamed", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
+              <Button type="button" variant="ghost" size="icon" aria-label={t(o.name.trim() ? "removeOption" : "removeOptionUnnamed", { name: optName(o, i) })} disabled={locked} onClick={() => { dirty(); setOptions(options.filter((_, k) => k !== i)); }}>
                 <Trash2 />
               </Button>
             </div>
@@ -135,6 +136,7 @@ export function VariantsEditor({
                   <Input
                     data-fk={v.id}
                     aria-label={t("valueNumbered", { n: j + 1, option: optName(o, i) })}
+                    placeholder={t("valuePlaceholder")}
                     value={v.label}
                     maxLength={60}
                     dir="auto"
