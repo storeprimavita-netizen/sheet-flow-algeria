@@ -28,6 +28,7 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { workspaceId } = await requireProfile(); // before queries: an RLS-empty read must not become a 404
   const t = await getTranslations();
   const role = await getCurrentUserRole();
   const supabase = await createClient();
@@ -65,7 +66,6 @@ export default async function OrderDetailPage({
   );
 
   const isAdmin = await isCurrentUserAdmin();
-  const { workspaceId } = await requireProfile();
   const [tags, reasons, { data: orderTags }] = await Promise.all([
     getOptionSet(workspaceId, "order_tag"),
     getOptionSet(workspaceId, "cancellation_reason"),

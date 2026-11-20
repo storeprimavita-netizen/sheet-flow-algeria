@@ -35,11 +35,11 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const profile = await requireProfile();
   const t = await getTranslations();
   const locale = await getLocale();
   const overrides = await getStatusLabelOverrides();
   const sl = (kind: "confirmation" | "delivery", key: string, fallback: string) => resolveStatusLabel(overrides, kind, key, locale, fallback);
-  const profile = await requireProfile();
   const isAdmin = await isCurrentUserAdmin();
 
   const supabase = await createClient();

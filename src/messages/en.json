@@ -905,6 +905,13 @@
       }
     }
   },
+  "noAccess": {
+    "title": "No access yet",
+    "body": "Your account isn't active in a workspace. It may be new or deactivated.",
+    "hint": "Ask an admin, then try again.",
+    "retry": "Try again",
+    "account": "Signed in as"
+  },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",
     "email": "Email",
