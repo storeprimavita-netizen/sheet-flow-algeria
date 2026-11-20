@@ -727,3 +727,6 @@ Breadcrumb in top bar (shared, `CrumbRecord` for record names), required `PageHe
 - Evidence: docs/briefs/NAV-2.review-3.md VERDICT: PASS. Screenshots from build: /app/money hub, /app/orders/new breadcrumb overflow.
 - Owner: light theme, EN, 1280px, agent hub, product/order record tails not captured.
 - Next: NAV-3.
+
+## NAV-3 — canonical URLs (v3-NAV-3)
+Moved orders/contacts/products/stock/pricing/finance routes under sell|catalog|money; 308 table in `src/lib/legacy-redirects.ts` (+ test); courier cash now one page with `?tab=collections|income`. Browser check: old income/cash/products URLs land correctly (AR dark, 1280); screenshots in docs/design/audit/NAV-3 (not full light/EN/390 matrix).
