@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AppNotFound() {
   const t = await getTranslations("notFoundPage");
   const profile = await getProfile();
-  const home = profile ? roleHome(profile.role) : "/app/orders";
+  const home = roleHome(profile?.role ?? null);
   return (
     <Empty className="mx-auto max-w-md space-y-4">
       <DocumentTitle title={t("title")} />

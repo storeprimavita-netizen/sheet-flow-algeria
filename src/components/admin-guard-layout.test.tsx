@@ -20,7 +20,16 @@ describe("statistics layout guard", () => {
     expect(requireAdmin).toHaveBeenCalledWith("/app/my-day");
   });
   test("an admin gets the children", async () => {
+    getProfile.mockResolvedValueOnce({ role: "admin", workspaceId: "w" });
     requireAdmin.mockResolvedValueOnce(undefined);
     await expect(StatsLayout({ children: "ok" })).resolves.toBe("ok");
+  });
+  test("no profile goes to /no-access before requireAdmin", async () => {
+    getProfile.mockResolvedValueOnce(null);
+    requireAdmin.mockClear();
+    const err = await StatsLayout({ children: "x" }).catch((e: { message: string; digest?: string }) => e);
+    expect((err as { message: string }).message).toBe("NEXT_REDIRECT");
+    expect((err as { digest?: string }).digest).toContain("/no-access");
+    expect(requireAdmin).not.toHaveBeenCalled();
   });
 });

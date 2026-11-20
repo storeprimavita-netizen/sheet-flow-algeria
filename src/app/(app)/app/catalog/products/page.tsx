@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Plus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { asPnl } from "@/lib/pricing";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
@@ -13,7 +13,7 @@ const SPARK_DAYS = 30;
 
 export default async function ProductsPage() {
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   const since = new Date(Date.now() - SPARK_DAYS * 86400000);

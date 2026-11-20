@@ -91,6 +91,7 @@
   },
   "common": {
     "signOut": "Sign out",
+    "signOutFailed": "Could not sign out. Check your connection and try again.",
     "soon": "soon",
     "noRole": "no role",
     "empty": "Nothing here yet.",
@@ -903,6 +904,13 @@
         "review": "Reviews"
       }
     }
+  },
+  "noAccess": {
+    "title": "No access yet",
+    "body": "Your account isn't active in a workspace. It may be new or deactivated.",
+    "hint": "Ask an admin, then try again.",
+    "retry": "Try again",
+    "account": "Signed in as"
   },
   "login": {
     "subtitle": "Sign in to your Cash on Delivery workspace",

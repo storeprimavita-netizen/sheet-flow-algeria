@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { getTranslations, getLocale } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { getAllOptionSets, getOptionUsageCounts, type OptionSetKey } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
@@ -79,7 +79,7 @@ export default async function SettingsPage({
 }
 
 async function SectionBody({ section }: { section: SectionId }) {
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const ws = profile.workspaceId;
   const supabase = await createClient();
 

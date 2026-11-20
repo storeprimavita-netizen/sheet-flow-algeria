@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { sanitizeSparse } from "@/lib/pricing-form";
 import { portfolioRows } from "@/lib/pricing-portfolio";
-import { getProfile, requireAdmin } from "@/lib/rbac";
+import { requireAdmin, requireProfile } from "@/lib/rbac";
 import { getSetting } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioView } from "./portfolio-view";
@@ -14,7 +14,7 @@ const PORTFOLIO_ROW_LIMIT = 1000;
 export default async function PricingPortfolioPage() {
   await requireAdmin("/app/orders"); // admin-only money: re-checked here, not only in the layout
   const t = await getTranslations("pricingPortfolio");
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
 
   const supabase = await createClient();
   const [products, costs, pricing, defaults] = await Promise.all([

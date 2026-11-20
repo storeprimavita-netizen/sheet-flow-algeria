@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
@@ -17,7 +17,7 @@ export default async function SupplierDetailPage({
 }) {
   const { id } = await params;
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
 
   const supabase = await createClient();
   const [{ data: contact }, { data: expenses }, { data: products }, usdRate, eurRate, subcategories] = await Promise.all([

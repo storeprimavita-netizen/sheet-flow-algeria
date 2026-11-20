@@ -30,8 +30,8 @@ describe("app not-found", () => {
       expect(find(tree, (p, type) => type === "h1" && p.children === "t:title")).not.toBeNull();
     }
   });
-  test("no profile falls back to the orders home", async () => {
+  test("no profile links to /no-access", async () => {
     getProfile.mockResolvedValue(null);
-    expect(find(await AppNotFound(), (p) => typeof p.href === "string")?.href).toBe("/app/orders");
+    expect(find(await AppNotFound(), (p) => typeof p.href === "string")?.href).toBe("/no-access");
   });
 });

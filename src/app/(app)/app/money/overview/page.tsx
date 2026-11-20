@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Banknote, Landmark, Megaphone, Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { asKpi, kpiRoas } from "@/lib/kpi";
@@ -36,7 +36,7 @@ export default async function FinanceOverviewPage({
   const product = sp.product || undefined;
 
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   const [

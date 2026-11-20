@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
 import { FinanceTabs } from "../finance-tabs";
 import { AccountTable } from "@/components/finance/account-table";
@@ -18,7 +18,7 @@ type BalanceRow = {
 
 export default async function FinanceAccountsPage() {
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   const [{ data: accounts }, { data: balances }] = await Promise.all([

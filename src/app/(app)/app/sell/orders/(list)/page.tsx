@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin, getProfile } from "@/lib/rbac";
+import { isCurrentUserAdmin, requireProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
 import { CONFIRMATION_STATUS } from "@/lib/statuses";
 import { getOptionSet } from "@/lib/option-sets";
@@ -174,7 +174,7 @@ export default async function AllOrdersPage({
 
   // status history for the orders on this page → the detail-sheet timeline
   const orderIds = (orders ?? []).map((o) => o.id);
-  const { workspaceId } = (await getProfile())!;
+  const { workspaceId } = await requireProfile();
   const [{ data: events }, { data: orderTags }, tagOptions, categoryOptions] = await Promise.all([
     orderIds.length
       ? supabase

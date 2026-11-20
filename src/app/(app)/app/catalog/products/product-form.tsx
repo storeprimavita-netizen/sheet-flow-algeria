@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import type { Tables } from "@/lib/supabase/database.types";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { getOptionSet } from "@/lib/option-sets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export async function ProductForm({
 }) {
   const t = await getTranslations();
   const editing = Boolean(product?.id);
-  const { workspaceId } = (await getProfile())!;
+  const { workspaceId } = await requireProfile();
   const [categories, fabrics] = await Promise.all([
     getOptionSet(workspaceId, "product_category"),
     getOptionSet(workspaceId, "product_fabric"),

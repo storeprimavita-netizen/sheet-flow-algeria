@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { asKpi, type Kpi } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -36,7 +36,7 @@ export default async function DashboardPage({
   const get = (k: string) => (typeof sp[k] === "string" && sp[k] ? (sp[k] as string) : "");
 
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   // Only period + product filter the dashboard; other params are ignored.

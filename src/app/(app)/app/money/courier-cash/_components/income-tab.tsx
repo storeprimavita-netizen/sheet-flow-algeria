@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { asPnl, type PnlLines } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/format";
 import { Empty } from "@/components/empty";
@@ -15,7 +15,7 @@ type Row = { productId: string; name: string; pnl: PnlLines };
 export async function IncomeTab({ from, to }: { from?: string; to?: string }) {
 
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   // One money model (00022): per-product lines + workspace totals from the

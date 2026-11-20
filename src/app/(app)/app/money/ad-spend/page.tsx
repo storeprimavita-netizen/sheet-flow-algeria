@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/lib/rbac";
+import { requireProfile } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
 import { AdSpendForm } from "@/components/finance/ad-spend-form";
 import { AdSpendTable } from "@/components/finance/ad-spend-table";
@@ -17,7 +17,7 @@ export default async function FinanceAdSpendPage({
   const { from, to, product, kind } = sp;
 
   const t = await getTranslations();
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const supabase = await createClient();
 
   let query = supabase
