@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
 import { Chip } from "@/components/ui/chip";
+import { useTableLabel } from "./_lib/table-label";
 
 const ALL = "__all";
 
@@ -25,7 +26,7 @@ export function AuditFilterBar({
   const pathname = usePathname();
   const sp = useSearchParams();
   const get = (k: string) => sp.get(k) ?? "";
-  const tableLabel = (n: string) => (t.has(`audit.tables.${n}`) ? t(`audit.tables.${n}`) : n);
+  const tableLabel = useTableLabel();
   const sortedTables = [...tables].sort((a, b) => tableLabel(a).localeCompare(tableLabel(b), locale));
 
   function setDates(from: string, to: string) {

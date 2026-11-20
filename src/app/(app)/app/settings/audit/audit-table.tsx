@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/button-link";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatDateTime } from "@/lib/format";
+import { useTableLabel } from "./_lib/table-label";
 import type { DiffChange, DiffValue } from "./_lib/diff";
 
 export type AuditRow = {
@@ -47,6 +48,15 @@ export function ChangeList({ changes }: { changes: DiffChange[] }) {
   );
 }
 
+function TableName({ name }: { name: string }) {
+  const label = useTableLabel()(name);
+  return (
+    <span title={name}>
+      {label === name ? <bdi dir="ltr">{name}</bdi> : label}
+    </span>
+  );
+}
+
 export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filtered?: boolean }) {
   const t = useTranslations();
 
@@ -55,7 +65,7 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
     { id: "created_at", header: t("fields.date"), className: "hidden sm:table-cell", sticky: true, cell: (r) => <bdi dir="ltr" className="whitespace-nowrap text-muted-foreground">{formatDateTime(r.created_at)}</bdi> },
     { id: "table", header: t("team.table"), cell: (r) => (
         <>
-          {r.table_name}
+          <TableName name={r.table_name} />
           <div className="text-xs text-muted-foreground sm:hidden"><bdi dir="ltr">{formatDateTime(r.created_at)}</bdi></div>
           <div className="text-xs text-muted-foreground sm:hidden">{r.action} · {r.actor_name}</div>
           {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
