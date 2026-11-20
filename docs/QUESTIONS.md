@@ -243,6 +243,26 @@ with no option value. No screen can create such a size (only the tests do), so
 it was settled as a technical point in D82: such a size is never filled in by
 guessing.
 
+It came up a fourth time on 20 November, on the delivery prices follow-up task
+(P1-7-F: the small points left on the price sheet upload, the swap card and the
+order form). Its third review found nothing serious, and two medium points.
+First, in a price sheet, when a `:` is typed where the `|` should be between
+the two prices of a wilaya (for example "home:1350:720" instead of
+"home:1350|home:720"), the app reads 720 as the home delivery price and says
+nothing. Second, some of the screenshots that show the screens were checked
+are missing, and one carries the wrong name. **Applied the same way (D84):**
+one last short round for these two points, merged only if the review passes;
+if not, it waits for your OK. What changes for you: a price that is not
+written exactly as "name:number" is no longer read at all. The preview shows a
+warning for that line and the wilaya appears with no price (shipping off)
+until the line is corrected; no price is ever guessed. Your current sheet is
+not affected: its 106 prices are all written correctly (checked), so it gives
+the same result before and after. One thing to know: the app you have today
+reads this typing mistake wrongly too, so until this task is merged, look at
+the home price column in the preview before you press Apply on a new sheet.
+The other option was to read "home:1350:720" as home 1,350 and stop-desk 720;
+it was not taken because it is a guess about a price your customers pay.
+
 Nothing is blocked.
 
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default

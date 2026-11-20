@@ -103,7 +103,7 @@ export function Combobox({
                   onSelect={() => select(o.value)}
                 >
                   {o.icon}
-                  <span className="truncate">{o.label}</span>
+                  <span className="truncate"><bdi>{o.label}</bdi></span>
                   {current === o.value ? <Check className="ms-auto h-4 w-4 text-primary" /> : null}
                 </CommandItem>
               ))}

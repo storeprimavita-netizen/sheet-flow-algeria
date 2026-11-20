@@ -33,6 +33,57 @@ describe("parseDeliveryCsv", () => {
     expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: 720 });
     expect(r.warnings.map((w) => w.type)).toEqual(["repeated_label"]);
   });
+  describe("hostile fee parts (P1-7-F)", () => {
+    const one = (custom: string) => parseDeliveryCsv(`${H}DZ,8-Béchar,,,rate,,${custom}\n`);
+    it.each(["abc", "-5", ""])("home:%s|home:720 leaves home null, second stays stop-desk", (bad) => {
+      const r = one(`${HOME}:${bad}|${HOME}:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
+      expect(r.warnings.map((w) => w.type)).toContain("repeated_label");
+    });
+    it("home:720|home:0 keeps home, warns zero", () => {
+      const r = one(`${HOME}:720|${HOME}:0`);
+      expect(r.wilayas[0]).toMatchObject({ home: 720, stopdesk: null, priced: true });
+      expect(r.warnings.map((w) => w.type)).toEqual(["repeated_label", "zero_price"]);
+    });
+    it("home:0|home:0 stays unpriced", () => {
+      const r = one(`${HOME}:0|${HOME}:0`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
+    });
+    it("colon-less part warns", () => {
+      const r = one(`${HOME} 1350|${HOME}:720`);
+      expect(r.warnings[0].type).toBe("malformed_row");
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
+    });
+    it("home:1350:720 gives no price at all", () => {
+      const r = one(`${HOME}:1350:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
+      expect(r.warnings.filter((w) => w.type === "malformed_row")).toHaveLength(1);
+    });
+    it("home:1350:720|home:500 keeps 500 as stop-desk only", () => {
+      const r = one(`${HOME}:1350:720|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 500, priced: false });
+    });
+    it.each(["1350", "١٣٥٠"])("digit %s in the label (colon typed as space) gives no price", (d) => {
+      const r = one(`${HOME} ${d}:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it("desk:900:720 after a good home keeps home, no stop-desk", () => {
+      const r = one(`${HOME}:1350|${DESK}:900:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: null });
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it.each(["0x10", "1e3"])("rejects %s", (bad) => {
+      const r = one(`${HOME}:${bad}|${DESK}:500`);
+      expect(r.wilayas[0].home).toBeNull();
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it("1350|720|500 keeps first stop-desk price and warns", () => {
+      const r = one(`${HOME}:1350|${HOME}:720|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: 720 });
+      expect(r.warnings.map((w) => w.type)).toEqual(["repeated_label", "repeated_label"]);
+    });
+  });
   it("first of two home labels at 0 never turns the second into the home price (Béchar)", () => {
     const r = parseDeliveryCsv(`${H}DZ,8-Béchar,,,rate,,${HOME}:0|${HOME}:720\n`);
     expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false, stopdeskAvailable: false });
@@ -108,6 +159,11 @@ describe("diffDeliveryPrices", () => {
   it("a commune spelling change with the same count counts as changed", () => {
     const d = diffDeliveryPrices(parsed, [stored({ communes: ["Adrare"] }), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] })]);
     expect(d.rows.map((r) => r.changed)).toEqual([true, false]);
+  });
+  it("commune-only change lists the added and removed names", () => {
+    const d = diffDeliveryPrices(parsed, [stored({ communes: ["Old"] }), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] })]);
+    expect(d.rows[0]).toMatchObject({ changed: true, communesAdded: ["Adrar"], communesRemoved: ["Old"] });
+    expect(d.rows[1]).toMatchObject({ communesAdded: [], communesRemoved: [] });
   });
   it("payload mirrors the parse", () => {
     expect(toApplyPayload(parsed).wilayas[1]).toMatchObject({ code: 33, priced: false, home_fee: null });

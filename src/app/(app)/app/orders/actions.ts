@@ -132,21 +132,30 @@ export async function switchOrderToHome(orderId: string): Promise<UpdateResult> 
   const supabase = await createClient();
   const { data: order } = await supabase
     .from("orders")
-    .select("wilaya_code, delivery_type")
+    .select("wilaya_code, delivery_type, delivery_status")
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (!order?.wilaya_code) return { ok: false, error: "Order needs a wilaya first." };
+  if (!order?.wilaya_code) return { ok: false, error: "orders.zrexpress.switch.needsWilaya" };
+  if (order.delivery_status !== "wait_for_deposit") return { ok: false, error: "orders.zrexpress.switch.status" };
+  if (order.delivery_type === "home") return { ok: false, error: "orders.zrexpress.switch.alreadyHome" };
   const { data: sent } = await supabase.from("zr_shipments").select("order_id").eq("order_id", id).maybeSingle();
-  if (sent) return { ok: false, error: "This order was already sent to ZR Express." };
+  if (sent) return { ok: false, error: "orders.zrexpress.switch.sent" };
+  const { data: wf } = await supabase
+    .from("wilaya_fees")
+    .select("stop_shipping")
+    .eq("workspace_id", workspaceId)
+    .eq("wilaya_code", order.wilaya_code)
+    .maybeSingle();
+  if (wf?.stop_shipping) return { ok: false, error: "orders.zrexpress.switch.stopped" };
   const { data: fee } = await supabase.rpc("delivery_fee_for", { p_ws: workspaceId, p_wilaya: order.wilaya_code, p_type: "home" });
-  if (fee === null || fee === undefined) return { ok: false, error: "Home delivery is not available in this wilaya." };
+  if (fee === null || fee === undefined) return { ok: false, error: "orders.zrexpress.switch.unavailable" };
   const { error } = await supabase
     .from("orders")
     .update({ delivery_type: "home", delivery_fee: Number(fee), delivery_fee_source: "wilaya_table" })
     .eq("id", id)
     .eq("workspace_id", workspaceId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: "orders.zrexpress.switch.failed" };
   revalidatePath(`/app/orders/${id}`);
   return { ok: true };
 }
@@ -495,7 +504,7 @@ export async function changeOrderVariant(orderId: string, variantId: string): Pr
 const swapOrderSchema = z.object({
   customer_name: z.string().trim().min(1),
   customer_phone: z.string().trim().min(1),
-  wilaya_code: z.coerce.number().int(),
+  wilaya_code: z.coerce.number().int().min(1).max(58),
   commune: optionalText,
   address: optionalText,
 });
@@ -503,13 +512,15 @@ const swapOrderSchema = z.object({
 export async function swapOrder(orderId: string, formData: FormData): Promise<{ error: string } | undefined> {
   const { workspaceId } = await adminProfile();
   const id = z.string().uuid().parse(orderId);
-  const input = swapOrderSchema.parse({
+  const parsedInput = swapOrderSchema.safeParse({
     customer_name: formData.get("customer_name"),
     customer_phone: formData.get("customer_phone"),
     wilaya_code: formData.get("wilaya_code"),
     commune: formData.get("commune"),
     address: formData.get("address"),
   });
+  if (!parsedInput.success) return { error: "swap.invalid" };
+  const input = parsedInput.data;
 
   const supabase = await createClient();
 
@@ -525,7 +536,16 @@ export async function swapOrder(orderId: string, formData: FormData): Promise<{ 
   });
   if (swapErr || !newOrderId) {
     // the RPC refuses a delivery type the destination wilaya cannot ship; anything else is a generic failure
-    return { error: /not available/.test(swapErr?.message ?? "") ? "form.blocked.type_unavailable" : "swap.failed" };
+    if (!/not available/.test(swapErr?.message ?? "")) return { error: "swap.failed" };
+    const { data: wf, error: wfErr } = await supabase
+      .from("wilaya_fees")
+      .select("stop_shipping, priced")
+      .eq("workspace_id", workspaceId)
+      .eq("wilaya_code", input.wilaya_code)
+      .maybeSingle();
+    if (wfErr || !wf) return { error: "swap.failed" };
+    if (wf.stop_shipping) return { error: "form.blocked.stopped" };
+    return { error: wf.priced ? "form.blocked.type_unavailable" : "form.blocked.unpriced" };
   }
 
   // only after the swap succeeded: link the customer record to the new order

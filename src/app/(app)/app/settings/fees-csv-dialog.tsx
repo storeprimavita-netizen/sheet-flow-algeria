@@ -69,7 +69,9 @@ export function FeesCsvDialog() {
     try {
       const res = await applyDeliveryCsv(fd);
       if (!res.ok) return setPhase({ name: "failed", data, error: res.error });
-      toast.success(t("success", { count: res.changed }));
+      // a commune-only file changes no fee: say what did change instead of "No prices changed"
+      const communeRows = data.diff.rows.filter((r) => r.communesAdded.length || r.communesRemoved.length).length;
+      toast.success(res.changed === 0 && communeRows > 0 ? t("successCommunes", { count: communeRows }) : t("success", { count: res.changed }));
       setOpen(false);
       reset();
       router.refresh();
@@ -118,7 +120,7 @@ export function FeesCsvDialog() {
                 aria-describedby="csv-format-hint"
               />
               <p id="csv-format-hint" className="text-xs text-muted-foreground">
-                <bdi>{t("formatHint")}</bdi>
+                {t.rich("formatHint", { cols: (c) => <bdi>{c}</bdi> })}
               </p>
             </div>
 
@@ -264,6 +266,20 @@ function Change({ before, after, label }: { before: string; after: string; label
   );
 }
 
+const MAX_NAMES = 12;
+
+function CommuneNames({ label, list }: { label: string; list: string[] }) {
+  const t = useTranslations("settings.deliveryCsv");
+  if (!list.length) return null;
+  const more = list.length - MAX_NAMES;
+  return (
+    <p className="text-xs text-muted-foreground">
+      <span className="font-medium">{label}</span> <bdi>{list.slice(0, MAX_NAMES).join(", ")}</bdi>
+      {more > 0 ? <> {t("moreNames", { count: more })}</> : null}
+    </p>
+  );
+}
+
 function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
   const t = useTranslations("settings.deliveryCsv");
   const a = row.after;
@@ -294,6 +310,8 @@ function PreviewRow({ row, name }: { row: DeliveryDiffRow; name: string }) {
           <Change before={String(row.communesBefore)} after={String(row.communesAfter)} label={t("after")} />
         </dd>
       </dl>
+      <CommuneNames label={t("communesAdded")} list={row.communesAdded} />
+      <CommuneNames label={t("communesRemoved")} list={row.communesRemoved} />
       {row.warnings.length ? <FileWarnings warnings={row.warnings} /> : null}
     </li>
   );

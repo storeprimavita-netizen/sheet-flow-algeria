@@ -13,12 +13,14 @@ export function QuantityStepper({
   min = 1,
   max = 9999,
   disabled,
+  ariaLabel,
 }: {
   name?: string;
   defaultValue?: number;
   min?: number;
   max?: number;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const t = useTranslations();
   const [value, setValue] = React.useState(defaultValue);
@@ -41,6 +43,7 @@ export function QuantityStepper({
       <input
         type="text"
         inputMode="numeric"
+        aria-label={ariaLabel}
         dir="ltr"
         disabled={disabled}
         value={value}
