@@ -710,3 +710,10 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 ## NAV-1-G build
 - Done: drawer dialog name `nav.menu`, aside tabIndex only while drawer open, `dir="ltr"` on three kbd hints, substring palette filter (`src/lib/palette-filter.ts`, Arabic-normalised) wired via `CommandDialog filter`, NAV-1-F brief example fixed. Tests in `src/lib/palette-filter.test.ts`.
 - Screenshots: not taken in this build session (no browser run); left for /verify ui-reviewer.
+
+## NAV-1-G ship
+- Done: NAV-1-G drawer dialog name, aside tabIndex only while drawer open, ltr kbd hints, substring palette filter (`src/lib/palette-filter.ts`), tests.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-1-G (tsc, 1010 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-1-G.review-1.md VERDICT: PASS. No new screenshots in this ship step.
+- Owner: none.
+- Next: none from G.
