@@ -90,14 +90,14 @@ describe("swapped orders", () => {
   it("refuses a swapped order and never calls the carrier", async () => {
     const { client, inserts } = fakeSupabase(null, { order: { swapped_to_order_id: "o2" } });
     const r = await pushToZR(client, "w", "o1");
-    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("swapped") });
+    expect(r).toEqual({ ok: false, error: "This order is swapped or already past dispatch and cannot be sent." });
     expect(creates).toBe(0);
     expect(inserts).toEqual([]);
   });
   it("refuses status swap even when the link was cleared by a deleted replacement", async () => {
     const { client, inserts } = fakeSupabase(null, { order: { swapped_to_order_id: null, delivery_status: "swap" } });
     const r = await pushToZR(client, "w", "o1");
-    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("swapped") });
+    expect(r).toEqual({ ok: false, error: "This order is swapped or already past dispatch and cannot be sent." });
     expect(creates).toBe(0);
     expect(inserts).toEqual([]);
   });
