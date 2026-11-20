@@ -6,8 +6,12 @@ import { describe, expect, test } from "vitest";
 const files = [
   path.resolve(__dirname, "page.tsx"),
   ...readdirSync(path.resolve(__dirname, "../../../../components/dashboard"))
-    .filter((f) => /^(band|needs-action-band|money-band|order-journey|stock-strip|product-scorecard|usd-first)\.tsx$/.test(f))
+    .filter((f) => /^(band|needs-action-band|money-band|money-chart|order-journey|stock-strip|product-scorecard|usd-first)\.tsx$/.test(f))
     .map((f) => path.resolve(__dirname, "../../../../components/dashboard", f)),
+  // CHART-1: the shared chart components are drawing code, no formula either
+  ...readdirSync(path.resolve(__dirname, "../../../../components/charts"))
+    .filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f))
+    .map((f) => path.resolve(__dirname, "../../../../components/charts", f)),
 ];
 
 describe("dashboard reads SQL figures only", () => {
@@ -35,6 +39,17 @@ describe("dashboard reads SQL figures only", () => {
   test("empty period shows no false signals", () => {
     expect(comp("money-band.tsx")).toContain("if (before === 0) return null");
     expect(comp("money-band.tsx")).toContain("Math.abs(pct) < 0.05");
-    expect(comp("pnl-waterfall.tsx")).toContain("s.value !== 0");
+    // the chart draws SQL figures as they are: a zero is a value, a missing day is a gap
+    expect(comp("money-chart.tsx")).toContain("!== 0");
+    expect(comp("money-band.tsx")).toContain("s.value !== 0");
+  });
+  test("money chart reads kpi_daily from SQL", () => {
+    expect(readFileSync(files[0], "utf8")).toContain('rpc("kpi_daily"');
+    expect(comp("money-chart.tsx")).not.toMatch(/\/ ?\w*(revenue|costs)|revenue ?[-*] |profit ?=/);
+  });
+  test("the profit waterfall is gone and nothing imports it", () => {
+    expect(() => readFileSync(path.resolve(__dirname, "../../../../components/dashboard/pnl-waterfall.tsx"), "utf8")).toThrow();
+    const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : /\.tsx?$/.test(e.name) && !e.name.endsWith(".test.ts") ? [path.join(d, e.name)] : []));
+    for (const f of walk(path.resolve(__dirname, "../../../../"))) expect(readFileSync(f, "utf8"), f).not.toMatch(/pnl-waterfall|PnlWaterfall/);
   });
 });

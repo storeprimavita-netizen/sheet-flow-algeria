@@ -983,3 +983,16 @@ Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved un
 - Owner step: migration 00068 (variant options, swatches, size sets) is local only; remote `db push` is yours.
 - Open questions: Q-15, Q-16, Q-26, Q-29 (answered-by-default, nothing blocked).
 - Next: CONF-2 (feature rows first), then follow-ups VAR-1-F / VAR-1-B / CONF-1-F.
+## CHART-1 (build)
+- Charts in `components/charts` (line, bar v/h, donut, stacked), migration 00078 (`kpi_daily`, `kpi_by_weekday_hour`, `kpi_by_product`, `kpi_outcomes`; `daily` dropped from `dashboard_stats`). Dashboard band 4 = money line + stacked cost bar; Statistics = Volume / Outcomes / Where / When.
+- Screenshots (chrome devtools): dashboard AR dark 1280, statistics AR dark 1280, dashboard EN light 390; table toggle and tooltip checked by script. Fixed from screenshots: grid min-width blowing out chart width, RTL negative axis labels, fractional count ticks, server-to-client function props. Not screenshotted: pinned touch tooltip, per-chart error/empty states, >90-day thinning (covered by unit tests only).
+- `pnl-waterfall.tsx` kept: finance/overview still uses it (only `WaterfallBand` removed).
+
+CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, D83), toggles min-h-11 below sm, daily series runs to the last order day (00069), reversed range swapped on All orders, weekday names in banner and full AR short names. Finding 3: code already pins on touch tap (use-chart.ts onClick, preventDefault); not re-checked with touch emulation, and no screenshots taken this round (no browser tool used).
+
+### Ship (CHART-1)
+- Done: CHART-1 merged as built under D89/D94 (review-4 ESCALATE, no high). Follow-up CHART-1-B (366-day cap first, no-costs empty state, table links).
+- Verify: scripts/gate.sh GATE OK (tsc, 1363 tests, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: branch v3-CHART-1; merge into v3 pending in this run.
+- Owner: remote migration 00078 is local only; remote `db push` is yours.
+- Next: CHART-1-B.

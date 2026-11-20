@@ -16,7 +16,7 @@ import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { applyOrderConfig, orderSort } from "../_lib/order-query";
 import { Empty } from "@/components/empty";
 import { DrillBanner } from "@/components/stats/drill-banner";
-import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY } from "@/lib/query-string";
+import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY, OUTCOME_DRILLS } from "@/lib/query-string";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
 
@@ -45,7 +45,9 @@ export default async function AllOrdersPage({
 
   // Drill mode (from /app/statistics): the exact orders behind one SQL count. The id list comes
   // from kpi_drill_orders (same set, commune key and predicate as the table), one page at a time.
-  const drillMetric = ["received", "confirmed", "delivered", "return", "shipped"].find((m) => m === get("drill")) ?? null;
+  const drillMetric = (["received", "confirmed", "delivered", "return", "shipped", ...OUTCOME_DRILLS] as string[]).find((m) => m === get("drill")) ?? null;
+  const weekday = /^[1-7]$/.test(get("weekday")) ? get("weekday") : "";
+  const hour = /^([0-9]|1\d|2[0-3])$/.test(get("hour")) ? get("hour") : "";
   const communeKey = get("commune_key");
   // display only (original spelling for the banner); the key stays the filter
   const communeLabel = get("commune_label").slice(0, MAX_COMMUNE_KEY);
@@ -57,7 +59,13 @@ export default async function AllOrdersPage({
   if (category) drillFilters.category = category;
   if (confAgent) drillFilters.agent = confAgent;
   if ((ORDER_SOURCES as readonly string[]).includes(get("source"))) drillFilters.source = get("source");
+  if (weekday) drillFilters.weekday = weekday;
+  if (hour) drillFilters.hour = hour;
   const communeUnknown = get(COMMUNE_UNKNOWN_PARAM) === "1";
+  // a reversed range is swapped, as Dashboard and Statistics do (the range check would raise)
+  const rawFrom = isRealIsoDate(get("from")) ? get("from") : undefined;
+  const rawTo = isRealIsoDate(get("to")) ? get("to") : undefined;
+  const [drillFrom, drillTo] = rawFrom && rawTo && rawFrom > rawTo ? [rawTo, rawFrom] : [rawFrom, rawTo];
   let drillIds: string[] | null = null;
   let drillTotal = 0;
   let drillFailed = false;
@@ -67,8 +75,8 @@ export default async function AllOrdersPage({
   } else if (drillMetric) {
     const { data: drill, error: drillError } = await supabase.rpc("kpi_drill_orders", {
       p_metric: drillMetric,
-      p_from: isRealIsoDate(get("from")) ? get("from") : undefined,
-      p_to: isRealIsoDate(get("to")) ? get("to") : undefined,
+      p_from: drillFrom,
+      p_to: drillTo,
       p_product: /^[0-9a-f-]{36}$/i.test(get("product_id")) ? [get("product_id")] : undefined,
       p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
       p_commune_key: communeKey && !communeUnknown ? communeKey : undefined,
@@ -240,6 +248,8 @@ export default async function AllOrdersPage({
           parts={[
             wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code"),
             deliveryType === "home" || deliveryType === "stopdesk" ? t(`statistics.${deliveryType}`) : "",
+            weekday ? t(`statistics.charts.weekday.${weekday}`) : "",
+            hour ? t("orders.drill.hour", { n: hour }) : "",
             communeUnknown ? t("statistics.unknownCommune") : communeKey ? (communeLabel ? communeBannerLabel(communeKey, communeLabel) : communeKey) : "",
           ]}
           clearLabel={t("orders.drill.clear")}

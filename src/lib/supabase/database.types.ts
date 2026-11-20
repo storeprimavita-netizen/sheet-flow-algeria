@@ -1884,6 +1884,9 @@ isOneToOne: false
 "bootstrap_workspace":
 { Args: { "p_email": string,"p_workspace_name"?: string }; Returns: string
                            },
+"chart_range_ok":
+{ Args: { "p_from": string,"p_to": string }; Returns: boolean
+                           },
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -1907,9 +1910,24 @@ isOneToOne: false
               "commune": string,"commune_key": string,"extras": Json,"rates": Json
             }[]
                            },
+"kpi_by_product":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "product_id": string,"product_name": string,"rates": Json
+            }[]
+                           },
+"kpi_by_weekday_hour":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "bucket": number,"kind": string,"rates": Json
+            }[]
+                           },
 "kpi_by_wilaya":
 { Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
               "extras": Json,"rates": Json,"wilaya_code": number,"wilaya_name": string
+            }[]
+                           },
+"kpi_daily":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "day": string,"immature": boolean,"money": Json,"rates": Json
             }[]
                            },
 "kpi_drill_orders":
@@ -1931,6 +1949,11 @@ isOneToOne: false
               "id": string
             }[]
                            },
+"kpi_outcomes":
+{ Args: { "p_filters"?: Json,"p_from"?: string,"p_product"?: (string)[],"p_to"?: string }; Returns: {
+              "n": number,"outcome": string
+            }[]
+                           },
 "kpi_rates":
 { Args: { "p_from"?: string,"p_order_ids": (string)[],"p_to"?: string }; Returns: Json
                            },
@@ -1942,6 +1965,9 @@ isOneToOne: false
                            },
 "normalize_dz_phone":
 { Args: { "p": string }; Returns: string
+                           },
+"order_outcome":
+{ Args: { "p_confirmation": string,"p_delivery": string,"p_swapped": string }; Returns: string
                            },
 "order_stock_target":
 { Args: { "p_confirmation": Database["public"]['Enums']["confirmation_status"],"p_linked_original": boolean,"p_qty": number,"p_replacement": boolean,"p_status": Database["public"]['Enums']["delivery_status"] }; Returns: number

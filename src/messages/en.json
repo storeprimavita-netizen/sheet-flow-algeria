@@ -491,6 +491,13 @@
       "delivered": "Delivered orders",
       "return": "Returned orders",
       "shipped": "Shipped orders",
+      "out_delivered": "Outcome: delivered",
+      "out_returned": "Outcome: returned",
+      "out_cancelled": "Outcome: cancelled",
+      "out_unconfirmed": "Outcome: not confirmed yet",
+      "out_in_progress": "Outcome: in progress",
+      "weekday": "Weekday {n}",
+      "hour": "Hour {n}:00",
       "clear": "Show all orders"
     }
   },
@@ -1031,7 +1038,6 @@
         "cashWithZrHint": "Cash the courier holds for you. Not tracked yet.",
         "rateLabel": "Rate {rate} DA per $ on {date}",
         "noRate": "Set a USD rate",
-        "waterfallTitle": "Where the money goes",
         "noData": "No data for this period yet.",
         "wf": {
           "revenue": "Revenue",
@@ -1042,7 +1048,23 @@
           "net": "Net profit"
         },
         "profitSub": "On {revenue} revenue",
-        "profitPrev": "Previous period {amount}"
+        "profitPrev": "Previous period {amount}",
+        "chart": {
+          "title": "Money per day",
+          "revenue": "Revenue",
+          "costs": "Total costs",
+          "net": "Net profit",
+          "periodTotal": "Net profit for the period:",
+          "windowTotal": "Net profit, last {n} days shown:",
+          "cumulative": "Cumulative",
+          "empty": "No orders or costs in this period yet.",
+          "emptyAction": "New order",
+          "immatureNote": "Shaded recent days are not final yet. Revenue counts by order date and ads by spend date, so the right edge dips.",
+          "costsTitle": "Where the money goes",
+          "costHead": "Cost",
+          "amountHead": "Amount",
+          "shareHead": "Share"
+        }
       },
       "journey": {
         "title": "Order journey",
@@ -2032,6 +2054,60 @@
       "yearError": "Couldn't load {year}.",
       "noOrders": "No orders",
       "more": "Showing the latest {shown} of {total} years."
+    },
+    "charts": {
+      "ordersPerDay": "Orders per day",
+      "rates": "Confirmation and delivery rate per day",
+      "received": "Orders",
+      "confirmation": "Confirmation rate",
+      "delivery": "Delivery rate",
+      "share": "Share",
+      "outcomes": "Order outcomes",
+      "outcome": {
+        "delivered": "Delivered",
+        "returned": "Returned",
+        "cancelled": "Cancelled",
+        "unconfirmed": "Not confirmed yet",
+        "in_progress": "In progress"
+      },
+      "other": "Other",
+      "byWilaya": "Delivery rate by wilaya, worst first",
+      "byProduct": "Delivery rate by product, worst first",
+      "byWeekday": "Orders by weekday",
+      "byHour": "Orders by hour of day",
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "ordersCount": "{n} orders",
+      "floorNote": "Only groups with at least {n} orders. Grey bars are not final yet.",
+      "emptyFloor": "No group has {n} orders yet.",
+      "emptyDaily": "No orders in this period.",
+      "windowNote": "Showing the last {n} days of the selected period.",
+      "emptyOutcomes": "No orders in this period.",
+      "allOrders": "All orders",
+      "immatureNote": "Shaded recent days are not final: orders are still arriving.",
+      "hourNote": "Hours are Algiers time."
+    },
+    "sections": {
+      "volume": "Volume and conversion",
+      "outcomes": "Outcomes",
+      "where": "Where",
+      "when": "When"
     }
   },
   "seasons": {
@@ -2043,6 +2119,15 @@
       "back_to_school": "Back to school",
       "winter": "Winter"
     }
+  },
+  "charts": {
+    "table": "Table",
+    "viewOrders": "View orders",
+    "error": "This chart could not load.",
+    "retry": "Retry",
+    "noValue": "No data",
+    "immature": "recent day, figures not final",
+    "other": "Other"
   },
   "navPurpose": {
     "home": "Today at a glance: orders, revenue and what needs attention.",

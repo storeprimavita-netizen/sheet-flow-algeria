@@ -2,19 +2,20 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Banknote, Coins, Megaphone, Target, Wallet } from "lucide-react";
 
-import { formatCurrency } from "@/lib/format";
-import type { Kpi } from "@/lib/kpi";
+import { formatCurrency, formatDate, formatUsd } from "@/lib/format";
+import type { Kpi, KpiDailyRow } from "@/lib/kpi";
+import { ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { kpiRoas } from "@/lib/kpi";
 import { KpiTile } from "@/components/stats/kpi-tile";
-import { Empty } from "@/components/empty";
-import { buildSteps, WaterfallRows } from "./pnl-waterfall";
+import { StackedBar } from "@/components/charts/stacked-bar";
+import { MoneyChart, type MoneyDay } from "./money-chart";
 import { UsdFirst } from "./usd-first";
 import { Band, BandError } from "./band";
 
 export type MoneyHrefs = { finance: string; revenue: string; returns: string; ads: string; expenses: string; cogs: string; fixed: string };
 
 /**
- * Band 2 (tiles); `WaterfallBand` is band 4. Every figure is read from `kpi` (SQL kpi_lines, D45);
+ * Band 2 (tiles); `MoneyChartBand` is band 4. Every figure is read from `kpi` (SQL kpi_lines, D45);
  * nothing is derived here. Profit / revenue / cash are DZD-first; ad spend and cost per
  * delivered are USD-first. `prev` (bounded periods only) feeds the profit / ROAS deltas.
  */
@@ -114,38 +115,82 @@ export async function MoneyBand({
   );
 }
 
-export async function WaterfallBand({ kpi, hrefs }: { kpi: Kpi | null; hrefs: MoneyHrefs }) {
+/**
+ * Band 4: money per day as a line chart (SQL `kpi_daily`) and the cost breakdown as one stacked bar
+ * (SQL `kpi.waterfall`, ads USD first, D45). Nothing is computed here.
+ */
+export async function MoneyChartBand({
+  kpi,
+  daily,
+  filters,
+  hrefs,
+}: {
+  kpi: Kpi | null;
+  daily: KpiDailyRow[] | null;
+  filters: DashboardFilters;
+  hrefs: MoneyHrefs;
+}) {
   const t = await getTranslations("dashboard.v2.money");
-  const net = kpi?.net_profit;
-  if (!kpi) {
+  if (!kpi || !daily) {
     return (
-      <Band id="band-waterfall" title={t("waterfallTitle")}>
+      <Band id="band-money-chart" title={t("chart.title")}>
         <BandError />
       </Band>
     );
   }
-  return (
-      <Band id="band-waterfall" title={t("waterfallTitle")}>
-        <div className="card-surface flex flex-1 flex-col justify-center rounded-xl p-5">
-          {kpi.waterfall && net != null && Object.values(kpi.waterfall).some((v) => v !== 0) ? (
-            <WaterfallRows
-              steps={buildSteps(
-                kpi.waterfall.revenue,
-                [
-                  { key: "cogs", label: t("wf.cogs"), value: -kpi.waterfall.cogs, href: hrefs.cogs },
-                  { key: "returns", label: t("wf.returns"), value: -kpi.waterfall.returns, href: hrefs.returns },
-                  { key: "ads", label: t("wf.ads"), value: -kpi.waterfall.ads, href: hrefs.ads },
-                  { key: "expenses", label: t("wf.expensesFixed"), value: -kpi.waterfall.expenses_fixed, href: hrefs.expenses },
-                ],
-                net,
-                { revenue: t("wf.revenue"), net: t("wf.net") },
-                { revenue: hrefs.revenue },
-              )}
-            />
-          ) : (
-            <Empty className="border-0 p-4">{t("noData")}</Empty>
-          )}
-        </div>
+  const days: MoneyDay[] = daily.flatMap((d) =>
+    d.money
+      ? [{
+          key: d.day,
+          label: formatDate(d.day),
+          short: `${d.day.slice(8, 10)}/${d.day.slice(5, 7)}`,
+          immature: d.immature,
+          revenue: d.money.revenue,
+          costs: d.money.costs,
+          net: d.money.net_profit,
+          href: ordersQs({ ...filters, from: d.day, to: d.day }, { drill: "received" }),
+        }]
+      : [],
+  );
+  // no order in the period: one empty state for the whole band (not flat zero lines and a 100% cost bar)
+  if (!daily.some((d) => d.rates.counts.received > 0)) {
+    return (
+      <Band id="band-money-chart" title={t("chart.title")}>
+        <MoneyChart days={[]} total={formatCurrency(kpi.net_profit)} emptyAction={{ label: t("chart.emptyAction"), href: "/app/orders/new" }} />
       </Band>
+    );
+  }
+  const wf = kpi.waterfall;
+  const slices = wf
+    ? [
+        { key: "cogs", label: t("wf.cogs"), value: -wf.cogs, display: formatCurrency(-wf.cogs), color: "var(--chart-2)", href: hrefs.cogs },
+        { key: "returns", label: t("wf.returns"), value: -wf.returns, display: formatCurrency(-wf.returns), color: "var(--chart-4)", href: hrefs.returns },
+        {
+          key: "ads",
+          label: t("wf.ads"),
+          value: -wf.ads,
+          display: kpi.usd_rate != null && kpi.ad_spend_usd != null ? `${formatUsd(kpi.ad_spend_usd)} · ${formatCurrency(-wf.ads)}` : formatCurrency(-wf.ads),
+          color: "var(--chart-3)",
+          href: hrefs.ads,
+        },
+        { key: "expenses", label: t("wf.expensesFixed"), value: -wf.expenses_fixed, display: formatCurrency(-wf.expenses_fixed), color: "var(--chart-5)", href: hrefs.expenses },
+      ].filter((s) => s.value !== 0)
+    : [];
+  return (
+    <Band id="band-money-chart" title={t("chart.title")}>
+      <div className="flex flex-1 flex-col gap-3">
+        <MoneyChart
+          days={days}
+          total={formatCurrency(kpi.net_profit)}
+          emptyAction={{ label: t("chart.emptyAction"), href: "/app/orders/new" }}
+        />
+        <StackedBar
+          title={t("chart.costsTitle")}
+          slices={slices}
+          head={[t("chart.costHead"), t("chart.amountHead"), t("chart.shareHead")]}
+          empty={slices.length ? null : { title: t("noData") }}
+        />
+      </div>
+    </Band>
   );
 }

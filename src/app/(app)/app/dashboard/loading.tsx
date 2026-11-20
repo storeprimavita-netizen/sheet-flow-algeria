@@ -21,7 +21,7 @@ export default function DashboardLoading() {
           ))}
         </div>
         <div className="lg:col-span-5">{card("h-64")}</div>
-        <div className="lg:col-span-7">{card("h-64")}</div>
+        <div className="lg:col-span-7">{card("h-[34rem]")}</div>
         <div className="lg:col-span-12">{card("h-40")}</div>
         <div className="lg:col-span-12">{card("h-56")}</div>
       </div>

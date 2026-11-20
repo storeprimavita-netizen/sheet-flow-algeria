@@ -8,6 +8,11 @@ export default function StatisticsLoading() {
         <div className={`${bar} h-4 w-80 max-w-full`} />
       </div>
       <div className="card-surface h-44 w-full rounded-xl sm:h-32" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {Array.from({ length: 2 }, (_, i) => (
+          <div key={i} className="card-surface h-[19rem] rounded-xl" />
+        ))}
+      </div>
       <div className="card-surface grid grid-cols-1 gap-5 rounded-xl p-5 2xl:grid-cols-[1fr_auto]">
         <div className="space-y-2">
           {Array.from({ length: 8 }, (_, i) => (
