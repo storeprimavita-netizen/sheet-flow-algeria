@@ -15,7 +15,12 @@ export function StockLevelChip({
   return (
     <Chip token={isOut ? "danger" : isLow ? "warning" : "neutral"} size="sm" className="whitespace-nowrap">
       <span className="num">{stock}</span>
-      {isOut ? ` · ${labels.out}` : isLow ? ` · ${labels.low}` : ""}
+      {isOut || isLow ? (
+        <>
+          {" · "}
+          <bdi>{isOut ? labels.out : labels.low}</bdi>
+        </>
+      ) : null}
     </Chip>
   );
 }

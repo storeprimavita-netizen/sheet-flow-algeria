@@ -75,14 +75,14 @@ describe("variants feedback", () => {
 
 describe("stock level chip (real component)", () => {
   const labels = {
-    en: { out: "Out", low: "Low" },
+    en: { out: en.stock.out, low: en.stock.low },
     ar: { out: ar.stock.out, low: ar.stock.low },
   };
   for (const l of ["en", "ar"] as const) {
     const chip = (stock: number, isOut: boolean, isLow: boolean) => renderToStaticMarkup(<StockLevelChip stock={stock} isOut={isOut} isLow={isLow} labels={labels[l]} />);
     test(`${l}: out, low, ok; never wraps`, () => {
-      expect(chip(0, true, false)).toContain(`0</span> · ${labels[l].out}`);
-      expect(chip(3, false, true)).toContain(`3</span> · ${labels[l].low}`);
+      expect(chip(0, true, false)).toContain(`0</span> · <bdi>${labels[l].out}</bdi>`);
+      expect(chip(3, false, true)).toContain(`3</span> · <bdi>${labels[l].low}</bdi>`);
       const ok = chip(40, false, false);
       expect(ok).not.toContain("·");
       for (const html of [chip(0, true, false), chip(3, false, true), ok]) expect(html).toContain("whitespace-nowrap");

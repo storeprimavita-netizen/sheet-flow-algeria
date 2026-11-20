@@ -136,6 +136,7 @@ export function VariantsEditor({
                   <Input
                     data-fk={v.id}
                     aria-label={t("valueNumbered", { n: j + 1, option: optName(o, i) })}
+                    placeholder={t("valuePlaceholder")}
                     value={v.label}
                     maxLength={60}
                     dir="auto"
