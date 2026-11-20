@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
 import { createClient } from "@/lib/supabase/server";
 
-import { Crumbs } from "../_components/crumbs";
 import { getStore } from "../_lib/data";
 import { ReviewFilters, type ReviewStatusFilter } from "./_components/review-filters";
 import { ReviewForm } from "./_components/review-form";
@@ -31,7 +30,6 @@ export default async function StoreReviewsPage({ searchParams }: { searchParams:
   const status: ReviewStatusFilter = f.status ?? "all";
   const head = (
     <div>
-      <Crumbs items={[{ label: t("title") }]} />
       <PageHeader title={t("title")} subtitle={t("purpose")} />
     </div>
   );

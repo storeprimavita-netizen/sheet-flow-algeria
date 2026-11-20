@@ -1432,7 +1432,6 @@
     },
     "loading": "Loading",
     "admin": {
-      "breadcrumbRoot": "Store",
       "hub": {
         "title": "Store",
         "purpose": "Your public store: create it, build product pages and publish them.",
