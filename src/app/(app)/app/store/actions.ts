@@ -128,7 +128,8 @@ export async function linkPageProduct(pageId: string, productId: string | null):
   if (!ids.success) return fail("invalid");
   const supabase = await createClient();
   const { data: page, error: pageError } = await supabase.from("store_pages").select("status").eq("id", ids.data.pageId).eq("workspace_id", workspaceId).maybeSingle();
-  if (pageError || !page) return fail("failed");
+  if (pageError) throw new Error(`linkPageProduct: ${pageError.message}`);
+  if (!page) return fail("failed");
   if (page.status === "published" && (!ids.data.productId || !(await assertPublishable(supabase, ids.data.productId)))) return fail("needs_product");
   const { data, error } = await supabase
     .from("store_pages")

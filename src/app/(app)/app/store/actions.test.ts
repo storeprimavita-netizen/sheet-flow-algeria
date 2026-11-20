@@ -64,12 +64,13 @@ describe("store actions", () => {
     expect(await linkPageProduct(PAGE, null)).toEqual({ ok: true, id: PAGE });
   });
 
-  test("linkPageProduct fails closed when the page read fails or the page is missing", async () => {
+  test("linkPageProduct fails on a missing page and throws on a page read error", async () => {
     tables = { store_pages: null, products: { is_active: true, sale_price: 100 } };
     expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "failed" });
     tables.store_pages = { status: "published" };
     readError = { message: "boom" };
-    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "failed" });
+    readErrorTables = ["store_pages"];
+    await expect(linkPageProduct(PAGE, PROD)).rejects.toThrow(/linkPageProduct: boom/);
     expect(writes).toEqual([]);
   });
 
