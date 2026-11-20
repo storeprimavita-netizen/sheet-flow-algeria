@@ -848,3 +848,11 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Evidence: first run failed only on live-DB FK race (audit_log_workspace_id_fkey) in delivery-prices.rls and reviews.rls tests; known intermittent (TEST-2), passed on re-run.
 - Owner: light-theme shots exist in docs/design/audit/NAV-5-I/ (en-light-*); optional finding 5 (deactivated user My day / Team rules blank) out of scope.
 - Next: none for NAV-5-I; merge to v3 pending.
+
+## SEC-1-I build notes
+- Closed SEC-1-H review-1: ar empty-key test reads the `dir` attribute off the parsed `<bdi>` tag; error-state test finds the retry button by `type="button"`; new `page.test.tsx` (from -> `gte T00:00:00+01:00`, to -> `lt` next day), single-render test for the changes list per breakpoint class; shared `src/lib/test-db.ts` (`DB_CONTAINER`, `dbContainerUp`) used by both live-DB tests; audit table filter + chip show `audit.tables.*` labels (en+ar, sorted by label, raw-name fallback, parity test `_lib/tables-i18n.test.ts` over all 22 AUDITED_TABLES; brief said 21).
+- Timezone: no workspace tz setting exists; `AUDIT_TZ = "+01:00"` kept, commented and noted in docs/DB.md.
+- SEC-1-G `ar-*` shots deleted (5 files existed, not 6). SEC-1-H ar shots checked: real Arabic, rtl (pill reads "مخفي").
+- Screenshots `docs/design/audit/SEC-1-I/` (chrome-devtools, cookies `theme`/`locale`; a temporary local audit_log row with a redacted api_key was inserted for the seed workspace and deleted afterwards). `html` lang/dir verified ar/rtl. Focused vs unfocused pill (EN light and dark): `cmp` reports they differ; `:focus-visible` true. Pill contrast measured from computed styles: light 7.02, dark 6.37. Filter open: EN dark (1440) and AR light (1440) show labelled, sorted tables.
+- Caveat: the MCP window cannot go below 500 px wide, so "390" shots are 500 px viewports (no horizontal scroll, scrollWidth 500).
+- Page closed back to about:blank.
