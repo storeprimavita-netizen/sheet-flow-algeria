@@ -39,7 +39,7 @@ case "$cmd" in
       sed -E "s#^APP_URL=.*#APP_URL=http://localhost:$port#" .env.local > "$d/.env.local"
       grep -q '^APP_PORT=' "$d/.env.local" || echo "APP_PORT=$port" >> "$d/.env.local"
       [ -d "$d/node_modules" ] || { echo "installing packages in $d (about a minute)"; (cd "$d" && npm ci --silent >/dev/null 2>&1) || { echo "npm ci failed in $d"; exit 1; }; }
-      echo "ready   $d   port $port   →   cd $d && APP_PORT=$port scripts/agy-night.sh agy-$k nodb"
+      echo "ready   $d   port $port   →   cd $d && APP_PORT=$port agy     then type:  /loop-night nodb as:agy-$k"
     done ;;
   status)
     for d in "$root" "$root"/.worktrees/agy-*; do

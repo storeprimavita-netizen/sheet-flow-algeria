@@ -38,6 +38,8 @@ Parallel option: when the next two or three eligible tasks have different lanes 
 
 **Follow-ups and merging without the owner (D40, D89).** When a task's review rounds run out with gate OK and no high finding: ship it. Never park a task as "merge needs owner OK". Open medium findings → ONE follow-up row for that task. Low findings → append to `docs/BACKLOG.md` (task id · file · one line), never a new row. A follow-up row never gets a follow-up of its own: what it leaves open goes to the backlog. Feature rows are picked before follow-up rows when both are eligible.
 
+**Phone notice.** When the task is shipped or parked, run `scripts/notify.sh "<task id> shipped|parked — <≤ 12 words>"` (it does nothing if the owner has not set a channel).
+
 **End of run.** Append a "Run report" block to PROGRESS.md (≤ 10 lines, committed with `scripts/step.sh`) and reply with the same: tasks shipped (id + merge commit), decisions Claude took (D-numbers, one line each — the owner may overturn them), questions still open, tasks left blocked and why, and what the next `/auto` will pick up. Send one PushNotification with the one-line result.
 
 The very last line of your reply is exactly one of: `RUN-END: more` (eligible tasks remain — the batch size was reached), `RUN-END: nothing-eligible` (every remaining task waits on the owner or on a parked task), or `RUN-END: hard-stop <reason>`. `scripts/night-run.sh` reads this line to decide whether to start the next batch.

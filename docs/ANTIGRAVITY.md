@@ -78,20 +78,41 @@ Watch it claim a task, write the brief, build, run `scripts/gate.sh`, review
 and merge into `v3`. If it stops to ask permission for something harmless that
 it will need every time, add it to the allow list.
 
-## 5. The night run
+## 5. The night run — a command inside `agy`
 
 ```
-scripts/agy-night.sh
+agy
+> /loop-night
 ```
-One task per fresh session, one after another, in the terminal in front of you.
-It keeps the Mac awake, waits 20 minutes and retries when a usage limit is hit,
-and ends when nothing is left that can run without you. `Ctrl+C` stops it.
+It stays in the session in front of you: one line per finished task, a short
+summary every five tasks, and a report at the end. Each task is handed to a
+fresh `task-runner` subagent, so the session itself stays small.
 
 ```
-AGY_MODEL="Gemini 4 Hydrogen" scripts/agy-night.sh        # faster, lighter model
-AGY_MODEL="Orchestrator (Neon)" scripts/agy-night.sh      # stronger
+> /loop-night 5            stop after five tasks
+> /loop-night nodb         only tasks that do not change the database
 ```
-Lid closed: `sudo pmset -a disablesleep 1` first (`0` to undo).
+Keep the Mac awake while it runs: in another Terminal window, `caffeinate -ims`
+(leave it open; `Ctrl+C` ends it). Lid closed: `sudo pmset -a disablesleep 1`.
+
+If your usage limit is reached, the session stops and cannot wake itself. When
+the limit resets, type `/loop-night` again — it continues from the plan; every
+finished step was already pushed. (If you prefer it to wait and resume by
+itself with nobody there, `scripts/agy-night.sh` does that from a plain
+Terminal, but you see less.)
+
+### Following it from your phone
+
+- **GitHub** (nothing to set up): the `v3` commit list shows each finished step
+  within seconds; `PROGRESS.md` shows what shipped.
+- **Notifications** (two minutes to set up): install the free **ntfy** app,
+  subscribe to a topic name only you know (long and random, it works like a
+  password), and add one line to `.env.local`:
+  `NOTIFY_NTFY_TOPIC=<that-name>`. The run then sends one line per task
+  shipped or parked, and when it starts and ends. Test it:
+  `scripts/notify.sh "hello"`. A Telegram bot works too
+  (`NOTIFY_TELEGRAM_TOKEN`, `NOTIFY_TELEGRAM_CHAT`).
+- Only task ids and one-line results are sent, never customer data.
 
 ## 6. Parallel agents
 
@@ -100,9 +121,9 @@ scripts/agy-parallel.sh setup 2          # creates .worktrees/agy-2 and agy-3 (f
 ```
 Then one Terminal window per agent:
 ```
-window 1:  scripts/agy-night.sh                                              # main agent, database tasks allowed
-window 2:  cd .worktrees/agy-2 && APP_PORT=3001 scripts/agy-night.sh agy-2 nodb
-window 3:  cd .worktrees/agy-3 && APP_PORT=3002 scripts/agy-night.sh agy-3 nodb
+window 1:  agy                                    then  /loop-night                    # main agent, database tasks allowed
+window 2:  cd .worktrees/agy-2 && APP_PORT=3001 agy    then  /loop-night nodb as:agy-2
+window 3:  cd .worktrees/agy-3 && APP_PORT=3002 agy    then  /loop-night nodb as:agy-3
 ```
 `scripts/agy-parallel.sh status` shows what each one is on; `remove` deletes the
 extra copies when you are done.
@@ -136,9 +157,9 @@ the **same folder** at once.
 |---|---|
 | `AGENTS.md` | Project conventions (shared with Claude Code) — always loaded |
 | `.agents/rules/antigravity.md` | Always-on rules: claim names, `nodb`, never `main` |
-| `.agents/skills/loop-*` | The loop: bootstrap, analyse, execute, verify, decide, ship, auto |
+| `.agents/skills/loop-*` | The loop: bootstrap, analyse, execute, verify, decide, ship, auto (one task), **night** (task after task) |
 | `.agents/skills/<shared>` | `cod-ui-polish`, `luxe-modesty-store-theme`, `modern-web-guidance`, `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines`, `supabase`, `supabase-postgres-best-practices`, `shadcn` |
-| `.agents/agents/qa-reviewer.md`, `ui-reviewer.md` | Reviewer subagents (model tier `pro`) |
+| `.agents/agents/qa-reviewer.md`, `ui-reviewer.md`, `task-runner.md` | Reviewer subagents (model tier `pro`) · one-task runner used by `/loop-night` |
 | `.agents/mcp_config.json` | `chrome-devtools` (screenshots, Lighthouse) and `shadcn` MCP servers |
 | `scripts/agy-setup.sh`, `agy-night.sh`, `agy-parallel.sh` | Check and permissions · continuous run · parallel copies |
 | `scripts/step.sh`, `gate.sh`, `dev-up.sh`, `db-reset.sh` | Commit+push a step · quality gate · local stack · local database reset |

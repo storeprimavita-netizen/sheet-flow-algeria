@@ -4,7 +4,7 @@ trigger: always_on
 # Antigravity on the MNW project
 
 - The project rules are in `AGENTS.md` at the repository root. `CLAUDE.md` only adds Claude Code specifics; you do not need it.
-- Work happens through the loop in `.claude/loop.md` (it applies to you too). Your entry points are the skills `loop-bootstrap`, `loop-analyse`, `loop-execute`, `loop-verify`, `loop-decide`, `loop-ship` and `loop-auto`. Setup and parallel-agent notes: `docs/ANTIGRAVITY.md`.
+- Work happens through the loop in `.claude/loop.md` (it applies to you too). Your entry points are the skills `loop-bootstrap`, `loop-analyse`, `loop-execute`, `loop-verify`, `loop-decide`, `loop-ship`, `loop-auto` (one task) and `loop-night` (task after task, in this session). Setup and parallel-agent notes: `docs/ANTIGRAVITY.md`.
 - In `docs/MASTER_PLAN.md` you claim tasks under your own name (`claimed:antigravity`, or the `as:<name>` you were started with). Other agents work this plan at the same time; never touch a task claimed by another name.
 - If you were started with `nodb`, you never write a migration, never run `scripts/db-reset.sh`, and never take a row whose `M` column is not `–`: another agent owns the local database.
 - Use the app URL that `scripts/dev-up.sh` prints (your working copy may run on its own port).
