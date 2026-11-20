@@ -993,6 +993,15 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 ### Ship (CHART-1)
 - Done: CHART-1 merged as built under D89/D94 (review-4 ESCALATE, no high). Follow-up CHART-1-B (366-day cap first, no-costs empty state, table links).
 - Verify: scripts/gate.sh GATE OK (tsc, 1363 tests, i18n parity, color lint, build, protected paths, secret scan).
-- Evidence: branch v3-CHART-1; merge into v3 pending in this run.
+- Evidence: branch v3-CHART-1; merged into v3 as d84b4c5.
 - Owner: remote migration 00078 is local only; remote `db push` is yours.
 - Next: CHART-1-B.
+
+### Run report (CHART-1, 2026-11-20)
+- Shipped: CHART-1, merge commit d84b4c5 on v3 (gate OK on the branch, fast gate OK on the merge).
+- Decision by Claude (owner may overturn): D94, CHART-1 merged as built with review 4 at ESCALATE (three mediums, no high); Q-28 answered by default (a).
+- Merge of v3 into the branch conflicted (messages, docs, dashboard / statistics / money overview pages, query-string); resolved, chart migrations renumbered to 00078 and 00079.
+- Follow-up: one row CHART-1-B (366-day cap first, no-costs empty state, table links); 13 lows in docs/BACKLOG.md.
+- Open questions: none blocking. Blocked tasks: none from this run.
+- Owner: remote `db push` for 00078 and 00079.
+- Next /auto: first eligible feature row in plan order (follow-ups VAR-1-F, CHART-1-B, CONF-1-F after features).
