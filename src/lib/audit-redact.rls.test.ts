@@ -112,9 +112,23 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(JSON.stringify(data)).not.toContain("PLAIN_");
   });
 
-  test("agent session cannot execute audit_redact", async () => {
-    const { error } = await admin.rpc("audit_redact", { j: { secret: "x" } });
-    expect(error).not.toBeNull();
+  test("parity cases: idempotent in SQL, and TS(SQL(x)) == SQL(x)", async () => {
+    for (const j of PARITY_CASES) {
+      const { data } = await svc.rpc("audit_redact", { j });
+      const again = await svc.rpc("audit_redact", { j: data });
+      expect(again.data).toEqual(data);
+      expect(auditRedact(data)).toEqual(data);
+    }
+  });
+
+  test("agent and anon sessions cannot execute the redactors (42501)", async () => {
+    const anon = client(ANON_KEY);
+    for (const c of [admin, anon]) {
+      const a = await c.rpc("audit_redact", { j: { secret: "x" }, depth: 0 });
+      expect(a.error?.code).toBe("42501");
+      const b = await c.rpc("audit_is_secret_key", { k: "secret" });
+      expect(b.error?.code).toBe("42501");
+    }
   });
 
   test("ZR save path leaves no trace; old_row masked on UPDATE and DELETE", async () => {
