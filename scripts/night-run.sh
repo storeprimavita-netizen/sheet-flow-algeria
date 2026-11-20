@@ -72,3 +72,4 @@ while :; do
   say "batch $n finished in $((took/60)) min — starting the next one"
 done
 git log --oneline -6
+scripts/dev-down.sh     # do not leave the dev server spinning after the run

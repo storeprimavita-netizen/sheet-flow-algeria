@@ -23,6 +23,8 @@ api && echo "UP    supabase  http://127.0.0.1:54321" || { echo "DOWN  supabase â
 if [ "${1:-}" != "--no-app" ] && [ $ok = 0 ]; then
   app() { curl -s -m 5 -o /dev/null "http://localhost:$port/login"; }
   if ! app; then
+    # a build cache that grew past ~4 GB makes the dev server spin all cores; it is safe to delete
+    if [ -d .next ] && [ "$(du -sk .next 2>/dev/null | cut -f1)" -gt 4000000 ]; then rm -rf .next; echo "CLEAN build cache (.next was over 4 GB)"; fi
     nohup npm run dev -- -p "$port" >"$logdir/mnw-dev-$port.log" 2>&1 &
     for _ in $(seq 1 30); do sleep 2; app && break; done
   fi

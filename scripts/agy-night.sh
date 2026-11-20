@@ -54,3 +54,4 @@ while :; do
   say "run ended without a result after ${took}s — retrying in 5 min ($bad/3)"; sleep 300
 done
 git log --oneline -5
+scripts/dev-down.sh     # do not leave the dev server spinning after the run
