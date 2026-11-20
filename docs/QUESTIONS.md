@@ -263,6 +263,29 @@ the home price column in the preview before you press Apply on a new sheet.
 The other option was to read "home:1350:720" as home 1,350 and stop-desk 720;
 it was not taken because it is a guess about a price your customers pay.
 
+It came up a fifth time on 20 November, on the audit log follow-up task
+(SEC-1-G: in Settings › Audit log, secret values are now hidden the same way
+every time, and more ways of writing a secret's name are hidden). This time it
+was not a tie. The third review found nothing serious and nothing wrong in the
+hiding of secrets, but the medium points went from 1 to 2, so the rule allows
+no further round. **Applied your rule of 18 November (D85):** the task is
+merged as it is into the working branch (not the live app), and its open
+points go into the follow-up task SEC-1-H. Two points to know, both on the
+screen only, on a page only admins open:
+1. When you move with the Tab key onto a hidden value ("Redacted …"), the
+   outline that shows where you are is the browser's own one. It was not
+   checked in dark and light, and the picture that should prove it was a copy
+   of another picture.
+2. The review said two different changed fields show the same name. Checked:
+   that came from old pictures. The current screen already tells them apart
+   ("a.b" and "a › b"). The wide-screen pictures are to be retaken.
+
+The other option was to keep the task waiting for your OK, as the product
+options and charts tasks do (Q-26, Q-28). It was not taken because the fix that
+hides secrets would then wait for a keyboard outline and screenshots. Say so if
+you want such tasks to wait for you each time (point 2 above); the merge can
+be taken back.
+
 Nothing is blocked.
 
 ### Q-20 · STATS-2 · 2026-11-19 · answered-by-default

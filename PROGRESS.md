@@ -677,3 +677,20 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: docs/briefs/CARRIER-0-G.review-2.md VERDICT: PASS; screenshots in docs/design/audit/CARRIER-0-G/.
 - Owner: none. Not shot: table scroll fade in AR.
 - Next: wilaya Arabic names need a migration (no name_ar column); roving tabindex optional.
+
+## SEC-1-G build notes
+- Done: 00071 (`audit_redact`/`audit_is_secret_key`: masked-string and empty/masked-secret passthrough before the depth cap, separator `[^a-zA-Z0-9]`, plurals, one-pass backfill); TS twin same (`u` flag); parity cases + idempotence + `TS(SQL(x))==SQL(x)` + 42501 execute-denied + psql backfill/xmin test; `diffRows` by path segments (`id`, empty key, arrays, any mask token = pill); audit table (pill `role=note` + aria-label `audit.redactedAria`, `emptyKey`, `<li dir=ltr>`, break-all key), `loading.tsx`, `error.tsx` (page now throws on read error), empty-state clear-filters action; DB.md + D49 amendment note (owner ack pending, not blocking).
+- Screenshots (chrome-devtools, `docs/design/audit/SEC-1-G/{en,ar}-{dark,light}-{1440,390}.png` + `en-dark-390-focused-pill.png`, `en-dark-390-empty.png`): all 8 combos shot with a seeded row (pill, empty key, masked array, colliding `a.b`, long key wraps at 390, short `is_active` line). Pill contrast 7.0:1 light, 6.4:1 dark. Theme/locale switched by setting the `theme`/`NEXT_LOCALE` cookies then reloading. Loading skeleton shown briefly in dev only (not shot).
+- Step 6: no leftover `zrexpress` row after `db reset` (nothing to delete).
+- Gate note: first gate run failed `src/lib/rls.test.ts` (agents are financially blind: "sign in admin@seed.mnw: Invalid login credentials"); not touched by this branch, caused by `db reset` wiping seed users; reseeded, then green.
+
+### SEC-1-G fix round 2
+- M1: audit screenshots retaken at 390 px after review-1 fixes (chrome-devtools emulate 390x1100): `en-dark`, `en-light`, `ar-light`, `ar-dark` (seeded row: pill, empty key, masked array, colliding `a.b`, long key, short line), `en-dark-390-focused-pill`, `{en,ar}-dark-390-empty` (filtered), `en-dark-390-loading`. No horizontal scroll (scrollWidth 390). Found and fixed: AR date aligned left (bdi block); now inline bdi in a div. Pill contrast light 7.0:1. Filtered empty state shows two "Clear all" (bar and empty action), kept per L3. Not shot: unfiltered empty, error state (needs a failing query), 1440 px (old images kept).
+- L1-L7 done: DB.md line, zod URL filters, empty action/hint, error reason, test seed `api/key`+`secretkeys`, `migration up` applied 00072 locally, mobile date stack, `zr_shipments` filter.
+
+## SEC-1-G ship
+- Done: merged to v3 under D40/D85 on a review-3 ESCALATE (no PASS). Migrations 00071 + 00072 (audit redaction, DB and TS side). SEC-1-H follow-up row added.
+- Verify: `scripts/gate.sh` full on v3-SEC-1-G = GATE OK (tsc, 987 tests incl. live RLS, i18n, color lint, build, protected paths).
+- Evidence: focused-pill PNG is not a focus shot; 1440 px images predate " › " labels; pill contrast 7.0:1 light / 6.4:1 dark is builder's figure.
+- Owner: remote `db push` of 00071 and 00072 (O-2); D49 amendment ack pending; Q-21 open.
+- Next: SEC-1-H (todo).

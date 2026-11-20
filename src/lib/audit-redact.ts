@@ -1,14 +1,15 @@
 import "server-only";
 import { createHash } from "node:crypto";
 
-// Mirrors public.audit_redact() (00036_audit_redact_acronyms.sql, D49). Keep both in sync.
+// Mirrors public.audit_redact() (00071_audit_redact_idempotent.sql, D49). Keep both in sync.
 // Run-together forms (apikey, secretkey, accesstoken, authtoken, privatekey, clientsecret, webhooksecret, bottoken) are listed explicitly (D49).
 // A name is secret if either normalisation is secret and not allow-listed:
 //  a) trim spaces, split acronyms (XAPIKey) and camelCase, separators to "_", lowercase, trim "_";
 //  b) case-only (lowercase, separators to "_", trim "_") which catches sEcReT.
-const SECRET_KEY = /(^|_)(keys?|tokens?|secrets?|password|passwd|pwd|passphrase|credentials?|authorization|signature|apikeys?|secretkey|accesstoken|authtoken|privatekey|clientsecret|webhooksecret|bottoken)$/;
+const SECRET_KEY = /(^|_)(keys?|tokens?|secrets?|password|passwd|pwd|passphrase|credentials?|authorization|signature|apikeys?|secretkeys?|accesstoken|authtoken|privatekeys?|clientsecret|webhooksecret|bottoken)$/;
 const ALLOW_KEY = /^(keys?|idempotency_key|sort_key|cache_key|(color|design|theme)_tokens?)$/;
-const sep = (k: string) => k.replace(/[-. :]/g, "_");
+// Every non-alphanumeric character is one separator (the `u` flag keeps an astral char as one, like SQL).
+const sep = (k: string) => k.replace(/[^a-zA-Z0-9]/gu, "_");
 const trimUnderscore = (k: string) => k.replace(/^_+|_+$/g, "");
 const normKey = (k: string) =>
   trimUnderscore(sep(k.replace(/^ +| +$/g, "").replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2").replace(/([a-z0-9])([A-Z])/g, "$1_$2")).toLowerCase());
@@ -32,6 +33,8 @@ export function jsonbText(v: unknown): string {
 }
 
 export function auditRedact(value: unknown, depth = 0): unknown {
+  if (typeof value === "string" && MASKED.test(value)) return value; // idempotent at any depth
+  if (value === "") return value; // kept at any depth, like null
   if (value !== null && value !== undefined && depth > MAX_DEPTH) return mask(jsonbText(value));
   if (Array.isArray(value)) return value.map((e) => auditRedact(e, depth + 1));
   if (value && typeof value === "object") {

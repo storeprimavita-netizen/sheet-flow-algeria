@@ -1,6 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { auditRedact } from "./audit-redact";
 import { PARITY_CASES, MASKED_NAMES } from "./audit-redact.cases";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { deleteWorkspaces } from "./test-cleanup";
 
@@ -12,6 +15,7 @@ const ANON_KEY =
 const SERVICE_KEY =
   process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
+const DB_CONTAINER = process.env.LOCAL_DB_CONTAINER ?? "supabase_db_mnw-erp";
 const SEED_PASSWORD = "SeedDev!2026";
 const SECRET = "whsec_TESTSEED" + crypto.randomUUID();
 
@@ -22,6 +26,8 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let userId: string;
+  let agent: SupabaseClient;
+  let agentId: string;
 
   beforeAll(async () => {
     svc = client(SERVICE_KEY);
@@ -34,6 +40,14 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     admin = client(ANON_KEY);
     const si = await admin.auth.signInWithPassword({ email, password: SEED_PASSWORD });
     if (si.error) throw si.error;
+    const agentEmail = `sec1-agent-${crypto.randomUUID()}@test.mnw`;
+    const ag = await svc.auth.admin.createUser({ email: agentEmail, password: SEED_PASSWORD, email_confirm: true });
+    if (ag.error) throw ag.error;
+    agentId = ag.data.user.id;
+    await svc.from("profiles").update({ workspace_id: ws, role: "confirmation_agent", is_active: true }).eq("user_id", agentId);
+    agent = client(ANON_KEY);
+    const sa = await agent.auth.signInWithPassword({ email: agentEmail, password: SEED_PASSWORD });
+    if (sa.error) throw sa.error;
   });
   afterAll(async () => {
     if (!svc) return;
@@ -49,6 +63,8 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     await svc.from("audit_log").delete().eq("workspace_id", ws);
     const u = await svc.auth.admin.deleteUser(userId);
     if (u.error) throw u.error;
+    const ua = await svc.auth.admin.deleteUser(agentId);
+    if (ua.error) throw ua.error;
   });
 
   test("secret is redacted in audit_log but intact in the table", async () => {
@@ -112,9 +128,25 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(JSON.stringify(data)).not.toContain("PLAIN_");
   });
 
-  test("agent session cannot execute audit_redact", async () => {
-    const { error } = await admin.rpc("audit_redact", { j: { secret: "x" } });
-    expect(error).not.toBeNull();
+  test("parity cases: idempotent in SQL, and TS(SQL(x)) == SQL(x)", async () => {
+    for (const j of PARITY_CASES) {
+      const { data, error } = await svc.rpc("audit_redact", { j });
+      const again = await svc.rpc("audit_redact", { j: data });
+      expect(error).toBeNull();
+      expect(again.error).toBeNull();
+      expect(again.data).toEqual(data);
+      expect(auditRedact(data)).toEqual(data);
+    }
+  });
+
+  test("agent and anon sessions cannot execute the redactors (42501)", async () => {
+    const anon = client(ANON_KEY);
+    for (const c of [admin, agent, anon]) {
+      const a = await c.rpc("audit_redact", { j: { secret: "x" }, depth: 0 });
+      expect(a.error?.code).toBe("42501");
+      const b = await c.rpc("audit_is_secret_key", { k: "secret" });
+      expect(b.error?.code).toBe("42501");
+    }
   });
 
   test("ZR save path leaves no trace; old_row masked on UPDATE and DELETE", async () => {
@@ -131,28 +163,34 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     expect(del_row).toBeDefined();
   });
 
-  test("backfill UPDATE scrubs raw rows and leaves clean rows untouched", async () => {
-    const mk = (n: string) => ({ workspace_id: ws, table_name: "x_backfill", row_id: crypto.randomUUID(), action: "INSERT", new_row: { name: n, XAPIKey: "RAW_" + n } });
-    const raw = await svc.from("audit_log").insert(mk("a")).select("id").single();
-    expect(raw.error).toBeNull();
-    const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id, new_row").single();
-    expect(clean.error).toBeNull();
-    const ids = [raw.data!.id, clean.data!.id];
-    // Same rule as the backfill in 00036/00037 (rewrite only rows that change), limited to this test's rows.
-    const { data: rows } = await svc.from("audit_log").select("id, old_row, new_row").in("id", ids);
-    for (const r of rows!) {
-      const { data: nr } = await svc.rpc("audit_redact", { j: r.new_row });
-      if (JSON.stringify(nr) !== JSON.stringify(r.new_row)) {
-        const up = await svc.from("audit_log").update({ new_row: nr }).eq("id", r.id);
-        expect(up.error).toBeNull();
+  test("00071 backfill UPDATE scrubs raw rows, leaves clean rows untouched (xmin), rolls back", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/00071_audit_redact_idempotent.sql"), "utf8");
+    const update = sql.slice(sql.indexOf("update public.audit_log a"));
+    expect(update).toContain("is distinct from");
+    return (async () => {
+      const mk = (n: string) => ({ workspace_id: ws, table_name: "x_backfill", row_id: crypto.randomUUID(), action: "INSERT" });
+      const raw = await svc.from("audit_log").insert({ ...mk("a"), old_row: { XAPIKey: "RAW_a", "api/key": "RAW_slash", secretkeys: "RAW_plural" }, new_row: null }).select("id").single();
+      const clean = await svc.from("audit_log").insert({ ...mk("b"), new_row: { name: "b" } }).select("id").single();
+      expect(raw.error).toBeNull();
+      expect(clean.error).toBeNull();
+      const ids = [raw.data!.id, clean.data!.id];
+      try {
+        const psql = (script: string) =>
+          execFileSync("docker", ["exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], { input: script, encoding: "utf8" });
+        const probe = `select id || '|' || xmin::text || '|' || coalesce(old_row::text,'') || '|' || coalesce(new_row::text,'') from public.audit_log where id in (${ids.join(",")}) order by id;`;
+        const parse = (o: string) => new Map(o.trim().split("\n").filter((l) => /^\d+\|/.test(l)).map((l) => { const [id, xmin, o2, n] = l.split("|"); return [Number(id), { xmin, o2, n }] as const; }));
+        const before = parse(psql(probe));
+        const out = parse(psql(`begin;\n${update}\n${probe}\nrollback;`));
+        const rawAfter = out.get(raw.data!.id)!;
+        expect(rawAfter.o2).not.toMatch(/RAW_a|RAW_slash|RAW_plural/);
+        expect(rawAfter.o2).toContain("[redacted:");
+        expect(out.get(clean.data!.id)!.xmin).toBe(before.get(clean.data!.id)!.xmin);
+        // rolled back: the raw row is still raw outside the transaction.
+        expect(parse(psql(probe)).get(raw.data!.id)!.o2).toContain("RAW_a");
+      } finally {
+        const cleanup = await svc.from("audit_log").delete().in("id", ids);
+        expect(cleanup.error).toBeNull();
       }
-    }
-    const { data: after } = await svc.from("audit_log").select("id, new_row").in("id", ids);
-    const byId = new Map(after!.map((r) => [r.id, r.new_row]));
-    expect(JSON.stringify(byId.get(raw.data!.id))).not.toContain("RAW_");
-    expect(byId.get(raw.data!.id)).toMatchObject({ name: "a" });
-    expect(byId.get(clean.data!.id)).toEqual({ name: "b" });
-    const cleanup = await svc.from("audit_log").delete().in("id", ids);
-    expect(cleanup.error).toBeNull();
-  });
+    })();
+  }, 120_000);
 });
