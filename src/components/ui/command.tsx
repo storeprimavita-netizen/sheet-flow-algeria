@@ -24,15 +24,17 @@ function CommandDialog({
   children,
   open,
   onOpenChange,
+  filter,
 }: {
   children: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  filter?: React.ComponentProps<typeof CommandPrimitive>["filter"];
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl gap-0 p-0">
-        <Command loop>{children}</Command>
+        <Command loop filter={filter}>{children}</Command>
       </DialogContent>
     </Dialog>
   );
