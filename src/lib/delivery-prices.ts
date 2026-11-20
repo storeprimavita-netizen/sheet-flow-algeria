@@ -132,7 +132,7 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
             warnings.push({ type: "malformed_row", code, text: part });
             // The kind still counts: a later home label is never promoted.
             const head = i < 0 ? part : part.slice(0, i);
-            if (labelKind(head.replace(/[\s\p{Nd}.]+$/u, "")) === "home") homeSeen = true;
+            if (labelKind(head.trim()) === "home") homeSeen = true;
             continue;
           }
           const label = part.slice(0, i);

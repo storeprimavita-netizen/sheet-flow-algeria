@@ -39,6 +39,11 @@ describe("parseDeliveryCsv", () => {
       const r = one(`${HOME}:${bad}|${HOME}:720`);
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
       expect(r.warnings.map((w) => w.type)).toContain("repeated_label");
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it.each(["1350.5", "9999999999.99"])("home:%s is a valid exact price", (n) => {
+      const r = one(`${HOME}:${n}`);
+      expect(r.wilayas[0]).toMatchObject({ home: Number(n), priced: true });
     });
     it("home:720|home:0 keeps home, warns zero", () => {
       const r = one(`${HOME}:720|${HOME}:0`);
@@ -58,6 +63,10 @@ describe("parseDeliveryCsv", () => {
       const r = one(`${HOME}:1350:720`);
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
       expect(r.warnings.filter((w) => w.type === "malformed_row")).toHaveLength(1);
+    });
+    it("pin: digit-suffixed home label then a second home label stays stop-desk", () => {
+      const r = one(`${HOME}٣|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 500, priced: false });
     });
     it("home:1350:720|home:500 keeps 500 as stop-desk only", () => {
       const r = one(`${HOME}:1350:720|${HOME}:500`);
