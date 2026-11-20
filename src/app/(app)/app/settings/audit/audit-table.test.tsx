@@ -62,11 +62,21 @@ describe("AuditTable", () => {
     expect(render("en", [], false)).toContain(en.team.auditNone);
   });
   test("ar: empty-key label is wrapped in an rtl bdi; en is not", () => {
-    expect(render("ar")).toContain(`<bdi dir="rtl">${ar.audit.emptyKey}</bdi>`);
-    expect(render("en")).not.toContain(`<bdi dir="rtl">`);
+    const emptyKeyDir = (html: string, label: string) => {
+      const m = [...html.matchAll(/<bdi([^>]*)>([^<]*)<\/bdi>/g)].find((x) => x[2] === label);
+      return m ? /\sdir="([^"]*)"/.exec(m[1])?.[1] : undefined;
+    };
+    expect(emptyKeyDir(render("ar"), ar.audit.emptyKey)).toBe("rtl");
+    expect(emptyKeyDir(render("en"), en.audit.emptyKey)).toBeUndefined();
   });
   test("pill has a focus-visible ring", () => {
     expect(render("en")).toMatch(/role="note"[^>]*focus-visible:ring-2/);
+  });
+  test("changes list renders once per breakpoint class", () => {
+    const html = render("en");
+    expect(html.match(/<div class="sm:hidden"><ul/g)).toHaveLength(1);
+    expect(html.match(/<div class="hidden sm:block"><ul/g)).toHaveLength(1);
+    expect(html.match(/<ul/g)).toHaveLength(2);
   });
   test("colliding labels are both visible", () => {
     const both = diffRows({ "a.b": 1, a: { b: 1 }, "x › y": 1 }, { "a.b": 2, a: { b: 2 }, "x › y": 2 });

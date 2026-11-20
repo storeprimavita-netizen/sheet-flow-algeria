@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { deleteWorkspaces } from "./test-cleanup";
+import { DB_CONTAINER, dbContainerUp } from "./test-db";
 
 /** Live SEC-1: a secret written to integration_configs never reaches audit_log. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -15,18 +16,8 @@ const ANON_KEY =
 const SERVICE_KEY =
   process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
-const DB_CONTAINER = process.env.LOCAL_DB_CONTAINER ?? "supabase_db_mnw-erp";
 const SEED_PASSWORD = "SeedDev!2026";
 const SECRET = "whsec_TESTSEED" + crypto.randomUUID();
-
-const dbContainerUp = (() => {
-  try {
-    execFileSync("docker", ["inspect", DB_CONTAINER], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
 
 const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
