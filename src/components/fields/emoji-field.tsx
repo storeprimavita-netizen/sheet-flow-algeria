@@ -79,7 +79,7 @@ export function EmojiField({
       >
         {value ?? <SmilePlus className="h-4 w-4 text-muted-foreground" aria-hidden />}
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2" align="start">
+      <PopoverContent className="w-72 max-w-[calc(100vw-2rem)] p-2" align="start">
         <div role="group" aria-label={t("settings.options.emoji")} className="grid grid-cols-6 gap-1">
           {EMOJIS.map((e, i) => (
             <button

@@ -72,12 +72,16 @@ describe("StatusPill layout", () => {
 });
 
 describe("StatusSelect trigger", () => {
-  test("never truncates, compact or not", () => {
-    for (const compact of [false, true]) {
-      const html = render(emojiOv, <StatusSelect kind="confirmation" value="confirmed" compact={compact} />);
-      expect(html).not.toContain("max-w-");
-      expect(html).not.toContain('<span class="truncate">');
-    }
+  test("a renamed label is capped with a title; the trigger is max-w-full", () => {
+    const html = render(emojiOv, <StatusSelect kind="confirmation" value="confirmed" />);
+    expect(html).toContain("max-w-full");
+    expect(html).toContain("max-w-[9rem]");
+    expect(html).toContain('title="🔥 Hot"');
+  });
+  test("a default label is never truncated", () => {
+    const html = render({}, <StatusSelect kind="confirmation" value="confirmed" />);
+    expect(html).not.toContain("max-w-[9rem]");
+    expect(html).not.toContain('<span class="truncate">');
   });
 });
 

@@ -766,3 +766,5 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 
 ## NAV-4-F (build)
 Review-3 LOW 1-9 closed: migration 00074, normalizeLabel, per-language saveStatusLabel, parallel fetches, pill truncate opt-in + emoji gap, toaster offset, picker a11y. Screenshots NOT taken in the build step (no browser run); needs /verify ui pass.
+
+- NAV-4-F review 2 FIX: pill caps only renamed labels, select trigger max-w-full + title, picker w-72, 00075 wider invisible class + tag-only-in-flag + data-fix WHERE, db-reset OK. Screenshots (light 1280, AR dark, 390 px, toast, kanban) NOT taken by this run (no browser step).

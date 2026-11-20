@@ -28,13 +28,17 @@ export function isEmojiOnly(s: string): boolean {
   return parts.length > 0 && parts.every((g) => PICTOGRAPHIC.test(g));
 }
 
+// tag characters are legal only in the subdivision-flag sequence 🏴 + tags + cancel tag
+const TAGS = /[\u{E0000}-\u{E007F}]/u;
+const FLAG_TAG_SEQUENCE = /^\u{1F3F4}[\u{E0020}-\u{E007E}]+\u{E007F}$/u;
+
 /** Exactly one emoji grapheme; blank clears (null). */
 export const emojiSchema = z
   .string()
   .trim()
   .max(16)
   .transform((v) => (v === "" ? null : v))
-  .refine((v) => v === null || (graphemeCount(v) === 1 && PICTOGRAPHIC.test(v) && !/[\u0000-\u001F\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(v)), {
+  .refine((v) => v === null || (graphemeCount(v) === 1 && PICTOGRAPHIC.test(v) && !/[\u0000-\u001F\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(v) && !v.endsWith("\u200D") && (!TAGS.test(v) || FLAG_TAG_SEQUENCE.test(v))), {
     message: "Pick a single emoji",
   });
 

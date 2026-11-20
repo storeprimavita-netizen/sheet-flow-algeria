@@ -16,22 +16,24 @@ where label_en ~ E'⠀' or label_ar ~ E'⠀';
 
 -- data: a label made only of invisible characters is cleared; a row left with none is deleted
 delete from public.status_label_overrides
-where nullif(btrim(regexp_replace(coalesce(label_en, ''), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g')), '') is null
-  and nullif(btrim(regexp_replace(coalesce(label_ar, ''), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g')), '') is null;
+where nullif(btrim(regexp_replace(coalesce(label_en, ''), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g')), '') is null
+  and nullif(btrim(regexp_replace(coalesce(label_ar, ''), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g')), '') is null;
 update public.status_label_overrides set
-  label_en = case when regexp_replace(label_en, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g') = '' then null else label_en end,
-  label_ar = case when regexp_replace(label_ar, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g') = '' then null else label_ar end;
+  label_en = case when regexp_replace(label_en, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') = '' then null else label_en end,
+  label_ar = case when regexp_replace(label_ar, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') = '' then null else label_ar end
+where regexp_replace(coalesce(label_en, 'x'), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') = ''
+   or regexp_replace(coalesce(label_ar, 'x'), E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') = '';
 
 alter table public.status_label_overrides drop constraint sl_en_chk;
 alter table public.status_label_overrides drop constraint sl_ar_chk;
 alter table public.status_label_overrides add constraint sl_en_chk check (label_en is null or (
   char_length(label_en) between 1 and 40 and label_en !~ '[[:cntrl:]]'
   and label_en !~ E'[​‌‎‏‪-‮⁦-⁩؜﻿  ­͏ᅟㅤ⠀]'
-  and regexp_replace(label_en, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g') <> ''));
+  and regexp_replace(label_en, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') <> ''));
 alter table public.status_label_overrides add constraint sl_ar_chk check (label_ar is null or (
   char_length(label_ar) between 1 and 40 and label_ar !~ '[[:cntrl:]]'
   and label_ar !~ E'[​‌‎‏‪-‮⁦-⁩؜﻿  ­͏ᅟㅤ⠀]'
-  and regexp_replace(label_ar, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜\U000E0000-\U000E007F]', '', 'g') <> ''));
+  and regexp_replace(label_ar, E'[[:space:]​-‏⁠﻿ﾠᅠᅟㅤ᠎ ­͏؜︀-️⁡-⁯឴឵᠋-᠏\U0001BCA0-\U0001BCA3\U0001D173-\U0001D17A\U000E0000-\U000E0FFF]', '', 'g') <> ''));
 
 -- emoji: anchored. Allowed characters only: the pictograph ranges, regional indicators,
 -- ZWJ, VS16, tag characters, keycap pieces; plus at least one real pictograph / flag / keycap.
@@ -39,6 +41,8 @@ alter table public.options drop constraint options_emoji_chk;
 alter table public.options add constraint options_emoji_chk check (
   emoji is null or (
     char_length(emoji) between 1 and 16
+    and (emoji !~ E'[\U000E0000-\U000E007F]' or emoji ~ E'^\U0001F3F4[\U000E0020-\U000E007E]+\U000E007F$')
+    and emoji !~ E'\u200D$'
     and emoji ~ E'^([©®‼⁉™ℹ←-⇿⌚-⏿Ⓜ▪-◾☀-➿⤴⤵⬀-⯿〰〽㊗㊙\U0001F000-\U0001FAFF‍️\U000E0020-\U000E007F⃣#*0-9])+$'
     and (
       emoji ~ E'[©®‼⁉™ℹ←-⇿⌚-⏿Ⓜ▪-◾☀-➿⤴⤵⬀-⯿〰〽㊗㊙\U0001F000-\U0001FAFF]'

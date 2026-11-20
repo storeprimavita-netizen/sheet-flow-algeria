@@ -10,7 +10,7 @@ import { getStatus, type StatusKind } from "@/lib/statuses";
 /** The one status renderer: dot + icon + label, tinted bg + strong fg.
  * `compact` swaps the full label for a one-word `.short` key — tables use it
  * to keep the Status column narrow; the order-detail workflow keeps full labels.
- * Long labels truncate by default (9rem, pill shrinks inside its cell); select triggers pass `truncate={false}` to show the full text. */
+ * Default labels never truncate; a renamed label is capped (9rem, ellipsis + title) unless `truncate={false}` (listbox items show the full text). */
 export function StatusPill({
   kind,
   status,
@@ -44,18 +44,19 @@ export function StatusPill({
   const text = compact && !overridden ? t(def.label.replace(/^status\./, "status.short.")) : full;
   // an emoji in the label stands in for the Lucide icon
   const lead = splitLeadingEmoji(text);
+  const cap = truncate && overridden;
   const iconShown = showIcon && !lead;
   return (
     <Chip
       token={def.token}
       size={size}
-      className={truncate ? "min-w-0 max-w-full" : undefined}
+      className={cap ? "min-w-0 max-w-full" : undefined}
       icon={iconShown ? <Icon className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} /> : undefined}
     >
       {overridden && isEmojiOnly(text) ? <span className="sr-only">{fullDefault}</span> : null}
-      <span className={truncate ? "inline-flex min-w-0 max-w-[9rem] items-center gap-1" : "inline-flex items-center gap-1"} title={truncate && !isEmojiOnly(text) ? text : undefined}>
+      <span className={cap ? "inline-flex min-w-0 max-w-[9rem] items-center gap-1" : "inline-flex items-center gap-1"} title={cap && !isEmojiOnly(text) ? text : undefined}>
         {lead ? <span className="shrink-0">{lead.emoji}</span> : null}
-        {lead ? (lead.rest ? <span className={truncate ? "truncate" : undefined}>{lead.rest}</span> : null) : <span className={truncate ? "truncate" : undefined}>{text}</span>}
+        {lead ? (lead.rest ? <span className={cap ? "truncate" : undefined}>{lead.rest}</span> : null) : <span className={cap ? "truncate" : undefined}>{text}</span>}
       </span>
     </Chip>
   );

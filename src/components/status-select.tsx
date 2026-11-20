@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/status-pill";
 import { useStatusLabel } from "@/components/status-labels-provider";
+import { cn } from "@/lib/utils";
 import { getStatus, statusOptionsFor, type StatusKind } from "@/lib/statuses";
 
 /**
@@ -58,8 +59,8 @@ export function StatusSelect({
       name={name}
       disabled={disabled}
     >
-      <SelectTrigger className={className}>
-        <StatusPill kind={kind} status={current} size="sm" compact={compact} truncate={false} />
+      <SelectTrigger className={cn("max-w-full", className)}>
+        <StatusPill kind={kind} status={current} size="sm" compact={compact} />
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (
