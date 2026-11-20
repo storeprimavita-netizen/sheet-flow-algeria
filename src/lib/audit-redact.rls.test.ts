@@ -178,5 +178,5 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
         expect(cleanup.error).toBeNull();
       }
     })();
-  });
+  }, 120_000);
 });
