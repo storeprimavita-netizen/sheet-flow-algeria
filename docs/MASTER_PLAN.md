@@ -104,7 +104,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | NAV-1-F | Follow-up (D40): Escape closes the 390 px drawer; closed drawer not tabbable (`inert`); ⌘K must not match internal page keys (review-6) | NAV | L | ui | – | shell | NAV-1 | done |
 | SEC-1 | Audit log shows integration secrets (`whsec_…`) in plain text on `/app/settings/audit` (admin-only, found in NAV-1 review-6): redact secret-looking values in `audit_row()` / the audit view (stored and displayed), keep a fingerprint; test with a seeded secret | – | H | sec | M | shell | – | done |
 | SEC-1-F | Follow-up (D40, review-4): secret names starting with an acronym (`XAPIKey`, `APISecret`) stay unmasked — split acronym runs when normalising, in SQL and TS; Arabic diff entries run together; review-3/4 lows (fake badge, fingerprint parity table, aria role, screenshots) | – | H | sec | M | shell | SEC-1 | done |
-| SEC-1-G | Follow-up (review-3, no leak): SQL and TS redactor outputs still differ exactly at the 64-level depth cap; SEC-1-F review lows; retake 390 px audit screenshots | – | L | ui | – | shell | SEC-1-F | todo |
+| SEC-1-G | Follow-up (review-3, no leak): SQL and TS redactor outputs still differ exactly at the 64-level depth cap; SEC-1-F review lows; retake 390 px audit screenshots | – | L | ui | – | shell | SEC-1-F | claimed:claude |
 | NAV-1-G | Follow-up: NAV-1-F review-2 lows; Arabic ⌘K fuzzy-match noise; RTL shows "K⌘" for the shortcut hint | NAV | L | ui | – | shell | NAV-1-F | todo |
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | todo |
 | NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | todo |
