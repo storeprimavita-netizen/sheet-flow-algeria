@@ -413,7 +413,7 @@ export function DataTable<T>({
 
       {/* floating bulk bar */}
       {selectable && selected.size > 0 ? (
-        <div className="surface-raised fixed bottom-6 start-1/2 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 rtl:translate-x-1/2">
+        <div className="surface-raised fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] start-1/2 md:bottom-6 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2 rtl:translate-x-1/2">
           <span className="num text-sm font-medium">
             {selected.size} {t("common.selected")}
           </span>

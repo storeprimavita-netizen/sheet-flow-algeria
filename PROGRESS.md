@@ -785,3 +785,14 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-4-S3.review-1.md VERDICT: PASS (review-0 was FIX, resolved).
 - Owner: remote `db push` of 00076 (owner-only; revokes anon function EXECUTE).
 - Next: NAV-5 in lane order.
+
+## NAV-5: built (awaiting /verify)
+- Done: agent `/app/my-day` (read-only, session client, D86 counts, no migration), `roleHome` landing for login/orders/not-found, `MY_DAY` + `bottomBar()` in nav-model, phone bottom bar (More = drawer, header hamburger removed).
+- Not done: screenshots (no running app/login session in this run); owner/ui-reviewer must screenshot 390 px light/dark EN/AR.
+
+## NAV-5: done
+- Done: phone bottom bar + agent "My day" home merged under D40/D87; review-3 ESCALATE resolved by D87 (commit 2a74a31 removes viewport-fit cover and top/side insets); no 4th review round.
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5 (tsc, 1081 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5.review-1.md FIX, .review-2.md FIX, .review-3.md ESCALATE (answered by D87, option b).
+- Owner: screenshots at 390 px (light/dark, EN/AR) and real-phone check owed (NAV-5-G); review-1 low #9 reopened (NAV-5-F).
+- Next: NAV-5-F, NAV-5-G.

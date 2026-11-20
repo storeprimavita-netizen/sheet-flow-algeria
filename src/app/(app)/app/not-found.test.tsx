@@ -22,7 +22,7 @@ describe("app not-found", () => {
   beforeEach(() => getProfile.mockReset());
   test("shows title and role-based href", async () => {
     expect(await generateMetadata()).toEqual({ title: "t:title" });
-    for (const [role, href] of [["admin", "/app/dashboard"], ["confirmation_agent", "/app/orders"], ["delivery_agent", "/app/orders"]] as const) {
+    for (const [role, href] of [["admin", "/app/dashboard"], ["confirmation_agent", "/app/my-day"], ["delivery_agent", "/app/my-day"]] as const) {
       getProfile.mockResolvedValue({ role, workspaceId: "w" });
       const tree = await AppNotFound();
       expect(find(tree, (p) => typeof p.href === "string")?.href).toBe(href);
