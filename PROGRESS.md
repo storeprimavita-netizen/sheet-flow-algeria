@@ -901,3 +901,7 @@ Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60
 - Evidence: no review file (brief risk low, surface none). The 5x consecutive green run is not re-measured in this pass.
 - Owner: none.
 - Next: merge to v3 (ship step).
+
+### Run report (auto TEST-2)
+- Shipped: TEST-2 (merge b45aa09). Causes: seasons backfill ran on all workspaces, `deleteWorkspaces` emptied 3 of 22 audited tables, data.test leaked a workspace per run.
+- Decisions by Claude: none. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
