@@ -877,3 +877,10 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 ## SEC-1-J: screenshots
 - Screenshots `docs/design/audit/SEC-1-J/` (chrome-devtools, cookies `theme`/`locale`): EN dark and AR light at 1440 and 500 px. Rows show the translated table name (ZR shipments / شحنات ZR, Settings / الإعدادات), mobile cards show it once, AR html is rtl, no horizontal scroll. Nothing to fix. Not shot: EN light and AR dark (same tokens).
 - Caveat: the MCP window cannot go below 500 px, so "390" shots are 500 px. Page closed back to about:blank.
+
+## SEC-1-J: done
+- Done: closed SEC-1-I review-1 lows 1-4 (DB.md punctuation, shared audit table label helper with raw-name fallback, structural breakpoint test, live RLS guard via dbContainerUp).
+- Verify: `scripts/gate.sh` GATE OK on v3-SEC-1-J (tsc, 1143 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: review-1 PASS (docs/briefs/SEC-1-J.review-1.md); screenshots in docs/design/audit/SEC-1-J/.
+- Owner: nothing new; EN light and AR dark not shot (same tokens).
+- Next: none for SEC-1-J; merge to v3 pending.
