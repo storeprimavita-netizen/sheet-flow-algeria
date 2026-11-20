@@ -43,6 +43,22 @@ export function countMyChanges(rows: HistoryRow[]) {
   return { confirmed, cancelled, callAgain, handled: confirmed + cancelled + callAgain };
 }
 
+/** Each order counts once, under its last delivery outcome today. */
+export function countDelivery(rows: HistoryRow[]) {
+  const last = new Map<string, HistoryRow>();
+  for (const r of rows) {
+    const prev = last.get(r.order_id);
+    if (!prev || r.created_at >= prev.created_at) last.set(r.order_id, r);
+  }
+  let delivered = 0;
+  let returned = 0;
+  for (const { to_status } of last.values()) {
+    if (to_status === "delivered") delivered++;
+    else if (to_status === "returned") returned++;
+  }
+  return { delivered, returned };
+}
+
 export async function getMyDay(
   supabase: SupabaseClient<Database>,
   userId: string,
@@ -76,12 +92,22 @@ export async function getMyDay(
             .eq("actor", userId)
             .eq("stage", "confirmation")
             .gte("created_at", since)
-            .limit(5000),
+            .order("created_at")
+            .order("id")
+            .limit(1000),
         ])
       : Promise.all([
           orders().eq("confirmation_status", "confirmed").in("delivery_status", ACTIONABLE_DELIVERY),
-          orders().eq("assigned_delivery_agent", userId).eq("delivery_status", "delivered").gte("updated_at", since),
-          orders().eq("assigned_delivery_agent", userId).eq("delivery_status", "returned").gte("updated_at", since),
+          supabase
+            .from("order_status_history")
+            .select("order_id, to_status, created_at, orders!inner(assigned_delivery_agent)")
+            .eq("stage", "delivery")
+            .in("to_status", ["delivered", "returned"])
+            .eq("orders.assigned_delivery_agent", userId)
+            .gte("created_at", since)
+            .order("created_at")
+            .order("id")
+            .limit(1000),
         ]),
   ]);
 
@@ -97,11 +123,11 @@ export async function getMyDay(
     const [queue, history] = mine as [{ count: number | null }, { data: HistoryRow[] | null }];
     return { kind: "confirmation", queue: queue.count ?? 0, numbers: countMyChanges(history.data ?? []), ...extras };
   }
-  const [queue, delivered, returned] = mine as { count: number | null }[];
+  const [queue, history] = mine as [{ count: number | null }, { data: HistoryRow[] | null }];
   return {
     kind: "delivery",
     queue: queue.count ?? 0,
-    numbers: { delivered: delivered.count ?? 0, returned: returned.count ?? 0 },
+    numbers: countDelivery(history.data ?? []),
     ...extras,
   };
 }

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { activeBarHref, bottomBar, type CounterKey } from "@/components/nav-model";
 
 const itemClass =
-  "relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium transition-colors";
+  "relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
 /** Phone-only bottom bar (< md): the role's top destinations + "More", which opens the drawer. */
 export function MobileBottomBar({

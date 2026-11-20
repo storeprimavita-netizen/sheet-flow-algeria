@@ -48,7 +48,10 @@ export async function MyDayView({ data }: { data: MyDayData }) {
       </section>
 
       <section aria-labelledby="my-day-numbers" className="space-y-3">
-        <h2 id="my-day-numbers" className="text-sm font-medium text-muted-foreground">{t("numbers")}</h2>
+        <div>
+          <h2 id="my-day-numbers" className="text-sm font-medium text-muted-foreground">{t("numbers")}</h2>
+          <p className="text-xs text-muted-foreground">{t("numbersHelp")}</p>
+        </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {stats.map((s) => <Stat key={s.key} label={t(`stat.${s.key}`)} value={s.value} />)}
         </div>

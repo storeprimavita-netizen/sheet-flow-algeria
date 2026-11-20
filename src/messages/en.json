@@ -1788,6 +1788,7 @@
     "queueDelivery": "Orders to deliver",
     "openQueue": "Open queue",
     "numbers": "My numbers today",
+    "numbersHelp": "Only orders assigned to you.",
     "stat": {
       "confirmed": "Confirmed",
       "cancelled": "Cancelled",

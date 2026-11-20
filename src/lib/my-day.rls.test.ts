@@ -32,7 +32,8 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     const { data, error } = await svc.auth.admin.createUser({ email, password: SEED_PASSWORD, email_confirm: true });
     if (error) throw error;
     users.push(data.user.id);
-    await svc.from("profiles").update({ workspace_id: workspace, role, is_active: true }).eq("user_id", data.user.id);
+    const up = await svc.from("profiles").update({ workspace_id: workspace, role, is_active: true }).eq("user_id", data.user.id);
+    if (up.error) throw up.error;
     const c = client(ANON_KEY);
     const s = await c.auth.signInWithPassword({ email, password: SEED_PASSWORD });
     if (s.error) throw s.error;
@@ -67,8 +68,6 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
   });
 
   test("agent confirms unassigned order -> confirmed +1", async () => {
-    const before = (await day(a1, "confirmation_agent")).kind === "confirmation" ? 0 : -1;
-    expect(before).toBe(0);
     await change(a1, await newOrder(), "confirmed");
     const d = await day(a1, "confirmation_agent");
     expect(d.kind === "confirmation" && d.numbers).toMatchObject({ confirmed: 1, handled: 1 });
@@ -103,12 +102,27 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
     );
   });
 
-  test("delivery agent and other workspace get zero; result has no money key", async () => {
-    const c = await day(courier, "delivery_agent");
-    expect(c.kind === "delivery" && c.numbers).toEqual({ delivered: 0, returned: 0 });
+  test("delivery counts use today's history, not updated_at; other workspace sees no queue", async () => {
+    // a waiting order in ws: visible to a1, invisible to another workspace (this is what RLS proves)
+    await newOrder();
+    const a = await day(a1, "confirmation_agent");
+    expect(a.queue).toBeGreaterThanOrEqual(1);
     const o = await day(other, "confirmation_agent");
     expect(o.kind === "confirmation" && o.numbers).toEqual({ confirmed: 0, cancelled: 0, callAgain: 0, handled: 0 });
     expect(o.queue).toBe(0);
-    for (const d of [c, o, await day(a1, "confirmation_agent")]) expect(JSON.stringify(d)).not.toMatch(/price|cost|amount|dzd|fee|profit/i);
+
+    // delivered today by the courier
+    const today = await newOrder();
+    await svc.from("orders").update({ confirmation_status: "confirmed", assigned_delivery_agent: courier.id, delivery_status: "delivered" }).eq("id", today);
+    // delivered yesterday, then touched today (updated_at is today): must not count
+    const old = await newOrder();
+    await svc.from("orders").update({ confirmation_status: "confirmed", assigned_delivery_agent: courier.id, delivery_status: "delivered" }).eq("id", old);
+    const yesterday = new Date(Date.now() - 36 * 3_600_000).toISOString();
+    expect((await svc.from("order_status_history").update({ created_at: yesterday }).eq("order_id", old).eq("stage", "delivery")).error).toBeNull();
+    expect((await svc.from("orders").update({ customer_name: "Touched" }).eq("id", old)).error).toBeNull();
+
+    const c = await day(courier, "delivery_agent");
+    expect(c.kind === "delivery" && c.numbers).toEqual({ delivered: 1, returned: 0 });
+    for (const d of [c, o, a]) expect(JSON.stringify(d)).not.toMatch(/price|cost|amount|dzd|fee|profit/i);
   });
 });

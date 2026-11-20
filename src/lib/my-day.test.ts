@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { algiersDayStart, countMyChanges } from "@/lib/my-day";
+import { algiersDayStart, countDelivery, countMyChanges } from "@/lib/my-day";
 
 describe("algiersDayStart", () => {
   it("is local midnight in UTC+1", () => {
@@ -18,5 +18,12 @@ describe("countMyChanges", () => {
     });
     expect(countMyChanges([r("a", "confirmed", 1), r("a", "no_answer", 2)])).toEqual({ confirmed: 0, cancelled: 0, callAgain: 1, handled: 1 });
     expect(countMyChanges([])).toEqual({ confirmed: 0, cancelled: 0, callAgain: 0, handled: 0 });
+  });
+});
+
+describe("countDelivery", () => {
+  const r = (order_id: string, to_status: string, n: number) => ({ order_id, to_status, created_at: `2026-03-10T10:00:0${n}Z` });
+  it("each order once under its last outcome", () => {
+    expect(countDelivery([r("a", "returned", 1), r("a", "delivered", 2), r("b", "returned", 3)])).toEqual({ delivered: 1, returned: 1 });
   });
 });

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -7,6 +7,8 @@ import { Toaster } from "sonner";
 import { dirFor } from "@/i18n/config";
 import { THEME_COOKIE, defaultTheme, isTheme } from "@/lib/theme";
 import "./globals.css";
+
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export const metadata: Metadata = {
   title: "MNW ERP",

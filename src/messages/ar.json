@@ -1788,6 +1788,7 @@
     "queueDelivery": "طلبات للتسليم",
     "openQueue": "فتح الطابور",
     "numbers": "أرقامي اليوم",
+    "numbersHelp": "الطلبات المسندة إليك فقط.",
     "stat": {
       "confirmed": "مؤكدة",
       "cancelled": "ملغاة",
