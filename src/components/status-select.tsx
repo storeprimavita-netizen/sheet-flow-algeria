@@ -10,6 +10,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/status-pill";
+import { useStatusLabel } from "@/components/status-labels-provider";
 import { getStatus, statusOptionsFor, type StatusKind } from "@/lib/statuses";
 
 /**
@@ -39,12 +40,13 @@ export function StatusSelect({
   compact?: boolean;
 }) {
   const t = useTranslations();
+  const statusLabel = useStatusLabel();
   const [current, setCurrent] = React.useState(value);
   const options = statusOptionsFor(kind, current);
 
   function handleChange(v: string) {
     const def = getStatus(kind, v);
-    if (def?.requiresConfirm && !window.confirm(t("orders.confirmStatus", { status: t(def.label) }))) return;
+    if (def?.requiresConfirm && !window.confirm(t("orders.confirmStatus", { status: statusLabel(kind, v, t(def.label)) }))) return;
     setCurrent(v);
     onChange?.(v);
   }

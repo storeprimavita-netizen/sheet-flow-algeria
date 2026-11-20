@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
+import { useStatusLabel } from "@/components/status-labels-provider";
 import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { CONFIRMATION_STATUSES, DELIVERY_STATUSES, ORDER_SOURCES } from "@/lib/enums";
@@ -37,6 +38,7 @@ export function OrdersFilterBar({
   dropped: DrillKey[];
 }) {
   const t = useTranslations();
+  const statusLabel = useStatusLabel();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -76,12 +78,12 @@ export function OrdersFilterBar({
 
   const confOpts: Opt[] = CONFIRMATION_STATUSES.map((s) => ({
     value: s,
-    label: t(`status.confirmation_status.${s}`),
+    label: statusLabel("confirmation", s, t(`status.confirmation_status.${s}`)),
     token: getStatus("confirmation", s)?.token,
   }));
   const delivOpts: Opt[] = DELIVERY_STATUSES.map((s) => ({
     value: s,
-    label: t(`status.delivery_status.${s}`),
+    label: statusLabel("delivery", s, t(`status.delivery_status.${s}`)),
     token: getStatus("delivery", s)?.token,
   }));
   const sourceOpts: Opt[] = ORDER_SOURCES.map((s) => ({

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ACTIONABLE_CONFIRMATION, ACTIONABLE_DELIVERY } from "@/lib/statuses";
 import { getCurrentUserRole, getUser } from "@/lib/rbac";
 import { AppShell } from "@/components/app-shell";
+import { StatusLabelsProvider } from "@/components/status-labels-provider";
+import { getStatusLabelOverrides } from "@/lib/status-labels";
 
 /** Auth gate for all /app/* routes (defense-in-depth; the proxy already redirects). */
 export default async function AppLayout({
@@ -16,6 +18,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   const role = await getCurrentUserRole();
+  const overrides = await getStatusLabelOverrides();
 
   // Live nav counters — RLS-scoped, so agents see their own queue counts.
   const [confirmation, delivery, tasks] = await Promise.all([
@@ -42,8 +45,10 @@ export default async function AppLayout({
   };
 
   return (
-    <AppShell user={{ email: user.email ?? "" }} role={role} counts={counts}>
-      {children}
-    </AppShell>
+    <StatusLabelsProvider overrides={overrides}>
+      <AppShell user={{ email: user.email ?? "" }} role={role} counts={counts}>
+        {children}
+      </AppShell>
+    </StatusLabelsProvider>
   );
 }

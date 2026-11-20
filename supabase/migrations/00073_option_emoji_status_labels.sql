@@ -7,7 +7,8 @@ alter table public.options add constraint options_emoji_chk check (
   emoji is null or (
     char_length(emoji) between 1 and 16
     and emoji !~ '[[:cntrl:]]'
-    and emoji !~ E'[​-‏‪-‮⁦-⁩]'
+    -- U+200D (ZWJ) stays allowed: family and profession emoji are joined with it
+    and emoji !~ E'[\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069]'
   )
 );
 comment on column public.options.icon is 'DEPRECATED (NAV-4): unused, use emoji';
@@ -30,9 +31,9 @@ create table public.status_label_overrides (
   updated_at   timestamptz not null default now(),
   unique (workspace_id, kind, status_key),
   constraint sl_en_chk check (label_en is null or (char_length(label_en) between 1 and 40
-    and label_en !~ '[[:cntrl:]]' and label_en !~ E'[​-‏‪-‮⁦-⁩]')),
+    and label_en !~ '[[:cntrl:]]' and label_en !~ E'[\u200B-\u200F\u202A-\u202E\u2066-\u2069]')),
   constraint sl_ar_chk check (label_ar is null or (char_length(label_ar) between 1 and 40
-    and label_ar !~ '[[:cntrl:]]' and label_ar !~ E'[​-‏‪-‮⁦-⁩]')),
+    and label_ar !~ '[[:cntrl:]]' and label_ar !~ E'[\u200B-\u200F\u202A-\u202E\u2066-\u2069]')),
   constraint sl_nonblank_chk check (
     coalesce(btrim(label_en), '') <> '' or coalesce(btrim(label_ar), '') <> '')
 );

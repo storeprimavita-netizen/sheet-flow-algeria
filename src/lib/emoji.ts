@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Bidi/zero-width controls: they can reorder or hide text, so neither emoji nor labels may carry them. */
 // eslint-disable-next-line no-control-regex
-const FORBIDDEN = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁦-⁩]/g;
+const FORBIDDEN = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g;
 const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 
 export function graphemeCount(s: string): number {
@@ -21,7 +21,7 @@ export const emojiSchema = z
   .trim()
   .max(16)
   .transform((v) => (v === "" ? null : v))
-  .refine((v) => v === null || (graphemeCount(v) === 1 && PICTOGRAPHIC.test(v) && !/[\u0000-\u001F​-‏‪-‮⁦-⁩]/.test(v)), {
+  .refine((v) => v === null || (graphemeCount(v) === 1 && PICTOGRAPHIC.test(v) && !/[\u0000-\u001F\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(v)), {
     message: "Pick a single emoji",
   });
 

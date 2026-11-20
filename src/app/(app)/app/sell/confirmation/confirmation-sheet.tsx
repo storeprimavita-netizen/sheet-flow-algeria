@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useStatusLabel } from "@/components/status-labels-provider";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -27,6 +28,7 @@ import { OrderNo } from "@/components/order-no";
  */
 export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orderedKeys: string[] }) {
   const t = useTranslations();
+  const statusLabel = useStatusLabel();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -49,7 +51,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
 
   async function save(openNext: boolean) {
     const def = getStatus("confirmation", selected);
-    if (def?.requiresConfirm && !window.confirm(t("orders.confirmStatus", { status: t(def.label) }))) return;
+    if (def?.requiresConfirm && !window.confirm(t("orders.confirmStatus", { status: statusLabel("confirmation", selected, t(def.label)) }))) return;
     const comment = (document.getElementById(commentId) as HTMLTextAreaElement | null)?.value ?? "";
     setBusy(true);
     const res = await updateOrderStatus({ orderId: order.id, stage: "confirmation", status: selected, comment });

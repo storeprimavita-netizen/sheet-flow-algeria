@@ -70,12 +70,13 @@ describe.skipIf(!URL)("options.emoji (live DB, 00073)", () => {
     const id = (await s.admin.from("options").insert(row({})).select("id").single()).data!.id as string;
     expect((await s.admin.from("options").update({ emoji: "👗" }).eq("id", id)).error).toBeNull();
     expect((await s.admin.from("options").select("emoji").eq("id", id).single()).data!.emoji).toBe("👗");
+    expect((await s.admin.from("options").update({ emoji: "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}" }).eq("id", id)).error).toBeNull(); // ZWJ sequence
     expect((await s.admin.from("options").update({ emoji: null }).eq("id", id)).error).toBeNull();
   });
 
   test("bidi, control and over-long emoji are rejected even for admin", async () => {
     const id = (await s.admin.from("options").insert(row({})).select("id").single()).data!.id as string;
-    for (const bad of ["‮🔥", "🔥​", "a\u0007", "⁦x", "x".repeat(17), ""]) {
+    for (const bad of ["\u202E🔥", "🔥\u200B", "a\u0007", "\u2066x", "x".repeat(17), ""]) {
       expect((await s.admin.from("options").update({ emoji: bad }).eq("id", id)).error, JSON.stringify(bad)).not.toBeNull();
     }
   });
@@ -113,7 +114,7 @@ describe.skipIf(!URL)("status_label_overrides (live DB, 00073)", () => {
     for (const over of [
       { kind: "nope" }, { status_key: "Bad Key" }, { status_key: "x".repeat(41) }, { status_key: "__proto__x1" },
       { label_en: null, label_ar: null }, { label_en: "   ", label_ar: null }, { label_en: "x".repeat(41) },
-      { label_en: "a‮b" }, { label_ar: "a​b", label_en: null }, { label_en: "a\nb" },
+      { label_en: "a\u202Eb" }, { label_ar: "a\u200Bb", label_en: null }, { label_en: "a\nb" },
     ]) {
       expect((await upsert(s.admin, s.ws, over)).error, JSON.stringify(over)).not.toBeNull();
     }

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { resolveStatusLabel } from "@/lib/status-label";
+import { getStatusLabelOverrides } from "@/lib/status-labels";
 
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, isCurrentUserAdmin } from "@/lib/rbac";
@@ -33,6 +36,9 @@ export default async function CustomerDetailPage({
 }) {
   const { id } = await params;
   const t = await getTranslations();
+  const locale = await getLocale();
+  const overrides = await getStatusLabelOverrides();
+  const sl = (kind: "confirmation" | "delivery", key: string, fallback: string) => resolveStatusLabel(overrides, kind, key, locale, fallback);
   const profile = (await getProfile())!;
   const isAdmin = await isCurrentUserAdmin();
 
@@ -96,19 +102,19 @@ export default async function CustomerDetailPage({
           </thead>
           <tbody>
             <tr>
-              <td>{t("status.delivery_status.returned")}</td>
+              <td>{sl("delivery", "returned", t("status.delivery_status.returned"))}</td>
               <td className="num">{returned}</td>
               <td className="num">{weights.returned}</td>
               <td className="num">{weights.returned * returned}</td>
             </tr>
             <tr>
-              <td>{t("status.confirmation_status.cancelled")}</td>
+              <td>{sl("confirmation", "cancelled", t("status.confirmation_status.cancelled"))}</td>
               <td className="num">{cancelled}</td>
               <td className="num">{weights.cancelled}</td>
               <td className="num">{weights.cancelled * cancelled}</td>
             </tr>
             <tr>
-              <td>{t("status.confirmation_status.no_answer")}</td>
+              <td>{sl("confirmation", "no_answer", t("status.confirmation_status.no_answer"))}</td>
               <td className="num">{noAnswer}</td>
               <td className="num">{weights.no_answer}</td>
               <td className="num">{weights.no_answer * noAnswer}</td>

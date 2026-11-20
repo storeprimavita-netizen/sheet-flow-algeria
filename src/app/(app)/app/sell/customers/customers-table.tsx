@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { ExternalLink } from "lucide-react";
 
+import { useStatusLabel } from "@/components/status-labels-provider";
 import { StatusPill } from "@/components/status-pill";
 import { RiskBadge } from "@/components/risk-badge";
 import { PhoneLinks } from "@/components/phone-links";
@@ -44,12 +45,13 @@ export type CustomerRow = {
 
 export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
   const t = useTranslations();
+  const statusLabel = useStatusLabel();
 
   function riskReason(r: CustomerRow) {
     const parts = [];
-    if (r.returned_orders) parts.push(`${r.returned_orders} ${t("status.delivery_status.returned")}`);
-    if (r.cancelled_orders) parts.push(`${r.cancelled_orders} ${t("status.confirmation_status.cancelled")}`);
-    if (r.no_answer_orders) parts.push(`${r.no_answer_orders} ${t("status.confirmation_status.no_answer")}`);
+    if (r.returned_orders) parts.push(`${r.returned_orders} ${statusLabel("delivery", "returned", t("status.delivery_status.returned"))}`);
+    if (r.cancelled_orders) parts.push(`${r.cancelled_orders} ${statusLabel("confirmation", "cancelled", t("status.confirmation_status.cancelled"))}`);
+    if (r.no_answer_orders) parts.push(`${r.no_answer_orders} ${statusLabel("confirmation", "no_answer", t("status.confirmation_status.no_answer"))}`);
     return parts.join(" · ") || undefined;
   }
 
@@ -70,8 +72,8 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
     },
     { id: "wilaya", header: t("fields.wilaya"), cell: (r) => r.wilaya_name ?? "—" },
     { id: "total_orders", header: t("common.total"), numeric: true, sortable: true, cell: (r) => r.total_orders },
-    { id: "delivered", header: t("status.delivery_status.delivered"), numeric: true, cell: (r) => r.delivered_orders },
-    { id: "returned", header: t("status.delivery_status.returned"), numeric: true, cell: (r) => r.returned_orders },
+    { id: "delivered", header: statusLabel("delivery", "delivered", t("status.delivery_status.delivered")), numeric: true, cell: (r) => r.delivered_orders },
+    { id: "returned", header: statusLabel("delivery", "returned", t("status.delivery_status.returned")), numeric: true, cell: (r) => r.returned_orders },
     {
       id: "delivery_rate",
       header: t("fields.deliveryRate"),
@@ -126,8 +128,8 @@ export function CustomersTable({ rows }: { rows: CustomerRow[] }) {
 
             <div className="grid grid-cols-3 gap-3">
               <Stat label={t("common.total")} value={r.total_orders} />
-              <Stat label={t("status.delivery_status.delivered")} value={r.delivered_orders} />
-              <Stat label={t("status.delivery_status.returned")} value={r.returned_orders} />
+              <Stat label={statusLabel("delivery", "delivered", t("status.delivery_status.delivered"))} value={r.delivered_orders} />
+              <Stat label={statusLabel("delivery", "returned", t("status.delivery_status.returned"))} value={r.returned_orders} />
             </div>
 
             <div className="space-y-2">
