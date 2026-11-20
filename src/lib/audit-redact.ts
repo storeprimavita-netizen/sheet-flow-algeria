@@ -34,6 +34,7 @@ export function jsonbText(v: unknown): string {
 
 export function auditRedact(value: unknown, depth = 0): unknown {
   if (typeof value === "string" && MASKED.test(value)) return value; // idempotent at any depth
+  if (value === "") return value; // kept at any depth, like null
   if (value !== null && value !== undefined && depth > MAX_DEPTH) return mask(jsonbText(value));
   if (Array.isArray(value)) return value.map((e) => auditRedact(e, depth + 1));
   if (value && typeof value === "object") {

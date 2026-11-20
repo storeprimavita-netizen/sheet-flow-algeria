@@ -26,6 +26,8 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
   let admin: SupabaseClient;
   let ws: string;
   let userId: string;
+  let agent: SupabaseClient;
+  let agentId: string;
 
   beforeAll(async () => {
     svc = client(SERVICE_KEY);
@@ -38,6 +40,14 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     admin = client(ANON_KEY);
     const si = await admin.auth.signInWithPassword({ email, password: SEED_PASSWORD });
     if (si.error) throw si.error;
+    const agentEmail = `sec1-agent-${crypto.randomUUID()}@test.mnw`;
+    const ag = await svc.auth.admin.createUser({ email: agentEmail, password: SEED_PASSWORD, email_confirm: true });
+    if (ag.error) throw ag.error;
+    agentId = ag.data.user.id;
+    await svc.from("profiles").update({ workspace_id: ws, role: "confirmation_agent", is_active: true }).eq("user_id", agentId);
+    agent = client(ANON_KEY);
+    const sa = await agent.auth.signInWithPassword({ email: agentEmail, password: SEED_PASSWORD });
+    if (sa.error) throw sa.error;
   });
   afterAll(async () => {
     if (!svc) return;
@@ -53,6 +63,8 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
     await svc.from("audit_log").delete().eq("workspace_id", ws);
     const u = await svc.auth.admin.deleteUser(userId);
     if (u.error) throw u.error;
+    const ua = await svc.auth.admin.deleteUser(agentId);
+    if (ua.error) throw ua.error;
   });
 
   test("secret is redacted in audit_log but intact in the table", async () => {
@@ -118,8 +130,10 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
 
   test("parity cases: idempotent in SQL, and TS(SQL(x)) == SQL(x)", async () => {
     for (const j of PARITY_CASES) {
-      const { data } = await svc.rpc("audit_redact", { j });
+      const { data, error } = await svc.rpc("audit_redact", { j });
       const again = await svc.rpc("audit_redact", { j: data });
+      expect(error).toBeNull();
+      expect(again.error).toBeNull();
       expect(again.data).toEqual(data);
       expect(auditRedact(data)).toEqual(data);
     }
@@ -127,7 +141,7 @@ describe.skipIf(!URL)("audit_log redaction (live DB)", () => {
 
   test("agent and anon sessions cannot execute the redactors (42501)", async () => {
     const anon = client(ANON_KEY);
-    for (const c of [admin, anon]) {
+    for (const c of [admin, agent, anon]) {
       const a = await c.rpc("audit_redact", { j: { secret: "x" }, depth: 0 });
       expect(a.error?.code).toBe("42501");
       const b = await c.rpc("audit_is_secret_key", { k: "secret" });

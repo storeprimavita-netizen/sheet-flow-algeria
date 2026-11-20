@@ -24,6 +24,7 @@ const nest = (levels: number, leaf: unknown): unknown => {
 // Depth cap boundary (64 kept, 65 masked); JSON null is kept at every depth.
 PARITY_CASES.push(
   nest(64, null),
+  nest(64, { key: "api_key", value: "" }),
   nest(65, null),
   nest(64, { a: null }),
   nest(64, { secret: null }),
