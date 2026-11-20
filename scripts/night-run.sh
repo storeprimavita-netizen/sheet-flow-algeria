@@ -36,7 +36,10 @@ PY
 bad=0; n=0
 while :; do
   n=$((n+1))
-  [ "$(git branch --show-current)" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
+  cur=$(git branch --show-current)
+  # A batch cut off mid-task (usage limit) leaves edits on v3-<id>; save them there or the checkout fails.
+  if [ "$cur" != "v3" ] && [ -n "$(git status --porcelain)" ]; then say "uncommitted files on $cur — saving them as a step"; scripts/step.sh "wip: files left on $cur when batch $((n-1)) was cut off (not gated)" || exit 1; fi
+  [ "$cur" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
   if [ -n "$(git status --porcelain)" ]; then say "uncommitted files on v3 — saving them as a step"; scripts/step.sh "wip: files left in the working tree before batch $n" || exit 1; fi
   git pull --rebase -q origin v3 || { say "could not update v3 — stopping"; exit 1; }
   log="$HOME/Library/Logs/mnw-night-run-$(date +%Y%m%d-%H%M%S).jsonl"
