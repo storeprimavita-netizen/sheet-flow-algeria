@@ -120,7 +120,7 @@ export function FeesCsvDialog() {
                 aria-describedby="csv-format-hint"
               />
               <p id="csv-format-hint" className="text-xs text-muted-foreground">
-                <bdi>{t("formatHint")}</bdi>
+                {t.rich("formatHint", { cols: (c) => <bdi>{c}</bdi> })}
               </p>
             </div>
 

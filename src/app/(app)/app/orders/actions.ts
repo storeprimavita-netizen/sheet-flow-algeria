@@ -504,7 +504,7 @@ export async function changeOrderVariant(orderId: string, variantId: string): Pr
 const swapOrderSchema = z.object({
   customer_name: z.string().trim().min(1),
   customer_phone: z.string().trim().min(1),
-  wilaya_code: z.coerce.number().int(),
+  wilaya_code: z.coerce.number().int().min(1).max(58),
   commune: optionalText,
   address: optionalText,
 });

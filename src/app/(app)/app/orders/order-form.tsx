@@ -54,6 +54,10 @@ export function OrderForm({
   const [state, formAction] = React.useActionState<OrderFormState, FormData>((_prev, fd) => createOrder(fd), undefined);
 
   const onSubmit = useSubmitAction(formAction);
+  // each refused save returns a new state object; editing a cause dismisses that one
+  const [dismissed, setDismissed] = React.useState<OrderFormState>(undefined);
+  const clearError = () => setDismissed(state);
+  const shownError = state && state !== dismissed ? state : undefined;
 
   const [productId, setProductId] = React.useState("");
   const [variantId, setVariantId] = React.useState(NONE);
@@ -65,6 +69,7 @@ export function OrderForm({
   const sizes = product?.sizes ?? [];
 
   function onProduct(id: string) {
+    clearError();
     setProductId(id);
     setVariantId(NONE); // a size belongs to one product
   }
@@ -82,6 +87,7 @@ export function OrderForm({
   const feeKey = `${wilayaCode}-${deliveryType}`;
 
   function onWilayaOrType(next: { wilaya?: string; type?: string }) {
+    clearError();
     if (next.wilaya !== undefined) {
       setWilayaCode(next.wilaya);
       setCommune(""); // a commune belongs to one wilaya
@@ -105,11 +111,12 @@ export function OrderForm({
             onChange={onProduct}
             name="product_id"
             placeholder={t("fields.none")}
+            ariaLabel={t("fields.product")}
           />
         </Field>
         {sizes.length ? (
           <Field label={t("orders.sizeTitle")} hint={t("common.optional")}>
-            <Select value={variantId} onValueChange={setVariantId} name="variant_id">
+            <Select value={variantId} onValueChange={(v) => (clearError(), setVariantId(v))} name="variant_id">
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -125,7 +132,7 @@ export function OrderForm({
           </Field>
         ) : null}
         <Field label={t("fields.quantity")}>
-          <QuantityStepper name="quantity" defaultValue={1} />
+          <QuantityStepper name="quantity" defaultValue={1} ariaLabel={t("fields.quantity")} />
         </Field>
         <Field label={t("fields.unit_price")} htmlFor="sale_price">
           <MoneyField id="sale_price" key={`price-${productId}`} name="sale_price" defaultValue={product?.sale_price ?? 0} />
@@ -146,6 +153,7 @@ export function OrderForm({
             onChange={(v) => onWilayaOrType({ wilaya: v })}
             name="wilaya_code"
             placeholder={t("fields.none")}
+            ariaLabel={t("fields.wilaya")}
           />
           {block ? (
             <p role="alert" className="mt-1 flex items-start gap-1.5 text-xs text-destructive">
@@ -202,16 +210,16 @@ export function OrderForm({
             key={`fee-${feeKey}`}
             name="delivery_fee"
             defaultValue={seededFee}
-            onChange={() => setFeeSource("manual")}
+            onChange={() => (clearError(), setFeeSource("manual"))}
           />
           <input type="hidden" name="delivery_fee_source" value={feeSource} />
         </Field>
       </div>
 
-      {state?.error ? (
+      {shownError?.error && !block ? (
         <p role="alert" className="flex items-center gap-2 rounded-lg border border-destructive/40 p-3 text-sm">
           <Ban className="h-4 w-4 shrink-0 text-destructive" aria-hidden />
-          {t(`orders.form.${state.error}`)}
+          {t(`orders.form.${shownError.error}`)}
         </p>
       ) : null}
 
