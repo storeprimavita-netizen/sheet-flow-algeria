@@ -1,16 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { describe, expect, test } from "vitest";
+import { DB_CONTAINER, dbContainerUp as dbUp } from "@/lib/test-db";
 import { AUDITED_TABLES } from "./params";
 
-const DB_CONTAINER = process.env.LOCAL_DB_CONTAINER ?? "supabase_db_mnw-erp";
-const dbUp = (() => {
-  try {
-    execFileSync("docker", ["inspect", DB_CONTAINER], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
 
 describe.skipIf(!dbUp)("AUDITED_TABLES vs live triggers", () => {
   test("list equals tables with an audit_row trigger", () => {
