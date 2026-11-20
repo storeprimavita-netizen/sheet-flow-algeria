@@ -18,7 +18,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 
-export type Option = { value: string; label: string; token?: StatusToken; archived?: boolean };
+export type Option = { value: string; label: string; token?: StatusToken; emoji?: string | null; archived?: boolean };
 
 /** Options minus archived ones, except the currently-selected value(s) — archived options stay visible on historical records but aren't offered for new picks. */
 function pickable(options: Option[], selected: string | string[] | undefined) {
@@ -69,7 +69,7 @@ export function OptionSelect({
     if (!setKey) return onCreate?.(label);
     const res = await createOption(setKey, label);
     if (!res.ok) return toast.error(res.error);
-    setOpts((prev) => [...prev, { value: res.option.id, label: res.option.label, token: res.option.color_token as StatusToken }]);
+    setOpts((prev) => [...prev, { value: res.option.id, label: res.option.label, token: res.option.color_token as StatusToken, emoji: null }]);
     select(res.option.id);
   }
 
@@ -89,7 +89,7 @@ export function OptionSelect({
       >
         {current ? (
           <span title={current.archived ? "Archived option" : undefined}>
-            <Chip token={current.token ?? "neutral"} size="sm" className={current.archived ? "opacity-60" : undefined}>
+            <Chip token={current.token ?? "neutral"} emoji={current.emoji} size="sm" className={current.archived ? "opacity-60" : undefined}>
               {current.label}
             </Chip>
           </span>
@@ -106,7 +106,7 @@ export function OptionSelect({
             <CommandGroup>
               {list.map((o) => (
                 <CommandItem key={o.value} value={o.label} onSelect={() => select(o.value)}>
-                  <Chip token={o.token ?? "neutral"} size="sm">
+                  <Chip token={o.token ?? "neutral"} emoji={o.emoji} size="sm">
                     {o.label}
                   </Chip>
                   {selected === o.value ? <Check className="ms-auto h-4 w-4 text-primary" /> : null}
@@ -166,7 +166,7 @@ export function OptionMultiSelect({
     }
     const res = await createOption(setKey, label);
     if (!res.ok) return toast.error(res.error);
-    setOpts((prev) => [...prev, { value: res.option.id, label: res.option.label, token: res.option.color_token as StatusToken }]);
+    setOpts((prev) => [...prev, { value: res.option.id, label: res.option.label, token: res.option.color_token as StatusToken, emoji: null }]);
     const next = [...selected, res.option.id];
     setSelected(next);
     onChange?.(next);
@@ -190,7 +190,7 @@ export function OptionMultiSelect({
           {selected.length
             ? selected.map((v) => (
                 <span key={v} title={byValue.get(v)?.archived ? "Archived option" : undefined}>
-                  <Chip token={byValue.get(v)?.token ?? "neutral"} size="sm" className={byValue.get(v)?.archived ? "opacity-60" : undefined}>
+                  <Chip token={byValue.get(v)?.token ?? "neutral"} emoji={byValue.get(v)?.emoji} size="sm" className={byValue.get(v)?.archived ? "opacity-60" : undefined}>
                     {byValue.get(v)?.label ?? v}
                   </Chip>
                 </span>
@@ -207,7 +207,7 @@ export function OptionMultiSelect({
             <CommandGroup>
               {list.map((o) => (
                 <CommandItem key={o.value} value={o.label} onSelect={() => toggle(o.value)}>
-                  <Chip token={o.token ?? "neutral"} size="sm">
+                  <Chip token={o.token ?? "neutral"} emoji={o.emoji} size="sm">
                     {o.label}
                   </Chip>
                   {selected.includes(o.value) ? <Check className="ms-auto h-4 w-4 text-primary" /> : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useStatusLabel } from "@/components/status-labels-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -164,17 +165,19 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
 
 function QuickAdvance({ row, advance }: { row: DelivRow; advance: (id: string, s: string) => Promise<boolean> }) {
   const t = useTranslations();
+  const statusLabel = useStatusLabel();
   const nextKey = getStatus("delivery", row.delivery_status)?.next[0];
   const nextDef = nextKey ? getStatus("delivery", nextKey) : undefined;
   // Fixed-width slot even when there's no next step, so pills line up.
   if (!nextDef) return <span className="h-7 w-7 shrink-0" aria-hidden />;
+  const nextLabel = statusLabel("delivery", nextDef.key, t(nextDef.label));
   return (
     <Button
       variant="ghost"
       size="icon"
       className="h-7 w-7"
-      aria-label={`${t("orders.advanceTo")} ${t(nextDef.label)}`}
-      title={`${t("orders.advanceTo")} ${t(nextDef.label)}`}
+      aria-label={`${t("orders.advanceTo")} ${nextLabel}`}
+      title={`${t("orders.advanceTo")} ${nextLabel}`}
       onClick={() => advance(row.id, nextDef.key)}
     >
       <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />

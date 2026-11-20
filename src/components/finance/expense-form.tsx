@@ -93,7 +93,7 @@ export function ExpenseForm({
             setKey="expense_subcategory"
             name="subcategory_option_id"
             value={expense?.subcategory_option_id ?? undefined}
-            options={subcategories.map((s) => ({ value: s.id, label: s.label, token: s.color_token, archived: !!s.archived_at }))}
+            options={subcategories.map((s) => ({ value: s.id, label: s.label, token: s.color_token, emoji: s.emoji, archived: !!s.archived_at }))}
             placeholder={t("fields.subcategory")}
           />
         </Field>

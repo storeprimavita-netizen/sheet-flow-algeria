@@ -91,7 +91,7 @@ export function ExpenseTable({
       defaultHidden: true,
       cell: (e) => {
         const s = e.subcategory_option_id ? subcategoryById.get(e.subcategory_option_id) : undefined;
-        return s ? <Chip token={s.color_token} size="sm">{s.label}</Chip> : "—";
+        return s ? <Chip token={s.color_token} emoji={s.emoji} size="sm">{s.label}</Chip> : "—";
       },
     },
     ...(productId
