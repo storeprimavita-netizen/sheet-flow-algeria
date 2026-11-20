@@ -894,3 +894,10 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 Root cause (repro: 4x `npx vitest run` + per-file workspace-count diff, logs in $TMPDIR/t2): (1) the seasons backfill test ran the raw 00061 insert for EVERY workspace, racing other files' teardown (audit_log FK 23503); (2) `deleteWorkspaces` emptied only 3 audited tables, so cascades fired `audit_row()` after the workspace row was gone; (3) `store/data.test.ts` ignored the delete error and leaked one workspace per run (audit rows blocked by product_variant_values -> product_option_values FK).
 Fixes: backfill scoped to its own workspace; `AUDITED_WORKSPACE_TABLES` (+ variant tables) in `src/lib/test-cleanup.ts`, checked against pg_trigger by `test-cleanup.test.ts`; data.test.ts asserts the delete. No timeouts seen, so no per-file timeouts added (step 4 skipped: no evidence). Ad-hoc teardown in other suites left as is (redundant, harmless).
 Result: full gate green 5x in a row with dev server up; workspaces=16, orders=60 constant across runs.
+
+## TEST-2 — DONE (branch v3-TEST-2)
+- Done: root cause fixed (seasons backfill scoped to own workspace; shared audited-table teardown in `test-cleanup.ts` incl. variant tables; `store/data.test.ts` asserts delete). See the TEST-2 entry above for evidence.
+- Verify: `scripts/gate.sh` GATE OK on v3-TEST-2 at merge time (tsc, 1145 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: no review file (brief risk low, surface none). The 5x consecutive green run is not re-measured in this pass.
+- Owner: none.
+- Next: merge to v3 (ship step).
