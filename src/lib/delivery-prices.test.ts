@@ -54,6 +54,25 @@ describe("parseDeliveryCsv", () => {
       expect(r.warnings[0].type).toBe("malformed_row");
       expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 720, priced: false });
     });
+    it("home:1350:720 gives no price at all", () => {
+      const r = one(`${HOME}:1350:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
+      expect(r.warnings.filter((w) => w.type === "malformed_row")).toHaveLength(1);
+    });
+    it("home:1350:720|home:500 keeps 500 as stop-desk only", () => {
+      const r = one(`${HOME}:1350:720|${HOME}:500`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: 500, priced: false });
+    });
+    it.each(["1350", "١٣٥٠"])("digit %s in the label (colon typed as space) gives no price", (d) => {
+      const r = one(`${HOME} ${d}:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: null, stopdesk: null, priced: false });
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
+    it("desk:900:720 after a good home keeps home, no stop-desk", () => {
+      const r = one(`${HOME}:1350|${DESK}:900:720`);
+      expect(r.wilayas[0]).toMatchObject({ home: 1350, stopdesk: null });
+      expect(r.warnings.map((w) => w.type)).toContain("malformed_row");
+    });
     it.each(["0x10", "1e3"])("rejects %s", (bad) => {
       const r = one(`${HOME}:${bad}|${DESK}:500`);
       expect(r.wilayas[0].home).toBeNull();

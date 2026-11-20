@@ -125,11 +125,14 @@ export function parseDeliveryCsv(input: string): ParsedDeliveryCsv {
         let homeSeen = false;
         for (const part of (r[6] ?? "").split("|")) {
           if (part.trim() === "") continue;
-          const i = part.lastIndexOf(":");
-          if (i < 0) {
+          // One shape: label, one colon, one number. Split on the FIRST colon so
+          // "home:1350:720" never reads 720 as the home price.
+          const i = part.indexOf(":");
+          if (i < 0 || /\p{Nd}/u.test(part.slice(0, i))) {
             warnings.push({ type: "malformed_row", code, text: part });
-            // A colon-less home label still counts: a later home label is never promoted.
-            if (labelKind(part.replace(/[\s\d.]+$/, "")) === "home") homeSeen = true;
+            // The kind still counts: a later home label is never promoted.
+            const head = i < 0 ? part : part.slice(0, i);
+            if (labelKind(head.replace(/[\s\d.]+$/, "")) === "home") homeSeen = true;
             continue;
           }
           const label = part.slice(0, i);
