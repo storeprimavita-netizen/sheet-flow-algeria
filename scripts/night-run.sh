@@ -2,8 +2,8 @@
 # Keep the loop running, batch after batch, in THIS terminal (foreground, readable
 # output). Waits out usage limits and continues by itself. Keeps the Mac awake.
 #
-#   scripts/night-run.sh            batches of 5 tasks until nothing is eligible
-#   scripts/night-run.sh 3          batches of 3
+#   scripts/night-run.sh                 one task per fresh session until nothing is eligible
+#   scripts/night-run.sh STORE-3 CONF-1  only these tasks, then stop
 #   Ctrl+C                          stop (the task in progress keeps its pushed steps)
 #
 # Each batch is a fresh Claude session (`claude -p "/auto N"`), so context never
@@ -13,7 +13,10 @@
 # Lid: keep it open, or run `sudo pmset -a disablesleep 1` first (undo with 0).
 set -uo pipefail
 cd "$(dirname "$0")/.."
-batch=${1:-5}
+batch=${1:-1}
+# Task ids instead of a number → run exactly those, in order, then stop:
+#   scripts/night-run.sh STORE-3 CONF-1
+ids=(); case "${1:-}" in ""|*[!0-9]*) [ $# -gt 0 ] && ids=("$@") ;; esac
 say() { echo "$(date '+%H:%M') ── $*"; }
 
 command -v claude >/dev/null 2>&1 || { say "claude CLI not found"; exit 1; }
@@ -40,9 +43,10 @@ while :; do
   # A batch cut off mid-task (usage limit) leaves edits on v3-<id>; save them there or the checkout fails.
   if [ "$cur" != "v3" ] && [ -n "$(git status --porcelain)" ]; then say "uncommitted files on $cur — saving them as a step"; scripts/step.sh "wip: files left on $cur when batch $((n-1)) was cut off (not gated)" || exit 1; fi
   [ "$cur" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
-  if [ -n "$(git status --porcelain)" ]; then say "uncommitted files on v3 — saving them as a step"; scripts/step.sh "wip: files left in the working tree before batch $n" || exit 1; fi
+  if [ -n "$(git status --porcelain)" ]; then say "leftover files from an interrupted task — set aside with git stash (see: git stash list)"; git stash push -u -q -m "night-run leftovers $(date +%F-%H%M)" || exit 1; fi
   git pull --rebase -q origin v3 || { say "could not update v3 — stopping"; exit 1; }
   log="$HOME/Library/Logs/mnw-night-run-$(date +%Y%m%d-%H%M%S).jsonl"
+  if [ ${#ids[@]} -gt 0 ]; then [ $n -le ${#ids[@]} ] || { say "all listed tasks handled: ${ids[*]}"; break; }; batch=${ids[$((n-1))]}; fi
   say "batch $n: /auto $batch   (transcript: $log)"
   start=$(date +%s)
   env -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT \

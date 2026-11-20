@@ -884,3 +884,8 @@ Shots in `docs/design/audit/NAV-5-H/` (chrome-devtools MCP, null-profile local u
 - Evidence: review-1 PASS (docs/briefs/SEC-1-J.review-1.md); screenshots in docs/design/audit/SEC-1-J/.
 - Owner: nothing new; EN light and AR dark not shot (same tokens).
 - Next: none for SEC-1-J; merge to v3 pending.
+
+## Antigravity handover prepared (2026-11-20) — DONE (branch v3)
+- Done: `docs/ANTIGRAVITY.md` rewritten (install, sign-in, models, permissions, night run, parallel agents); `scripts/agy-setup.sh`, `scripts/agy-night.sh`, `scripts/agy-parallel.sh`; `.agents/` rules and `loop-auto` skill updated to the current loop (one task per session, `nodb`, `as:<name>`, RUN-END line); `dev-up.sh` takes `APP_PORT`; gate honours `GATE_SKIP_LIVE=1` for no-database workers; `night-run.sh` runs a list of task ids and stashes leftovers instead of committing them (D91).
+- Not verified: `agy` is not installed here, so none of the Antigravity scripts has run. Model names from the docs: Orchestrator (Argon), Gemini 4 Argon, Gemini 4 Hydrogen.
+- Next: merge the four finished features (STORE-3, CONF-1, VAR-1, CHART-1), then STORE-4.

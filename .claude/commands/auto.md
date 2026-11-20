@@ -10,6 +10,8 @@ You are the coordinator of loop v3 (`.claude/loop.md`). $ARGUMENTS is a task id 
 
 **Start of run.** `git checkout v3 && git pull --rebase`. Run `scripts/dev-up.sh` and note which parts are up: Supabase down → only tasks that do not touch the database may run (D24); app down → no `ui` task. Read `docs/QUESTIONS.md`: for every question the owner has answered (in the file or in this conversation), record it as a DECISIONS row, move it to "Answered", and set its task back to `todo`.
 
+**Worker options (parallel agents).** $ARGUMENTS may also contain `nodb` — pick only rows with no migration (column `M` is `–`), because only one agent at a time may change the database — and `as:<name>` — claim rows as `claimed:<name>` instead of `claimed:claude`. A row claimed by another name is never touched.
+
 **Pick.** The first `todo` row in docs/MASTER_PLAN.md, top to bottom, whose deps are all `done` and whose owner inputs are all `closed`. Rows waiting on an open owner input, an open question or a `blocked` task are skipped, not stopped on.
 
 **For each task:**
