@@ -925,3 +925,9 @@ Round 5 ran because the D40 merge without a PASS verdict is refused by the ship 
 
 ## STORE-3 — shipped (merge D89)
 Merged v3 into v3-STORE-3, migration 00051 renumbered 00077, `selling/` moved under `catalog/products/[id]`, product_offers/product_forms added to the audit lists + labels. Gate OK (1193 pass). Open mediums → STORE-3-F; lows → BACKLOG.
+
+### Run report (auto STORE-3)
+- Shipped: STORE-3 (merge 76c5a5d, bookkeeping c013e27). v3 merged into the branch first: 5 conflicts resolved, migration 00051 renumbered 00077, `selling/` moved under `catalog/products/[id]`, offers/forms tables added to the audit lists. Gate OK (1193 pass, 5 skip).
+- The merge resolution itself had no review round (rounds were used up, D89); STORE-3-F carries the two review-5 mediums, lows are in `docs/BACKLOG.md`.
+- Decisions by Claude: none new. Questions open: Q-28, Q-29 (unchanged). Blocked: none.
+- Next `/auto`: first eligible `todo` row in plan order.
