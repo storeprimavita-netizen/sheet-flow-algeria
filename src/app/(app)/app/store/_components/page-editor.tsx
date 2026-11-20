@@ -259,8 +259,8 @@ export function PageEditor({ page, store, products }: Props) {
               emptyText={tp("noProductsFound")}
               disabled={pending}
             />
-            {page.productId ? (
-              <Button type="button" variant="ghost" size="sm" disabled={pending || published} onClick={() => link(null)}>
+            {page.productId && !published ? (
+              <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => link(null)}>
                 {t("unlink")}
               </Button>
             ) : null}

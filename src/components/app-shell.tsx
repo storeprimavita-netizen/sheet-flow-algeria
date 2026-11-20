@@ -257,6 +257,18 @@ export function AppShell({
     return () => ro.disconnect();
   }, [measure, collapsed, closedGroups, role]);
 
+  // keep the current page clear of the edge fades, or its row reads as disabled
+  useEffect(() => {
+    const el = navRef.current;
+    const row = el?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!el || !row) return;
+    const pad = 44; // fade height (h-11)
+    const box = el.getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    if (r.bottom > box.bottom - pad) el.scrollTop += r.bottom - box.bottom + pad;
+    else if (r.top < box.top + pad && el.scrollTop > 0) el.scrollTop -= box.top + pad - r.top;
+  }, [activeHref]);
+
   const nav = (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <nav ref={navRef} onScroll={measure} className="flex-1 overflow-y-auto p-3">

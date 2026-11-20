@@ -587,3 +587,9 @@ P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates pa
 - Evidence: docs/briefs/STORE-1-G.review-3.md; screenshots docs/design/audit/STORE-1-G-ui/.
 - Owner: before a remote `db push`, run the 00070 guard's `count(*)` on the remote; the migration aborts if value-less sizes exist (00067 still exempts service_role).
 - Next: STORE-1-H (follow-up lows and missing tests from review-2 and review-3).
+
+## STORE-2-G
+- Tests: invalidate busts store-public; hub/pages list throw on DB error; error.tsx reason+retry (EN+AR); ws2 agent RLS; publish/link eq filters; catch-all notFound; DocumentTitle unmount/pathname; StorePhoto (hook-harness, no jsdom in repo).
+- Fixes: publish UPDATE filters product_id (0 rows -> needs_product); assertPublishable, publish read and preview throw on DB error; DocumentTitle guard; StorePhoto placeholder (gallery, related, image block); `.store-top` align start; Unlink hidden while published (hint contrast 7.2 dark / 7.1 light); sidebar scrolls the active row clear of the edge fade (the "disabled" Store settings was the D33 bottom fade over the active item at <=800 px height).
+- Screenshots (chrome-devtools): docs/design/audit/STORE-2-G/ (store light/dark 390/1280 working + broken image; editor AR light/dark; sidebar EN/AR light/dark at 720 px; hub error EN dark; agent not-found EN dark). The store is Arabic-only (never reads the locale), so no EN store shots. Local demo store "luxe" recreated with picsum https photos (DAL accepts https only, so a local /public file cannot be shown); local DB only.
+- Logged, not built: advisory-lock createStore race and DB trigger for deactivated linked product (need migration + DECISIONS row). Store-http "luxe modesty" grep untouched. Sold-out block stays STORE-3.
