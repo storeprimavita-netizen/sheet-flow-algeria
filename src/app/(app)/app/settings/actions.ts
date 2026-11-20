@@ -387,27 +387,31 @@ async function readCsv(formData: FormData) {
   return { parsed, error: null };
 }
 
+const STORED_READ_ERROR = "Could not read the current delivery fees. Try again.";
+
 async function loadStoredFees(supabase: Awaited<ReturnType<typeof createClient>>, workspaceId: string) {
-  const { data: fees } = await supabase
+  const { data: fees, error: feesErr } = await supabase
     .from("wilaya_fees")
     .select("wilaya_code, home_fee, stopdesk_fee, stop_shipping, priced, stopdesk_available, updated_at")
     .eq("workspace_id", workspaceId);
+  if (feesErr) return { ok: false as const, error: STORED_READ_ERROR };
   const names = new Map<number, string[]>();
   for (let from = 0; ; from += 1000) {
-    const { data } = await supabase
+    const { data, error: communesErr } = await supabase
       .from("wilaya_communes")
       .select("wilaya_code, name")
       .eq("workspace_id", workspaceId)
       .order("wilaya_code")
       .order("name")
       .range(from, from + 999);
+    if (communesErr) return { ok: false as const, error: STORED_READ_ERROR };
     for (const c of data ?? []) names.set(c.wilaya_code, [...(names.get(c.wilaya_code) ?? []), c.name]);
     if ((data?.length ?? 0) < 1000) break;
   }
   const rows = fees ?? [];
   const stored: StoredWilayaFee[] = rows.map((r) => ({ ...r, communes: names.get(r.wilaya_code) ?? [] }));
   const snapshot = rows.reduce((m, r) => (r.updated_at > m ? r.updated_at : m), "");
-  return { stored, snapshot };
+  return { ok: true as const, stored, snapshot };
 }
 
 export async function previewDeliveryCsv(formData: FormData): Promise<DeliveryPreview> {
@@ -415,14 +419,15 @@ export async function previewDeliveryCsv(formData: FormData): Promise<DeliveryPr
   const read = await readCsv(formData);
   if (!read.parsed) return { ok: false, error: read.error };
   const supabase = await createClient();
-  const [{ stored, snapshot }, { data: wilayas }] = await Promise.all([
+  const [current, { data: wilayas }] = await Promise.all([
     loadStoredFees(supabase, workspaceId),
     supabase.from("wilayas").select("code, name"),
   ]);
+  if (!current.ok) return { ok: false, error: current.error };
   return {
     ok: true,
-    diff: diffDeliveryPrices(read.parsed, stored),
-    snapshot,
+    diff: diffDeliveryPrices(read.parsed, current.stored),
+    snapshot: current.snapshot,
     wilayaNames: Object.fromEntries((wilayas ?? []).map((w) => [w.code, w.name])),
   };
 }
@@ -434,7 +439,9 @@ export async function applyDeliveryCsv(
   const read = await readCsv(formData);
   if (!read.parsed) return { ok: false, error: read.error };
   const supabase = await createClient();
-  const { snapshot } = await loadStoredFees(supabase, workspaceId);
+  const current = await loadStoredFees(supabase, workspaceId);
+  if (!current.ok) return { ok: false, error: current.error };
+  const { snapshot } = current;
   const expected = String(formData.get("snapshot") ?? "");
   if (snapshot && new Date(expected).getTime() !== new Date(snapshot).getTime()) {
     return { ok: false, error: "Fees changed since the preview. Upload the file again." };

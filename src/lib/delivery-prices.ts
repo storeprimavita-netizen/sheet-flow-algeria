@@ -216,6 +216,9 @@ export type DeliveryDiffRow = {
   after: { home_fee: number | null; stopdesk_fee: number | null; priced: boolean; stopdesk_available: boolean };
   communesBefore: number;
   communesAfter: number;
+  /** Commune names the file adds / drops for this wilaya. */
+  communesAdded: string[];
+  communesRemoved: string[];
   warnings: DeliveryWarning[];
 };
 
@@ -251,6 +254,8 @@ export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWila
       (w.priced && w.stopdeskAvailable && cur.stopdesk_fee !== w.stopdesk) ||
       !sameNames(cur.communes, w.communes);
     if (!w.priced && cur && !cur.stop_shipping) unpricedNotStopped.push(w.code);
+    const had = new Set(cur?.communes ?? []);
+    const has = new Set(w.communes);
     return {
       code: w.code,
       fileName: w.fileName,
@@ -264,6 +269,8 @@ export function diffDeliveryPrices(parsed: ParsedDeliveryCsv, stored: StoredWila
       after: { home_fee: home, stopdesk_fee: desk, priced: w.priced, stopdesk_available: w.stopdeskAvailable },
       communesBefore: cur?.communes.length ?? 0,
       communesAfter: w.communes.length,
+      communesAdded: w.communes.filter((n) => !had.has(n)),
+      communesRemoved: (cur?.communes ?? []).filter((n) => !has.has(n)),
       warnings: parsed.warnings.filter((x) => x.code === w.code),
     };
   });

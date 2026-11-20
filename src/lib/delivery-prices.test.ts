@@ -141,6 +141,11 @@ describe("diffDeliveryPrices", () => {
     const d = diffDeliveryPrices(parsed, [stored({ communes: ["Adrare"] }), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] })]);
     expect(d.rows.map((r) => r.changed)).toEqual([true, false]);
   });
+  it("commune-only change lists the added and removed names", () => {
+    const d = diffDeliveryPrices(parsed, [stored({ communes: ["Old"] }), stored({ wilaya_code: 33, priced: false, stopdesk_available: false, communes: [] })]);
+    expect(d.rows[0]).toMatchObject({ changed: true, communesAdded: ["Adrar"], communesRemoved: ["Old"] });
+    expect(d.rows[1]).toMatchObject({ communesAdded: [], communesRemoved: [] });
+  });
   it("payload mirrors the parse", () => {
     expect(toApplyPayload(parsed).wilayas[1]).toMatchObject({ code: 33, priced: false, home_fee: null });
   });
