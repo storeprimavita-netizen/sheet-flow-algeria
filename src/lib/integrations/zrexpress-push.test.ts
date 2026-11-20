@@ -116,6 +116,32 @@ describe("send state", () => {
     expect(creates).toBe(0);
     expect(inserts[0]).toMatchObject({ parcel_id: "pX" });
   });
+  it("links even when the wilaya is unpriced or commune/phone are missing", async () => {
+    parcels.push({ id: "pX", externalId: "o1" });
+    const { client, inserts } = fakeSupabase(null, {
+      order: { delivery_status: "bureau_deposited", commune: null, customer_phone: null },
+      fees: { priced: false, home_fee: null, stopdesk_fee: null, stopdesk_available: false },
+    });
+    expect(await pushToZR(client, "w", "o1")).toEqual({ ok: true });
+    expect(creates).toBe(0);
+    expect(inserts[0]).toMatchObject({ parcel_id: "pX" });
+  });
+  it("link-only reports a finder failure and inserts nothing", async () => {
+    searchFails = true;
+    const { client, inserts } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited" } });
+    expect(await pushToZR(client, "w", "o1")).toMatchObject({ ok: false });
+    expect(inserts).toEqual([]);
+  });
+  it("link-only 23505 race reports already sent", async () => {
+    parcels.push({ id: "pX", externalId: "o1" });
+    const { client } = fakeSupabase({ code: "23505", message: "dup" }, { order: { delivery_status: "bureau_deposited" } });
+    expect(await pushToZR(client, "w", "o1")).toEqual({ ok: false, error: "This order was already sent to ZR Express." });
+  });
+  it("link-only other insert error reports the parcel id", async () => {
+    parcels.push({ id: "pX", externalId: "o1" });
+    const { client } = fakeSupabase({ message: "boom" }, { order: { delivery_status: "bureau_deposited" } });
+    expect(await pushToZR(client, "w", "o1")).toMatchObject({ ok: false, error: expect.stringContaining("boom") });
+  });
   it("refuses bureau_deposited when no parcel", async () => {
     const { client, inserts } = fakeSupabase(null, { order: { delivery_status: "bureau_deposited" } });
     expect(await pushToZR(client, "w", "o1")).toEqual({

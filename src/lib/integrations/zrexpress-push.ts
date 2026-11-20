@@ -59,6 +59,24 @@ export async function pushToZR(
   if (!sendState.ok && !linkOnly) {
     return { ok: false, error: PAST_DISPATCH };
   }
+  let creds;
+  try {
+    creds = await getZRCredentials(supabase, workspaceId);
+  } catch (e) {
+    return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
+  }
+
+  if (linkOnly) {
+    try {
+      const found = await findZRParcelByExternalId(creds, order.id);
+      if (!found) return { ok: false, error: PAST_DISPATCH };
+      return await saveShipment(supabase, workspaceId, order.id, creds, found, false);
+    } catch (e) {
+      return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
+    }
+  }
+
+  // Create path only from here: link-only needs none of these fields.
   if (!order.wilaya_code || (order.delivery_type === "home" && !order.commune)) {
     return { ok: false, error: "Order needs a wilaya (and a commune for home delivery) before it can be sent." };
   }
@@ -81,23 +99,6 @@ export async function pushToZR(
         return { ok: false, error: "This delivery type is not available in this wilaya." };
       }
       console.warn(`pushToZR: order ${orderId} uses a delivery type no longer available in wilaya ${order.wilaya_code}`);
-    }
-  }
-
-  let creds;
-  try {
-    creds = await getZRCredentials(supabase, workspaceId);
-  } catch (e) {
-    return { ok: false, error: zrErrorMessage(e, "ZR Express not configured.") };
-  }
-
-  if (linkOnly) {
-    try {
-      const found = await findZRParcelByExternalId(creds, order.id);
-      if (!found) return { ok: false, error: PAST_DISPATCH };
-      return await saveShipment(supabase, workspaceId, order.id, creds, found, false);
-    } catch (e) {
-      return { ok: false, error: zrErrorMessage(e, "Failed to reach ZR Express.") };
     }
   }
 
