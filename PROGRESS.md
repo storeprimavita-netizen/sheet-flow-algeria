@@ -803,3 +803,10 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - (d) 768 px dashboard overflow: filter card now `lg:w-fit` with minmax grid columns (review 1 FIX); not re-measured live. Docs excluded from Tailwind scan.
 - (e) Not built: `viewportFit: "cover"` and top/side insets stay out (D87); no notched iPhone simulator confirmed (only `xcrun simctl` "iPhone Duo"); safe-area class test not written.
 - Screenshots (390 px, light/dark, EN/AR): not taken, no browser MCP run in this session.
+
+## NAV-5-F: done
+- Done: review-1 FIX items landed (delivery count per last delivery-stage row, live fixtures, queue/dashboard copy EN/AR, my-day layout, root redirect, bottom bar and loading/error tests); review-2 PASS (ui-reviewer, fc04611).
+- Verify: `scripts/gate.sh` GATE OK on v3-NAV-5-F (tsc, 1094 passed 5 skipped incl. live RLS, i18n parity, color lint, build, protected paths, secret scan).
+- Evidence: docs/briefs/NAV-5-F.review-1.md FIX, docs/briefs/NAV-5-F.review-2.md PASS.
+- Owner: screenshots at 390 px (light/dark, EN/AR) not taken in this run; owed via NAV-5-G; 768 px overflow not re-measured live.
+- Next: NAV-5-G.
