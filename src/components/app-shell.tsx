@@ -333,9 +333,9 @@ export function AppShell({
       <div className="flex min-h-screen w-full">
         <aside
           ref={drawerRef}
-          tabIndex={-1}
+          tabIndex={open && !isDesktop ? -1 : undefined}
           inert={!open && !isDesktop}
-          {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.toggleSidebar") } : {})}
+          {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.menu") } : {})}
           className={cn(
             "fixed inset-y-0 start-0 z-40 flex outline-none flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
             collapsed ? "w-16" : "w-64",
@@ -417,7 +417,7 @@ export function AppShell({
               <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" aria-label={t("cmd.title")}>
                 <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">{t("cmd.title")}</span>
-                <kbd className="hidden rounded border border-border px-1 text-[10px] sm:inline">{kbdHint}</kbd>
+                <kbd dir="ltr" className="hidden rounded border border-border px-1 text-[10px] sm:inline">{kbdHint}</kbd>
               </Button>
             </CommandPalette>
             <div className="ms-auto md:hidden">{brand}</div>

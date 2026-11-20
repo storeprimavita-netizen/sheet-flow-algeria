@@ -161,11 +161,11 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.palette")}</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">{kbdHint}</kbd>
+              <kbd dir="ltr" className="rounded border border-border px-1.5 py-0.5 text-xs">{kbdHint}</kbd>
             </li>
             <li className="flex items-center justify-between">
               <span>{t("shortcuts.help")}</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-xs">?</kbd>
+              <kbd dir="ltr" className="rounded border border-border px-1.5 py-0.5 text-xs">?</kbd>
             </li>
           </ul>
         </DialogContent>
