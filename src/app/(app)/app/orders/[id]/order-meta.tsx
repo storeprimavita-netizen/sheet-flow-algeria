@@ -20,7 +20,12 @@ export function SizeMeta({ label, size }: { label: string; size: string }) {
 export function WilayaValue({ code, name }: { code: number | string | null; name: string }) {
   return (
     <>
-      <span className="num">{code}</span>-<bdi>{name}</bdi>
+      {code != null && code !== "" && (
+        <>
+          <span className="num">{code}</span>-
+        </>
+      )}
+      <bdi>{name}</bdi>
     </>
   );
 }

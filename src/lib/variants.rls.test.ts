@@ -597,17 +597,42 @@ describe.skipIf(!URL)("product variants and stock per size (live DB)", () => {
 
   // ---- 00070 hardening ------------------------------------------------------
   test("00070: no role can change an existing product_variant_values row (update and upsert paths)", async () => {
-    const a = await product(["S", "M"]);
-    const row = (variant: string, value: string) => ({ variant_id: variant, option_id: a.o, value_id: value, product_id: a.p, workspace_id: ws });
+    // Built by hand: a second option must exist before any size does. 3 Size values, 2 sizes, so value L
+    // is used by no size and the older uniqueness triggers cannot be what refuses the change.
+    const ins = async (table: string, r: Record<string, unknown>) => {
+      const x = await svc.from(table).insert({ workspace_id: ws, ...r }).select("id").single();
+      expect(x.error, table).toBeNull();
+      return x.data!.id as string;
+    };
+    const p = await ins("products", { name: tag() });
+    const o = await ins("product_options", { product_id: p, name: "Size", position: 0 });
+    const o2 = await ins("product_options", { product_id: p, name: "Color", position: 1 });
+    const val = (option_id: string, label: string, position: number) => ins("product_option_values", { product_id: p, option_id, label, position });
+    const [S, M, L] = [await val(o, "S", 0), await val(o, "M", 1), await val(o, "L", 2)];
+    const [red, blue] = [await val(o2, "Red", 0), await val(o2, "Blue", 1)];
+    const vS = await ins("product_variants", { product_id: p });
+    const vM = await ins("product_variants", { product_id: p });
+    const jv = (variant_id: string, option_id: string, value_id: string) => ({ variant_id, option_id, value_id, product_id: p, workspace_id: ws });
+    expect((await svc.from("product_variant_values").insert([jv(vS, o, S), jv(vS, o2, red), jv(vM, o, M), jv(vM, o2, blue)])).error).toBeNull();
+    const spare = await ins("product_variants", { product_id: p });
+    const row = (over: Record<string, string>) => ({ variant_id: vS, option_id: o, value_id: S, product_id: p, workspace_id: ws, ...over });
+    const changes: Record<string, Record<string, string>> = {
+      value_id: { value_id: L },
+      option_id: { option_id: o2, value_id: blue }, // conflicts with S's Color row (Red): upsert turns into a value change
+      variant_id: { variant_id: spare },
+    };
     for (const who of [svc, adminUser]) {
-      const upd = await who.from("product_variant_values").update({ value_id: a.values.M }).eq("variant_id", a.variants.S);
-      expect(upd.error).not.toBeNull();
-      const ups = await who.from("product_variant_values").upsert(row(a.variants.S, a.values.M), { onConflict: "variant_id,option_id" });
-      expect(ups.error).not.toBeNull();
+      for (const [name, over] of Object.entries(changes)) {
+        const upd = await who.from("product_variant_values").update(over).eq("variant_id", vS).eq("option_id", o);
+        expect(upd.error?.message, `update ${name}`).toMatch(/immutable/);
+        if (name === "variant_id") continue; // the upsert key itself changes: not a conflict path
+        const ups = await who.from("product_variant_values").upsert(row(over), { onConflict: "variant_id,option_id" });
+        expect(ups.error?.message, `upsert ${name}`).toMatch(/immutable/);
+      }
     }
-    expect(() => psql(`update public.product_variant_values set value_id = '${a.values.M}' where variant_id = '${a.variants.S}';`)).toThrow(/immutable/);
-    const { data } = await svc.from("product_variant_values").select("value_id").eq("variant_id", a.variants.S).single();
-    expect(data!.value_id).toBe(a.values.S);
+    expect(() => psql(`update public.product_variant_values set value_id = '${L}' where variant_id = '${vS}';`)).toThrow(/immutable/);
+    const { data } = await svc.from("product_variant_values").select("value_id, option_id, variant_id").eq("variant_id", vS).eq("option_id", o).single();
+    expect(data).toEqual({ value_id: S, option_id: o, variant_id: vS });
   });
 
   test("00070: authenticated lost TRUNCATE/TRIGGER/REFERENCES and keeps SELECT/INSERT/UPDATE/DELETE on the four variant tables", () => {

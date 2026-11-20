@@ -1332,7 +1332,7 @@
     "optionName": "Option name",
     "valueLabel": "Value",
     "addValue": "Add value to {name}",
-    "removeValue": "Remove {label}",
+    "removeValue": "Remove value {label}",
     "moveValueEarlier": "Move {label} earlier",
     "moveValueLater": "Move {label} later",
     "optionsLocked": "Options cannot be added or removed once sizes exist. You can still add or rename values.",

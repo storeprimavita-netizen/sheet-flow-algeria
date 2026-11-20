@@ -1332,7 +1332,7 @@
     "optionName": "اسم الخيار",
     "valueLabel": "القيمة",
     "addValue": "إضافة قيمة إلى {name}",
-    "removeValue": "حذف {label}",
+    "removeValue": "حذف القيمة {label}",
     "moveValueEarlier": "تقديم {label}",
     "moveValueLater": "تأخير {label}",
     "optionsLocked": "لا يمكن إضافة الخيارات أو حذفها بعد وجود مقاسات. يمكنك إضافة القيم أو إعادة تسميتها.",
