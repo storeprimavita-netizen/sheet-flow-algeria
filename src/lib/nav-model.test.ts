@@ -2,20 +2,44 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { GROUPS, groupCounterTotal, HOME, activeLeafHref, crumbsFor, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
+import { GROUPS, MY_DAY, bottomBar, activeBarHref, groupCounterTotal, HOME, activeLeafHref, crumbsFor, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
 describe("nav model", () => {
-  it("agents never see admin-only leaves or Home", () => {
+  it("agent home is My day", () => {
+    for (const role of ["confirmation_agent", "delivery_agent"] as const) expect(visibleNav(role).home).toBe(MY_DAY);
+    expect(MY_DAY.href).toBe("/app/my-day");
+    expect(visibleNav("admin").home).toBe(HOME);
+  });
+  it("bottom bar per role has <=4 items + More", () => {
+    for (const role of ["admin", "confirmation_agent", "delivery_agent"] as const) expect(bottomBar(role).length).toBeLessThanOrEqual(4);
+    expect(bottomBar(null)).toEqual([]);
+    expect(bottomBar("confirmation_agent").map((l) => l.key)).toEqual(["myDay", "confirmation"]);
+    expect(bottomBar("delivery_agent").map((l) => l.key)).toEqual(["myDay", "shipping"]);
+  });
+  it("bottom bar never links an adminOnly page for agents (no Tasks)", () => {
     for (const role of ["confirmation_agent", "delivery_agent"] as const) {
-      expect(visibleNav(role).home).toBeNull();
+      const bar = bottomBar(role);
+      expect(bar.some((l) => l.adminOnly)).toBe(false);
+      expect(bar.some((l) => l.href.startsWith("/app/team"))).toBe(false);
+    }
+  });
+  it("admin bar = Home/Confirmation/Orders/Money", () => {
+    expect(bottomBar("admin").map((l) => l.href)).toEqual(["/app/dashboard", "/app/sell/confirmation", "/app/sell/orders", "/app/money"]);
+    expect(activeBarHref("admin", "/app/money/expenses")).toBe("/app/money");
+    expect(activeBarHref("admin", "/app/catalog/stock")).toBeUndefined();
+    expect(activeBarHref("delivery_agent", "/app/my-day")).toBe("/app/my-day");
+  });
+  it("agents never see admin-only leaves or the admin Home", () => {
+    for (const role of ["confirmation_agent", "delivery_agent"] as const) {
+      expect(visibleNav(role).home).not.toBe(HOME);
       expect(navLeaves(role).some((l) => l.adminOnly)).toBe(false);
     }
   });
   it("each agent sees only their queue", () => {
-    expect(navLeaves("confirmation_agent").map((l) => l.key)).toEqual(["confirmation"]);
-    expect(navLeaves("delivery_agent").map((l) => l.key)).toEqual(["shipping"]);
+    expect(navLeaves("confirmation_agent").map((l) => l.key)).toEqual(["myDay", "confirmation"]);
+    expect(navLeaves("delivery_agent").map((l) => l.key)).toEqual(["myDay", "shipping"]);
   });
   it("statistics: admin-only, in Sell right after customers, never in an agent menu", () => {
     const sell = GROUPS.find((g) => g.key === "groupSell")!.items.map((l) => l.key);
@@ -95,9 +119,9 @@ describe("nav model (round 4)", () => {
       expect(l.href, l.href).not.toMatch(/^\/app\/(orders|contacts|products|stock|pricing|finance)(\/|$|\?)/);
     }
   });
-  it("agent leaves unchanged", () => {
-    expect(navLeaves("confirmation_agent").map((l) => l.href)).toEqual(["/app/sell/confirmation"]);
-    expect(navLeaves("delivery_agent").map((l) => l.href)).toEqual(["/app/sell/shipping"]);
+  it("agent leaves: My day then their queue", () => {
+    expect(navLeaves("confirmation_agent").map((l) => l.href)).toEqual(["/app/my-day", "/app/sell/confirmation"]);
+    expect(navLeaves("delivery_agent").map((l) => l.href)).toEqual(["/app/my-day", "/app/sell/shipping"]);
   });
   it("agents get exactly one Sell group", () => {
     for (const role of ["confirmation_agent", "delivery_agent"] as const) {

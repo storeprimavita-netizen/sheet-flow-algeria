@@ -42,7 +42,10 @@
     "newRecord": "New",
     "breadcrumb": "Breadcrumb",
     "related": "Related",
-    "hubEmpty": "Nothing here for your role."
+    "hubEmpty": "Nothing here for your role.",
+    "myDay": "My day",
+    "more": "More",
+    "bottomBar": "Mobile navigation"
   },
   "navOld": {
     "dashboard": "Dashboard",
@@ -1769,7 +1772,8 @@
     "groupStore": "Your public storefront.",
     "groupMoney": "Income, costs and cash.",
     "groupTeam": "Tasks, meetings and performance.",
-    "groupSettings": "Workspace, people and logs."
+    "groupSettings": "Workspace, people and logs.",
+    "myDay": "Your queue, tasks and next meeting."
   },
   "navSubtitle": {
     "productsNew": "Add a product, then set its variants and costs.",

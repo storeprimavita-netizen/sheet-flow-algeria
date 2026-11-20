@@ -26,6 +26,7 @@ import {
   Settings as SettingsIcon,
   MapPinned,
   CalendarRange,
+  Sun,
 } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
@@ -59,6 +60,13 @@ export const HOME: NavLeaf = {
   href: "/app/dashboard",
   icon: LayoutDashboard,
   adminOnly: true,
+};
+
+/** Agents' Home (D86): a read-only "My day" page. Admins never see it. */
+export const MY_DAY: NavLeaf = {
+  key: "myDay",
+  href: "/app/my-day",
+  icon: Sun,
 };
 
 // Only routes that exist today; empty groups are not rendered.
@@ -131,8 +139,8 @@ export const GROUPS: NavGroup[] = [
 
 /**
  * Nav visible to a role. Admins see everything that exists. Agents see only
- * their own queue (confirmation_agent → Confirmation, delivery_agent →
- * Shipping) and no Home. No role → nothing. RLS is the real wall; this is UX.
+ * My day plus their own queue (confirmation_agent → Confirmation,
+ * delivery_agent → Shipping). No role → nothing. RLS is the real wall; this is UX.
  */
 export function visibleNav(role: Role | null): VisibleNav {
   if (role === "admin") {
@@ -142,7 +150,37 @@ export function visibleNav(role: Role | null): VisibleNav {
     role === "confirmation_agent" ? "confirmation" : role === "delivery_agent" ? "shipping" : null;
   if (!only) return { home: null, groups: [] };
   const items = GROUPS.flatMap((g) => g.items).filter((i) => i.key === only);
-  return { home: null, groups: [{ key: "groupSell", href: "/app/sell", items }] };
+  return { home: MY_DAY, groups: [{ key: "groupSell", href: "/app/sell", items }] };
+}
+
+const leafByHref = (href: string) =>
+  [HOME, MY_DAY, ...GROUPS.flatMap((g) => g.items)].find((l) => l.href === href)!;
+
+/**
+ * Mobile bottom bar destinations (at most 4; "More" = the drawer is added by
+ * the component). Derived from the model, so an agent never gets a link to a
+ * page the guards refuse.
+ */
+export function bottomBar(role: Role | null): NavLeaf[] {
+  if (role === "admin") {
+    const money = GROUPS.find((g) => g.key === "groupMoney")!;
+    return [
+      HOME,
+      leafByHref("/app/sell/confirmation"),
+      { ...leafByHref("/app/sell/orders"), key: "orders" },
+      { key: money.key, href: money.href, icon: HandCoins, adminOnly: true },
+    ];
+  }
+  const { home, groups } = visibleNav(role);
+  return [...(home ? [home] : []), ...groups.flatMap((g) => g.items)];
+}
+
+/** Active bar item: longest prefix match among the bar's own destinations ("More" is never active). */
+export function activeBarHref(role: Role | null, pathname: string): string | undefined {
+  return bottomBar(role)
+    .flatMap((l) => [l.href, ...(l.match ?? [])].map((p) => ({ p, href: l.href })))
+    .filter(({ p }) => pathname === p || pathname.startsWith(p + "/"))
+    .sort((a, b) => b.p.length - a.p.length)[0]?.href;
 }
 
 /** Every visible destination, flat, in display order (⌘K). */
