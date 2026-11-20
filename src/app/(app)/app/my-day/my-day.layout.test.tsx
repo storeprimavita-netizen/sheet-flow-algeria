@@ -26,9 +26,9 @@ describe("my-day layout guard", () => {
     }
     expect(redirect).not.toHaveBeenCalled();
   });
-  test("no role does not redirect to itself", async () => {
+  test("no role goes to /no-access", async () => {
     getCurrentUserRole.mockResolvedValue(null);
-    await expect(MyDayLayout({ children: "x" })).rejects.toThrow("redirect:/app/dashboard");
+    await expect(MyDayLayout({ children: "x" })).rejects.toThrow("redirect:/no-access");
     expect(redirect).not.toHaveBeenCalledWith("/app/my-day");
   });
 });

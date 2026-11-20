@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { getCurrentUserRole } from "@/lib/rbac";
+import { getCurrentUserRole, getUser } from "@/lib/rbac";
 import { roleHome } from "@/lib/role-home";
 
-/** Role landing: agents on My day, admins (and role-less users) on the dashboard. */
+/** Role landing: agents on My day, admins on the dashboard, signed-out on login, no profile on /no-access. */
 export default async function Home() {
-  const role = await getCurrentUserRole();
-  redirect(role ? roleHome(role) : "/app/dashboard");
+  if (!(await getUser())) redirect("/login");
+  redirect(roleHome(await getCurrentUserRole()));
 }

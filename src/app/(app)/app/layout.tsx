@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ACTIONABLE_CONFIRMATION, ACTIONABLE_DELIVERY } from "@/lib/statuses";
-import { getCurrentUserRole, getUser } from "@/lib/rbac";
+import { getProfile, getUser } from "@/lib/rbac";
 import { AppShell } from "@/components/app-shell";
 import { StatusLabelsProvider } from "@/components/status-labels-provider";
 import { getStatusLabelOverrides } from "@/lib/status-labels";
@@ -17,7 +17,9 @@ export default async function AppLayout({
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const role = await getCurrentUserRole();
+  const profile = await getProfile();
+  if (!profile) redirect("/no-access"); // before any workspace query
+  const role = profile.role;
   const overrides = await getStatusLabelOverrides();
 
   // Live nav counters — RLS-scoped, so agents see their own queue counts.
