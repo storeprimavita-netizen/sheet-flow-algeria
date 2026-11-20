@@ -264,7 +264,7 @@ export function PageEditor({ page, store, products }: Props) {
                 {t("unlink")}
               </Button>
             ) : null}
-            {page.productId && published ? <span className="text-xs text-muted-foreground">{t("errNeedsProduct")}</span> : null}
+            {page.productId && published ? <span className="text-xs text-muted-foreground">{t("unlinkLocked")}</span> : null}
           </div>
         </div>
       </section>

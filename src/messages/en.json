@@ -1596,6 +1596,7 @@
         "errInvalid": "Some fields are not valid.",
         "errSlugTaken": "This address is already used.",
         "errNeedsProduct": "A published page needs a product.",
+        "unlinkLocked": "Unpublish the page to change its product.",
         "errProductTaken": "This product already has a page.",
         "errFailed": "Could not save. Try again.",
         "published": "Published",

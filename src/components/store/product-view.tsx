@@ -5,6 +5,7 @@ import type { Block } from "@/lib/store/blocks";
 import type { PublicProductPage } from "@/lib/store/data";
 
 import { StoreShell } from "./chrome";
+import { Gallery } from "./gallery";
 import { StorePhoto } from "./photo";
 import { RatingLine, ReviewsSection, SizeguideSection } from "./review-blocks";
 import { st } from "./t";
@@ -54,26 +55,7 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
         </nav>
   
         <div className="store-top">
-          <div className="store-gallery" role="group" aria-label={dto.product.name}>
-            {dto.product.images.length === 0 ? (
-              <div className="store-photo-empty">{st("noPhoto")}</div>
-            ) : (
-              dto.product.images.map((src, i) => (
-                <StorePhoto
-                  key={src}
-                  emptyLabel={st("noPhoto")}
-                  className="store-photo"
-                  src={src}
-                  alt={st("galleryAlt", { n: i + 1, total: dto.product.images.length })}
-                  title={dto.product.name}
-                  width={800}
-                  height={1000}
-                  {...(i === 0 ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
-                  decoding={i === 0 ? "sync" : "async"}
-                />
-              ))
-            )}
-          </div>
+          <Gallery name={dto.product.name} images={dto.product.images} />
   
           <div className="store-buy">
             <h1 className="store-title">{dto.product.name}</h1>

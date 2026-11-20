@@ -3,12 +3,16 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 let effect: (() => (() => void) | void) | undefined;
 vi.mock("react", () => ({ useEffect: (fn: () => (() => void) | void) => void (effect = fn) }));
 
+let pathname = "/app/x";
+vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
+
 import { DocumentTitle } from "./document-title";
 
 const g = globalThis as unknown as Record<string, unknown>;
 
 describe("DocumentTitle", () => {
   afterEach(() => {
+    pathname = "/app/x";
     delete g.document;
     delete g.location;
     delete g.MutationObserver;
@@ -52,5 +56,16 @@ describe("DocumentTitle", () => {
     (g.document as { title: string }).title = "Orders";
     fire();
     expect((g.document as { title: string }).title).toBe("Orders");
+  });
+
+  test("a path change re-runs the effect and re-applies the title on the new path", () => {
+    setup();
+    pathname = "/app/y";
+    (g.location as { pathname: string }).pathname = "/app/y";
+    DocumentTitle({ title: "Not found" });
+    (g.document as { title: string }).title = "layout";
+    const cleanup = effect!() as () => void;
+    expect((g.document as { title: string }).title).toBe("Not found");
+    cleanup();
   });
 });
