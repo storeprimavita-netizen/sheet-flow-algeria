@@ -28,6 +28,7 @@ export const AUDITED_TABLES = [
   "seasons",
   "settings",
   "store_pages",
+  "status_label_overrides",
   "stores",
   "wilaya_fees",
   "zr_shipments",

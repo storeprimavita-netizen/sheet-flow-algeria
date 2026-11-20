@@ -431,14 +431,14 @@ isOneToOne: false
                   ]
                 },"options": {
                   Row: {
-                    "archived_at": string | null,"color_token": string,"created_at": string,"created_by": string | null,"icon": string | null,"id": string,"label": string,"set_id": string,"sort_order": number,"updated_at": string,"workspace_id": string
+                    "archived_at": string | null,"color_token": string,"created_at": string,"created_by": string | null,"emoji": string | null,"icon": string | null,"id": string,"label": string,"set_id": string,"sort_order": number,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"icon"?: string | null,"id"?: string,"label": string,"set_id": string,"sort_order"?: number,"updated_at"?: string,"workspace_id": string
+                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"emoji"?: string | null,"icon"?: string | null,"id"?: string,"label": string,"set_id": string,"sort_order"?: number,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"icon"?: string | null,"id"?: string,"label"?: string,"set_id"?: string,"sort_order"?: number,"updated_at"?: string,"workspace_id"?: string
+                    "archived_at"?: string | null,"color_token"?: string,"created_at"?: string,"created_by"?: string | null,"emoji"?: string | null,"icon"?: string | null,"id"?: string,"label"?: string,"set_id"?: string,"sort_order"?: number,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1181,6 +1181,26 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "settings_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"status_label_overrides": {
+                  Row: {
+                    "id": string,"kind": string,"label_ar": string | null,"label_en": string | null,"status_key": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"kind": string,"label_ar"?: string | null,"label_en"?: string | null,"status_key": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "id"?: string,"kind"?: string,"label_ar"?: string | null,"label_en"?: string | null,"status_key"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "status_label_overrides_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false
       referencedRelation: "workspaces"
