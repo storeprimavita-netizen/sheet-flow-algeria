@@ -47,4 +47,9 @@ describe("dashboard reads SQL figures only", () => {
     expect(readFileSync(files[0], "utf8")).toContain('rpc("kpi_daily"');
     expect(comp("money-chart.tsx")).not.toMatch(/\/ ?\w*(revenue|costs)|revenue ?[-*] |profit ?=/);
   });
+  test("the profit waterfall is gone and nothing imports it", () => {
+    expect(() => readFileSync(path.resolve(__dirname, "../../../../components/dashboard/pnl-waterfall.tsx"), "utf8")).toThrow();
+    const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : /\.tsx?$/.test(e.name) && !e.name.endsWith(".test.ts") ? [path.join(d, e.name)] : []));
+    for (const f of walk(path.resolve(__dirname, "../../../../"))) expect(readFileSync(f, "utf8"), f).not.toMatch(/pnl-waterfall|PnlWaterfall/);
+  });
 });

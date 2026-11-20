@@ -77,8 +77,11 @@ begin
            coalesce(od.returned, 0) * v_fee as return_fees,
            coalesce(ad.amt, 0) as ads,
            coalesce(ex.amt, 0) as expenses,
-           (v_base + case when (g.day - v_from) < v_extra then 1 else 0 end)::numeric / 100 as fixed
-      from (select x::date as day from generate_series(v_from, v_to, interval '1 day') x) g
+           case when g.day > v_to then 0
+                else (v_base + case when (g.day - v_from) < v_extra then 1 else 0 end)::numeric / 100 end as fixed
+      -- the series runs to the last order day too, so a future-dated order is in the days
+      -- exactly as it is in pnl_lines (the order set has no end date when p_to is null)
+      from (select x::date as day from generate_series(v_from, greatest(v_to, coalesce((select max(od.day) from od), v_to)), interval '1 day') x) g
       left join od on od.day = g.day
       left join ad on ad.day = g.day
       left join ex on ex.day = g.day

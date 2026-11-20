@@ -66,6 +66,10 @@ export default async function AllOrdersPage({
   if (weekday) drillFilters.weekday = weekday;
   if (hour) drillFilters.hour = hour;
   const communeUnknown = get(COMMUNE_UNKNOWN_PARAM) === "1";
+  // a reversed range is swapped, as Dashboard and Statistics do (the range check would raise)
+  const rawFrom = isRealIsoDate(get("from")) ? get("from") : undefined;
+  const rawTo = isRealIsoDate(get("to")) ? get("to") : undefined;
+  const [drillFrom, drillTo] = rawFrom && rawTo && rawFrom > rawTo ? [rawTo, rawFrom] : [rawFrom, rawTo];
   let drillIds: string[] | null = null;
   let drillTotal = 0;
   let drillFailed = false;
@@ -75,8 +79,8 @@ export default async function AllOrdersPage({
   } else if (drillMetric) {
     const { data: drill, error: drillError } = await supabase.rpc("kpi_drill_orders", {
       p_metric: drillMetric,
-      p_from: isRealIsoDate(get("from")) ? get("from") : undefined,
-      p_to: isRealIsoDate(get("to")) ? get("to") : undefined,
+      p_from: drillFrom,
+      p_to: drillTo,
       p_product: /^[0-9a-f-]{36}$/i.test(get("product_id")) ? [get("product_id")] : undefined,
       p_wilaya: /^\d{1,2}$/.test(get("wilaya_code")) ? Number(get("wilaya_code")) : undefined,
       p_commune_key: communeKey && !communeUnknown ? communeKey : undefined,
@@ -263,7 +267,7 @@ export default async function AllOrdersPage({
           parts={[
             wilayaOpts.find((w) => w.value === get("wilaya_code"))?.label ?? get("wilaya_code"),
             deliveryType === "home" || deliveryType === "stopdesk" ? t(`statistics.${deliveryType}`) : "",
-            weekday ? t("orders.drill.weekday", { n: weekday }) : "",
+            weekday ? t(`statistics.charts.weekday.${weekday}`) : "",
             hour ? t("orders.drill.hour", { n: hour }) : "",
             communeUnknown ? t("statistics.unknownCommune") : communeKey ? (communeLabel ? communeBannerLabel(communeKey, communeLabel) : communeKey) : "",
           ]}

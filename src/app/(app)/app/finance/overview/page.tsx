@@ -9,7 +9,7 @@ import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { asKpi, kpiRoas } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { Empty } from "@/components/empty";
-import { PnlWaterfall } from "@/components/dashboard/pnl-waterfall";
+import { StackedBar } from "@/components/charts/stacked-bar";
 import { FinanceTabs } from "../finance-tabs";
 import { FinanceFilterBar } from "../finance-filter-bar";
 import { financeQs } from "@/lib/query-string";
@@ -88,6 +88,16 @@ export default async function FinanceOverviewPage({
     .map((r) => ({ id: r.id, pnl: r.pnl!, roas: r.roas }))
     .sort((a, b) => (b.roas ?? 0) - (a.roas ?? 0));
 
+  const costSlices = pnl
+    ? [
+        { key: "cogs", label: t("dashboard.pnl.cogs"), value: pnl.cogs, color: "var(--chart-2)", href: "/app/products" },
+        { key: "returns", label: t("dashboard.pnl.returns"), value: pnl.return_fees, color: "var(--chart-4)", href: `/app/orders/all${qs({ delivery_status: "returned", product_id: product })}` },
+        { key: "ads", label: t("dashboard.pnl.ads"), value: pnl.ad_spend, color: "var(--chart-3)", href: `/app/finance/ad-spend${qs({ product })}` },
+        { key: "expenses", label: t("dashboard.pnl.expenses"), value: pnl.expenses, color: "var(--chart-5)", href: `/app/finance/expenses${qs({ product })}` },
+        { key: "fixed", label: t("dashboard.pnl.fixed"), value: pnl.fixed_fees, color: "var(--chart-1)", href: "/app/settings?section=fixed-fees" },
+      ].map((c) => ({ ...c, display: formatCurrency(c.value) }))
+    : [];
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("nav.financeOverview")} subtitle={t("finance.subtitleOverview")} />
@@ -113,25 +123,27 @@ export default async function FinanceOverviewPage({
             {m?.margin_pct != null ? <span className="text-xs text-muted-foreground">{t("dashboard.kpi2.margin", { pct: formatPercent(m.margin_pct) })}</span> : null}
           </div>
           {pnl ? (
-            <PnlWaterfall
-              pnl={pnl}
-              labels={{
-                revenue: t("dashboard.pnl.revenue"),
-                cogs: t("dashboard.pnl.cogs"),
-                returns: t("dashboard.pnl.returns"),
-                ads: t("dashboard.pnl.ads"),
-                expenses: t("dashboard.pnl.expenses"),
-                fixed: t("dashboard.pnl.fixed"),
-                net: t("dashboard.pnl.net"),
-              }}
-              hrefs={{
-                revenue: `/app/finance/income${qs({})}`,
-                returns: `/app/orders/all${qs({ delivery_status: "returned", product_id: product })}`,
-                ads: `/app/finance/ad-spend${qs({ product })}`,
-                expenses: `/app/finance/expenses${qs({ product })}`,
-                fixed: "/app/settings?section=fixed-fees",
-              }}
-            />
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <Link href={`/app/finance/income${qs({})}`} className="text-muted-foreground hover:underline">
+                  {t("dashboard.pnl.revenue")}
+                </Link>
+                <span className="num">{formatCurrency(pnl.revenue)}</span>
+              </div>
+              <StackedBar
+                title={t("dashboard.v2.money.chart.costsTitle")}
+                head={[t("dashboard.v2.money.chart.costHead"), t("dashboard.v2.money.chart.amountHead"), t("dashboard.v2.money.chart.shareHead")]}
+                empty={costSlices.length ? null : { title: t("dashboard.v2.money.noData") }}
+                slices={costSlices}
+              />
+              <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2 text-sm font-semibold">
+                <span>{t("dashboard.pnl.net")}</span>
+                <span className={`num ${pnl.net_profit >= 0 ? "text-success" : "text-danger"}`}>
+                  {pnl.net_profit > 0 ? "+" : ""}
+                  {formatCurrency(pnl.net_profit)}
+                </span>
+              </div>
+            </div>
           ) : (
             <Empty>{t("finance.noExpensesInRange")}</Empty>
           )}

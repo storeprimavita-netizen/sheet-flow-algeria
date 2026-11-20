@@ -146,7 +146,7 @@ export function ChartPanel({
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-semibold">{title}</h3>
           {table && !empty ? (
-            <Button type="button" variant="ghost" size="sm" aria-pressed={showTable} onClick={() => setView(showTable ? "plot" : "table")}>
+            <Button type="button" variant="ghost" size="sm" className="min-h-11 sm:min-h-0" aria-pressed={showTable} onClick={() => setView(showTable ? "plot" : "table")}>
               {showTable ? <ChartNoAxesColumn className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
               {t("table")}
             </Button>

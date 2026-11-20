@@ -141,6 +141,19 @@ describe.skipIf(!URL)("chart series (live DB, 00068)", () => {
     expect(sum(rows, "net_profit")).toBeCloseTo(p.net_profit, 2);
   }, 30000);
 
+  test("no dates with a future-dated order: the days still sum to the period total", async () => {
+    const future = new Date(Date.now() + 3 * 86400000).toISOString();
+    const id = await order(p1, future, { delivery_status: "delivered" });
+    try {
+      const rows = await daily({});
+      const p = await pnl({});
+      expect(rows.some((r) => r.day > new Date().toISOString().slice(0, 10))).toBe(true);
+      for (const [k, pk] of [["revenue", "revenue"], ["fixed", "fixed_fees"], ["net_profit", "net_profit"]] as const) expect(sum(rows, k)).toBeCloseTo(p[pk], 2);
+    } finally {
+      await svc.from("orders").delete().eq("id", id);
+    }
+  }, 30000);
+
   test("product filter: fixed fees follow the delivered share, sums still match", async () => {
     const rows = await daily({ p_from: FROM, p_to: TO, p_product: [p1] });
     const p = await pnl({ p_from: FROM, p_to: TO, p_product: p1 });

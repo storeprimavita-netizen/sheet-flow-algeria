@@ -55,7 +55,7 @@ export function MoneyChart({ days, total, emptyAction }: { days: MoneyDay[]; tot
           {capped ? t("windowTotal", { n: days.length }) : t("periodTotal")}{" "}
           <span className="num font-semibold text-foreground">{capped ? formatCurrency(windowNet) : (total ?? "—")}</span>
         </p>
-        <Button type="button" variant="outline" size="sm" aria-pressed={cum} onClick={() => setCum((v) => !v)}>
+        <Button type="button" variant="outline" size="sm" className="min-h-11 sm:min-h-0" aria-pressed={cum} onClick={() => setCum((v) => !v)}>
           <TrendingUp className="h-3.5 w-3.5" />
           {t("cumulative")}
         </Button>
