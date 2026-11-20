@@ -602,3 +602,6 @@ STORE-2-G review 1 FIX: tests added for DoD 4 (draft link), 6 (publish with zero
 - Evidence: docs/briefs/STORE-2-G.review-2.md; screenshots docs/design/audit/STORE-2-G/.
 - Owner: none.
 - Next: STORE-2-H (lows from review-2 and review-1 4–8); STORE-3 expects a `.store-top` merge conflict (review-2 low 6).
+
+## P1-7-G (build)
+Review-4 lows closed: Nd regex, pushToZR swapped guard + card hide, swap-card label/chevron, Combobox `id`, CSV hint bdi, switch-home tests, csvSuccessToast helper. Browser pass (chrome-devtools): swap card closed/open at 1280 dark and 390 (theme emulation did not flip the app's own theme, so light not verified); chevron rotates (rotate: 180deg when open); label tied to trigger. Swapped-order screen not captured: DB guard blocks writing swapped_to_order_id outside swap_order (covered by unit test). Order-history "< 1m" bidi left (formatter not in this task's files). Tests skipped: oversize fee / home:0.001 (parser has no such rule).
