@@ -549,3 +549,5 @@ STORE-2-F round 4 screenshots (D79 f), chrome-devtools MCP, local stack (dev ser
 - Evidence: screenshots in docs/design/audit/STORE-2-F/ (r4-*); store-http.test.ts 5/5 against `next start` (local stack).
 - Owner: store 404 `<h1>` missing from initial HTML is a Next framework behaviour; needs an owner decision (see round 1 notes).
 - Next: STORE-2-G (review-3 lows 5 to 10, missing tests, photo-failure placeholder, EN store shots not taken).
+
+ORD-1-F: sticky frozen cell now paints its own inset ring when the row is current and the table focused; CSV "Order" header uses `fields.order` (the brief's `orders.col.order` does not exist; `fields.order` exists in en and ar); `db-reset.sh` prints `PostgREST not ready after 30s` and exits 1. Error-path test: no pure seam (decision is inline at orders/all page.tsx:156), no refactor per brief, so the check stays browser-only (no DOM env, D55; `?product_id=x` checked in ORD-1 round 4). Browser pass, Tab walk and screenshots (docs/design/audit/ORD-1/f-*): NOT done in this session, still open for the reviewer.
