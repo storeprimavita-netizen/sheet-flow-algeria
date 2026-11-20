@@ -132,21 +132,30 @@ export async function switchOrderToHome(orderId: string): Promise<UpdateResult> 
   const supabase = await createClient();
   const { data: order } = await supabase
     .from("orders")
-    .select("wilaya_code, delivery_type")
+    .select("wilaya_code, delivery_type, delivery_status")
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (!order?.wilaya_code) return { ok: false, error: "Order needs a wilaya first." };
+  if (!order?.wilaya_code) return { ok: false, error: "orders.zrexpress.switch.needsWilaya" };
+  if (order.delivery_status !== "wait_for_deposit") return { ok: false, error: "orders.zrexpress.switch.status" };
+  if (order.delivery_type === "home") return { ok: false, error: "orders.zrexpress.switch.alreadyHome" };
   const { data: sent } = await supabase.from("zr_shipments").select("order_id").eq("order_id", id).maybeSingle();
-  if (sent) return { ok: false, error: "This order was already sent to ZR Express." };
+  if (sent) return { ok: false, error: "orders.zrexpress.switch.sent" };
+  const { data: wf } = await supabase
+    .from("wilaya_fees")
+    .select("stop_shipping")
+    .eq("workspace_id", workspaceId)
+    .eq("wilaya_code", order.wilaya_code)
+    .maybeSingle();
+  if (wf?.stop_shipping) return { ok: false, error: "orders.zrexpress.switch.stopped" };
   const { data: fee } = await supabase.rpc("delivery_fee_for", { p_ws: workspaceId, p_wilaya: order.wilaya_code, p_type: "home" });
-  if (fee === null || fee === undefined) return { ok: false, error: "Home delivery is not available in this wilaya." };
+  if (fee === null || fee === undefined) return { ok: false, error: "orders.zrexpress.switch.unavailable" };
   const { error } = await supabase
     .from("orders")
     .update({ delivery_type: "home", delivery_fee: Number(fee), delivery_fee_source: "wilaya_table" })
     .eq("id", id)
     .eq("workspace_id", workspaceId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: "orders.zrexpress.switch.failed" };
   revalidatePath(`/app/orders/${id}`);
   return { ok: true };
 }

@@ -47,7 +47,8 @@ export function ZRShipmentCard({
     const res = await action(orderId);
     setBusy(false);
     if (!res.ok) {
-      setError(res.error ?? null);
+      // switchOrderToHome returns message keys; ZR errors are plain text from the carrier
+      setError(res.error?.startsWith("orders.zrexpress.switch.") ? t(res.error) : (res.error ?? null));
       return;
     }
     router.refresh();

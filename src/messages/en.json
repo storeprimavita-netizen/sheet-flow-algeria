@@ -387,7 +387,16 @@
       "stateUnknown": "unknown",
       "refresh": "Refresh status",
       "stopdeskGone": "This stop desk order cannot ship: stop desk is no longer available in this wilaya.",
-      "switchToHome": "Switch to home delivery"
+      "switchToHome": "Switch to home delivery",
+      "switch": {
+        "needsWilaya": "Order needs a wilaya first.",
+        "status": "This order has already moved past the waiting stage, so its delivery type cannot change.",
+        "alreadyHome": "This order is already home delivery.",
+        "sent": "This order was already sent to ZR Express.",
+        "stopped": "Shipping to this wilaya is stopped.",
+        "unavailable": "Home delivery is not available in this wilaya.",
+        "failed": "Could not switch to home delivery. Refresh and try again."
+      }
     },
     "emptyHint": "No orders match these filters — widen the range or clear them.",
     "confirmationEmptyHint": "The confirmation queue is clear. New orders will land here.",
