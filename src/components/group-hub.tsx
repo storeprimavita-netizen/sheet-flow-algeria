@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { PageHeader } from "@/components/page-header";
 import { navLeaves, purposeKey, visibleNav } from "@/components/nav-model";
+import { LeafCount } from "@/components/nav-counts";
 import { Empty } from "@/components/empty";
 import { getCurrentUserRole } from "@/lib/rbac";
 
@@ -33,8 +34,11 @@ export async function GroupHub({ groupKey }: { groupKey: string }) {
                 className="flex h-full items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-ring"
               >
                 <leaf.icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <span className="min-w-0">
-                  <span className="block font-medium text-foreground">{t(`nav.${leaf.key}`)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 font-medium text-foreground">
+                    {t(`nav.${leaf.key}`)}
+                    {leaf.counter ? <LeafCount counter={leaf.counter} /> : null}
+                  </span>
                   <span className="mt-0.5 block text-sm text-muted-foreground">{t(purposeKey(leaf))}</span>
                 </span>
               </Link>

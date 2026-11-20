@@ -15,6 +15,7 @@ import { SignOutButton } from "@/app/(app)/app/dashboard/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Breadcrumbs, CrumbProvider } from "@/components/breadcrumbs";
+import { NavCountsProvider } from "@/components/nav-counts";
 import { CommandPalette } from "@/components/command-palette";
 import {
   DropdownMenu,
@@ -409,6 +410,7 @@ export function AppShell({
           <div className="fixed inset-0 z-30 bg-overlay md:hidden" onClick={() => setOpen(false)} />
         )}
 
+        <NavCountsProvider value={counts}>
         <CrumbProvider role={role}>
         <div inert={open && !isDesktop} className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
@@ -428,6 +430,7 @@ export function AppShell({
           <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
         </CrumbProvider>
+        </NavCountsProvider>
       </div>
     </TooltipProvider>
   );

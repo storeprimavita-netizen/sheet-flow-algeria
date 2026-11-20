@@ -189,15 +189,18 @@ export function crumbsFor(role: Role | null, pathname: string): Crumb[] {
   const { groups } = visibleNav(role);
   const hub = groups.find((g) => g.href === pathname);
   if (hub) return [{ labelKey: `nav.${hub.key}` }];
-  const href = activeLeafHref(role, pathname);
+  let href = activeLeafHref(role, pathname);
+  // Order records belong to "All orders", which agents cannot see: file them under their own queue.
+  if (!href && pathname.startsWith("/app/orders/") && role !== "admin") href = groups[0]?.items[0]?.href;
   const group = groups.find((g) => g.items.some((l) => l.href === href));
   const leaf = group?.items.find((l) => l.href === href);
   if (!group || !leaf) return [];
-  const crumbs: Crumb[] = [{ labelKey: `nav.${group.key}`, href: group.href }];
+  // A group with a single visible leaf redirects to it, so its crumb is not a link.
+  const crumbs: Crumb[] = [{ labelKey: `nav.${group.key}`, href: group.items.length > 1 ? group.href : undefined }];
   if (leaf.href !== group.href) crumbs.push({ labelKey: `nav.${leaf.key}`, href: leaf.href });
   const prefix = [leaf.href, ...(leaf.match ?? [])]
     .filter((p) => pathname === p || pathname.startsWith(p + "/"))
     .sort((a, b) => b.length - a.length)[0];
-  if (pathname.slice(prefix.length).split("/")[1] === "new") crumbs.push({ labelKey: "nav.newRecord" });
+  if (prefix && pathname.slice(prefix.length).split("/")[1] === "new") crumbs.push({ labelKey: "nav.newRecord" });
   return crumbs;
 }

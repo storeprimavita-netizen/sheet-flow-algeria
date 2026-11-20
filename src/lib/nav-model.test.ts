@@ -191,6 +191,15 @@ describe("app shell (D32, review-4)", () => {
     expect(crumbsFor("admin", "/app/orders/abc").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all"]);
     expect(crumbsFor("admin", "/app/orders/new").map((c) => c.labelKey)).toEqual(["nav.groupSell", "nav.all", "nav.newRecord"]);
   });
+  it("agent on an order record gets a path back to their own queue", () => {
+    const c = crumbsFor("confirmation_agent", "/app/orders/abc");
+    expect(c.map((x) => x.labelKey)).toEqual(["nav.groupSell", "nav.confirmation"]);
+    expect(c[1].href).toBe("/app/orders/confirmation");
+    expect(c[0].href).toBeUndefined();
+    const d = crumbsFor("delivery_agent", "/app/orders/abc");
+    expect(d.map((x) => x.labelKey)).toEqual(["nav.groupSell", "nav.shipping"]);
+    expect(d[1].href).toBe("/app/orders/delivery");
+  });
   it("hubs show the group only; home shows none", () => {
     expect(crumbsFor("admin", "/app/money").map((c) => c.labelKey)).toEqual(["nav.groupMoney"]);
     expect(crumbsFor("admin", "/app/store").map((c) => c.labelKey)).toEqual(["nav.groupStore"]);

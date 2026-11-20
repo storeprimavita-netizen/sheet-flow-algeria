@@ -157,7 +157,9 @@ export default async function OrderDetailPage({
             <>
               {t("orders.platformRef")}: <bdi dir="ltr">{order.order_number}</bdi>
             </>
-          ) : undefined
+          ) : (
+            t("navPurpose.all")
+          )
         }
       >
         {isAdmin ? (
