@@ -3,8 +3,12 @@ import { describe, expect, test, vi } from "vitest";
 
 vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => `t:${k}` }));
 vi.mock("@/lib/rbac", () => ({}));
+vi.mock("next-intl", () => ({ useTranslations: () => (k: string) => `t:${k}` }));
+vi.mock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), useEffect: () => {} }));
 
 import { MyDayView } from "./my-day-view";
+import MyDayLoading from "./loading";
+import AppError from "../error";
 import type { MyDayData } from "@/lib/my-day";
 
 function walk(node: ReactNode, visit: (props: Record<string, unknown>, type: unknown) => void) {
@@ -48,5 +52,22 @@ describe("my-day render", () => {
     const labels: string[] = [];
     walk(del, (p) => typeof p.label === "string" && labels.push(p.label));
     expect(labels).toEqual(["t:stat.delivered", "t:stat.returned"]);
+  });
+
+  test("loading state", () => {
+    const tree = MyDayLoading();
+    expect(JSON.stringify(tree)).toContain('"aria-busy":"true"');
+    expect(JSON.stringify(tree)).toContain("animate-pulse");
+  });
+
+  test("error state shows retry", () => {
+    const retry = vi.fn();
+    const tree = AppError({ error: new Error("boom"), unstable_retry: retry });
+    const buttons: Record<string, unknown>[] = [];
+    walk(tree, (p, type) => type !== undefined && typeof p.onClick === "function" && buttons.push(p));
+    expect(buttons).toHaveLength(1);
+    (buttons[0].onClick as () => void)();
+    expect(retry).toHaveBeenCalledOnce();
+    expect(JSON.stringify(tree)).toContain("t:retry");
   });
 });
