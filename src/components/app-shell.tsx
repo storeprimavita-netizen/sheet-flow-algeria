@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { SignOutButton } from "@/app/(app)/app/dashboard/sign-out-button";
+import { SignOutButton } from "@/components/sign-out-button";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Breadcrumbs, CrumbProvider } from "@/components/breadcrumbs";

@@ -91,6 +91,7 @@
   },
   "common": {
     "signOut": "Sign out",
+    "signOutFailed": "Could not sign out. Check your connection and try again.",
     "soon": "soon",
     "noRole": "no role",
     "empty": "Nothing here yet.",
