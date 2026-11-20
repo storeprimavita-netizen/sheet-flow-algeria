@@ -580,3 +580,10 @@ P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates pa
 - i18n option names ("Option {n}" / "الخيار رقم {n}", templates drop the noun); stock level chip nowrap; order Size cell hidden only when admin size card shows; wilaya code/name explicit order; VariantsFeedback + order-meta extracted with rendered tests.
 - Screenshots (chrome-devtools) complete in docs/design/audit/STORE-1-G-ui/ (20 files): order EN/AR light+dark 390/1280 + EN agent 390; product edit with unnamed option EN/AR x light/dark x 390/1280; stale message EN light 1280 + AR dark 390; stock EN dark, EN light, AR light at 390 with low/out/Count-needed chips on one line. Fix round 1: 00070 update/upsert tests now prove the trigger (verified failing with it disabled); removeValue keeps its noun; null wilaya code no dash.
 - Fix round 2: option buttons read "Remove option {name}" / "Move option {name} up|down" for named options, separate Unnamed keys for the fallback (EN+AR, tested). Low and out chips at 390 px: `docs/design/audit/STORE-1-G-ui/stock-en-dark-390.png`, `stock-en-light-390.png` (EN), `stock-ar-light-390.png` (AR). Lows 3-8 not done this round.
+
+## STORE-1-G done (2026-11-20, review-3 PASS)
+- Done: review-3 PASS (VERDICT: PASS, qa-reviewer + ui-reviewer, all findings low); migration 00070 kept (00068/00069 taken by parked v3-VAR-1 and v3-CHART-1); task set to done; lows and missing tests of review-2 and review-3 moved to STORE-1-H (todo).
+- Verify: `scripts/gate.sh` GATE OK on v3-STORE-1-G (856 passed, 5 skipped). Brief asked for fast gate green 3 runs in a row: not repeated at ship, so that is not verified here.
+- Evidence: docs/briefs/STORE-1-G.review-3.md; screenshots docs/design/audit/STORE-1-G-ui/.
+- Owner: before a remote `db push`, run the 00070 guard's `count(*)` on the remote; the migration aborts if value-less sizes exist (00067 still exempts service_role).
+- Next: STORE-1-H (follow-up lows and missing tests from review-2 and review-3).
