@@ -677,3 +677,9 @@ Chrome-devtools: /app/statistics at 390 (AR, dark + light; EN not captured, sess
 - Evidence: docs/briefs/CARRIER-0-G.review-2.md VERDICT: PASS; screenshots in docs/design/audit/CARRIER-0-G/.
 - Owner: none. Not shot: table scroll fade in AR.
 - Next: wilaya Arabic names need a migration (no name_ar column); roving tabindex optional.
+
+## SEC-1-G build notes
+- Done: 00071 (`audit_redact`/`audit_is_secret_key`: masked-string and empty/masked-secret passthrough before the depth cap, separator `[^a-zA-Z0-9]`, plurals, one-pass backfill); TS twin same (`u` flag); parity cases + idempotence + `TS(SQL(x))==SQL(x)` + 42501 execute-denied + psql backfill/xmin test; `diffRows` by path segments (`id`, empty key, arrays, any mask token = pill); audit table (pill `role=note` + aria-label `audit.redactedAria`, `emptyKey`, `<li dir=ltr>`, break-all key), `loading.tsx`, `error.tsx` (page now throws on read error), empty-state clear-filters action; DB.md + D49 amendment note (owner ack pending, not blocking).
+- Screenshots (chrome-devtools, `docs/design/audit/SEC-1-G/{en,ar}-{dark,light}-{1440,390}.png` + `en-dark-390-focused-pill.png`, `en-dark-390-empty.png`): all 8 combos shot with a seeded row (pill, empty key, masked array, colliding `a.b`, long key wraps at 390, short `is_active` line). Pill contrast 7.0:1 light, 6.4:1 dark. Theme/locale switched by setting the `theme`/`NEXT_LOCALE` cookies then reloading. Loading skeleton shown briefly in dev only (not shot).
+- Step 6: no leftover `zrexpress` row after `db reset` (nothing to delete).
+- Gate note: first gate run failed `src/lib/rls.test.ts` (agents are financially blind: "sign in admin@seed.mnw: Invalid login credentials"); not touched by this branch, caused by `db reset` wiping seed users; reseeded, then green.
