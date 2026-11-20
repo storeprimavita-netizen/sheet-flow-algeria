@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -9,47 +9,69 @@ import { useTranslations } from "next-intl";
 import { crumbsFor } from "@/components/nav-model";
 import type { Role } from "@/lib/roles";
 
-const RecordCtx = createContext<((label: string | null) => void) | null>(null);
+type Rec = { label: string; href?: string; tail?: string };
+type StoredRec = Rec & { path: string };
+
+const RecordCtx = createContext<((rec: Rec | null) => void) | null>(null);
+const CrumbsContext = createContext<{ role: Role | null; rec: Rec | null }>({ role: null, rec: null });
 
 /** Holds the record name a detail page supplies via <CrumbRecord>. */
 export function CrumbProvider({ role, children }: { role: Role | null; children: React.ReactNode }) {
   const pathname = usePathname();
-  const [rec, setRec] = useState<{ path: string; label: string } | null>(null);
-  const label = rec && rec.path === pathname ? rec.label : null;
+  const pathRef = useRef(pathname);
+  pathRef.current = pathname;
+  const [stored, setStored] = useState<StoredRec | null>(null);
+  // Stable identity: consumers' effects must not re-run when the provider re-renders.
+  const set = useCallback((rec: Rec | null) => {
+    setStored((prev) => {
+      if (!rec) return prev === null ? prev : null;
+      const path = pathRef.current;
+      if (prev && prev.path === path && prev.label === rec.label && prev.href === rec.href && prev.tail === rec.tail) {
+        return prev;
+      }
+      return { ...rec, path };
+    });
+  }, []);
+  const rec = stored && stored.path === pathname ? stored : null;
+  const value = useMemo(() => ({ role, rec }), [role, rec]);
   return (
-    <RecordCtx.Provider value={(l) => setRec(l ? { path: pathname, label: l } : null)}>
-      <CrumbsContext.Provider value={{ role, label }}>{children}</CrumbsContext.Provider>
+    <RecordCtx.Provider value={set}>
+      <CrumbsContext.Provider value={value}>{children}</CrumbsContext.Provider>
     </RecordCtx.Provider>
   );
 }
 
-const CrumbsContext = createContext<{ role: Role | null; label: string | null }>({ role: null, label: null });
-
-/** Render inside a detail page to put the record name at the end of the trail. */
-export function CrumbRecord({ label }: { label: string }) {
+/**
+ * Render inside a detail page to put the record name at the end of the trail.
+ * `href` makes the record a link (e.g. to an editor) and `tail` adds a final
+ * plain item after it (e.g. "Preview").
+ */
+export function CrumbRecord({ label, href, tail }: { label: string; href?: string; tail?: string }) {
   const set = useContext(RecordCtx);
   useEffect(() => {
-    set?.(label);
+    set?.({ label, href, tail });
     return () => set?.(null);
-  }, [set, label]);
+  }, [set, label, href, tail]);
   return null;
 }
 
 export function Breadcrumbs() {
   const t = useTranslations();
   const pathname = usePathname();
-  const { role, label } = useContext(CrumbsContext);
+  const { role, rec } = useContext(CrumbsContext);
   const crumbs: { label: string; href?: string }[] = crumbsFor(role, pathname).map((c) => ({
     label: t(c.labelKey),
     href: c.href,
   }));
-  if (label) crumbs.push({ label });
+  if (rec) crumbs.push({ label: rec.label, href: rec.href });
+  if (rec?.tail) crumbs.push({ label: rec.tail });
   if (crumbs.length === 0) return null;
   const collapse = crumbs.length > 2;
   return (
     <nav aria-label={t("nav.breadcrumb")} className="min-w-0 flex-1 text-sm text-muted-foreground">
       <ol className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
         {collapse ? (
+          // Decorative on phones: the group hub is reachable from the sidebar.
           <li aria-hidden="true" className="flex items-center gap-1 sm:hidden">
             …
           </li>
@@ -64,11 +86,11 @@ export function Breadcrumbs() {
               {i > 0 ? <ChevronRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden="true" /> : null}
               {c.href && !last ? (
                 <Link href={c.href} className="hover:text-foreground hover:underline">
-                  {c.label}
+                  <bdi>{c.label}</bdi>
                 </Link>
               ) : (
                 <span aria-current={last ? "page" : undefined} className="truncate">
-                  {c.label}
+                  <bdi>{c.label}</bdi>
                 </span>
               )}
             </li>

@@ -35,7 +35,7 @@ export default async function StorePagePreview({ params }: { params: Promise<{ i
   return (
     <div className="space-y-4">
       <div>
-        <CrumbRecord label={page.title} />
+        <CrumbRecord label={page.title} href={`/app/store/pages/${id}`} tail={t("editor.preview")} />
         <p className="text-sm text-muted-foreground">{t("editor.previewHint")}</p>
       </div>
       <ButtonLink href={`/app/store/pages/${id}`} variant="outline" size="sm">

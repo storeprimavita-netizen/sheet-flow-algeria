@@ -31,9 +31,9 @@ export function PageHeader({
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         ) : null}
         {related?.length ? (
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {related.map((r) => (
-              <Link key={r.href} href={r.href} className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+              <Link key={r.href} href={r.href} className="text-foreground underline underline-offset-2 hover:text-primary">
                 {r.label}
               </Link>
             ))}

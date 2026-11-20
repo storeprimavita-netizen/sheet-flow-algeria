@@ -158,7 +158,7 @@ export default async function AllOrdersPage({
     const retry = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
     return (
       <div className="space-y-6">
-        <PageHeader title={t("orders.title")} subtitle={t("orders.subtitle")} />
+        <PageHeader title={t("nav.all")} subtitle={t("orders.subtitle")} />
         <OrderTabs active="all" />
         <Empty>
           <p className="font-medium text-foreground">{t("orders.loadError")}</p>
@@ -247,7 +247,7 @@ export default async function AllOrdersPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("orders.title")} subtitle={t("orders.subtitle")}>
+      <PageHeader title={t("nav.all")} subtitle={t("orders.subtitle")}>
         <ButtonLink href="/app/orders/new">{t("orders.new")}</ButtonLink>
       </PageHeader>
 

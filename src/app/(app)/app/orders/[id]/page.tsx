@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserRole, isCurrentUserAdmin, getProfile } from "@/lib/rbac";
 import { formatCurrency, formatDateTime, formatOrderNo, ltr } from "@/lib/format";
 import { getOptionSet } from "@/lib/option-sets";
-import { ChevronLeft } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { PhoneLinks } from "@/components/phone-links";
@@ -44,7 +43,7 @@ export default async function OrderDetailPage({
   if (!order) {
     return (
       <div className="space-y-6">
-        <PageHeader title={t("orders.title")} subtitle={t("navPurpose.all")} />
+        <PageHeader title={t("nav.all")} subtitle={t("navPurpose.all")} />
         <Empty>{t("orders.notFound")}</Empty>
       </div>
     );
@@ -146,16 +145,11 @@ export default async function OrderDetailPage({
   const showsCard = isAdmin && productSizes.length > 0;
 
   const phone = order.customer?.phone ?? order.customer_phone;
-  const queueHref = role === "delivery_agent" ? "/app/orders/delivery" : role === "confirmation_agent" ? "/app/orders/confirmation" : "/app/orders/all";
   const isCancelled = order.confirmation_status === "cancelled" || order.delivery_status === "cancelled";
 
   return (
     <div className="space-y-6">
       <CrumbRecord label={formatOrderNo(order.order_seq)} />
-      <Link href={queueHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
-        {t("nav.orders")}
-      </Link>
       <PageHeader
         title={`${t("orders.edit")} ${ltr(formatOrderNo(order.order_seq))}`}
         subtitle={
