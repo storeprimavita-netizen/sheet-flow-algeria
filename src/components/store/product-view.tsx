@@ -5,6 +5,7 @@ import type { Block } from "@/lib/store/blocks";
 import type { PublicProductPage } from "@/lib/store/data";
 
 import { StoreShell } from "./chrome";
+import { StorePhoto } from "./photo";
 import { RatingLine, ReviewsSection, SizeguideSection } from "./review-blocks";
 import { st } from "./t";
 
@@ -15,8 +16,7 @@ function BlockView({ block }: { block: Block }) {
     case "text":
       return <p>{block.text}</p>;
     case "image":
-      // eslint-disable-next-line @next/next/no-img-element -- plain img by design (no remote image optimizer)
-      return <img src={block.url} alt={block.alt} width={800} height={1000} loading="lazy" decoding="async" />;
+      return <StorePhoto src={block.url} alt={block.alt} width={800} height={1000} loading="lazy" decoding="async" />;
     case "list":
       return (
         <ul>
@@ -59,9 +59,9 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
               <div className="store-photo-empty">{st("noPhoto")}</div>
             ) : (
               dto.product.images.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element -- plain img by design
-                <img
+                <StorePhoto
                   key={src}
+                  emptyLabel={st("noPhoto")}
                   className="store-photo"
                   src={src}
                   alt={st("galleryAlt", { n: i + 1, total: dto.product.images.length })}
@@ -117,8 +117,7 @@ export function ProductView({ dto }: { dto: PublicProductPage }) {
                 <li key={r.slug}>
                   <Link className="store-card" href={`/s/${dto.store.slug}/${r.slug}`}>
                     {r.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- plain img by design
-                      <img className="store-photo" src={r.image} alt="" width={400} height={500} loading="lazy" decoding="async" />
+                      <StorePhoto className="store-photo" src={r.image} alt="" width={400} height={500} loading="lazy" decoding="async" />
                     ) : (
                       <div className="store-photo-empty" aria-hidden="true" />
                     )}
