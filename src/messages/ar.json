@@ -536,6 +536,7 @@
     "action": "الإجراء",
     "changes": "التغييرات",
     "auditNone": "لا توجد سجلات تدقيق بعد.",
+    "auditNoMatch": "لا توجد سجلات تطابق هذه التصفية.",
     "meeting": "الاجتماع",
     "attendeesNone": "لا يوجد حضور بعد.",
     "carriedOver": "مُرحّل",

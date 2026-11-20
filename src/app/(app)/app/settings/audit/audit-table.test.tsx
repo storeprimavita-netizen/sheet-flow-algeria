@@ -45,11 +45,13 @@ describe("AuditTable", () => {
     err.mockRestore();
     expect(new Set(changes.map((c) => c.id)).size).toBe(changes.length);
   });
+  test.each(["en", "ar"] as const)("%s: filtered empty state uses the no-match copy", (loc) => {
+    const m = loc === "en" ? en : ar;
+    const html = render(loc, [], true);
+    expect(html).toContain(m.team.auditNoMatch);
+    expect(html).not.toContain(m.team.auditNone);
+  });
   test("empty key gets a label", () => {
     expect(render("en")).toContain(en.audit.emptyKey);
-  });
-  test("empty state offers clearing filters only when filtered", () => {
-    expect(render("en", [], true)).toContain("/app/settings/audit");
-    expect(render("en", [], false)).not.toContain('href="/app/settings/audit"');
   });
 });

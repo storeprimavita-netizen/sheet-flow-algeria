@@ -536,6 +536,7 @@
     "action": "Action",
     "changes": "Changes",
     "auditNone": "No audit entries yet.",
+    "auditNoMatch": "No entries match these filters.",
     "meeting": "Meeting",
     "attendeesNone": "No attendees yet.",
     "carriedOver": "Carried over",

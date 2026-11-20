@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 
-import { ButtonLink } from "@/components/button-link";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatDateTime } from "@/lib/format";
@@ -19,7 +18,7 @@ export type AuditRow = {
 
 function Value({ v }: { v: DiffValue }) {
   const t = useTranslations();
-  if (!v.redacted) return <>{v.text}</>;
+  if (!v.redacted) return <bdi>{v.text}</bdi>;
   return (
     <span
       role="note"
@@ -39,7 +38,7 @@ export function ChangeList({ changes }: { changes: DiffChange[] }) {
     <ul className="space-y-1 py-2 text-xs text-muted-foreground">
       {changes.map((c) => (
         <li key={c.id} dir="ltr" className="text-start">
-          <span className="break-all">{c.key === "" ? t("audit.emptyKey") : c.key}</span>: <Value v={c.from} /> → <Value v={c.to} />
+          <bdi className="break-all">{c.key === "" ? t("audit.emptyKey") : c.key}</bdi>: <Value v={c.from} /> → <Value v={c.to} />
         </li>
       ))}
     </ul>
@@ -55,12 +54,13 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
     { id: "table", header: t("team.table"), cell: (r) => (
         <>
           {r.table_name}
+          <div className="text-xs text-muted-foreground sm:hidden">{r.action} · {r.actor_name}</div>
           {r.changes.length > 0 ? <div className="sm:hidden"><ChangeList changes={r.changes} /></div> : null}
         </>
       ) },
-    { id: "action", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
-    { id: "actor", header: t("fields.agent"), cell: (r) => r.actor_name },
-    { id: "changes", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : <div className="hidden sm:block"><ChangeList changes={r.changes} /></div> },
+    { id: "action", width: "hidden sm:table-cell", header: t("team.action"), cell: (r) => <span className="text-muted-foreground">{r.action}</span> },
+    { id: "actor", width: "hidden sm:table-cell", header: t("fields.agent"), cell: (r) => r.actor_name },
+    { id: "changes", width: "hidden sm:table-cell", header: t("team.changes"), cell: (r) => r.changes.length === 0 ? "—" : <div className="hidden sm:block"><ChangeList changes={r.changes} /></div> },
   ];
 
   return (
@@ -70,8 +70,7 @@ export function AuditTable({ rows, filtered = false }: { rows: AuditRow[]; filte
       rows={rows}
       rowKey={(r) => String(r.id)}
       empty={{
-        title: t("team.auditNone"),
-        action: filtered ? <ButtonLink href="/app/settings/audit" variant="outline">{t("orders.clearFilters")}</ButtonLink> : undefined,
+        title: filtered ? t("team.auditNoMatch") : t("team.auditNone"),
       }}
     />
   );
