@@ -785,3 +785,7 @@ StatusPill renders the default label as sr-only text for an emoji-only override 
 - Evidence: docs/briefs/NAV-4-S3.review-1.md VERDICT: PASS (review-0 was FIX, resolved).
 - Owner: remote `db push` of 00076 (owner-only; revokes anon function EXECUTE).
 - Next: NAV-5 in lane order.
+
+## NAV-5: built (awaiting /verify)
+- Done: agent `/app/my-day` (read-only, session client, D86 counts, no migration), `roleHome` landing for login/orders/not-found, `MY_DAY` + `bottomBar()` in nav-model, phone bottom bar (More = drawer, header hamburger removed).
+- Not done: screenshots (no running app/login session in this run); owner/ui-reviewer must screenshot 390 px light/dark EN/AR.
