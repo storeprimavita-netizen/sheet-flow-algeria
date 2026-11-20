@@ -45,6 +45,22 @@ describe("StorePhoto", () => {
     expect(setFailed).not.toHaveBeenCalled();
   });
 
+  test("a lazy image is never flipped by the mount check, an eager failed one is", () => {
+    StorePhoto({ src: "/x.jpg", alt: "", loading: "lazy" });
+    ref.current = { complete: true, naturalWidth: 0 };
+    effect!();
+    expect(setFailed).not.toHaveBeenCalled();
+    const onFail = vi.fn();
+    const img = StorePhoto({ src: "/x.jpg", alt: "", loading: "lazy", onFail }) as unknown as El;
+    (img.props.onError as () => void)(); // onError still swaps the placeholder
+    expect(setFailed).toHaveBeenCalledWith(true);
+    expect(onFail).toHaveBeenCalledTimes(1);
+    setFailed.mockClear();
+    StorePhoto({ src: "/x.jpg", alt: "" });
+    effect!();
+    expect(setFailed).toHaveBeenCalledWith(true);
+  });
+
   test("decorative placeholder is hidden from assistive tech", () => {
     failed = true;
     const ph = StorePhoto({ src: "/x.jpg", alt: "" }) as unknown as El;
