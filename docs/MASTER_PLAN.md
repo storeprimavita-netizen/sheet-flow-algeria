@@ -110,6 +110,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | NAV-2 | Breadcrumb + title + required purpose line on every page; group hub pages | NAV | L | ui | – | shell | NAV-1 | done |
 | NAV-3 | Move routes to canonical URLs with permanent redirects; merge the three money surfaces | NAV | L | ui | – | shell | NAV-2 | done |
 | NAV-4 | Emoji in option labels and saved views; label overrides for system statuses | NAV | L | ui | M | shell | NAV-1 | claimed:claude |
+| NAV-4-V | Follow-up from NAV-4: emoji on saved views (view name emoji, same picker and DB checks as options); needs saved views on v3 | NAV | L | ui | M | shell | CONF-1 | todo |
 | NAV-5 | Mobile bottom bar; agent "My day" home | NAV | L | ui | – | shell | NAV-3 | todo |
 
 ## Wave 2 — daily operations

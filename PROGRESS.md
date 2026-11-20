@@ -737,3 +737,6 @@ Moved orders/contacts/products/stock/pricing/finance routes under sell|catalog|m
 - Evidence: docs/briefs/NAV-3.review-2.md VERDICT: PASS; shots docs/design/audit/NAV-3.
 - Owner: light theme, EN, 390px matrix for NAV-3 not captured.
 - Next: NAV-5 (MONEY-2, RES-1, P1-5 also unblocked by NAV-3).
+
+## NAV-4 (build)
+Migration 00073: `options.emoji` (admin-only, DB-checked; ZWJ allowed) and `status_label_overrides` (RLS, audited). Chip emoji + option consumers, `EmojiField` picker, `StatusLabelsProvider` + pure `resolveStatusLabel` (no ICU, i18n/request.ts untouched), pill/select/delivery advance/confirmation/filter bar/customers wired, Settings "Options & labels" block. Follow-up NAV-4-V (saved-view emoji) added to plan. Screenshots (browser MCP, docs/design/audit/NAV-4): settings AR dark 1280, emoji picker AR light 390. Not captured: EN, other themes/sizes of orders list, kanban, customers, agent session, /login.
