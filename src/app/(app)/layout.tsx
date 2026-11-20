@@ -34,8 +34,8 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
-        {/* clear of the sticky topbar (h-14 = 3.5rem) plus a gap, on desktop and mobile */}
-        <Toaster position="top-center" richColors closeButton offset={{ top: "4.5rem" }} mobileOffset={{ top: "4.5rem" }} />
+        {/* clear of the sticky topbar (--topbar-h) plus a gap, on desktop and mobile */}
+        <Toaster position="top-center" richColors closeButton offset={{ top: "calc(var(--topbar-h) + 1rem)" }} mobileOffset={{ top: "calc(var(--topbar-h) + 1rem)" }} />
       </body>
     </html>
   );

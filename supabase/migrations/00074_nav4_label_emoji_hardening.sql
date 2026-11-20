@@ -2,11 +2,17 @@
 -- ZWJ (U+200D) stays legal in labels: family/profession emoji need it.
 
 -- Defensive data fix: strip only the newly banned set from existing labels.
+-- Rows whose labels would both end up blank are deleted first (a row needs one label).
+delete from public.status_label_overrides
+where nullif(btrim(regexp_replace(coalesce(label_en, ''), E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]', '', 'g')), '') is null
+  and nullif(btrim(regexp_replace(coalesce(label_ar, ''), E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]', '', 'g')), '') is null
+  and (label_en ~ E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]' or label_ar ~ E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]');
+
 update public.status_label_overrides set
-  label_en = nullif(btrim(regexp_replace(label_en, E'[؜﻿  ­͏ᅟㅤ]', '', 'g')), ''),
-  label_ar = nullif(btrim(regexp_replace(label_ar, E'[؜﻿  ­͏ᅟㅤ]', '', 'g')), '')
-where label_en ~ E'[؜﻿  ­͏ᅟㅤ]'
-   or label_ar ~ E'[؜﻿  ­͏ᅟㅤ]';
+  label_en = nullif(btrim(regexp_replace(label_en, E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]', '', 'g')), ''),
+  label_ar = nullif(btrim(regexp_replace(label_ar, E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]', '', 'g')), '')
+where label_en ~ E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]'
+   or label_ar ~ E'[\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]';
 
 alter table public.options drop constraint options_emoji_chk;
 alter table public.options add constraint options_emoji_chk check (

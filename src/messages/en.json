@@ -770,7 +770,6 @@
       "emojiPaste": "Paste one emoji",
       "emojiClear": "Remove emoji",
       "emojiInvalid": "Enter a single emoji.",
-      "emojiCell": "Emoji {n} of {total}",
       "emojiTriggerSet": "Emoji for {option}: {emoji}. Change",
       "emojiTriggerEmpty": "Choose an emoji for {option}",
       "usageCount": "{count, plural, =0 {unused} one {# use} other {# uses}}",
@@ -893,6 +892,8 @@
       "reset": "Reset to default",
       "invalid": "Labels need 1 to 40 characters and no control characters.",
       "failed": "Could not save the label. Try again.",
+      "failedLang": "The {language} label was not saved. Try again.",
+      "invalidLang": "The {language} label needs 1 to 40 visible characters and no control characters.",
       "loadError": "Could not load the labels: {reason}",
       "kinds": {
         "confirmation": "Confirmation",

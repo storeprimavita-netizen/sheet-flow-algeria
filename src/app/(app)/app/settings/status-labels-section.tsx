@@ -13,7 +13,7 @@ import { normalizeLabel } from "@/lib/emoji";
 import { StatusLabelsProvider } from "@/components/status-labels-provider";
 import type { StatusLabelOverrides } from "@/lib/status-label";
 import { getStatus, type StatusKind } from "@/lib/statuses";
-import { resetStatusLabel, saveStatusLabel } from "./actions";
+import { resetStatusLabel, saveStatusLabel, type StatusLabelResult } from "./actions";
 
 export type StatusLabelGroup = {
   kind: StatusKind;
@@ -58,24 +58,29 @@ function LabelRow({ kind, status }: { kind: StatusKind; status: StatusLabelGroup
     [kind]: { [status.key]: { en: normalizeLabel(en) || null, ar: normalizeLabel(ar) || null } },
   };
 
-  /** Sends only the language(s) the admin changed. */
+  /** Sends only the language(s) the admin changed; reports which one failed (the first may already be saved). */
   async function save() {
-    if (en !== status.en) {
-      const r = await saveStatusLabel({ kind, key: status.key, lang: "en", value: en });
-      if (!r.ok) return r;
-    }
-    if (ar !== status.ar) {
-      const r = await saveStatusLabel({ kind, key: status.key, lang: "ar", value: ar });
-      if (!r.ok) return r;
+    for (const lang of ["en", "ar"] as const) {
+      const value = lang === "en" ? en : ar;
+      if (value === (lang === "en" ? status.en : status.ar)) continue;
+      const r = await saveStatusLabel({ kind, key: status.key, lang, value });
+      if (!r.ok) return { ...r, lang };
     }
     return { ok: true as const };
   }
 
-  async function run(action: () => ReturnType<typeof saveStatusLabel>, okMsg: string) {
+  async function run(action: () => Promise<StatusLabelResult & { lang?: "en" | "ar" }>, okMsg: string) {
     setBusy(true);
     const res = await action();
     setBusy(false);
-    if (!res.ok) return toast.error(res.error === "invalid" ? t("settings.statusLabels.invalid") : t("settings.statusLabels.failed"));
+    if (!res.ok) {
+      const invalid = res.error === "invalid";
+      if (res.lang) {
+        const language = t(`settings.statusLabels.${res.lang}`);
+        return toast.error(t(invalid ? "settings.statusLabels.invalidLang" : "settings.statusLabels.failedLang", { language }));
+      }
+      return toast.error(invalid ? t("settings.statusLabels.invalid") : t("settings.statusLabels.failed"));
+    }
     toast.success(okMsg);
     router.refresh();
   }

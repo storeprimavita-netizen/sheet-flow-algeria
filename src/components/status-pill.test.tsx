@@ -9,6 +9,7 @@ vi.mock("next-intl", () => ({
 import { StatusPill } from "@/components/status-pill";
 import { StatusLabelsProvider } from "@/components/status-labels-provider";
 import { Chip } from "@/components/ui/chip";
+import { StatusSelect } from "@/components/status-select";
 
 const render = (overrides: Parameters<typeof StatusLabelsProvider>[0]["overrides"] | null, node: React.ReactElement) =>
   renderToStaticMarkup(overrides ? <StatusLabelsProvider overrides={overrides}>{node}</StatusLabelsProvider> : node);
@@ -55,13 +56,28 @@ describe("Chip emoji", () => {
 });
 
 describe("StatusPill layout", () => {
-  test("no truncate class unless asked (select triggers), gap span for a leading emoji", () => {
+  test("truncates by default with a shrinkable pill; truncate={false} shows the full label; gap span for a leading emoji", () => {
     const html = render(emojiOv, <StatusPill kind="confirmation" status="confirmed" size="sm" compact />);
-    expect(html).not.toContain("truncate");
-    expect(html).not.toContain("max-w-");
+    expect(html).toContain("truncate");
+    expect(html).toContain("min-w-0 max-w-full");
     expect(html).toContain("gap-1");
     expect(html).toContain('title="🔥 Hot"');
-    expect(render(emojiOv, <StatusPill kind="confirmation" status="confirmed" truncate />)).toContain("truncate");
+    const full = render(emojiOv, <StatusPill kind="confirmation" status="confirmed" truncate={false} />);
+    expect(full).not.toContain("truncate");
+    expect(full).not.toContain("max-w-");
+  });
+  test("no title on an emoji-only pill", () => {
+    expect(render({ confirmation: { confirmed: { en: "✅", ar: null } } }, <StatusPill kind="confirmation" status="confirmed" />)).not.toContain("title=");
+  });
+});
+
+describe("StatusSelect trigger", () => {
+  test("never truncates, compact or not", () => {
+    for (const compact of [false, true]) {
+      const html = render(emojiOv, <StatusSelect kind="confirmation" value="confirmed" compact={compact} />);
+      expect(html).not.toContain("max-w-");
+      expect(html).not.toContain('<span class="truncate">');
+    }
   });
 });
 

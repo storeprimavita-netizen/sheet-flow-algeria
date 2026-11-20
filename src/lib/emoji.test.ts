@@ -45,7 +45,7 @@ describe("flags and keycaps", () => {
 
 describe("normalizeLabel parity with the DB set", () => {
   test("strips every code point the 00074 CHECK bans and keeps ZWJ", () => {
-    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u2029", "\u00AD", "\u034F", "\u115F", "\u3164", "\u200B", "\u200E", "\u202E"]) {
+    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u2029", "\u00AD", "\u034F", "\u115F", "\u3164", "\u200B", "\u200E", "\u202E", "\u2800"]) {
       expect(normalizeLabel(`a${ch}b`)).toBe("ab");
     }
     const fam = "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}";
@@ -53,7 +53,7 @@ describe("normalizeLabel parity with the DB set", () => {
     expect(labelSchema.parse(`${fam} x`)).toBe(`${fam} x`);
   });
   test("a label of only invisible characters is invalid", () => {
-    for (const bad of ["\u3164", "\uFEFF\u061C", "\u200D", "\u2028 \u00AD\u034F\u115F"]) expect(labelSchema.safeParse(bad).success).toBe(false);
+    for (const bad of ["\u3164", "\uFEFF\u061C", "\u200D", "\u2028 \u00AD\u034F\u115F", "\u2800", "\u2060\uFFA0\u00A0"]) expect(labelSchema.safeParse(bad).success).toBe(false);
   });
 });
 

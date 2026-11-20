@@ -100,7 +100,7 @@ describe.skipIf(!URL)("options.emoji CHECK (live DB, 00074)", () => {
   test("emoji CHECK rejects plain text, accepts flag, keycap, ZWJ family", async () => {
     const id = (await s.admin.from("options").insert({ workspace_id: s.ws, set_id: setId, label: `o-${crypto.randomUUID()}` }).select("id").single()).data!.id as string;
     const set = (emoji: string) => s.admin.from("options").update({ emoji }).eq("id", id);
-    for (const bad of ["ABCDEFGHIJ", "abc", "1"]) expect((await set(bad)).error, bad).not.toBeNull();
+    for (const bad of ["ABCDEFGHIJ", "abc", "1", "BUY NOW 50% \u{1F525}", "\u{1F525}\u3164", "\u{1F525}\uFEFF"]) expect((await set(bad)).error, bad).not.toBeNull();
     for (const ok of ["\u{1F1E9}\u{1F1FF}", "1\uFE0F\u20E3", "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}", "\u{1F525}", "\u2764\uFE0F"]) {
       expect((await set(ok)).error, ok).toBeNull();
     }
@@ -146,9 +146,15 @@ describe.skipIf(!URL)("status_label_overrides (live DB, 00073)", () => {
   });
 
   test("label CHECK rejects U+061C, U+FEFF, U+2028, U+3164", async () => {
-    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u3164", "\u00AD", "\u034F", "\u115F"]) {
+    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u3164", "\u00AD", "\u034F", "\u115F", "\u2800"]) {
       expect((await upsert(s.admin, s.ws, { label_en: `a${ch}b` })).error, JSON.stringify(ch)).not.toBeNull();
       expect((await upsert(s.admin, s.ws, { label_en: null, label_ar: ch })).error, JSON.stringify(ch)).not.toBeNull();
+    }
+  });
+
+  test("label CHECK rejects a label made only of invisible characters", async () => {
+    for (const bad of ["\u200D", "\uFFA0", "\u1160", "\u2060", "\u180E", "\u00A0\u200D", "\u{E0020}"]) {
+      expect((await upsert(s.admin, s.ws, { status_key: "inv_only", label_en: bad })).error, JSON.stringify(bad)).not.toBeNull();
     }
   });
 

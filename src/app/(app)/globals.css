@@ -89,6 +89,7 @@
 /* ── Dark (default) ───────────────────────────────────────────────── */
 :root {
   --radius: 0.5rem; /* 8px base */
+  --topbar-h: 3.5rem; /* sticky topbar height (h-14); toasts sit below it */
 
   --bg: oklch(0.16 0.02 250);
   --surface: oklch(0.205 0.022 250);

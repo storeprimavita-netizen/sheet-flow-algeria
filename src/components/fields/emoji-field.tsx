@@ -80,7 +80,7 @@ export function EmojiField({
         {value ?? <SmilePlus className="h-4 w-4 text-muted-foreground" aria-hidden />}
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
-        <div role="grid" aria-label={t("settings.options.emoji")} className="grid grid-cols-6 gap-1">
+        <div role="group" aria-label={t("settings.options.emoji")} className="grid grid-cols-6 gap-1">
           {EMOJIS.map((e, i) => (
             <button
               key={e}
@@ -88,10 +88,8 @@ export function EmojiField({
                 cells.current[i] = el;
               }}
               type="button"
-              role="gridcell"
-              aria-label={t("settings.options.emojiCell", { n: i + 1, total: EMOJIS.length })}
               tabIndex={i === active ? 0 : -1}
-              aria-selected={e === value}
+              aria-pressed={e === value}
               onClick={() => pick(e)}
               onKeyDown={(ev) => onGridKey(ev, i)}
               className={cn(

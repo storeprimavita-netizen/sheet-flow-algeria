@@ -625,6 +625,11 @@ export async function saveStatusLabel(input: unknown): Promise<StatusLabelResult
     const del = await rows.delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key).is(other, null);
     if (del.error) return { ok: false, error: "failed" };
     ({ error } = await rows.update(patch).eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key));
+    if (error?.code === "23514") {
+      // another admin cleared the other language between our delete and update: the row is now empty, remove it
+      const retry = await rows.delete().eq("workspace_id", workspaceId).eq("kind", kind).eq("status_key", key).is(other, null);
+      error = retry.error;
+    }
   } else {
     // upsert sends only this column, so the other language is left untouched on conflict
     ({ error } = await rows.upsert(

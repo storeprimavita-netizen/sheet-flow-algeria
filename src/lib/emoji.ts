@@ -5,24 +5,26 @@ import { z } from "zod";
 // Mirrors the DB CHECKs in migration 00074.
 const FORBIDDEN =
   // eslint-disable-next-line no-control-regex
-  /[\u0000-\u001F\u007F-\u009F\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164]/g;
+  /[\u0000-\u001F\u007F-\u009F\u200B\u200C\u200E\u200F\u202A-\u202E\u2066-\u2069\u061C\uFEFF\u2028\u2029\u00AD\u034F\u115F\u3164\u2800]/g;
 const INVISIBLE = /\p{Default_Ignorable_Code_Point}/gu;
 // pictographs, flags (regional-indicator pairs) and keycaps (e.g. 1️⃣)
 const PICTOGRAPHIC = /\p{Extended_Pictographic}|\p{Regional_Indicator}{2}|[0-9#*]\uFE0F?\u20E3/u;
 
+const SEGMENTER = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
 export function graphemeCount(s: string): number {
-  return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)].length;
+  return [...SEGMENTER.segment(s)].length;
 }
 
 /** True when the text starts with an emoji (the status pill then hides its Lucide icon). */
 export function startsWithEmoji(s: string): boolean {
-  const first = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s.trimStart())[Symbol.iterator]().next();
+  const first = SEGMENTER.segment(s.trimStart())[Symbol.iterator]().next();
   return !first.done && PICTOGRAPHIC.test(first.value.segment);
 }
 
 /** True when the text is emoji only (no readable word), so it needs a screen-reader name. */
 export function isEmojiOnly(s: string): boolean {
-  const parts = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s.trim())].map((x) => x.segment);
+  const parts = [...SEGMENTER.segment(s.trim())].map((x) => x.segment);
   return parts.length > 0 && parts.every((g) => PICTOGRAPHIC.test(g));
 }
 
@@ -44,7 +46,7 @@ export function normalizeLabel(v: string): string {
 /** Splits a leading emoji grapheme from the rest ("🔥 Hot" -> ["🔥", "Hot"]); null when the text does not start with one. */
 export function splitLeadingEmoji(s: string): { emoji: string; rest: string } | null {
   const text = s.trimStart();
-  const first = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)[Symbol.iterator]().next();
+  const first = SEGMENTER.segment(text)[Symbol.iterator]().next();
   if (first.done || !PICTOGRAPHIC.test(first.value.segment)) return null;
   return { emoji: first.value.segment, rest: text.slice(first.value.segment.length).trim() };
 }
