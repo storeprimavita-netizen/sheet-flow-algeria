@@ -17,7 +17,7 @@ export default async function CourierCashPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("cash.title")} subtitle={t("cash.subtitle")} />
+      <PageHeader title={t("nav.courierCash")} subtitle={t("navPurpose.courierCash")} />
       <TabsNav
         active={active}
         tabs={[

@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
-import { ContactTabs } from "@/app/(app)/app/sell/customers/tabs";
 import { SuppliersTable, type SupplierRow } from "./suppliers-table";
 
 export default async function SuppliersPage({
@@ -50,8 +49,6 @@ export default async function SuppliersPage({
           {t("contacts.newSupplier")}
         </ButtonLink>
       </PageHeader>
-
-      <ContactTabs active="suppliers" />
 
       <SuppliersTable rows={rows} />
     </div>

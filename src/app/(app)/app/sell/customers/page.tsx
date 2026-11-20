@@ -5,7 +5,6 @@ import { normalizeDzPhone } from "@/lib/customers";
 import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { SearchParamInput } from "@/components/fields/search-param-input";
-import { ContactTabs } from "./tabs";
 import { CustomersTable, type CustomerRow, type CustomerOrder } from "./customers-table";
 
 export default async function CustomersPage({
@@ -99,9 +98,7 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("contacts.title")} subtitle={t("contacts.subtitle")} />
-
-      <ContactTabs active="customers" />
+      <PageHeader title={t("nav.customers")} subtitle={t("navPurpose.customers")} />
 
       <SearchParamInput placeholder={t("contacts.search")} />
 
