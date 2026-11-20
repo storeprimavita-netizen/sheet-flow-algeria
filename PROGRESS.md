@@ -574,3 +574,8 @@ P1-7-F done (2026-11-20, review-4 PASS, D84): parser splits each Custom_rates pa
 - Evidence: docs/briefs/P1-7-F.review-4.md (VERDICT: PASS, qa-reviewer + ui-reviewer).
 - Owner: none for the merge (D84 gate condition met).
 - Next: P1-7-G (lows, ZR-swap outside item, missing tests from review-4 and review-3).
+
+## STORE-1-G
+- 00070 (revoke truncate/trigger/references, immutable variant-values trigger, value-less size guard); tests in variants.rls.test.ts; stock-stages 00029 re-run scoped to workspace; DB.md updated.
+- i18n option names ("Option {n}" / "الخيار رقم {n}", templates drop the noun); stock level chip nowrap; order Size cell hidden only when admin size card shows; wilaya code/name explicit order; VariantsFeedback + order-meta extracted with rendered tests.
+- Screenshots (chrome-devtools, partial: AR light 390 only, order, stock, product edit) in docs/design/audit/STORE-1-G-ui/. Not done: dark/EN/agent/stale-state shots, 1280 variants. AR wilaya shows code at start (right) then name: correct.
