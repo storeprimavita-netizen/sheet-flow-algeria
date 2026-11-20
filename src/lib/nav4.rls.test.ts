@@ -82,6 +82,31 @@ describe.skipIf(!URL)("options.emoji (live DB, 00073)", () => {
   });
 });
 
+describe.skipIf(!URL)("options.emoji CHECK (live DB, 00074)", () => {
+  let s: Awaited<ReturnType<typeof setup>>;
+  let setId: string;
+  beforeAll(async () => {
+    s = await setup("emc-");
+    psql(`select public.seed_workspace('${s.ws}');`);
+    setId = (await s.svc.from("option_sets").select("id").eq("workspace_id", s.ws).eq("key", "order_tag").single()).data!.id;
+  }, 30000);
+  afterAll(async () => {
+    if (!s) return;
+    for (const t of ["options", "option_sets", "settings", "wilaya_fees"]) await s.svc.from(t).delete().in("workspace_id", [s.ws, s.ws2]);
+    expect((await deleteWorkspaces(s.svc, [s.ws, s.ws2])).error).toBeNull();
+    for (const id of s.users) await s.svc.auth.admin.deleteUser(id);
+  });
+
+  test("emoji CHECK rejects plain text, accepts flag, keycap, ZWJ family", async () => {
+    const id = (await s.admin.from("options").insert({ workspace_id: s.ws, set_id: setId, label: `o-${crypto.randomUUID()}` }).select("id").single()).data!.id as string;
+    const set = (emoji: string) => s.admin.from("options").update({ emoji }).eq("id", id);
+    for (const bad of ["ABCDEFGHIJ", "abc", "1"]) expect((await set(bad)).error, bad).not.toBeNull();
+    for (const ok of ["\u{1F1E9}\u{1F1FF}", "1\uFE0F\u20E3", "\u{1F469}\u200D\u{1F469}\u200D\u{1F467}", "\u{1F525}", "\u2764\uFE0F"]) {
+      expect((await set(ok)).error, ok).toBeNull();
+    }
+  });
+});
+
 describe.skipIf(!URL)("status_label_overrides (live DB, 00073)", () => {
   let s: Awaited<ReturnType<typeof setup>>;
   beforeAll(async () => {
@@ -118,6 +143,27 @@ describe.skipIf(!URL)("status_label_overrides (live DB, 00073)", () => {
     ]) {
       expect((await upsert(s.admin, s.ws, over)).error, JSON.stringify(over)).not.toBeNull();
     }
+  });
+
+  test("label CHECK rejects U+061C, U+FEFF, U+2028, U+3164", async () => {
+    for (const ch of ["\u061C", "\uFEFF", "\u2028", "\u3164", "\u00AD", "\u034F", "\u115F"]) {
+      expect((await upsert(s.admin, s.ws, { label_en: `a${ch}b` })).error, JSON.stringify(ch)).not.toBeNull();
+      expect((await upsert(s.admin, s.ws, { label_en: null, label_ar: ch })).error, JSON.stringify(ch)).not.toBeNull();
+    }
+  });
+
+  test("label CHECK keeps ZWJ emoji", async () => {
+    const fam = "\u{1F469}\u200D\u{1F469}\u200D\u{1F467} family";
+    expect((await upsert(s.admin, s.ws, { status_key: "zwj_ok", label_en: fam })).error).toBeNull();
+    expect((await s.admin.from("status_label_overrides").select("label_en").eq("status_key", "zwj_ok").single()).data!.label_en).toBe(fam);
+  });
+
+  test("two sequential per-language saves keep both labels", async () => {
+    const t = s.admin.from("status_label_overrides");
+    expect((await upsert(s.admin, s.ws, { status_key: "perlang", label_en: "EN only" })).error).toBeNull();
+    expect((await t.update({ label_ar: "عربي" }).eq("workspace_id", s.ws).eq("kind", "confirmation").eq("status_key", "perlang")).error).toBeNull();
+    expect((await t.update({ label_en: "EN two" }).eq("workspace_id", s.ws).eq("kind", "confirmation").eq("status_key", "perlang")).error).toBeNull();
+    expect((await t.select("label_en,label_ar").eq("status_key", "perlang").single()).data).toEqual({ label_en: "EN two", label_ar: "عربي" });
   });
 
   test("grants: anon none, no TRUNCATE/TRIGGER/REFERENCES for authenticated", () => {
