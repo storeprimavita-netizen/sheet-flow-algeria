@@ -55,6 +55,7 @@ describe("public page has no live submit", () => {
     page: { slug: "p", title: "P", blocks: [], seo: {} },
     product: { name: "P", price: 5000, compareAt: null, pricingMode: "uniform", priceFrom: false, images: [] },
     variants: [],
+    options: [],
     offers: [],
     bump: null,
     form: { fields: [], deliveryMethods: ["home"] },

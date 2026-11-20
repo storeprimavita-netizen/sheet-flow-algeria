@@ -26,6 +26,7 @@ export const AUDITED_WORKSPACE_TABLES = [
   "exchange_rates",
   "integration_configs",
   "store_pages",
+  "size_sets",
   "stores",
   "wilaya_fees",
   "options",

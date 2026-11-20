@@ -20,7 +20,7 @@ export function VariantsFeedback({ unsaved, result }: { unsaved: boolean; result
               ? t("stale")
               : result.code === "invalid"
                 ? t("invalid")
-                : t("failed", { reason: result.error })
+                : t("failed")
     : null;
   return (
     <>

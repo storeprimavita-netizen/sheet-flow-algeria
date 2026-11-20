@@ -1,3 +1,4 @@
+import type * as React from "react";
 import Link from "next/link";
 
 import { formatCurrency } from "@/lib/format";
@@ -8,6 +9,8 @@ import { StoreShell } from "./chrome";
 import { Gallery } from "./gallery";
 import { StorePhoto } from "./photo";
 import { RatingLine, ReviewsSection, SizeguideSection } from "./review-blocks";
+import { storeOptionHeadingKey } from "@/lib/variants";
+
 import { st } from "./t";
 
 function BlockView({ block }: { block: Block }) {
@@ -75,19 +78,30 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                 </>
               ) : null}
             </p>
-            {!orderSlot && dto.variants.length > 0 ? (
-              <div>
-                <p className="store-label">{st("sizes")}</p>
-                <ul className="store-sizes">
-                  {dto.variants.map((v) => (
-                    <li key={v.id} className="store-size" data-out={!v.inStock}>
-                      <bdi>{v.label}</bdi>
-                      {v.inStock ? null : <span className="store-sr">{st("outOfStock")}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+            {!orderSlot
+              ? dto.options.map((o, oi) => {
+                  const headingKey = storeOptionHeadingKey(o);
+                  return (
+                    <div key={oi}>
+                      <p className="store-label"><bdi>{headingKey ? st(headingKey) : o.name}</bdi></p>
+                      <ul className="store-sizes">
+                        {o.values.map((v, vi) => (
+                          <li key={`${v.label}-${vi}`} className="store-size" data-out={!v.inStock}>
+                            {v.swatch?.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- plain img by design: never background-image
+                              <img className="store-dot" src={v.swatch.image} alt="" width={20} height={20} loading="lazy" />
+                            ) : v.swatch?.color ? (
+                              <span className="store-dot" aria-hidden="true" style={{ "--swatch": v.swatch.color } as React.CSSProperties} />
+                            ) : null}
+                            <bdi>{v.label}</bdi>
+                            {v.inStock ? null : <span className="store-sr">{st("outOfStock")}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })
+              : null}
             {!orderSlot && !soldOut && dto.offers.length > 0 ? (
               <div>
                 <p className="store-label">{st("order.offersInfoTitle")}</p>

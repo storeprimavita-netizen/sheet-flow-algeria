@@ -14,6 +14,7 @@ import { STATUS_KINDS } from "@/lib/statuses";
 import { labelSchema } from "@/lib/emoji";
 import { CURRENCY_CODES } from "@/lib/enums";
 import { fxRateFor } from "@/lib/fx";
+import { sizeSetSchema, uuid as uuidSchema } from "@/lib/variants";
 import { replayEvent, lightfunnelProvider, shopifyProvider } from "@/lib/webhook";
 import { searchZRTerritories, createZRWebhookEndpoint, getZRCredentials, getZRRates, zrErrorMessage } from "@/lib/integrations/zrexpress";
 import type { Database } from "@/lib/supabase/database.types";
@@ -594,6 +595,38 @@ export async function saveMeetingSchedule(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
+// Size sets (VAR-1): reusable lists of size names. Admin only, session client (RLS), role re-checked here.
+// ---------------------------------------------------------------------------
+export type SizeSetResult = { ok: true } | { ok: false; code: "invalid" | "duplicate" | "failed" };
+
+export async function saveSizeSet(id: string | null, raw: unknown): Promise<SizeSetResult> {
+  const { workspaceId } = await adminProfile();
+  const input = sizeSetSchema.safeParse(raw);
+  const sid = id === null ? null : uuidSchema.safeParse(id);
+  if (!input.success || (sid && !sid.success)) return { ok: false, code: "invalid" };
+  const supabase = await createClient();
+  const { error } =
+    sid && sid.success
+      ? await supabase.from("size_sets").update(input.data).eq("id", sid.data).eq("workspace_id", workspaceId)
+      : await supabase.from("size_sets").insert({ ...input.data, workspace_id: workspaceId });
+  if (error) return { ok: false, code: error.code === "23505" ? "duplicate" : error.code === "23514" ? "invalid" : "failed" };
+  revalidatePath("/app/settings");
+  revalidatePath("/app/products", "layout");
+  return { ok: true };
+}
+
+export async function deleteSizeSet(id: string): Promise<SizeSetResult> {
+  const { workspaceId } = await adminProfile();
+  const sid = uuidSchema.safeParse(id);
+  if (!sid.success) return { ok: false, code: "invalid" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("size_sets").delete().eq("id", sid.data).eq("workspace_id", workspaceId);
+  if (error) return { ok: false, code: "failed" };
+  revalidatePath("/app/settings");
+  revalidatePath("/app/products", "layout");
+  return { ok: true };
+}
+
 // System status labels (NAV-4): display text only, per workspace + language
 // ---------------------------------------------------------------------------
 export type StatusLabelResult = { ok: true } | { ok: false; error: "invalid" | "failed" };

@@ -12,6 +12,7 @@ const dto = (blocks: PublicProductPage["page"]["blocks"], reviews: PublicProduct
   page: { slug: "p", title: "P", blocks, seo: {} },
   product: { name: "Abaya", price: 100, compareAt: null, pricingMode: "uniform", priceFrom: false, images: [] },
   variants: [],
+  options: [],
   offers: [],
   bump: null,
   form: { fields: [], deliveryMethods: ["home"] },

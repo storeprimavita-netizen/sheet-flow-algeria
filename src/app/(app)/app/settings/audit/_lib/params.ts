@@ -29,6 +29,7 @@ export const AUDITED_TABLES = [
   "season_periods",
   "seasons",
   "settings",
+  "size_sets",
   "store_pages",
   "status_label_overrides",
   "stores",

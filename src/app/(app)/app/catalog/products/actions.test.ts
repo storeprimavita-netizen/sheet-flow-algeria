@@ -21,7 +21,7 @@ describe("saveVariantConfig refusal (00070)", () => {
     const bare = { id: id(), sku: null, is_active: true, values: {} };
     const o = { id: id(), name: "Size", values: [{ id: id(), label: "S" }] };
     for (const cfg of [{ options: [o], variants: [bare] }, { options: [], variants: [bare] }]) {
-      expect(await saveVariantConfig(PID, cfg)).toEqual({ ok: false, code: "invalid", error: "variant_values" });
+      expect(await saveVariantConfig(PID, cfg)).toEqual({ ok: false, code: "invalid" });
     }
     expect(rpc).not.toHaveBeenCalled();
     expect(createClient).not.toHaveBeenCalled();

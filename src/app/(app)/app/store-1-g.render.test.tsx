@@ -59,7 +59,7 @@ describe("unnamed option accessible names", () => {
 describe("variants feedback", () => {
   for (const l of ["en", "ar"] as const) {
     test(`${l}: stale is a role=alert with the localized text`, () => {
-      const html = wrap(l, <VariantsFeedback unsaved result={{ ok: false, code: "stale", error: "stale" } satisfies VariantResult} />);
+      const html = wrap(l, <VariantsFeedback unsaved result={{ ok: false, code: "stale" } satisfies VariantResult} />);
       expect(html).toContain('role="alert"');
       const t = createTranslator({ locale: l, messages: locales[l], namespace: "variants" });
       expect(html).toContain(t("stale"));
@@ -117,7 +117,7 @@ describe("order page cells", () => {
 
 describe("VariantsEditor option names (real component)", () => {
   const opt = (name: string) => [{ id: "00000000-0000-4000-8000-000000000001", name, values: [{ id: "00000000-0000-4000-8000-000000000002", label: "S" }] }];
-  const render = (l: "en" | "ar", name: string) => wrap(l, <VariantsEditor productId="p" initialOptions={opt(name)} initialVariants={[]} />);
+  const render = (l: "en" | "ar", name: string) => wrap(l, <VariantsEditor productId="p" productCode="" sizeSets={null} initialOptions={opt(name)} initialVariants={[]} />);
   const expected = {
     en: { fallback: "Option 1", remove: "Remove Option 1", up: "Move Option 1 up" },
     ar: { fallback: "الخيار رقم 1", remove: "حذف الخيار رقم 1", up: "نقل الخيار رقم 1 للأعلى" },
