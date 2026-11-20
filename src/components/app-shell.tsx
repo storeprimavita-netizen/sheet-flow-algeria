@@ -340,7 +340,7 @@ export function AppShell({
           inert={!open && !isDesktop}
           {...(open && !isDesktop ? { role: "dialog", "aria-modal": true, "aria-label": t("nav.menu") } : {})}
           className={cn(
-            "fixed inset-y-0 start-0 z-40 flex outline-none flex-col border-e border-border bg-surface pb-[env(safe-area-inset-bottom)] ps-[env(safe-area-inset-left)] transition-[transform,width] md:translate-x-0",
+            "fixed inset-y-0 start-0 z-40 flex outline-none flex-col border-e border-border bg-surface transition-[transform,width] md:translate-x-0",
             collapsed ? "w-16" : "w-64",
             open ? "max-md:translate-x-0" : "max-md:-translate-x-full max-md:rtl:translate-x-full",
           )}
@@ -414,7 +414,7 @@ export function AppShell({
         <NavCountsProvider value={counts}>
         <CrumbProvider role={role}>
         <div inert={open && !isDesktop} className={cn("flex min-w-0 flex-1 flex-col", collapsed ? "md:ps-16" : "md:ps-64")}>
-          <header className="sticky top-0 z-20 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))] backdrop-blur">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
             <CommandPalette role={role}>
               <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" aria-label={t("cmd.title")}>
                 <Search className="h-4 w-4" />

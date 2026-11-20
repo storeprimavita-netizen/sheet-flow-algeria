@@ -29,7 +29,7 @@ export function MobileBottomBar({
   return (
     <nav
       aria-label={t("bottomBar")}
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] ps-[env(safe-area-inset-left)] pe-[env(safe-area-inset-right)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {bottomBar(role).map((leaf) => {
         const Icon = leaf.icon;
