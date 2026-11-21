@@ -6,7 +6,7 @@
 #   scripts/agy-night.sh agy-2 nodb           extra agent: only tasks without a migration
 #   Ctrl+C                                    stop (pushed steps are kept)
 #
-#   AGY_MODEL="Orchestrator (Argon)"          model (default; run `agy models` for the exact names)
+#   AGY_MODEL=gemini-3.8-flash-high           model id from `agy models` (default: the one chosen with /model in agy)
 #   AGY_EFFORT=high                           thinking level, when the model has one
 #   AGY_FLAGS="--sandbox"                     extra flags passed to agy
 #
@@ -18,7 +18,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 name=${1:-agy-1}; filter=${2:-}
-model=${AGY_MODEL:-Orchestrator (Argon)}
+model=${AGY_MODEL:-}
 logdir="$HOME/Library/Logs"; mkdir -p "$logdir"
 say() { echo "$(date '+%H:%M') ── [$name] $*"; }
 
@@ -35,11 +35,11 @@ while :; do
   if [ -n "$(git status --porcelain)" ]; then say "leftover files — set aside with git stash"; git stash push -u -q -m "agy leftovers $(date +%F-%H%M)" || exit 1; fi
   git pull --rebase -q origin v3 || { say "could not update v3 — retrying in 5 min"; sleep 300; continue; }
   log="$logdir/mnw-agy-$name-$(date +%Y%m%d-%H%M%S).log"
-  say "task $n (model: $model)   log: $log"
+  say "task $n (model: ${model:-agy default})   log: $log"
   start=$(date +%s)
   # shellcheck disable=SC2086
   agy -p "Use the loop-auto skill with arguments: 1 $filter as:$name" \
-      --model "$model" ${AGY_EFFORT:+--effort "$AGY_EFFORT"} --print-timeout 120m ${AGY_FLAGS:-} </dev/null 2>&1 | tee "$log"
+      ${model:+--model "$model"} ${AGY_EFFORT:+--effort "$AGY_EFFORT"} --print-timeout 120m ${AGY_FLAGS:-} </dev/null 2>&1 | tee "$log"
   took=$(( $(date +%s) - start ))
   tail_txt=$(tail -c 4000 "$log")
 

@@ -4,8 +4,8 @@
 #
 #   scripts/agy-setup.sh                      check: agy installed, signed in, models, skills visible
 #   scripts/agy-setup.sh --write-permissions  also create ~/.gemini/antigravity-cli/settings.json
-#                                             with the allow/deny rules below (an existing file
-#                                             is backed up first, never merged)
+#                                             the allow/deny rules below are added to it (the file is
+#                                             backed up first; its other settings are kept)
 #
 # Rule syntax is from antigravity.google/docs/permissions (read 2026-11-17) and
 # was NOT tested here — if agy rejects the file, restore the backup and set the
@@ -34,7 +34,7 @@ echo "--- permissions file: $cfg"
 if [ "${1:-}" = "--write-permissions" ]; then
   mkdir -p "$(dirname "$cfg")"
   [ -f "$cfg" ] && cp "$cfg" "$cfg.backup-$(date +%Y%m%d-%H%M%S)" && echo "backed up the existing file"
-  cat > "$cfg" <<'JSON'
+  rules=$(cat <<'JSON'
 {
   "permissions": {
     "allow": [
@@ -58,5 +58,17 @@ if [ "${1:-}" = "--write-permissions" ]; then
   }
 }
 JSON
+)
+  # merge: keep everything already in the file (trusted folders, model choice …), replace only "permissions"
+  RULES="$rules" python3 - "$cfg" <<'PY' || { echo "could not write $cfg — nothing changed"; exit 1; }
+import json, os, sys
+path = sys.argv[1]
+try:
+    with open(path) as f: cur = json.load(f)
+except FileNotFoundError:
+    cur = {}
+cur["permissions"] = json.loads(os.environ["RULES"])["permissions"]
+with open(path, "w") as f: json.dump(cur, f, indent=2); f.write("\n")
+PY
   echo "written. Deny beats ask beats allow. Check it loaded: run \`agy\`, try \`/loop-bootstrap\`."
 fi

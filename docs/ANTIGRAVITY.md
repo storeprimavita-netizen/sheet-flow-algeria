@@ -3,8 +3,8 @@
 Antigravity works the same plan, the same loop and the same skills as Claude
 Code. Shared state is git: plan, specs, briefs and reviews on branch `v3`.
 
-> **Status: prepared, not yet run.** `agy` was not installed on this Mac when
-> this was written (2026-11-20), so nothing below has been executed here.
+> **Status: installed and signed in (agy 1.5.13, 2026-11-21); the loop itself
+> has not been run in it yet.** The setup check passes; no task has been built.
 > Facts come from antigravity.google/docs, read 2026-11-17 and 2026-11-20.
 > Do the first task by hand in the TUI before trusting an unattended run.
 
@@ -14,19 +14,20 @@ Use **Antigravity CLI (`agy`)**. Gemini CLI stopped serving Google AI Pro,
 Ultra and free accounts on 2026-06-18; it only works with paid API keys now.
 `agy` is its replacement and is what a Google AI Pro subscription covers.
 
-## Models (Google AI Pro, non-trial)
+## Models
+
+What this Mac's account lists (`agy models`, checked 2026-11-21, agy 1.5.13):
 
 | Model in `agy` | Use it for |
 |---|---|
-| **Orchestrator (Argon)** | Default for the loop: plans with Argon, executes with Hydrogen in one turn |
-| **Gemini 4 Argon** | Planning, reviews, hard problems |
-| **Gemini 4 Hydrogen** | Fast implementation, routine tasks |
-| Gemini 4 Neon / Orchestrator (Neon) | Stronger and slower; for the hardest tasks |
-| Claude Sonnet 5.5 / Opus 5.5 (thinking) | Also selectable on Pro; separate limit from the Gemini models |
+| **Gemini 3.8 Flash (High)** — `gemini-3.8-flash-high` | Default for the loop |
+| Gemini 3.8 Flash (Medium / Low) | Cheaper, for routine follow-ups |
+| Claude Sonnet 4.6 / Opus 4.6 (Thinking) | Reviews and hard tasks; separate limit from Gemini |
+| GPT-OSS 120B (Medium) | Not used by the loop |
 
-The names are **Argon** and **Hydrogen** (not "Aragon"). Exact identifiers for
-your account: `agy models`. Limits are shown in the model picker as a weekly
-and a five-hour bar; Gemini models and Claude/GPT models have separate bars.
+The Argon / Hydrogen / Orchestrator models described in Antigravity's docs are
+**not** in this account's list. If they appear later (plan change, rollout),
+pick them with `/model`; nothing in the repo depends on a model name.
 
 ## 1. Install and sign in (once)
 
@@ -39,7 +40,7 @@ cd ~/Documents/Projects/sheet-flow-algeria
 agy --version
 agy                      # opens the app in the terminal; sign in with your Google AI Pro account
 ```
-Inside it: `/model` → choose **Orchestrator (Argon)** (the choice is remembered).
+Inside it: `/model` → choose **Gemini 3.8 Flash (High)** (the choice is remembered).
 
 ## 2. Check the project is seen
 
@@ -62,7 +63,8 @@ do and still reports success. Give it the project's rules once:
 scripts/agy-setup.sh --write-permissions
 ```
 This writes `~/.gemini/antigravity-cli/settings.json` (your existing file is
-backed up): git, the project's scripts, tests and builds are allowed; force
+backed up, and its other settings such as trusted folders are kept): git, the
+project's scripts, tests and builds are allowed; force
 push, pushing to `main`, pushing to the real database and `sudo` are denied;
 everything else asks. The rule syntax was not tested here — if `agy` complains
 about the file, restore the backup and set the same rules in its settings.
