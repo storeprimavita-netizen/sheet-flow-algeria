@@ -31,12 +31,12 @@ Read `.claude/commands/auto.md` once (ignore its frontmatter): it gives the orde
 | Build (after `scripts/db-reset.sh` when the task has a migration) | `stage-runner`: `Use the loop-execute skill. Arguments: <id>` — once more if the gate is not OK |
 | Review of the build, when the brief says risk high or names a surface | do the `loop-verify` skill **yourself** (`scripts/review-high.sh <id>` for high risk or security, the `ui-reviewer` agent for UI; you write the review file and push it) |
 | Fix after a review | `stage-runner`: `Use the loop-execute skill. Arguments: <id>` (it reads the review file), then `loop-verify` again as a re-check |
-| A question the task raised | `stage-runner`: `Use the loop-decide skill. Arguments: <id> <the question, or the file that raised it>` |
+| A question the task raised | start the **`decider`** agent (stronger model) with `Use the loop-decide skill. Arguments: <id> <the question, or the file that raised it>` — if it cannot be started, `stage-runner` with the same prompt |
 | Ship | `stage-runner`: `Use the loop-ship skill. Arguments: <id>` |
 
 Why you run `loop-verify` yourself: it starts the reviewers, and an agent started by you may not be able to start another one. You never built the code, so the rule "the reviewer did not write it" holds.
 
-One `stage-runner` at a time; wait for its reply; read only its short reply, never ask it for logs. If a reply starts with `STAGE FAILED`, or an agent returns nothing, treat it as a technical failure of that task (`auto.md`: set the row to `blocked:<short reason>` on `v3` with `scripts/step.sh`, leave the branch pushed, next task). If the tree is dirty afterwards: `git stash push -u -m "night leftovers"`, `git checkout v3`.
+Never pass a model name when you start an agent: each agent file under `.codex/agents/` carries its own model (D96). One `stage-runner` at a time; wait for its reply; read only its short reply, never ask it for logs. If a reply starts with `STAGE FAILED`, or an agent returns nothing, treat it as a technical failure of that task (`auto.md`: set the row to `blocked:<short reason>` on `v3` with `scripts/step.sh`, leave the branch pushed, next task). If the tree is dirty afterwards: `git stash push -u -m "night leftovers"`, `git checkout v3`.
 
 After each task print one line and send the same line with `scripts/notify.sh "<line>"`, for example
 `✔ 22:41  STORE-4 shipped (merge 3fa9c1e) · 37 min` or `■ 23:10  CONF-2 parked — <reason>`.

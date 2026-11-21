@@ -38,7 +38,7 @@ fi
 
 # --- project files -------------------------------------------------------------------
 for f in AGENTS.md .codex/config.toml .codex/rules/mnw.rules .codex/hooks.json .codex/guard.py .codex/night-stop.py \
-         .codex/agents/qa-reviewer.toml .codex/agents/ui-reviewer.toml .codex/agents/stage-runner.toml \
+         .codex/agents/qa-reviewer.toml .codex/agents/ui-reviewer.toml .codex/agents/stage-runner.toml .codex/agents/decider.toml \
          .agents/skills/loop-night/SKILL.md .agents/skills/loop-auto/SKILL.md \
          scripts/step.sh scripts/push.sh scripts/gate.sh scripts/gen-types.sh scripts/review-high.sh; do
   [ -e "$f" ] || fail "missing $f"
@@ -101,12 +101,28 @@ none      | npx vitest run
 CASES
   [ "$rules_ok" = 1 ] && pass "command rules answer as intended ($n sample commands, real rule engine)" \
                       || fail "command rules (.codex/rules/mnw.rules) do not answer as intended — see lines above; do not start a night run"
+  # every model named under .codex/ must exist in the account's model list
+  missing=$("$cx" debug models 2>/dev/null | python3 -I -c '
+import json, sys, glob, tomllib
+try:
+    d = json.load(sys.stdin); have = {m.get("slug") for m in (d.get("models", []) if isinstance(d, dict) else d)}
+except Exception: print("?"); sys.exit()
+want = {}
+for f in [".codex/config.toml"] + sorted(glob.glob(".codex/agents/*.toml")):
+    m = tomllib.load(open(f, "rb")).get("model")
+    if m: want[f] = m
+print(" ".join("%s(%s)" % (m, f.split("/")[-1]) for f, m in want.items() if m not in have))')
+  case "$missing" in
+    "")  pass "the models named in .codex/ are all in the account's model list" ;;
+    "?") note "could not read the model list (codex debug models) — models not checked" ;;
+    *)   fail "model not offered to this account: $missing — change it in that file (list: $cx debug models)" ;;
+  esac
   # does Codex really load this project's settings and skills? (renders what the model would see; calls no model)
   if trusted; then
     seen=$("$cx" debug prompt-input "check" 2>/dev/null)
-    echo "$seen" | grep -q "MNW-CODEX-SETTINGS-LOADED" && pass "Codex loads this project's settings (.codex/config.toml)" || fail "folder is trusted but Codex does not load .codex/config.toml — run: $cx debug prompt-input check"
-    echo "$seen" | grep -q "loop-night" && pass "Codex sees the skills (loop-night and the others)" || fail "Codex does not list the loop-night skill"
-    echo "$seen" | grep -q "stage-runner" && pass "Codex sees the project agents (stage-runner, qa-reviewer, ui-reviewer)" || note "the project agents are not named in the prompt — check in the app that stage-runner can be started"
+    grep -q "MNW-CODEX-SETTINGS-LOADED" <<<"$seen" && pass "Codex loads this project's settings (.codex/config.toml)" || fail "folder is trusted but Codex does not load .codex/config.toml — run: $cx debug prompt-input check"
+    grep -q "loop-night" <<<"$seen" && pass "Codex sees the skills (loop-night and the others)" || fail "Codex does not list the loop-night skill"
+    grep -q "stage-runner" <<<"$seen" && grep -q "decider" <<<"$seen" && pass "Codex sees the project agents (stage-runner, decider, qa-reviewer, ui-reviewer)" || note "the project agents are not named in the prompt — check in the app that stage-runner can be started"
   else
     fail "this folder is not trusted by Codex, so it ignores .codex/ (rules off) — run: scripts/codex-setup.sh --trust   then quit and reopen the app"
   fi

@@ -2,10 +2,16 @@
 # a trusted folder (scripts/codex-setup.sh shows whether it is, --trust sets it).
 # Guide: docs/CODEX.md      Self-check: scripts/codex-setup.sh
 #
-# No `model` line on purpose: Codex uses the model of your plan / your `/model`
-# choice. A model name the account does not have would stop every run.
+# Models per job (D96) — all three answered on the owner's account on 2026-11-21.
+#   the chat (night coordinator) and every build stage   gpt-6.2-sol    medium   (this file + stage-runner)
+#   answering a question a task raised                   gpt-6.2-astra  high     (.codex/agents/decider.toml)
+#   high-risk / security review                          Claude Opus first (scripts/review-high.sh),
+#                                                        then gpt-6.2-astra high (.codex/agents/qa-reviewer.toml)
+#   review of screens                                    gpt-6.1-terra  medium   (.codex/agents/ui-reviewer.toml)
+# See what the account offers: codex debug models.  scripts/codex-setup.sh checks these names.
 
-model_reasoning_effort = "medium"      # building; reviewers set their own below (.codex/agents/)
+model = "gpt-6.2-sol"                  # the model picker in the app can override this for one chat
+model_reasoning_effort = "medium"
 approval_policy = "on-request"         # with the reviewer below: nothing waits for a click at night
 approvals_reviewer = "auto_review"     # a request to leave the sandbox goes to Codex's automatic reviewer, not to a prompt
                                        # (in the app choose "Custom (config.toml)" under the message box to use these three lines)

@@ -1,6 +1,7 @@
 # One loop stage in a fresh context. Started by the loop-night skill.
 name = "stage-runner"
 description = "Runs exactly one stage of the MNW loop (brief, build, ship or decide) with the skill named in its prompt, then replies in a few lines. Started by the loop-night skill so every stage has a fresh context."
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = """
 You run ONE stage of this project's loop and then stop. Your prompt names a skill (loop-analyse, loop-execute, loop-ship or loop-decide) and its arguments: use that skill and follow it exactly. AGENTS.md is binding.

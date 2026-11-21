@@ -67,15 +67,20 @@ it there with `$loop-night nodb`.
 
 | Job | In Codex | Was, in Claude Code |
 |---|---|---|
-| Night coordinator (the chat you see) | the Codex chat; it only starts stages and prints one line each | Sonnet |
-| Brief, build, ship, answer a task's question | a fresh `stage-runner` agent per stage | Sonnet / Haiku / Fable |
-| Review of high-risk and security work | **Claude Opus** through Claude Code (`scripts/review-high.sh`); when Claude is signed out or at its limit, Codex's own `qa-reviewer` | Opus |
-| Review of screens | Codex `ui-reviewer` with the Chrome tools | Sonnet |
+| Night coordinator (the chat you see): starts stages, prints one line each | **GPT-6.2-Sol**, thinking medium | Sonnet |
+| Brief, build, ship — a fresh `stage-runner` agent per stage | **GPT-6.2-Sol**, thinking medium | Sonnet / Haiku |
+| Answer a question a task raised — `decider` agent | **GPT-6.2-Astra** (the most capable), thinking high | Fable |
+| Review of high-risk and security work | **Claude Opus** through Claude Code (`scripts/review-high.sh`); when Claude is signed out or at its limit, `qa-reviewer` on **GPT-6.2-Astra**, thinking high | Opus |
+| Review of screens — `ui-reviewer` with the Chrome tools | **GPT-6.1 Terra** (the one built for reading screens), thinking medium | Sonnet |
 
-No model name is written in the project: Codex uses the model you choose in
-the app. High-risk reviews use your Claude limit; to keep them off it, create
-an empty file named `.no-claude-review` in the project folder — the run then
-uses Codex's own `qa-reviewer`. Delete the file to go back to Opus.
+All three GPT models answered on your account on 2026-11-21. The names are in
+`.codex/config.toml` (the chat) and in each file under `.codex/agents/`;
+`scripts/codex-setup.sh` fails if one is no longer offered. The model picker
+in the app changes only the chat's own model, not the agents'.
+
+High-risk reviews use your Claude limit; to keep them off it, create an empty
+file named `.no-claude-review` in the project folder — the run then uses
+`qa-reviewer`. Delete the file to go back to Opus.
 
 ## 4. What Codex may and may not do here
 
@@ -108,7 +113,7 @@ them or anything under `.codex/`, but that is a check after the fact.
 | `AGENTS.md` | project rules — Codex reads it by itself |
 | `.agents/skills/` | skills, shared with Antigravity: `loop-night`, `loop-auto`, `loop-analyse`, `loop-execute`, `loop-verify`, `loop-decide`, `loop-ship`, `loop-bootstrap`, plus design, database and security skills |
 | `.codex/config.toml` | sandbox, automatic approval review, thinking level, browser and shadcn tools, Codex-only notes |
-| `.codex/agents/*.toml` | `stage-runner`, `qa-reviewer`, `ui-reviewer` |
+| `.codex/agents/*.toml` | `stage-runner`, `decider`, `qa-reviewer`, `ui-reviewer` — each with its model |
 | `.codex/rules/mnw.rules`, `.codex/guard.py` | which commands are allowed |
 | `.codex/night-stop.py` | keeps a night run going until it prints `NIGHT RUN ended` (stops after 16 hours, or after 6 nudges with no new commit) |
 | `.codex/hooks.json` | wires the two hooks |
