@@ -6,7 +6,8 @@
 #   scripts/agy-night.sh agy-2 nodb           extra agent: only tasks without a migration
 #   Ctrl+C                                    stop (pushed steps are kept)
 #
-#   AGY_MODEL=gemini-3.8-flash-high           model id from `agy models` (default: the one chosen with /model in agy)
+#   AGY_MODEL=gemini-3.8-flash-high           model id from `agy models` (default: best available for the
+#                                             `task` role in .agents/models.conf; after a usage limit the next one)
 #   AGY_EFFORT=high                           thinking level, when the model has one
 #   AGY_FLAGS="--sandbox"                     extra flags passed to agy
 #
@@ -18,7 +19,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 name=${1:-agy-1}; filter=${2:-}
-model=${AGY_MODEL:-}
+skip=0   # how many models of the `task` row are out of quota right now
+pick_model() { if [ -n "${AGY_MODEL:-}" ]; then echo "$AGY_MODEL"; else scripts/agy-run.sh chain task 2>/dev/null | sed -n "$((skip+1))p"; fi; }
 logdir="$HOME/Library/Logs"; mkdir -p "$logdir"
 say() { echo "$(date '+%H:%M') ── [$name] $*"; }
 
@@ -34,6 +36,8 @@ while :; do
   [ "$(git branch --show-current)" = "v3" ] || git checkout -q v3 || { say "cannot switch to v3 — stopping"; exit 1; }
   if [ -n "$(git status --porcelain)" ]; then say "leftover files — set aside with git stash"; git stash push -u -q -m "agy leftovers $(date +%F-%H%M)" || exit 1; fi
   git pull --rebase -q origin v3 || { say "could not update v3 — retrying in 5 min"; sleep 300; continue; }
+  [ "$skip" -gt 0 ] && [ $(( $(date +%s) - ${skip_since:-0} )) -gt 18000 ] && skip=0   # limits refresh every five hours
+  model=$(pick_model); [ -z "$model" ] && [ "$skip" -gt 0 ] && { skip=0; model=$(pick_model); }
   log="$logdir/mnw-agy-$name-$(date +%Y%m%d-%H%M%S).log"
   say "task $n (model: ${model:-agy default})   log: $log"
   start=$(date +%s)
@@ -48,7 +52,9 @@ while :; do
   if echo "$tail_txt" | grep -q "RUN-END: more"; then bad=0; say "task finished in $((took/60)) min — next"; continue; fi
   if echo "$tail_txt" | grep -Eqi "authentication required|not signed in|login required"; then say "not signed in — run \`agy\` once and sign in, then start again."; break; fi
   if echo "$tail_txt" | grep -Eqi "quota|usage limit|rate limit|resource.?exhausted|limit reached|429"; then
-    say "usage limit — waiting 20 min, then trying again"; sleep 1200; bad=0; continue
+    skip=$((skip+1)); skip_since=$(date +%s); next=$(pick_model)
+    if [ -n "$next" ] && [ -z "${AGY_MODEL:-}" ]; then say "usage limit on $model — switching to $next"; bad=0; continue; fi
+    skip=0; say "usage limit on every model — waiting 20 min, then trying again from the best one"; sleep 1200; bad=0; continue
   fi
   bad=$((bad+1))
   [ "$bad" -ge 3 ] && { say "3 runs in a row ended without a result — stopping. Last lines:"; tail -n 12 "$log"; break; }

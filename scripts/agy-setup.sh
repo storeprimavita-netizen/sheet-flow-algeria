@@ -7,9 +7,13 @@
 #                                             the allow/deny rules below are added to it (the file is
 #                                             backed up first; its other settings are kept)
 #
-# Rule syntax is from antigravity.google/docs/permissions (read 2026-11-17) and
-# was NOT tested here — if agy rejects the file, restore the backup and set the
-# rules from the app's settings instead.
+# Rule syntax is from antigravity.google/docs/permissions (re-read 2026-11-21):
+#   - a rule is a word-by-word PREFIX of the command (`command(git)` covers every git command);
+#   - deny beats ask beats allow, so there is no catch-all "ask" rule here (it would
+#     override every allow); anything not listed asks, or is refused in a headless run;
+#   - `regex:` is matched word by word, so a pattern must not contain a space inside a group.
+# Starting the dev server directly is denied on purpose: use scripts/dev-up.sh.
+# Not tested against a live agy session — if agy shows a "Settings Error", restore the backup.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 cfg="$HOME/.gemini/antigravity-cli/settings.json"
@@ -28,6 +32,8 @@ for f in AGENTS.md .agents/rules/antigravity.md .agents/mcp_config.json; do [ -f
 echo "skills:  $(ls .agents/skills | tr '\n' ' ')"
 echo "agents:  $(ls .agents/agents | tr '\n' ' ')"
 for s in .agents/skills/*; do [ -f "$s/SKILL.md" ] || echo "BROKEN skill link: $s (run scripts/sync-agent-skills.sh --copy)"; done
+echo "--- which model does which job right now (.agents/models.conf)"
+scripts/agy-run.sh models 2>&1
 echo "--- permissions file: $cfg"
 [ -f "$cfg" ] && echo "exists" || echo "not there yet"
 
@@ -39,22 +45,30 @@ if [ "${1:-}" = "--write-permissions" ]; then
   "permissions": {
     "allow": [
       "command(git)",
-      "command(git push)",
-      "command(regex:scripts/(gate|step|secret-scan|dev-up|dev-down|db-reset|notify)\\.sh.*)",
-      "command(regex:npx (tsc|vitest|supabase (status|migration|gen|db reset --local)).*)",
-      "command(regex:npm (ci|test|run build).*)",
-      "command(regex:node (--import|--env-file|scripts/).*)",
-      "command(regex:(ls|cat|head|tail|sed|grep|rg|find|wc|sort|uniq|cut|awk|curl -s -m [0-9]+ .*(127\\.0\\.0\\.1|localhost)).*)"
+      "command(scripts/gate.sh)", "command(scripts/step.sh)", "command(scripts/secret-scan.sh)",
+      "command(scripts/dev-up.sh)", "command(scripts/dev-down.sh)", "command(scripts/db-reset.sh)",
+      "command(scripts/notify.sh)", "command(scripts/agy-run.sh)",
+      "command(npx tsc)", "command(npx vitest)", "command(npx -y modern-web-guidance@latest)",
+      "command(npx supabase status)", "command(npx supabase migration)", "command(npx supabase gen)",
+      "command(npx supabase db reset --local)",
+      "command(npm ci)", "command(npm test)", "command(npm run build)", "command(npm run lint)",
+      "command(node)",
+      "command(ls)", "command(cat)", "command(head)", "command(tail)", "command(sed)", "command(grep)",
+      "command(rg)", "command(find)", "command(wc)", "command(sort)", "command(uniq)", "command(cut)",
+      "command(awk)", "command(date)", "command(mkdir)",
+      "mcp(chrome-devtools/*)", "mcp(shadcn/*)"
     ],
     "deny": [
-      "write_file(.git/)",
-      "command(regex:git push.*(--force|-f( |$)).*)",
-      "command(regex:git push.* main.*)",
-      "command(regex:git reset --hard.*)",
-      "command(regex:.*supabase (db push|link|db reset --linked).*)",
-      "command(regex:.*(rm -rf /|sudo ).*)"
-    ],
-    "ask": ["command(*)"]
+      "write_file(.git/)", "write_file(.env.local)",
+      "command(git push --force)", "command(git push -f)", "command(git push --force-with-lease)",
+      "command(regex:git push \\S+ \\S*main)",
+      "command(regex:git push \\S+ \\S+ (--force|-f|--force-with-lease))",
+      "command(git reset --hard)",
+      "command(npx supabase db push)", "command(npx supabase link)", "command(npx supabase db pull)",
+      "command(supabase db push)", "command(supabase link)", "command(supabase db pull)",
+      "command(npm run dev)", "command(npx next dev)", "command(next dev)",
+      "command(sudo)"
+    ]
   }
 }
 JSON
@@ -70,5 +84,5 @@ except FileNotFoundError:
 cur["permissions"] = json.loads(os.environ["RULES"])["permissions"]
 with open(path, "w") as f: json.dump(cur, f, indent=2); f.write("\n")
 PY
-  echo "written. Deny beats ask beats allow. Check it loaded: run \`agy\`, try \`/loop-bootstrap\`."
+  echo "written. Check it loaded: run \`agy\`, type /permissions, then /loop-bootstrap."
 fi

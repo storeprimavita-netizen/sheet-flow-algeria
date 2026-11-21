@@ -3,10 +3,11 @@
 Antigravity works the same plan, the same loop and the same skills as Claude
 Code. Shared state is git: plan, specs, briefs and reviews on branch `v3`.
 
-> **Status: installed and signed in (agy 1.5.13, 2026-11-21); the loop itself
-> has not been run in it yet.** The setup check passes; no task has been built.
-> Facts come from antigravity.google/docs, read 2026-11-17 and 2026-11-20.
-> Do the first task by hand in the TUI before trusting an unattended run.
+> **Status (2026-11-21): `agy` 1.5.13 is installed; its saved state and sign-in
+> were cleared on the owner's request, so sign in again. No task has been built
+> with it yet.** The model routing below was tested only with a stand-in for
+> `agy`, because Gemini 4 and Opus 5.5 were locked on the account that day.
+> Facts come from antigravity.google/docs, re-read 2026-11-21.
 
 ## Gemini CLI or Antigravity CLI?
 
@@ -14,20 +15,36 @@ Use **Antigravity CLI (`agy`)**. Gemini CLI stopped serving Google AI Pro,
 Ultra and free accounts on 2026-06-18; it only works with paid API keys now.
 `agy` is its replacement and is what a Google AI Pro subscription covers.
 
-## Models
+## Models and who does what (D95)
 
-What this Mac's account lists (`agy models`, checked 2026-11-21, agy 1.5.13):
+What Google AI Pro gets in Antigravity (antigravity.google/docs/models):
 
-| Model in `agy` | Use it for |
+| Model | Google AI Pro |
 |---|---|
-| **Gemini 3.8 Flash (High)** — `gemini-3.8-flash-high` | Default for the loop |
-| Gemini 3.8 Flash (Medium / Low) | Cheaper, for routine follow-ups |
-| Claude Sonnet 4.6 / Opus 4.6 (Thinking) | Reviews and hard tasks; separate limit from Gemini |
-| GPT-OSS 120B (Medium) | Not used by the loop |
+| Gemini 4 Neon, Gemini 4 Argon, Orchestrator | paid Pro (or a trial that came with an eligible device) |
+| Gemini 4 Hydrogen, Claude Opus 5.5, Claude Sonnet 5.5 | paid Pro only — **not during a free trial** |
+| Gemini 4 Carbon | Ultra only |
+| Gemini 3.8 Flash | every plan |
+| Claude Sonnet 4.6, Claude Opus 4.6, GPT-OSS 120B | every plan, **removed on 30 November 2026** |
 
-The Argon / Hydrogen / Orchestrator models described in Antigravity's docs are
-**not** in this account's list. If they appear later (plan change, rollout),
-pick them with `/model`; nothing in the repo depends on a model name.
+If the picker shows a model as "Unavailable · available to paid Pro and Ultra
+subscribers", the subscription is still in its trial or has not reached
+Antigravity yet. Nothing in the repo needs changing when it unlocks.
+
+Which model does which job is one file, `.agents/models.conf`:
+
+| Job | First choice | Then |
+|---|---|---|
+| `lead` — the session running `/loop-night`, planning (Fable's part in Claude Code) | Orchestrator (Neon): Neon plans, Hydrogen edits | Gemini 4 Neon → Argon → Opus 4.6 → Flash |
+| `decide` — answering a question a task raised (Fable's part) | Gemini 4 Neon (High) | Argon → Opus 4.6 → Flash |
+| `review-high` — review of high-risk and security work | **Claude Opus 5.5** | Gemini 4 Neon → Argon → Opus 4.6 → Flash |
+| `task` — a whole task per session (`scripts/agy-night.sh` only) | Orchestrator (Neon) | Orchestrator (Argon) → Neon → Argon → Hydrogen → Flash |
+
+`scripts/agy-run.sh models` prints what each job resolves to on your account
+right now. A model that is locked is skipped; a model that fails during a run
+(usage limit reached) is replaced by the next one in its row — that is how
+"Opus 5.5 until its limit ends, then Gemini" works. Antigravity itself has no
+automatic switch: for the session's own model you change it with `/model`.
 
 ## 1. Install and sign in (once)
 
@@ -40,7 +57,8 @@ cd ~/Documents/Projects/sheet-flow-algeria
 agy --version
 agy                      # opens the app in the terminal; sign in with your Google AI Pro account
 ```
-Inside it: `/model` → choose **Gemini 3.8 Flash (High)** (the choice is remembered).
+Inside it: `/model` → choose **Orchestrator (Neon)** (or Gemini 4 Neon). While those are
+locked, choose Gemini 3.8 Flash (High). The choice is remembered.
 
 ## 2. Check the project is seen
 
@@ -62,12 +80,15 @@ do and still reports success. Give it the project's rules once:
 ```
 scripts/agy-setup.sh --write-permissions
 ```
-This writes `~/.gemini/antigravity-cli/settings.json` (your existing file is
-backed up, and its other settings such as trusted folders are kept): git, the
-project's scripts, tests and builds are allowed; force
-push, pushing to `main`, pushing to the real database and `sudo` are denied;
-everything else asks. The rule syntax was not tested here — if `agy` complains
-about the file, restore the backup and set the same rules in its settings.
+This adds the rules to `~/.gemini/antigravity-cli/settings.json` (the file is
+backed up and its other settings are kept): git, the project's scripts, tests
+and builds are allowed; force push, pushing to `main`, the real database,
+`sudo` and starting the dev server directly are denied; everything else asks.
+Check with `/permissions` inside `agy`. If `agy` shows a "Settings Error",
+restore the backup.
+
+Mode: `agy` starts in `auto` mode on a personal account (edits in the project
+are approved, safe commands run in its sandbox, risky ones still ask). Keep it.
 
 ## 4. First task by hand
 
@@ -86,25 +107,42 @@ it will need every time, add it to the allow list.
 agy
 > /loop-night
 ```
-It stays in the session in front of you: one line per finished task, a short
-summary every five tasks, and a report at the end. Each task is handed to a
-fresh `task-runner` subagent, so the session itself stays small.
+It stays in the session in front of you: which model does which job, one line
+per finished task, a short summary every five tasks, a report at the end. Each
+task is handed to a fresh `task-runner` subagent, so the session stays small.
 
 ```
 > /loop-night 5            stop after five tasks
 > /loop-night nodb         only tasks that do not change the database
 ```
-Keep the Mac awake while it runs: in another Terminal window, `caffeinate -ims`
-(leave it open; `Ctrl+C` ends it). Lid closed: `sudo pmset -a disablesleep 1`.
+Stronger variant, using Antigravity's own goal mode (it refuses to end the turn
+until the goal is met, with no step limit):
+```
+> /goal Run the loop-night skill and keep going until it prints "NIGHT RUN ended" with the reason; do not stop between tasks.
+```
+Stop either one by typing `stop the night run` (or `Esc`).
 
-If your usage limit is reached, the session stops and cannot wake itself. When
-the limit resets, type `/loop-night` again — it continues from the plan; every
-finished step was already pushed. (If you prefer it to wait and resume by
-itself with nobody there, `scripts/agy-night.sh` does that from a plain
-Terminal, but you see less.)
+Useful while it runs: `/usage` shows your limit bars, `/agents` shows the
+subagent that is working, `/tasks` shows the wake-up schedule.
+
+Keep the Mac awake: in another Terminal window, `caffeinate -ims` (leave it
+open). Lid closed: `sudo pmset -a disablesleep 1`.
+
+**When a usage limit is reached.** Reviews and decisions switch model by
+themselves (table above). The session's own model does not: the run sets a
+wake-up every 30 minutes that continues it when the limit has refreshed; if
+that does not bring it back, pick the next model with `/model` and type
+`/loop-night` again. Nothing is lost — every finished step is pushed.
+`scripts/agy-night.sh` (plain Terminal, less to see) switches model and waits
+by itself.
 
 ### Following it from your phone
 
+- **Remote Control** (built into `agy`): type `/remote-control on` in the
+  session. It prints a link; open it on the phone signed in with the same
+  Google account. You see the output live and can answer its questions or type
+  to it. It works only while the Mac is awake and online, and only if Google
+  has enabled it for your account.
 - **GitHub** (nothing to set up): the `v3` commit list shows each finished step
   within seconds; `PROGRESS.md` shows what shipped.
 - **Notifications** (two minutes to set up): install the free **ntfy** app,
@@ -141,8 +179,11 @@ a minute. Start with **two** agents and add the third only if it goes well.
 Three agents do not triple the speed: many remaining tasks have migrations and
 only the main agent can take those.
 
-Other ways to parallelise inside Antigravity (paid plans): `/swarm <task>`
-(coordinator + workers + verifier on one large task) and `/teamwork`. In the
+Other ways to parallelise inside Antigravity: `/swarm <task>` (all plans:
+coordinator + workers + verifier on one broad task; "uses quota much faster
+than a single conversation"), `/boost <task>` (paid plans: deep reasoning on
+one hard bug) and `/teamwork` (paid plans). They are not part of the loop —
+use them by hand for a single large task. In the
 Antigravity App, start each agent in "New Worktree mode".
 
 ## Claude Code and Antigravity together
@@ -163,6 +204,7 @@ the **same folder** at once.
 | `.agents/skills/<shared>` | `cod-ui-polish`, `luxe-modesty-store-theme`, `modern-web-guidance`, `mnw-codebase-hygiene`, `owasp-security`, `karpathy-guidelines`, `supabase`, `supabase-postgres-best-practices`, `shadcn` |
 | `.agents/agents/qa-reviewer.md`, `ui-reviewer.md`, `task-runner.md` | Reviewer subagents (model tier `pro`) · one-task runner used by `/loop-night` |
 | `.agents/mcp_config.json` | `chrome-devtools` (screenshots, Lighthouse) and `shadcn` MCP servers |
+| `.agents/models.conf`, `scripts/agy-run.sh` | Which model does which job · runs a stage on that model with fallback |
 | `scripts/agy-setup.sh`, `agy-night.sh`, `agy-parallel.sh` | Check and permissions · continuous run · parallel copies |
 | `scripts/step.sh`, `gate.sh`, `dev-up.sh`, `db-reset.sh` | Commit+push a step · quality gate · local stack · local database reset |
 

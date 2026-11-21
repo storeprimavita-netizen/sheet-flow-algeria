@@ -13,7 +13,8 @@ Rules that matter most:
 - Take only `todo` rows. Claim under your name and push the claim before building; if the push is rejected, pull and pick another row. Never touch a row claimed by another name — Claude Code and other Antigravity agents work the same plan.
 - Commit and push every finished step with `scripts/step.sh "<id>: <what>"`. Only branches `v3` and `v3-<id>`. Never `main`, never force-push, never `supabase db push`.
 - `scripts/gate.sh` decides whether work is done. Never edit the gate or the reviewers, never delete a test to pass.
-- Reviews are done by the `qa-reviewer` / `ui-reviewer` subagents, never by the agent that wrote the code.
+- Reviews are never done by the agent that wrote the code. `loop-verify` sends a high-risk or security review to the model chosen for it (`scripts/agy-run.sh run review-high` — Claude Opus 5.5, then Gemini 4 Neon) and a UI review to the `ui-reviewer` subagent.
+- Model per job is in `.agents/models.conf` (D95); never hard-code a model name anywhere else.
 - A question never stops the run: use `loop-decide` and continue. Low findings go to `docs/BACKLOG.md`, mediums to ONE follow-up row.
 - Hard limits, never worked around: credentials and secrets, anything touching `main`, remote database or production deploy, real parcels / customer messages / ad events, spending money, deleting data.
 

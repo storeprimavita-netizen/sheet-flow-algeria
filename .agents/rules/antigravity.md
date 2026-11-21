@@ -11,4 +11,5 @@ trigger: always_on
 - Use the app URL that `scripts/dev-up.sh` prints (your working copy may run on its own port).
 - Commit and push every finished step with `scripts/step.sh "<id>: <what>"`. Only branches `v3` and `v3-<id>`. Never `main`, never force-push, never `supabase db push`.
 - Design authorities: `cod-ui-polish` (back-office app) and `luxe-modesty-store-theme` (public store); `modern-web-guidance` before HTML/CSS/client JS; `supabase` and `supabase-postgres-best-practices` for database work. Never run `migrate-radix-to-base`.
+- Which model does which job is in `.agents/models.conf`; stages that need a particular model go through `scripts/agy-run.sh` (it falls back to the next model when one is out of quota). Do not pass `--model` yourself.
 - Keep your own messages short; put detail in files (`docs/briefs/<id>.md`, review files), not in the conversation.
