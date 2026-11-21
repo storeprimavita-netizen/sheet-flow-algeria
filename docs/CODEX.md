@@ -23,11 +23,14 @@ It must end with `READY`. Then **quit and reopen the ChatGPT app**.
 In the app (Codex):
 1. Add the project folder `~/Documents/Projects/sheet-flow-algeria` if it is not there yet.
 2. New chat. Under the message box:
-   - work in **Local** — not Worktree, not Cloud. A worktree chat has no
-     branch, so nothing could be pushed; the night run refuses to start there.
-   - permissions: **Custom (config.toml)**. (If that choice is missing, use
-     **Approve for me**. Not "Ask for approval": it waits for your click at
-     night. Not "Full access": it switches the sandbox off.)
+   - where it works: nothing to set. A project made from a folder on this Mac
+     already works locally, on branch `v3` ("Work locally"). Just do not pick
+     "New worktree" or "Remote": a worktree chat has no branch, so nothing
+     could be pushed; the night run refuses to start there.
+   - permissions: **Approve for me**. ("Custom (config.toml)" is shown only
+     in some setups; if you see it, it is equally fine. Not "Ask for
+     approval": it waits for your click at night. Not "Full access": it
+     switches the sandbox off.)
 3. **Review hooks** (in the message box, or Settings → Hooks): trust the two
    project hooks, "project command rules" and "night run check". They must be
    trusted again whenever a file under `.codex/` changes.
@@ -131,7 +134,7 @@ them or anything under `.codex/`, but that is a check after the fact.
   check" hook is not trusted (Review hooks). Until it is, type
   `/goal run $loop-night until it prints NIGHT RUN ended`.
 - **It waits for you to approve a command** → permissions are on "Ask for
-  approval"; switch to Custom (config.toml) or Approve for me.
+  approval"; switch to Approve for me.
 - **A stage reports a blocked command although it is an allowed script** → it
   was called inside a longer command (`cd … &&`, `2>&1`, a pipe). Tell the chat:
   "call project scripts alone, one per call".

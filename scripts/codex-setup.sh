@@ -131,7 +131,7 @@ fi
 echo
 echo "$ok ok · $warn notes · $bad failed"
 if [ "$bad" = 0 ]; then
-  echo "READY. In the app: new chat in this project, Local (not Worktree), permissions \"Custom (config.toml)\","
+  echo "READY. In the app: new chat in this project (not \"New worktree\"), permissions \"Approve for me\","
   echo "       trust the two project hooks when asked (Review hooks), then type:  \$loop-night"
 else echo "NOT READY — fix the FAIL lines, then run this again."; fi
 [ "$bad" = 0 ]
