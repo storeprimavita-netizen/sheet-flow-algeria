@@ -11,13 +11,15 @@
 #   scripts/review-high.sh <task id> brief                 review the brief before any code
 #   scripts/review-high.sh <task id> recheck "<findings>"  re-check only the listed findings
 #
-#   REVIEW_MODEL=opus   REVIEW_TIMEOUT=1500 (seconds)   REVIEW_WITH_CLAUDE=0 to switch it off
+#   REVIEW_MODEL=opus   REVIEW_TIMEOUT=1500 (seconds)
+#   Switch it off: REVIEW_WITH_CLAUDE=0, or an empty file .no-claude-review in the project folder
 set -uo pipefail
 cd "$(dirname "$0")/.."
 id=${1:?usage: scripts/review-high.sh <task id> [brief | recheck "<findings>"]}
 mode=${2:-diff}; extra=${3:-}
 none() { echo "[review-high] $*" >&2; echo "MODEL-USED: none"; exit 1; }
 [ "${REVIEW_WITH_CLAUDE:-1}" = "1" ] || none "switched off (REVIEW_WITH_CLAUDE=0)"
+[ -e .no-claude-review ] && none "switched off (file .no-claude-review exists)"
 command -v claude >/dev/null 2>&1 || none "claude is not installed"
 [ -f "docs/briefs/$id.md" ] || none "no brief docs/briefs/$id.md"
 case "$mode" in

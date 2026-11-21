@@ -20,10 +20,12 @@ prefix_rule(pattern = ["scripts/dev-down.sh"], decision = "allow")
 prefix_rule(pattern = ["./scripts/dev-down.sh"], decision = "allow")
 prefix_rule(pattern = ["scripts/review-high.sh"], decision = "allow", justification = "high-risk review by Claude Opus (read-only)")
 prefix_rule(pattern = ["./scripts/review-high.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/gen-types.sh"], decision = "allow", justification = "database types from the local database")
+prefix_rule(pattern = ["./scripts/gen-types.sh"], decision = "allow")
 prefix_rule(pattern = ["scripts/notify.sh"], decision = "allow")
 prefix_rule(pattern = ["./scripts/notify.sh"], decision = "allow")
 prefix_rule(
-    pattern = ["bash", ["scripts/step.sh", "scripts/push.sh", "scripts/gate.sh", "scripts/db-reset.sh", "scripts/dev-up.sh", "scripts/dev-down.sh", "scripts/review-high.sh", "scripts/notify.sh"]],
+    pattern = ["bash", ["scripts/step.sh", "scripts/push.sh", "scripts/gate.sh", "scripts/db-reset.sh", "scripts/dev-up.sh", "scripts/dev-down.sh", "scripts/review-high.sh", "scripts/gen-types.sh", "scripts/notify.sh"]],
     decision = "allow",
 )
 
@@ -33,6 +35,12 @@ prefix_rule(
     decision = "allow",
     justification = "local branch work; commits and pushes go through scripts/step.sh and scripts/push.sh",
 )
+
+# --- things that need the network or Docker (the sandbox has neither) -------------
+prefix_rule(pattern = ["npx", "-y", "modern-web-guidance@latest"], decision = "allow", justification = "web platform guides (AGENTS.md)")
+prefix_rule(pattern = ["curl", "-s", "-m", "2", "http://127.0.0.1:54321/rest/v1/"], decision = "allow", justification = "is the local database up")
+prefix_rule(pattern = ["docker", "exec", "supabase_db_mnw-erp", "psql"], decision = "allow", justification = "SQL on the LOCAL dev database (reviewers: inside a rolled-back transaction)")
+prefix_rule(pattern = ["docker", "exec", "-i", "supabase_db_mnw-erp", "psql"], decision = "allow")
 
 # --- never ------------------------------------------------------------------------
 prefix_rule(pattern = ["git", "push"], decision = "forbidden", justification = "push with scripts/step.sh (commit + push) or scripts/push.sh; never main, never forced")

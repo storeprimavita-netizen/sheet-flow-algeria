@@ -65,6 +65,7 @@ The design authority for phases 11–13 is the `cod-ui-polish` skill +
 - Apply with `npx supabase db push` (project is linked; see `supabase/.temp/`),
   or paste into the Dashboard SQL editor in file order.
 - After any migration: `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`.
+  (owner, remote project; agents use `scripts/gen-types.sh`, which reads the local database)
   Never hand-edit that file.
 
 ## Testing

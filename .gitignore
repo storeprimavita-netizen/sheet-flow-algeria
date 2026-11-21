@@ -63,3 +63,7 @@ kimi*
 /.worktrees/
 /THEME+CALCULATOR/
 /prices/
+
+# night run flag for the Codex stop hook (.codex/night-stop.py)
+/.night-run
+/.no-claude-review

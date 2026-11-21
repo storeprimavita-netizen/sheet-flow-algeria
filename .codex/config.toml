@@ -1,22 +1,26 @@
-# Codex CLI settings for this project (D96). Loaded only after you trust the
-# folder (first `codex` start here, or `codex exec --trust`).
+# Codex settings for this project (D96) — desktop app and CLI. Loaded only for
+# a trusted folder (scripts/codex-setup.sh shows whether it is, --trust sets it).
 # Guide: docs/CODEX.md      Self-check: scripts/codex-setup.sh
 #
 # No `model` line on purpose: Codex uses the model of your plan / your `/model`
 # choice. A model name the account does not have would stop every run.
 
 model_reasoning_effort = "medium"      # building; reviewers set their own below (.codex/agents/)
-approval_policy = "on-request"         # scripts/codex-night.sh overrides this with "never"
+approval_policy = "on-request"         # with the reviewer below: nothing waits for a click at night
+approvals_reviewer = "auto_review"     # a request to leave the sandbox goes to Codex's automatic reviewer, not to a prompt
+                                       # (in the app choose "Custom (config.toml)" under the message box to use these three lines)
 sandbox_mode = "workspace-write"       # edits stay inside this folder; .git, .codex and .agents are read-only
 
 developer_instructions = """
-You are Codex on the MNW project. AGENTS.md is binding. Work goes through the loop in .claude/loop.md; your entry points are the skills $loop-bootstrap, $loop-analyse, $loop-execute, $loop-verify, $loop-decide, $loop-ship and $loop-auto (one whole task).
+MNW-CODEX-SETTINGS-LOADED (check word: proves this project's .codex/ settings are active).
+
+You are Codex on the MNW project. AGENTS.md is binding. Work goes through the loop in .claude/loop.md; your entry points are the skills $loop-bootstrap, $loop-analyse, $loop-execute, $loop-verify, $loop-decide, $loop-ship, $loop-auto (one whole task) and $loop-night (task after task in this chat).
 
 Your claim name in docs/MASTER_PLAN.md is `codex` (or the `as:<name>` you were started with). Other agents work the same plan: never touch a row claimed by another name. If you were started with `nodb`, never write a migration, never run scripts/db-reset.sh, never take a row whose M column is not `–`.
 
 How commands run here:
-- Your shell is sandboxed: you cannot write .git, .codex or .agents. So `git commit` and `git push` are blocked. Commit and push ONLY with `scripts/step.sh "<id>: <what>"`; push an already committed branch (the merge in ship) ONLY with `scripts/push.sh`.
-- These run outside the sandbox, but only when called plainly, one command per call, first word exactly as written, no `cd … &&`, no pipes, no redirects (`2>&1`, `>`), no `$(…)`: scripts/step.sh, scripts/push.sh, scripts/gate.sh, scripts/db-reset.sh, scripts/dev-up.sh, scripts/dev-down.sh, scripts/review-high.sh, scripts/notify.sh, and git checkout / switch / pull / fetch / merge / stash / branch / add / rebase / restore.
+- Your shell is sandboxed: you cannot write .git, .codex or .agents, and you may have no network at all — not even to 127.0.0.1 (local database, dev server) or Docker. So `git commit` and `git push` are blocked, and tests that need the database pass only inside scripts/gate.sh. Commit and push ONLY with `scripts/step.sh "<id>: <what>"`; push an already committed branch (the merge in ship) ONLY with `scripts/push.sh`.
+- These run outside the sandbox, but only when called plainly, one command per call, first word exactly as written, no `cd … &&`, no pipes, no redirects (`2>&1`, `>`), no `$(…)`: scripts/step.sh, scripts/push.sh, scripts/gate.sh, scripts/db-reset.sh, scripts/gen-types.sh (database types after a migration — never write that file by hand, never `supabase gen types` yourself), scripts/dev-up.sh, scripts/dev-down.sh, scripts/review-high.sh, scripts/notify.sh; git checkout / switch / pull / fetch / merge / stash / branch / add / rebase / restore; `npx -y modern-web-guidance@latest …`; `curl -s -m 2 http://127.0.0.1:54321/rest/v1/`; `docker exec supabase_db_mnw-erp psql -U postgres -c "…"` (local database, SQL in -c, no heredoc).
 - Never: anything on `main`, force push, `git reset --hard`, `supabase db push|pull|link`, `npm run dev` / `next dev` (use scripts/dev-up.sh, and scripts/dev-down.sh when done), sudo. A blocked command is a rule, not an obstacle: do not look for another way to do the same thing.
 
 Reviews are never done by the agent that wrote the code: $loop-verify sends a high-risk or security review to scripts/review-high.sh (Claude Opus through Claude Code), then to the `qa-reviewer` agent when that is not available; a UI review goes to the `ui-reviewer` agent.
@@ -29,6 +33,9 @@ network_access = true                  # local Supabase (127.0.0.1:54321), npm, 
 
 [agents]
 max_concurrent_threads_per_session = 3
+
+[features]
+prevent_idle_sleep = true           # keep the Mac awake while a run is working
 
 [mcp_servers.chrome-devtools]
 command = "npx"

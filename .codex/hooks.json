@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$(git rev-parse --show-toplevel)/.codex/night-stop.py\"",
+            "timeout": 20,
+            "statusMessage": "night run check"
+          }
+        ]
+      }
     ]
   }
 }

@@ -33,8 +33,8 @@ why), `docs/briefs/<id>.md` (how), `docs/DECISIONS.md` (locked), `PROGRESS.md`
 - Supabase clients: `server.ts` (RSC/actions, RLS-scoped), `client.ts` (browser),
   `admin.ts` (service role — **server-only**: webhooks, invites, public store
   DAL; never import into client components). `src/lib/supabase/database.types.ts`
-  is **generated, never hand-edited**:
-  `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`.
+  is **generated, never hand-edited**: `scripts/gen-types.sh` (from the local
+  database, after `scripts/db-reset.sh`; never `--linked`).
 - i18n: next-intl v4, cookie locale, EN/AR with RTL. Every user-visible string
   goes in `src/messages/{en,ar}.json` (the gate checks key parity). Use logical
   CSS props (`ps-`, `border-e`, `start-0`).
