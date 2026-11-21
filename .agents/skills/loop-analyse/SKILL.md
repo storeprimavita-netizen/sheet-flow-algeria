@@ -4,6 +4,6 @@ description: Loop stage 1 on the MNW project — claim the next task in docs/MAS
 ---
 Follow the body of `.claude/commands/analyse.md` exactly, with these substitutions:
 - Ignore its frontmatter (Claude Code settings).
-- Claim the task as `claimed:antigravity` (not `claimed:claude`). Never take a task that is `claimed:` by anyone else.
+- Claim the task under YOUR name, not `claimed:claude`: the `as:<name>` you were given, else `claimed:codex` if you are Codex, `claimed:antigravity` if you are Antigravity. Never take a task that is `claimed:` by anyone else.
 - "$ARGUMENTS" is whatever followed the skill name.
 Every step is committed and pushed with `scripts/step.sh "<id>: <what>"`. No feature code in this stage.

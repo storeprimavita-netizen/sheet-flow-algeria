@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# MNW COD platform — conventions for every agent (Claude Code, Antigravity, any other)
+# MNW COD platform — conventions for every agent (Claude Code, Codex, Antigravity, any other)
 
 COD ecommerce platform for Algeria: back office (orders, confirmation, stock,
 finance, team) + native storefront + tracking. SaaS-ready single workspace.

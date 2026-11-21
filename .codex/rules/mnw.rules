@@ -1,0 +1,53 @@
+# Command rules for Codex on this project (D96). Loaded for a trusted folder.
+# "allow" = run outside the sandbox without asking (needed for anything that
+# writes .git or talks to Docker). "forbidden" = blocked. Matching is an exact
+# word-by-word prefix. Check a command:
+#   codex execpolicy check --pretty --rules .codex/rules/mnw.rules -- git push origin main
+# All checks at once: scripts/codex-setup.sh
+
+# --- the project's own scripts ------------------------------------------------
+prefix_rule(pattern = ["scripts/step.sh"], decision = "allow", justification = "commit + push one step; refuses main and secrets")
+prefix_rule(pattern = ["./scripts/step.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/push.sh"], decision = "allow", justification = "push the current v3 / v3-<id> branch, never forced")
+prefix_rule(pattern = ["./scripts/push.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/gate.sh"], decision = "allow", justification = "quality gate")
+prefix_rule(pattern = ["./scripts/gate.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/db-reset.sh"], decision = "allow", justification = "local database only (Docker)")
+prefix_rule(pattern = ["./scripts/db-reset.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/dev-up.sh"], decision = "allow", justification = "dev server with watchdog")
+prefix_rule(pattern = ["./scripts/dev-up.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/dev-down.sh"], decision = "allow")
+prefix_rule(pattern = ["./scripts/dev-down.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/review-high.sh"], decision = "allow", justification = "high-risk review by Claude Opus (read-only)")
+prefix_rule(pattern = ["./scripts/review-high.sh"], decision = "allow")
+prefix_rule(pattern = ["scripts/notify.sh"], decision = "allow")
+prefix_rule(pattern = ["./scripts/notify.sh"], decision = "allow")
+prefix_rule(
+    pattern = ["bash", ["scripts/step.sh", "scripts/push.sh", "scripts/gate.sh", "scripts/db-reset.sh", "scripts/dev-up.sh", "scripts/dev-down.sh", "scripts/review-high.sh", "scripts/notify.sh"]],
+    decision = "allow",
+)
+
+# --- git: local operations that write .git --------------------------------------
+prefix_rule(
+    pattern = ["git", ["checkout", "switch", "pull", "fetch", "merge", "stash", "branch", "add", "rebase", "restore"]],
+    decision = "allow",
+    justification = "local branch work; commits and pushes go through scripts/step.sh and scripts/push.sh",
+)
+
+# --- never ------------------------------------------------------------------------
+prefix_rule(pattern = ["git", "push"], decision = "forbidden", justification = "push with scripts/step.sh (commit + push) or scripts/push.sh; never main, never forced")
+prefix_rule(pattern = ["git", "commit"], decision = "forbidden", justification = "commit with scripts/step.sh \"<id>: <what>\" — it runs the secret scan and pushes")
+prefix_rule(pattern = ["git", "reset", "--hard"], decision = "forbidden", justification = "history and work are never thrown away; stash instead")
+prefix_rule(pattern = ["git", "checkout", "main"], decision = "forbidden", justification = "agents never work on main")
+prefix_rule(pattern = ["git", "switch", "main"], decision = "forbidden", justification = "agents never work on main")
+prefix_rule(pattern = ["git", "merge", "main"], decision = "forbidden", justification = "v3 is the integration branch")
+prefix_rule(pattern = ["supabase", ["link", "login"]], decision = "forbidden", justification = "remote database is the owner's")
+prefix_rule(pattern = ["supabase", "db", ["push", "pull"]], decision = "forbidden", justification = "remote database is the owner's")
+prefix_rule(pattern = ["npx", "supabase", ["link", "login"]], decision = "forbidden", justification = "remote database is the owner's")
+prefix_rule(pattern = ["npx", "supabase", "db", ["push", "pull"]], decision = "forbidden", justification = "remote database is the owner's")
+prefix_rule(pattern = ["npm", "run", "dev"], decision = "forbidden", justification = "start the app with scripts/dev-up.sh")
+prefix_rule(pattern = ["npx", "next", "dev"], decision = "forbidden", justification = "start the app with scripts/dev-up.sh")
+prefix_rule(pattern = ["next", "dev"], decision = "forbidden", justification = "start the app with scripts/dev-up.sh")
+prefix_rule(pattern = ["sudo"], decision = "forbidden")
+prefix_rule(pattern = ["vercel"], decision = "forbidden", justification = "production deploys are the owner's")
+prefix_rule(pattern = ["npx", "vercel"], decision = "forbidden", justification = "production deploys are the owner's")

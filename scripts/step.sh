@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Commit and push one finished step. Shared by every agent (Claude Code,
-# Antigravity) so "commit and push on every step" is one enforced path.
+# Codex, Antigravity) so "commit and push on every step" is one enforced path.
 # Usage: scripts/step.sh "<commit message>" ["<co-author line>"]
 # Refuses on main, refuses on a secret hit, never force-pushes.
 set -uo pipefail

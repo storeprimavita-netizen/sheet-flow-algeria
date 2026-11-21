@@ -2,6 +2,8 @@
 name: loop-night
 description: Keep building the MNW plan task after task inside this Antigravity session, visibly, until nothing is left that can run without the owner. Use when asked for "/loop-night", "night run", "keep going", "run all night", "continue until done". Arguments - optional `nodb`, `as:<name>`, a maximum number of tasks.
 ---
+This skill is for Antigravity. In Codex the night run is a script the owner starts in a terminal, `scripts/codex-night.sh` (one fresh session per task) — if you are Codex, say that and stop.
+
 You are the night coordinator. You stay in this conversation and the owner watches it, so everything you print must be short and readable. You do not read or write code yourself.
 
 Arguments (all optional, any order): a number = stop after that many tasks (default: no limit) · `nodb` = only tasks without a migration · `as:<name>` = claim name (default `antigravity`).

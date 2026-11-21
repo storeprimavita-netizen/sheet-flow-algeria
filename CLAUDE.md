@@ -19,7 +19,7 @@ Skills: `karpathy-guidelines` + `mnw-codebase-hygiene` before code,
 `owasp-security` for security review. `impeccable`, `ui-ux-pro-max` and
 `frontend-design` are vendored but manual-only (`/impeccable critique …`).
 Tooling notes and sources: `docs/TOOLING.md`. Antigravity setup:
-`docs/ANTIGRAVITY.md`.
+`docs/ANTIGRAVITY.md`. Codex setup: `docs/CODEX.md`.
 
 ## graphify (optional)
 

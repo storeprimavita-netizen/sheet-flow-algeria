@@ -38,7 +38,7 @@ if [ "$colors" = "0" ]; then echo "PASS  color lint"; else echo "FAIL  color lin
 
 # protected paths: a task branch may not edit its own checks or reviewers.
 # Loop-maintenance work sets GATE_ALLOW_PROTECTED=1 and says so in the brief.
-prot=$(git diff --name-only "$base" | grep -E '^(scripts/(gate|secret-scan|step)\.sh|scripts/check-i18n\.mjs|\.claude/settings\.json|\.claude/agents/|\.agents/agents/|vitest\.config\.ts)' || true)
+prot=$(git diff --name-only "$base" | grep -E '^(scripts/(gate|secret-scan|step|push|review-high)\.sh|scripts/check-i18n\.mjs|\.claude/settings\.json|\.claude/agents/|\.agents/agents/|\.codex/|vitest\.config\.ts)' || true)
 if [ -z "$prot" ] || [ "${GATE_ALLOW_PROTECTED:-}" = "1" ]; then echo "PASS  protected paths"; else echo "FAIL  protected paths changed: $(echo $prot | cut -c1-120)"; fail=1; fi
 deleted_tests=$(git diff --name-only --diff-filter=D "$base" | grep -Ec '\.test\.tsx?$' || true)
 [ "$deleted_tests" = "0" ] || { echo "FAIL  $deleted_tests test file(s) deleted — needs owner approval"; fail=1; }

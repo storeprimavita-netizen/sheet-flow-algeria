@@ -110,6 +110,7 @@ colors", the status system, or RTL logical props.
   the owner's theme), `cod-ui-polish/references/navigation-ia.md` (IA v3),
   `mnw-codebase-hygiene` (feature folders, data layer, thin actions, RLS rules).
 - **Antigravity**: `.agents/` + `docs/ANTIGRAVITY.md`.
+- **Codex**: `.codex/` + `.agents/skills/` + `docs/CODEX.md` (D96).
 
 ### modern-web-guidance (added 2026-11-17, owner request)
 

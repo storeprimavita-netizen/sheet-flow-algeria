@@ -1,10 +1,10 @@
 # MNW loop v3 — the factory (Pick → Brief → Build → Gate → Review → Ship, repeat)
 
-One loop, two agents (Claude Code and Google Antigravity), one shared state: **git**.
+One loop, several agents (Claude Code, OpenAI Codex, Google Antigravity), one shared state: **git**.
 The main session is a cheap coordinator; heavy work runs in forked subagents that
 write one file and reply in one line. A task can resume in a fresh session, on
 another machine, or in the other agent, because everything it needs is in files
-on the pushed branch. Antigravity's mirror of this file: `docs/ANTIGRAVITY.md`.
+on the pushed branch. Antigravity's mirror of this file: `docs/ANTIGRAVITY.md`; Codex's: `docs/CODEX.md`.
 
 ## Stages
 
@@ -62,7 +62,7 @@ summary. A reviewer that did not try to break it has not reviewed it.
 - Two tasks may run together only if their `lane` differs **and** at most one
   of them has a migration (column `M` in the plan). Migrations are numbered at
   build time from the latest file in `supabase/migrations/`.
-- Claude and Antigravity never work the same task; the claim on `v3` is the lock.
+- Claude, Codex and Antigravity never work the same task; the claim on `v3` is the lock.
 
 ## Questions and stops (D28)
 

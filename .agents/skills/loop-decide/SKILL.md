@@ -2,7 +2,9 @@
 name: loop-decide
 description: Loop decision step on the MNW project — when a task raises a question, either decide it and record it in docs/DECISIONS.md, or log it in docs/QUESTIONS.md for the owner and let other work continue. Use whenever a brief or review says the owner must decide, or a task would otherwise stop on a question.
 ---
-Decisions are made by the model chosen for that job (`.agents/models.conf`, role `decide`: Gemini 4 Neon first — the part Fable plays in Claude Code).
+**In Codex:** decide in this session — go straight to step 3. In the DECISIONS row write `Decided by Codex <date> for <task id> — owner may overturn.`
+
+**In Antigravity:** decisions are made by the model chosen for that job (`.agents/models.conf`, role `decide`: Gemini 4 Neon first — the part Fable plays in Claude Code).
 
 1. Run `scripts/agy-run.sh pick decide`. If it prints the model this session is already running on, decide here: go to step 3.
 2. Otherwise hand the question over:
