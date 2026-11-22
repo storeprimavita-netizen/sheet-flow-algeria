@@ -108,13 +108,15 @@ begin
 
   if p_expense_id is not null then
     select case when e.currency = v_account.currency then e.amount
-           when v_account.currency = 'DZD' and e.fx_rate > 0 then e.amount_dzd end
+           when v_account.currency = 'DZD' and e.fx_rate > 0 and e.fx_rate < 100000000
+             and e.fx_rate <> 1 then e.amount_dzd end
     into v_debit from public.expenses e
     where e.workspace_id = v_workspace and e.id = p_expense_id and e.account_id = p_account_id
     for update;
   elsif p_ad_spend_id is not null then
     select case when s.currency = v_account.currency then s.amount
-           when v_account.currency = 'DZD' and s.fx_rate > 0 then s.amount_dzd end
+           when v_account.currency = 'DZD' and s.fx_rate > 0 and s.fx_rate < 100000000
+             and s.fx_rate <> 1 then s.amount_dzd end
     into v_debit from public.ad_spend_daily s
     where s.workspace_id = v_workspace and s.id = p_ad_spend_id and s.account_id = p_account_id
     for update;
@@ -225,8 +227,10 @@ begin
 
   select * into v_original from public.account_entries
   where workspace_id = v_workspace and id = p_entry_id;
-  if not found or v_original.reverses_entry_id is not null or v_original.legacy_mapping_id is not null then
-    raise exception 'Only original manual entries can be reversed here' using errcode = '22023';
+  if not found or v_original.reverses_entry_id is not null or v_original.legacy_mapping_id is not null
+    or v_original.expense_id is not null or v_original.ad_spend_id is not null then
+    raise exception 'Only original entries without a linked debit or legacy mapping can be reversed here'
+      using errcode = '22023';
   end if;
   perform private.ledger_account(v_workspace, v_original.account_id);
   if v_original.transfer_id is not null then

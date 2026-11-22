@@ -32,7 +32,7 @@ with proposed as (
       when s.currency::text = case when a.proposed_kind = 'usdt' then 'USDT' else 'DZD' end then abs(s.amount)
       when s.amount = 0 and (s.source_type not in ('expense', 'ad_spend') or s.amount_dzd = 0) then 0
       when s.source_type in ('expense', 'ad_spend') and a.proposed_kind in ('dzd', 'zr')
-        and s.fx_rate > 0 and s.fx_rate < 100000000
+        and s.fx_rate > 0 and s.fx_rate < 100000000 and s.fx_rate <> 1
         and s.amount_dzd >= 0 and s.amount_dzd < 100000000000000 then s.amount_dzd
     end as proposed_amount,
     (a.workspace_id <> s.workspace_id) as invalid_workspace_link

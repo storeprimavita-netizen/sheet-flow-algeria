@@ -61,15 +61,20 @@ begin
 
   insert into public.option_sets (workspace_id, key, label)
   values (p_workspace, 'money_category', 'Money category')
-  on conflict (workspace_id, key) do nothing
-  returning id into v_set;
+  on conflict (workspace_id, key) do nothing;
 
-  if found then
-    insert into public.options (workspace_id, set_id, label, sort_order)
-    select p_workspace, v_set, label, sort_order::integer
-    from unnest(array['Stock purchase','Ads top-up','Salary','Courier payout',
-      'Owner withdrawal','Transfer','Other']) with ordinality as seeded(label, sort_order);
-  end if;
+  select id into v_set from public.option_sets
+  where workspace_id = p_workspace and key = 'money_category';
+
+  insert into public.options (workspace_id, set_id, label, sort_order)
+  select p_workspace, v_set, seeded.label, seeded.sort_order::integer
+  from unnest(array['Stock purchase','Ads top-up','Salary','Courier payout',
+    'Owner withdrawal','Transfer','Other']) with ordinality as seeded(label, sort_order)
+  where not exists (
+    select 1 from public.options o
+    where o.workspace_id = p_workspace and o.set_id = v_set
+      and lower(btrim(o.label)) = lower(seeded.label)
+  );
 end;
 $$;
 

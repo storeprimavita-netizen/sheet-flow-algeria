@@ -2,11 +2,6 @@
 alter table public.exchange_rates add constraint exchange_rates_usdt_finite_check
   check (currency <> 'USDT' or rate_dzd < 100000000);
 
-alter table public.account_legacy_mappings add column previous_mapping_id uuid,
-  add foreign key (workspace_id, previous_mapping_id) references public.account_legacy_mappings(workspace_id, id);
-create unique index account_legacy_mappings_previous_idx
-  on public.account_legacy_mappings (workspace_id, previous_mapping_id) where previous_mapping_id is not null;
-
 create function private.default_legacy_account_kind(p_name text, p_currency public.currency_code)
 returns text language sql immutable set search_path = '' as $$
   select case when num_nonnulls(zr, dzd, usdt) = 1 then coalesce(zr, dzd, usdt) end
@@ -66,7 +61,7 @@ returns jsonb language sql stable set search_path = '' as $$
           when s.currency = p_destination_currency then abs(s.amount)
           when s.amount = 0 and (s.source_type not in ('expense', 'ad_spend') or s.amount_dzd = 0) then 0
           when s.source_type in ('expense', 'ad_spend') and p_destination_currency = 'DZD'
-            and s.fx_rate > 0 and s.fx_rate < 100000000
+            and s.fx_rate > 0 and s.fx_rate < 100000000 and s.fx_rate <> 1
             and s.amount_dzd >= 0 and s.amount_dzd < 100000000000000 then s.amount_dzd
         end
       end as exact_amount

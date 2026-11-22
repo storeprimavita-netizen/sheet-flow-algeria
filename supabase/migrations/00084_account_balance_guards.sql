@@ -1,3 +1,9 @@
+-- Keep an audited chain of replacements for previously posted accounts.
+alter table public.account_legacy_mappings add column previous_mapping_id uuid,
+  add foreign key (workspace_id, previous_mapping_id) references public.account_legacy_mappings(workspace_id, id);
+create unique index account_legacy_mappings_previous_idx
+  on public.account_legacy_mappings (workspace_id, previous_mapping_id) where previous_mapping_id is not null;
+
 -- Keep historical mismatches readable while checking all new account links.
 -- The original simple FKs remain for their ON DELETE SET NULL behavior.
 alter table public.expenses add constraint expenses_workspace_account_fkey
@@ -30,11 +36,20 @@ begin
         where workspace_id = old.workspace_id and ad_spend_id = old.id) into v_linked;
     end if;
 
-    -- Guarded migration and remapping code runs as the owner. This exception
-    -- permits only the account-link change for a recorded debit.
+    -- A validated mapping records the exact source and destination before
+    -- repointing a posted or zero debit.
     v_remap := (v_linked or new.amount = 0) and current_user = 'postgres' and new.account_id is not null
       and row(new.workspace_id, new.amount, new.currency, new.fx_rate, new.spent_on)
-          is not distinct from row(old.workspace_id, old.amount, old.currency, old.fx_rate, old.spent_on);
+          is not distinct from row(old.workspace_id, old.amount, old.currency, old.fx_rate, old.spent_on)
+      and exists (
+        select 1 from public.account_legacy_mappings m
+        left join public.account_legacy_mappings previous
+          on previous.workspace_id = m.workspace_id and previous.id = m.previous_mapping_id
+        where m.workspace_id = new.workspace_id and m.destination_id = new.account_id and m.superseded_at is null
+          and coalesce(previous.destination_id, m.legacy_account_id) = old.account_id
+          and m.evidence @> jsonb_build_array(jsonb_build_object('source_id', old.id, 'source_type',
+            case when tg_table_name = 'expenses' then 'expense' else 'ad_spend' end))
+      );
     if v_linked and not v_remap then
       raise exception 'A recorded ledger debit must be corrected through the ledger' using errcode = '23514';
     end if;
@@ -51,7 +66,8 @@ begin
     raise exception 'Account is unavailable in this workspace' using errcode = '23503';
   end if;
   if not (new.currency = v_account.currency or v_remap
-    or (v_account.kind is not null and v_account.currency = 'DZD' and new.fx_rate > 0 and new.fx_rate < 100000000)) then
+    or (v_account.kind is not null and v_account.currency = 'DZD'
+      and new.fx_rate > 0 and new.fx_rate < 100000000 and new.fx_rate <> 1)) then
     raise exception 'The debit currency does not match the selected account' using errcode = '23514';
   end if;
   if not (new.amount >= 0 and new.amount < 100000000000000) then
@@ -86,14 +102,18 @@ select
         from public.account_entries l where l.account_id = a.id and l.workspace_id = a.workspace_id
       ), 0)
     - coalesce((
-        select sum(case when a.kind is null or e.currency = a.currency then e.amount else e.amount_dzd end)
+        select sum(case when a.kind is null or e.currency = a.currency then e.amount
+          when a.currency = 'DZD' and e.fx_rate > 0 and e.fx_rate < 100000000
+            and e.fx_rate <> 1 then e.amount_dzd end)
         from public.expenses e
         where e.account_id = a.id and e.workspace_id = a.workspace_id
           and not exists (select 1 from public.account_entries l
             where l.workspace_id = a.workspace_id and l.expense_id = e.id)
       ), 0)
     - coalesce((
-        select sum(case when a.kind is null or s.currency = a.currency then s.amount else s.amount_dzd end)
+        select sum(case when a.kind is null or s.currency = a.currency then s.amount
+          when a.currency = 'DZD' and s.fx_rate > 0 and s.fx_rate < 100000000
+            and s.fx_rate <> 1 then s.amount_dzd end)
         from public.ad_spend_daily s
         where s.account_id = a.id and s.workspace_id = a.workspace_id
           and not exists (select 1 from public.account_entries l
@@ -102,5 +122,5 @@ select
   as balance
 from public.accounts a
 where not a.legacy_posted;
-revoke all on public.account_balances from public, anon;
+revoke all on public.account_balances from public, anon, authenticated;
 grant select on public.account_balances to authenticated;

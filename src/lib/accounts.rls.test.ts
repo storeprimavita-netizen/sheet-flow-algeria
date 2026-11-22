@@ -114,6 +114,7 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
     expect((await admin.from("accounts").delete().eq("id", id)).error?.code).toBe("42501");
     expect((await admin.from("accounts").update({ opening_balance: 1 }).eq("id", id)).error?.code).toBe("42501");
     expect((await admin.from("accounts").update({ currency: "USD" }).eq("id", id)).error?.code).toBe("42501");
+    expect((await admin.from("account_balances").delete().eq("account_id", id)).error?.code).toBe("42501");
     expect((await admin.from("account_topups").insert({ workspace_id: workspace, account_id: id, amount: 10 })).error?.code).toBe("42501");
     expect((await admin.from("accounts").update({ low_balance_threshold: 25 }).eq("id", id)).error).toBeNull();
 
@@ -229,6 +230,7 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
     const expense = { workspace_id: workspace, amount: 8, currency: "USD" as const, fx_rate: 200,
       spent_on: day, category: "other" as const };
     expect((await admin.from("expenses").insert({ ...expense, account_id: usdt })).error?.code).toBe("23514");
+    expect((await admin.from("expenses").insert({ ...expense, account_id: dzd, fx_rate: 1 })).error?.code).toBe("23514");
     const created = await admin.from("expenses").insert({ ...expense, account_id: dzd }).select("id").single();
     expect(created.error).toBeNull();
     expect(await balance(admin, dzd)).toBe(start - 1600);
@@ -236,12 +238,55 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
     const args = { p_account_id: dzd, p_amount: 1600, p_direction: "out", p_occurred_on: day,
       p_expense_id: created.data!.id };
     expect((await admin.rpc("append_account_entry", { ...args, p_amount: 8 })).error).not.toBeNull();
-    expect((await admin.rpc("append_account_entry", args)).error).toBeNull();
+    const entry = await admin.rpc("append_account_entry", args);
+    expect(entry.error).toBeNull();
     expect((await admin.rpc("append_account_entry", args)).error?.code).toBe("23505");
+    expect((await admin.rpc("reverse_account_entry", {
+      p_entry_id: entry.data!, p_occurred_on: day, p_request_key: crypto.randomUUID(),
+    })).error?.code).toBe("22023");
     expect(await balance(admin, dzd)).toBe(start - 1600);
     expect((await admin.from("expenses").update({ amount: 9 }).eq("id", created.data!.id)).error?.code).toBe("23514");
     expect((await admin.from("expenses").delete().eq("id", created.data!.id)).error?.code).toBe("23503");
     expect((await admin.from("expenses").update({ note: "Receipt kept" }).eq("id", created.data!.id)).error).toBeNull();
+  });
+
+  test("implicit foreign rates keep legacy debits pending until the admin records evidence", async () => {
+    const pendingWorkspace = await makeWorkspace();
+    const pending = (await member(pendingWorkspace, "admin")).session;
+    const legacy = await service.from("accounts").insert({
+      workspace_id: pendingWorkspace, name: "Courier", currency: "USD",
+    }).select("id").single();
+    expect(legacy.error).toBeNull();
+    const legacyId = legacy.data!.id;
+    const expense = await pending.from("expenses").insert({
+      workspace_id: pendingWorkspace, account_id: legacyId, amount: 8, currency: "USD",
+      spent_on: day, category: "other",
+    }).select("id").single();
+    expect(expense.error).toBeNull();
+    const expenseId = expense.data!.id;
+    const sourceKey = `expense:${expenseId}`;
+    const legacyPreview = (await preview(pending)).find((row) => row.account_id === legacyId)!;
+    expect(legacyPreview).toMatchObject({ proposed_kind: "zr", balance: -8 });
+    expect(legacyPreview.sources.find((row) => row.source_key === sourceKey)?.target_amount).toBeNull();
+
+    const preflight = readFileSync("scripts/money-legacy-preflight.sql", "utf8");
+    const query = preflight.slice(preflight.indexOf("with proposed"), preflight.lastIndexOf("rollback;")).trim().replace(/;$/, "");
+    expect(psql(`select status from (${query}) as preview where source_id = '${expenseId}';`))
+      .toBe("source or conversion needs review");
+    expect(psql(`select cardinality(private.post_legacy_workspace('${pendingWorkspace}', '{}', true));`)).toBe("0");
+    expect((await pending.rpc("post_legacy_accounts")).error).not.toBeNull();
+    expect(await balance(pending, legacyId)).toBe(-8);
+
+    const posted = await pending.rpc("post_legacy_accounts", {
+      p_mappings: { [legacyId]: { conversions: {
+        [sourceKey]: { amount: 1600, evidence: "Original bank receipt" },
+      } } },
+    });
+    expect(posted.error).toBeNull();
+    const zr = await account(pending, "zr");
+    expect(await balance(pending, zr)).toBe(-1600);
+    expect((await pending.from("expenses").select("amount,currency,fx_rate,account_id").eq("id", expenseId).single()).data)
+      .toEqual({ amount: 8, currency: "USD", fx_rate: 1, account_id: zr });
   });
 
   test("legacy preview, atomic posting and remapping preserve sources, balances and P&L", async () => {
@@ -280,6 +325,9 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
       spent_on: day, amount: 15, currency: "DZD" as const };
     expect((await exact.from("ad_spend_daily").insert({
       ...adRow, account_id: await account(exact, "usdt"),
+    })).error?.code).toBe("23514");
+    expect((await exact.from("ad_spend_daily").insert({
+      ...adRow, currency: "EUR", account_id: await account(exact, "zr"),
     })).error?.code).toBe("23514");
     const adSpend = await exact.from("ad_spend_daily").insert({ ...adRow, account_id: cashId }).select("id").single();
     expect(adSpend.error).toBeNull();
@@ -343,5 +391,16 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
     expect(evidence.data?.previous_mapping_id).toBe(previous);
     expect((evidence.data?.evidence as unknown as Preview["sources"]).find((row) => row.source_key === `opening:${cryptoId}`)?.amount)
       .toBe(50);
+
+    const remappedAgain = await review.rpc("remap_legacy_account", {
+      p_legacy_account_id: cryptoId, p_expected_mapping_id: remapped.data!, p_kind: "zr",
+      p_conversions: { [`opening:${cryptoId}`]: { amount: 10000, evidence: "Bank statement" } },
+    });
+    expect(remappedAgain.error).toBeNull();
+    expect(await balance(review, usdt)).toBe(0);
+    expect(await balance(review, await account(review, "dzd"))).toBe(0);
+    expect(await balance(review, await account(review, "zr"))).toBe(8020);
+    expect((await review.from("account_legacy_mappings").select("previous_mapping_id")
+      .eq("id", remappedAgain.data!).single()).data?.previous_mapping_id).toBe(remapped.data);
   });
 });

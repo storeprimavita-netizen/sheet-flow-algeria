@@ -1010,3 +1010,7 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Three system accounts, append-only movements, atomic transfers and reversals, and live debit currency guards. The D97 preview, posting and remap operations are available for MONEY-2.
 - Local migration replay from the old schema posted DZD 100 from an opening amount, top-up, a USD debit with stored DZD equivalent, and ad spend. The USD Binance balance of 40 and courier balance of 20 stayed active in a separate workspace with unresolved conversions.
 - The existing Accounts screen still formats account amounts as whole dinars. MONEY-2 owns currency-specific display, mapping controls and stable client keys for manual submissions.
+
+### MONEY-1 review fixes
+- Foreign debits at the implicit rate of 1 stay pending until conversion is documented. Live dinar debit links require a usable stored equivalent. Linked debits stay posted when a generic reversal is refused.
+- Regression tests cover missing rates on both debit tables, legacy preflight and explicit posting, linked debit reversal, sequential remaps and read-only balance view grants.
