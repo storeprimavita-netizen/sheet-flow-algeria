@@ -1415,6 +1415,9 @@
     "emptyKey": "(مفتاح فارغ)",
     "tables": {
       "account_topups": "شحن الحسابات",
+      "account_entries": "قيود الحسابات",
+      "account_entry_requests": "طلبات قيود الحسابات",
+      "account_legacy_mappings": "ترحيل الحسابات السابقة",
       "accounts": "الحسابات",
       "cash_collections": "التحصيلات النقدية",
       "exchange_rates": "أسعار الصرف",

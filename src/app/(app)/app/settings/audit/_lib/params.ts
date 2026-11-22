@@ -11,6 +11,9 @@ const DATE = z
 /** Every table with an `audit_row()` trigger (checked against the local DB in params.rls.test.ts). */
 export const AUDITED_TABLES = [
   "account_topups",
+  "account_entries",
+  "account_entry_requests",
+  "account_legacy_mappings",
   "accounts",
   "cash_collections",
   "exchange_rates",

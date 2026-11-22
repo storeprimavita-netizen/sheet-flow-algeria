@@ -1415,6 +1415,9 @@
     "emptyKey": "(empty key)",
     "tables": {
       "account_topups": "Account top-ups",
+      "account_entries": "Account entries",
+      "account_entry_requests": "Account entry requests",
+      "account_legacy_mappings": "Legacy account mappings",
       "accounts": "Accounts",
       "cash_collections": "Cash collections",
       "exchange_rates": "Exchange rates",

@@ -23,7 +23,139 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "account_topups": {
+            "account_entries": {
+                  Row: {
+                    "account_id": string,"ad_spend_id": string | null,"amount": number,"category_id": string | null,"contact_id": string | null,"created_at": string,"created_by": string | null,"direction": string,"expense_id": string | null,"fx_rate": number | null,"id": string,"legacy_mapping_id": string | null,"note": string | null,"occurred_on": string,"reverses_entry_id": string | null,"transfer_id": string | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_id": string,"ad_spend_id"?: string | null,"amount": number,"category_id"?: string | null,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"direction": string,"expense_id"?: string | null,"fx_rate"?: number | null,"id"?: string,"legacy_mapping_id"?: string | null,"note"?: string | null,"occurred_on": string,"reverses_entry_id"?: string | null,"transfer_id"?: string | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "account_id"?: string,"ad_spend_id"?: string | null,"amount"?: number,"category_id"?: string | null,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"direction"?: string,"expense_id"?: string | null,"fx_rate"?: number | null,"id"?: string,"legacy_mapping_id"?: string | null,"note"?: string | null,"occurred_on"?: string,"reverses_entry_id"?: string | null,"transfer_id"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "account_entries_workspace_id_account_id_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "account_balances"
+      referencedColumns: ["workspace_id","account_id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_account_id_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_ad_spend_id_fkey"
+      columns: ["workspace_id","ad_spend_id"]
+isOneToOne: true
+      referencedRelation: "ad_spend_daily"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_category_id_fkey"
+      columns: ["workspace_id","category_id"]
+isOneToOne: false
+      referencedRelation: "options"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_contact_id_fkey"
+      columns: ["workspace_id","contact_id"]
+isOneToOne: false
+      referencedRelation: "contacts"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_expense_id_fkey"
+      columns: ["workspace_id","expense_id"]
+isOneToOne: true
+      referencedRelation: "expenses"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_legacy_mapping_id_fkey"
+      columns: ["workspace_id","legacy_mapping_id"]
+isOneToOne: false
+      referencedRelation: "account_legacy_mappings"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_entries_workspace_id_reverses_entry_id_fkey"
+      columns: ["workspace_id","reverses_entry_id"]
+isOneToOne: true
+      referencedRelation: "account_entries"
+      referencedColumns: ["workspace_id","id"]
+    }
+                  ]
+                },"account_entry_requests": {
+                  Row: {
+                    "created_at": string,"id": string,"input": NonNullable<Json>,"request_key": string,"result": string,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"input": NonNullable<Json>,"request_key": string,"result": string,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"input"?: NonNullable<Json>,"request_key"?: string,"result"?: string,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "account_entry_requests_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"account_legacy_mappings": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"destination_id": string,"evidence": NonNullable<Json>,"id": string,"legacy_account_id": string,"superseded_at": string | null,"updated_at": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"destination_id": string,"evidence": NonNullable<Json>,"id"?: string,"legacy_account_id": string,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"destination_id"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"legacy_account_id"?: string,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "account_legacy_mappings_workspace_id_destination_id_fkey"
+      columns: ["workspace_id","destination_id"]
+isOneToOne: false
+      referencedRelation: "account_balances"
+      referencedColumns: ["workspace_id","account_id"]
+    },{
+      foreignKeyName: "account_legacy_mappings_workspace_id_destination_id_fkey"
+      columns: ["workspace_id","destination_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_legacy_mappings_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "account_legacy_mappings_workspace_id_legacy_account_id_fkey"
+      columns: ["workspace_id","legacy_account_id"]
+isOneToOne: false
+      referencedRelation: "account_balances"
+      referencedColumns: ["workspace_id","account_id"]
+    },{
+      foreignKeyName: "account_legacy_mappings_workspace_id_legacy_account_id_fkey"
+      columns: ["workspace_id","legacy_account_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
+    }
+                  ]
+                },"account_topups": {
                   Row: {
                     "account_id": string,"amount": number,"created_at": string,"created_by": string | null,"id": string,"note": string | null,"occurred_on": string,"workspace_id": string
                   }
@@ -57,14 +189,14 @@ isOneToOne: false
                   ]
                 },"accounts": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"currency": Database["public"]['Enums']["currency_code"],"id": string,"is_active": boolean,"low_balance_threshold": number,"name": string,"opening_balance": number,"updated_at": string,"workspace_id": string
+                    "created_at": string,"created_by": string | null,"currency": Database["public"]['Enums']["currency_code"],"id": string,"is_active": boolean,"kind": string | null,"legacy_posted": boolean,"low_balance_threshold": number,"name": string,"opening_balance": number,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"currency"?: Database["public"]['Enums']["currency_code"],"id"?: string,"is_active"?: boolean,"low_balance_threshold"?: number,"name": string,"opening_balance"?: number,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"created_by"?: string | null,"currency"?: Database["public"]['Enums']["currency_code"],"id"?: string,"is_active"?: boolean,"kind"?: string | null,"legacy_posted"?: boolean,"low_balance_threshold"?: number,"name": string,"opening_balance"?: number,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"currency"?: Database["public"]['Enums']["currency_code"],"id"?: string,"is_active"?: boolean,"low_balance_threshold"?: number,"name"?: string,"opening_balance"?: number,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"created_by"?: string | null,"currency"?: Database["public"]['Enums']["currency_code"],"id"?: string,"is_active"?: boolean,"kind"?: string | null,"legacy_posted"?: boolean,"low_balance_threshold"?: number,"name"?: string,"opening_balance"?: number,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -2015,7 +2147,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped"|"order_shipped"|"stock_count","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
+            "ad_kind": "test"|"scaling","app_role": "admin"|"confirmation_agent"|"delivery_agent","cash_status": "collected"|"deposited","confirmation_status": "wait_for_confirmation"|"no_answer"|"closed_phone"|"cancelled"|"confirmed","currency_code": "DZD"|"USD"|"EUR"|"USDT","delivery_fee_source": "payload"|"wilaya_table"|"manual","delivery_status": "wait_for_deposit"|"bureau_deposited"|"in_transit"|"out_for_delivery"|"stop_desk_waiting"|"delivered"|"cancelled"|"delayed"|"returning"|"returned"|"exchange"|"swap","delivery_type": "home"|"stopdesk","expense_category": "shooting"|"packaging"|"sampling"|"confirmation"|"delivery"|"test_ads"|"scaling_ads"|"other","integration_provider": "shopify"|"lightfunnels"|"zrexpress","meeting_status": "planned"|"held"|"cancelled","order_source": "shopify"|"lightfunnels"|"manual","product_status": "to_be_tested"|"tested"|"confirmed"|"cancelled","stock_reason": "purchase"|"correction"|"delivered"|"returned"|"order_confirmed"|"order_reverted"|"order_returned"|"order_stock_sync"|"order_swapped"|"order_shipped"|"stock_count","supplier_type": "shooting_studio"|"atelier_couture"|"emballage"|"other","task_priority": "low"|"medium"|"high","task_status": "todo"|"doing"|"blocked"|"done"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2135,7 +2267,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped", "order_shipped", "stock_count"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
+            "ad_kind": ["test", "scaling"],"app_role": ["admin", "confirmation_agent", "delivery_agent"],"cash_status": ["collected", "deposited"],"confirmation_status": ["wait_for_confirmation", "no_answer", "closed_phone", "cancelled", "confirmed"],"currency_code": ["DZD", "USD", "EUR", "USDT"],"delivery_fee_source": ["payload", "wilaya_table", "manual"],"delivery_status": ["wait_for_deposit", "bureau_deposited", "in_transit", "out_for_delivery", "stop_desk_waiting", "delivered", "cancelled", "delayed", "returning", "returned", "exchange", "swap"],"delivery_type": ["home", "stopdesk"],"expense_category": ["shooting", "packaging", "sampling", "confirmation", "delivery", "test_ads", "scaling_ads", "other"],"integration_provider": ["shopify", "lightfunnels", "zrexpress"],"meeting_status": ["planned", "held", "cancelled"],"order_source": ["shopify", "lightfunnels", "manual"],"product_status": ["to_be_tested", "tested", "confirmed", "cancelled"],"stock_reason": ["purchase", "correction", "delivered", "returned", "order_confirmed", "order_reverted", "order_returned", "order_stock_sync", "order_swapped", "order_shipped", "stock_count"],"supplier_type": ["shooting_studio", "atelier_couture", "emballage", "other"],"task_priority": ["low", "medium", "high"],"task_status": ["todo", "doing", "blocked", "done"]
           }
         }
 } as const

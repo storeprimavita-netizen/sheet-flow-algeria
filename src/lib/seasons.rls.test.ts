@@ -266,8 +266,10 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
   test("the 00061 backfill seeds only the six seasons on an existing workspace", async () => {
     const w3 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id as string;
     try {
-      // a workspace with one option set but no product_category and no settings: the old backfill aborted here
+      // A workspace with option sets but no product_category and no settings: the old backfill aborted here.
       expect((await svc.from("option_sets").insert({ workspace_id: w3, key: "order_tag", label: "Tags", allows_multi: true })).error).toBeNull();
+      const optionSets = await svc.from("option_sets").select("key").eq("workspace_id", w3).order("key");
+      expect(optionSets.error).toBeNull();
       const sql = readFileSync("supabase/migrations/00061_seasons.sql", "utf8");
       const start = sql.indexOf("insert into public.seasons (workspace_id, name, name_key, sort)\nselect w.id");
       // scoped to w3 only: the raw statement would otherwise seed every workspace, including ones other suites are deleting
@@ -278,7 +280,7 @@ describe.skipIf(!URL)("seasons + kpi filters (live DB, 00061)", () => {
       expect((await svc.from("seasons").select("id").eq("workspace_id", w3)).data!.length).toBe(6);
       expect((await svc.from("settings").select("key").eq("workspace_id", w3)).data).toEqual([]);
       expect((await svc.from("wilaya_fees").select("wilaya_code").eq("workspace_id", w3)).data).toEqual([]);
-      expect((await svc.from("option_sets").select("key").eq("workspace_id", w3)).data!.length).toBe(1);
+      expect((await svc.from("option_sets").select("key").eq("workspace_id", w3).order("key")).data).toEqual(optionSets.data);
     } finally {
       await svc.from("seasons").delete().eq("workspace_id", w3);
       await svc.from("option_sets").delete().eq("workspace_id", w3);
