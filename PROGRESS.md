@@ -1035,3 +1035,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Decisions — D97 records legacy ledger preview and remapping. D98 defines agent scores using visible history and default weights.
 - Owner inputs — C-1 holds Yalidine and carrier extraction; P3 OAuth requires owner Google Cloud setup. Deployment and other inputs remain in `docs/MASTER_PLAN.md`.
 - Next — Restore the MNW preview, resume independent browser review of VAR-1-B, and pick STORE-4 among eligible feature rows. P1-6 also needs browser verification.
+
+### Run report (Codex night resume, 2026-11-22)
+- Shipped — none. VAR-1-B synced with current `v3` and pushed at `a9e283e`. Full gate passed with 1,377 tests and live RLS.
+- Parked — VAR-1-B. The port fix starts MNW on 3001 and returns HTTP 200 for `/login`, but the listener disappears when the launch call exits. Builder screenshots and independent browser review still need a persistent preview.
+- Decisions — none. Q-30 and the owner inputs in `docs/MASTER_PLAN.md` remain open.
+- Next — Start the local preview from Terminal with `scripts/dev-up.sh`. Resume VAR-1-B browser checks on the printed address, then pick STORE-4.
