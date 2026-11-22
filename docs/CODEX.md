@@ -55,8 +55,14 @@ own agent thread; you can open one in the app to watch it.
 - **Stop it:** press stop in the chat, then type `stop the night run` (it
   deletes the file `.night-run`, which is what keeps the run going). Every
   finished step is already pushed.
-- **It stopped by itself** (usage limit, app closed): type `$loop-night` again.
-  It continues from the plan.
+- **It stopped by itself** (usage limit, app closed): type `$loop-night` again
+  (or `continue`). It continues from the plan.
+- **A night that continues by itself after the usage limit:** a chat cannot
+  wake itself up when the limit resets — nothing runs while it is blocked. Start
+  the run from Terminal instead: `scripts/codex-night.sh`. It reads the time
+  Codex gives ("try again at 5:42 PM"), waits until then and goes on, task after
+  task, as long as that Terminal window stays open. One or the other in this
+  folder, never both: when you start it, do not continue the chat run.
 - **One task only, to try:** `$loop-auto` or `$loop-auto STORE-4`.
 - **Where things stand:** `$loop-bootstrap`.
 
@@ -123,7 +129,7 @@ them or anything under `.codex/`, but that is a check after the fact.
 | `scripts/codex-setup.sh` | readiness check; `--trust` marks the folder trusted |
 | `scripts/review-high.sh` | high-risk review by Claude Opus |
 | `scripts/push.sh`, `scripts/gen-types.sh` | push the current `v3` branch · database types from the local database |
-| `scripts/codex-night.sh` | the same night run from Terminal with the Codex CLI (one fresh session per task) — untested |
+| `scripts/codex-night.sh` | the same night run from Terminal with the Codex CLI (one fresh session per task); waits for the usage limit to reset and continues by itself — no whole task run with it yet |
 
 ## 6. If something does not work
 
@@ -133,6 +139,9 @@ them or anything under `.codex/`, but that is a check after the fact.
 - **The chat stops after one task and nothing continues** → the "night run
   check" hook is not trusted (Review hooks). Until it is, type
   `/goal run $loop-night until it prints NIGHT RUN ended`.
+- **`NOTE  port 3000 is used by another program`** → another project of yours
+  is running on that port. Nothing to do: the MNW app started on the next free
+  port and the run uses the address on the `UP app` line.
 - **It waits for you to approve a command** → permissions are on "Ask for
   approval"; switch to Approve for me.
 - **A stage reports a blocked command although it is an allowed script** → it

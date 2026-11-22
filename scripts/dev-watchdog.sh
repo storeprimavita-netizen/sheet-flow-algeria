@@ -10,10 +10,11 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 port=${1:-3000}
+. scripts/dev-lib.sh
 log="${TMPDIR:-/tmp}"; log="${log%/}/mnw-dev-watchdog-$port.log"
 say() { echo "$(date '+%F %H:%M') $*" >> "$log"; }
 stop() { # reason, clear-cache?
-  local pids; pids=$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
+  local pids=""; mine "$port" && pids=$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)   # never another program's port
   [ -n "$pids" ] && { kill $pids 2>/dev/null; sleep 3; kill -9 $pids 2>/dev/null || true; }
   [ "${2:-}" = "clear" ] && rm -rf .next
   say "STOPPED dev server on :$port — $1"
@@ -23,8 +24,8 @@ hot=0; idle=0; tick=0
 say "watching :$port"
 while :; do
   sleep 60; tick=$((tick+1))
-  pid=$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | head -1)
-  [ -n "$pid" ] || { say "server gone — watchdog exits"; exit 0; }
+  pid=$(listener "$port")
+  { [ -n "$pid" ] && mine "$port"; } || { say "server gone — watchdog exits"; exit 0; }
   cpu=$(ps -o %cpu= -p "$pid" 2>/dev/null | awk '{printf "%d", $1}'); cpu=${cpu:-0}
   conns=$(lsof -nP -iTCP:"$port" 2>/dev/null | grep -c ESTABLISHED || true)
   if [ "$conns" -eq 0 ]; then idle=$((idle+1)); else idle=0; fi

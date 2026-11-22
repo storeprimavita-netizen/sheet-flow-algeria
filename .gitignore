@@ -66,4 +66,6 @@ kimi*
 
 # night run flag for the Codex stop hook (.codex/night-stop.py)
 /.night-run
+# port the dev server of this folder runs on (scripts/dev-up.sh)
+/.dev-port
 /.no-claude-review
