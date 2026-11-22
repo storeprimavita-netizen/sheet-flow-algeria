@@ -1014,3 +1014,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 ### MONEY-1 review fixes
 - Foreign debits at the implicit rate of 1 stay pending until conversion is documented. Live dinar debit links require a usable stored equivalent. Linked debits stay posted when a generic reversal is refused.
 - Regression tests cover missing rates on both debit tables, legacy preflight and explicit posting, linked debit reversal, sequential remaps and read-only balance view grants.
+
+### MONEY-1 ship
+- Done — ZR, DZD and USDT ledger with audited transfers, reversals and deferred legacy conversion (migrations 00080–00085).
+- Verify — Full gate passed with 1,371 tests and live RLS. Independent review 2 passed.
+- Evidence — `docs/briefs/MONEY-1.review-2.md`, legacy replay above and D97.
+- Owner — Run the read-only legacy preflight before applying these migrations in production. Resolve any conversion exceptions with source evidence.
+- Next — MONEY-2 provides the mapping controls and currency-specific display.
