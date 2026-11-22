@@ -12,9 +12,10 @@
 #   CODEX_TASK_MINUTES=120    time limit per task
 #   CODEX_FLAGS="…"           extra flags passed to `codex exec`
 #
-# NOT TESTED when written (2026-11-21): Codex was not installed on this Mac.
-# Flags come from the Codex docs read that day. Before the first night run:
-# scripts/codex-setup.sh, then one task by hand (`codex`, then `$loop-auto`).
+# Works with the Codex program inside the ChatGPT app — no separate install.
+# Checked 2026-11-22 against Codex 0.171: the flags exist, the account answers,
+# the project settings and rules load. No whole task has been run with it yet.
+# Before the first night run: scripts/codex-setup.sh must end with READY.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 name=${1:-codex}; filter=${2:-}; max=${3:-0}
@@ -22,8 +23,9 @@ case "$filter" in ""|nodb) ;; *) echo "usage: scripts/codex-night.sh [name] [nod
 logdir="$HOME/Library/Logs"; mkdir -p "$logdir"
 say() { echo "$(date '+%H:%M') ── [$name] $*"; }
 
-command -v codex >/dev/null 2>&1 || { say "codex is not installed — see docs/CODEX.md"; exit 1; }
-codex login status >/dev/null 2>&1 || { say "not signed in — run: codex login"; exit 1; }
+app_cli="/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"   # the Codex program inside the ChatGPT app
+if command -v codex >/dev/null 2>&1; then cx=codex; elif [ -x "$app_cli" ]; then cx="$app_cli"; else say "Codex not found — install the ChatGPT desktop app, see docs/CODEX.md"; exit 1; fi
+"$cx" login status >/dev/null 2>&1 || { say "not signed in — sign in inside the ChatGPT app (or: codex login)"; exit 1; }
 [ -d node_modules ] || { say "node_modules missing — run: npm ci"; exit 1; }
 caffeinate -ims -w $$ &
 [ "$filter" = "nodb" ] && export GATE_SKIP_LIVE=1
@@ -48,7 +50,7 @@ while :; do
   # approval "never": nobody is there to answer; what the rules do not allow simply fails.
   # shellcheck disable=SC2086
   perl -e 'alarm shift; exec @ARGV' "$(( ${CODEX_TASK_MINUTES:-120} * 60 ))" \
-    codex exec --trust --sandbox workspace-write -c 'approval_policy="never"' \
+    "$cx" exec --trust --sandbox workspace-write -c 'approval_policy="never"' \
       -c "model_reasoning_effort=\"${CODEX_EFFORT:-medium}\"" ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
       -o "$last" ${CODEX_FLAGS:-} \
       "\$loop-auto — use the loop-auto skill with arguments: 1 $filter as:$name. Run exactly one task of the plan, then stop." \
