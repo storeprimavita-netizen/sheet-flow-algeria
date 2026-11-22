@@ -10,6 +10,7 @@ import { Gallery } from "./gallery";
 import { StorePhoto } from "./photo";
 import { RatingLine, ReviewsSection, SizeguideSection } from "./review-blocks";
 import { storeOptionHeadingKey } from "@/lib/variants";
+import { Swatch } from "./swatch";
 
 import { st } from "./t";
 
@@ -87,12 +88,7 @@ export function ProductView({ dto, orderSlot }: { dto: PublicProductPage; orderS
                       <ul className="store-sizes">
                         {o.values.map((v, vi) => (
                           <li key={`${v.label}-${vi}`} className="store-size" data-out={!v.inStock}>
-                            {v.swatch?.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element -- plain img by design: never background-image
-                              <img className="store-dot" src={v.swatch.image} alt="" width={20} height={20} loading="lazy" />
-                            ) : v.swatch?.color ? (
-                              <span className="store-dot" aria-hidden="true" style={{ "--swatch": v.swatch.color } as React.CSSProperties} />
-                            ) : null}
+                            <Swatch swatch={v.swatch} />
                             <bdi>{v.label}</bdi>
                             {v.inStock ? null : <span className="store-sr">{st("outOfStock")}</span>}
                           </li>

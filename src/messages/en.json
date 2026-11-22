@@ -1912,12 +1912,15 @@
       "soldOutBody": "Every size is out of stock for now. Come back soon.",
       "sizeLabel": "Size",
       "chooseSize": "Choose a size",
+      "colorLabel": "Colour",
+      "combinationLabel": "Options",
       "offersTitle": "Choose a quantity",
       "offersInfoTitle": "Quantity offers",
       "single": "One piece",
       "offerSave": "Save {n}",
       "piece": "Piece {n}",
       "sameSize": "Same size for all pieces",
+      "sameOptions": "Same options for all pieces",
       "startingFrom": "From {price}",
       "savePct": "Save {pct}%",
       "fields": {
@@ -1939,6 +1942,8 @@
         "phone": "The phone number must start with 05, 06 or 07 and have 10 digits.",
         "email": "The email address is not valid.",
         "size": "Choose a size.",
+        "color": "Choose a colour.",
+        "combination": "Choose an available option.",
         "delivery": "Choose a delivery method."
       },
       "summary": {
