@@ -16,6 +16,16 @@ who() {    # short name of whatever holds port $1, for messages
   if [ -n "$c" ]; then echo "Docker container $c"; else ps -o comm= -p "$(listener "$1")" 2>/dev/null | sed 's|.*/||'; fi
 }
 
+detach() {   # start "$@" in its own session, so it outlives the caller
+  # Codex (and other agent tools) kill the whole process group of a command when
+  # that command returns; nohup alone does not survive that. Redirect output at the call.
+  python3 -I -c 'import os, sys
+if os.fork(): os._exit(0)
+os.setsid()
+if os.fork(): os._exit(0)
+os.execvp(sys.argv[1], sys.argv[1:])' "$@"
+}
+
 saved_port() { local p; p=$(cat .dev-port 2>/dev/null || true); case "$p" in ''|*[!0-9]*) return 1 ;; esac; echo "$p"; }
 
 pick_port() {   # this folder's running server if there is one, else the first free port from 3000

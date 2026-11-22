@@ -35,11 +35,11 @@ if [ "${1:-}" != "--no-app" ] && [ $ok = 0 ]; then
   if ! app; then
     # a build cache that grew past ~4 GB makes the dev server spin all cores; it is safe to delete
     if [ -d .next ] && [ "$(du -sk .next 2>/dev/null | cut -f1)" -gt 4000000 ]; then rm -rf .next; echo "CLEAN build cache (.next was over 4 GB)"; fi
-    mine "$port" || nohup npm run dev -- -p "$port" >"$logdir/mnw-dev-$port.log" 2>&1 &
+    mine "$port" || detach npm run dev -- -p "$port" >"$logdir/mnw-dev-$port.log" 2>&1 </dev/null
     for _ in $(seq 1 30); do sleep 2; app && break; done
   fi
   echo "$port" > .dev-port
-  pgrep -f "scripts/dev-watchdog.sh $port" >/dev/null 2>&1 || (nohup scripts/dev-watchdog.sh "$port" >/dev/null 2>&1 &)
+  pgrep -f "scripts/dev-watchdog.sh $port" >/dev/null 2>&1 || detach scripts/dev-watchdog.sh "$port" >/dev/null 2>&1 </dev/null
   app && echo "UP    app       http://localhost:$port  (admin@seed.mnw — docs/TESTING.md)" || { echo "DOWN  app — see $logdir/mnw-dev-$port.log"; ok=1; }
   if [ "$port" != 3000 ] && [ -z "${APP_PORT:-}" ] && [ -n "$(listener 3000)" ]; then echo "NOTE  port 3000 is used by another program ($(who 3000)) — the MNW app is on port $port, use the address above"; fi
 fi

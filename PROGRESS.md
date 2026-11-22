@@ -1046,3 +1046,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 
 - Full gate passed after syncing `v3`, with 1,377 tests and live RLS.
 - Startup selected port 3001 and Next logged HTTP 200 on `/login`. After the startup command exited, the local listener was gone and Chrome DevTools received `ERR_CONNECTION_REFUSED`. Screenshot and keyboard checks await a persistent preview.
+
+### Run report (Codex night resume, 2026-11-22)
+- Shipped — none. VAR-1-B synced with current `v3` and pushed at `a9e283e`. Full gate passed with 1,377 tests and live RLS.
+- Parked — VAR-1-B. The port fix starts MNW on 3001 and returns HTTP 200 for `/login`, but the listener disappears when the launch call exits. Builder screenshots and independent browser review still need a persistent preview.
+- Decisions — none. Q-30 and the owner inputs in `docs/MASTER_PLAN.md` remain open.
+- Next — Start the local preview from Terminal with `scripts/dev-up.sh`. Resume VAR-1-B browser checks on the printed address, then pick STORE-4.
