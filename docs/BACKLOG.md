@@ -43,3 +43,6 @@ CHART-1 · src/components/stats/share-parts.tsx:7 · outcome donut "Delivered x%
 MONEY-1 · ledger FX validation and `src/lib/fx.ts` · record rate provenance explicitly so validation can distinguish it from the fallback of 1 (review 2)
 MONEY-1 · `00084_account_balance_guards.sql` · add an invariant test for omitted unsupported dinar equivalents or show the unresolved debit state (review 2)
 MONEY-1 · expense and ad-spend actions · translate the debit currency constraint error (review 2)
+STATS-1 · `00086_customer_score.sql:5` · use an indexed last-order lookup if name and phone filtering spends too much on history ranking (review 1)
+STATS-1 · `00086_customer_score.sql:63` · keep delivery analytics reads under a bounded customer scope (review 1)
+STATS-1 · customer analytics views · document that callers use the user session client to preserve RLS and scope labels (review 1)
