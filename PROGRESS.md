@@ -1005,3 +1005,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Open questions: none blocking. Blocked tasks: none from this run.
 - Owner: remote `db push` for 00078 and 00079.
 - Next /auto: first eligible feature row in plan order (follow-ups VAR-1-F, CHART-1-B, CONF-1-F after features).
+
+### VAR-1-B build
+
+- Forms & offers opens the linked product’s Selling tab. Edit options jumps to the Options editor.
+- The order form filters available combinations by colour and supports mixed pieces. The storefront keeps its published, read-only variant chips until orders open.
+- Browser screenshots and keyboard checks are pending. The browser reached an unrelated service on port 3000 that returned a 404 for `/login`. The Supabase tests ran against the local stack.
