@@ -12,7 +12,9 @@ supabase start          # or: docker compose -f supabase/docker-compose.yml up -
 npm run dev
 ```
 
-App: http://localhost:3000 (redirects to `/login`).
+App: http://localhost:3000 (redirects to `/login`). Agents start it with
+`scripts/dev-up.sh`; when another program holds port 3000 it starts on the next
+free port — use the address on its `UP app` line (also in the file `.dev-port`).
 
 ## Accounts (password for all: `SeedDev!2026`)
 

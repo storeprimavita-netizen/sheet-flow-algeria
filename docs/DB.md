@@ -60,10 +60,13 @@ Finally regenerate types:
 | `product_offers`, `product_forms` (+ price columns) | 00077 | STORE-3: `products.pricing_mode` (uniform / per_value / per_variant) and `compare_at_price` (no CHECK against `sale_price`: hidden in code when <= price); `product_option_values.price_delta` and `product_variants.price_override` / `compare_at_override` are integer DZD (column-scoped audit on variants). `product_offers`: `kind` quantity (qty 2..50, `total_price` > 0, one default per product) or bump (one per product, `bump_product_id` composite FK `ON DELETE SET NULL`, trigger refuses self, inactive, unpriced or sized bump products), `label` <= 60, optional active window. NO free-delivery column (D60). `product_forms`: one row per product, `fields` jsonb array (< 16 kB, validated again by zod at read), `delivery_methods` non-empty subset of home/stopdesk. `workspace_id` and `product_id` immutable; audited; no anon grant, no authenticated TRUNCATE/TRIGGER/REFERENCES | all roles read, admin writes |
 | `reviews` | 00064 | STORE-7: customer reviews an admin records (no public submission). `rating` 1..5, `name` <=80, `body` <=1000, `approved` default false, optional `order_id` (composite FK, set null) used only to compute the verified mark in the DAL. Composite FKs to products (cascade) and orders; `workspace_id` immutable; audited. Public reads go through the server-only DAL (service role): approved only, DTO without ids. No anon grant | admin only |
 | `product_scenarios` | 00003 | BENZ inputs jsonb per slug (unused since PRICE-4, not dropped: destructive, owner decides) | admin only |
-| `expenses` | 00003, 00014, 00017 | multi-currency + generated `amount_dzd`; optional product/supplier link; optional `subcategory_option_id` (FK → `options`); optional `account_id` (FK → `accounts`) | admin only |
-| `ad_spend_daily` | 00003, 00017 | unique (product, day, kind test/scaling); optional `account_id` (FK → `accounts`) | admin only |
-| `accounts` | 00017 | spending budget accounts (name, currency, opening_balance, low_balance_threshold); `account_topups` for deposits; balance derived via `account_balances` view | admin only |
-| `account_topups` | 00017 | append-only deposits (account_id, amount, occurred_on, note) | admin only |
+| `expenses` | 00003, 00014, 00017, 00084 | multi-currency + generated `amount_dzd`; optional product, supplier, subcategory and workspace-scoped account links | admin only |
+| `ad_spend_daily` | 00003, 00017, 00084 | unique (product, day, kind test/scaling); optional workspace-scoped account link | admin only |
+| `accounts` | 00017, 00081 | three system kinds per workspace. ZR and DZD use DZD, USDT uses USDT. Legacy rows keep their IDs and opening amounts. RLS hides posted legacy rows from the session client. Admin updates are limited to name, threshold and active state. | admin only |
+| `account_topups` | 00017, 00081 | retained original top-ups. New top-ups go through the ledger RPC. | admin read |
+| `account_entries` | 00082–00085 | dated append-only movements with exact numeric amounts, optional category and source links, paired transfers and linked reversals. | admin read, guarded RPC writes |
+| `account_entry_requests` | 00082–00083 | workspace-scoped request IDs, normalized inputs, and committed results. | admin read, guarded RPC writes |
+| `account_legacy_mappings` | 00082, 00085 | audited source snapshots, exact target amounts, and the mapping history chain. | admin read, guarded RPC writes |
 | `stock_movements` | 00003, 00018, 00028 | ADD-ONLY log (D35): policies select + insert (admin; insert only `purchase`/`correction` with no order); UPDATE/DELETE/TRUNCATE revoked and a trigger refuses them except FK cascades (order gone -> `order_id` null; product/workspace gone -> delete). Trigger maintains `products.stock` = pieces in the warehouse and refuses a movement whose workspace is not the product's (D30). Reasons: purchase/correction (manual), order_shipped/order_returned/order_swapped/order_stock_sync (order trigger), legacy order_confirmed/order_reverted/delivered/returned | admin only |
 | `customers` | 00004 | keyed unique (workspace, normalized phone); trigger normalizes | all read, admin write (webhook uses service role) |
 | `contacts` | 00004 | suppliers only (shooting_studio/atelier_couture/emballage/other), phones[] | admin only |
@@ -139,7 +142,9 @@ only reported by the migration as a NOTICE):
 
 | View | Feeds |
 |---|---|
-| `customer_stats` | Contacts page + confirmation queue inline risk. Risk formula documented in the migration + SPEC §5; weights from `settings.risk_weights` |
+| `customer_stats` | Customer lists, detail and confirmation queue. Caller-scoped history and risk using `settings.risk_weights` for admins |
+| `customer_delivery_stats` | Customer detail delivery cohort and admin lifetime delivered value |
+| `customer_product_stats` | Customer order counts by product under the caller's order visibility |
 | `wilaya_stats` | Dashboard per-wilaya table; `stop_shipping_auto` computed from `settings.stop_shipping_rule` (min_orders + min_delivery_rate), `stop_shipping_manual` from `wilaya_fees` |
 | `agent_performance` | Team performance page; per actor+stage: handled, confirmed/delivered, avg decision/delivery/total time |
 | `workspace_performance` | Team performance page header strip; same three timings, workspace-wide (00020) |
@@ -148,6 +153,18 @@ only reported by the migration as a NOTICE):
 
 Dashboard aggregate RPC(s) get added in the BI phase as migration
 `00008_dashboard.sql` (security invoker, filter params).
+
+### Customer analytics (00086, STATS-1, D98)
+
+The three customer views grant authenticated SELECT and inherit the customer's and orders' RLS. `customer_stats.history_scope` is `workspace` for admins and `visible` for agents. The scope depends on role. Agent displays identify visible history, show `total_orders`, and say “No visible orders” when the count is zero. `first_order_at` and `last_order_at` fall back to `created_at` when `placed_at` is absent. The last order is chosen by timestamp then highest order UUID. `last_confirmation_status` and `last_delivery_status` give that order's two stage statuses. Empty histories have null dates and statuses.
+
+Risk counts include all visible orders. `risk_score` keeps the formula `least(100, round(100 × weighted adverse counts / (returned weight × total orders)))`. Admins use configured numeric weights and default any missing or nonnumeric values to returned 2, cancelled 1 and no answer 0.5. Agents always use those defaults. Negative cancelled and no-answer weights are clamped to zero. A nonpositive returned weight yields `unscored` and a null score for an existing history. Empty history yields `new` and a null score. Other `risk_state` values are `neutral` (0), `warning` (1–29) and `high` (30+). Future filter bands map `neutral` to reliable, `warning` and `high` to risky, and `new` to new. `unscored` stays separate.
+
+`risk_reason` is `no_history`, `unscored`, `no_adverse_signal` or the largest positive weighted contribution (`returned`, `cancelled`, `no_answer`, in tie order). A rounded neutral score can have an adverse reason. Existing counts explain the reason. `customer_product_stats.order_count` counts visible orders per product and excludes missing products. Quantity does not affect the count.
+
+Use `.from("customer_delivery_stats").select("*").eq("customer_id", id).maybeSingle()` on the session client for keyed detail. `delivery_numerator` and `delivery_denominator` follow `kpi_order_set` and `kpi_rates`, including caller-visible replacements, exclusion flags and pickup history. `delivery_value` is a fraction and stays null until `delivery_matured` is true. The minimum denominator is 10, so many individual customer histories have no displayed rate. Empty cohorts return zero counts. `lifetime_delivered_value_dzd` sums the same eligible merchandise revenue as the KPI contract (`sale_price × quantity` on delivered orders, excluding swap originals). It is zero for admins with no eligible delivered value and null for agents.
+
+Local `EXPLAIN ANALYZE` on the seeded admin session showed one `kpi_order_set` execution and one grouped aggregate for both a single customer and a two-customer lookup. The single-customer plan used `orders_customer_idx`, and `kpi_rates` ran once per returned customer. The unfiltered `customer_stats` list and its batched ID lookup invoked neither KPI helper, and the batched lookup used `orders_customer_idx`.
 
 ## `settings` keys (seeded per workspace)
 
@@ -161,6 +178,16 @@ Dashboard aggregate RPC(s) get added in the BI phase as migration
 | `zr_state_map` | `{"map": {}}` | ZR state name (lower-cased) → `delivery_status`; applied by the ZR webhook (15f) |
 | `zr_auto_push` | `{"enabled": false}` | push a ZR parcel when an order is confirmed (15f) |
 | `pricing_defaults` | absent = built-in `DEFAULT_PRICING_SETTINGS` (D50); sparse fractions, `target` mode+value as one unit | workspace pricing settings (PRICE-2); Settings -> Pricing; product overrides in `product_pricing` |
+
+## Account ledger (MONEY-1)
+
+`account_balances` keeps its existing columns and uses invoker security. Authenticated users have SELECT on the view and the underlying admin RLS applies. Each system balance adds signed ledger amounts and deducts compatible live charges that have no ledger debit. Same-currency charges use their own amount. A DZD-denominated account can use a foreign charge's stored DZD equivalent when the rate is finite, positive and differs from the schema default of 1. A ledger-linked charge keeps its original finance amount and currency for P&L. Pending legacy accounts retain their old balance formula and include newly appended in-currency movements.
+
+The authenticated RPCs check active workspace membership and the admin role. `append_account_entry` records an exact in-currency movement. DZD and pending legacy amounts use up to two decimal places, and USDT uses up to six. `transfer_account_funds` permits ZR → DZD at equal amounts or DZD ↔ USDT with the rate in DZD per USDT. ZR can have a signed balance before carrier reconciliation. `reverse_account_entry` appends the opposite movement for a standalone manual entry or both legs of a transfer. A source-linked debit stays posted with its expense or ad spend. Legacy mapping corrections use `remap_legacy_account`. Transfer and reversal require a UUID request key. Append accepts one, and the old top-up form still submits without one. Request keys are unique within a workspace, and a changed payload for the same key is rejected.
+
+Before any production rollout, the owner can run [money-legacy-preflight.sql](../scripts/money-legacy-preflight.sql) against the old schema from a trusted database session. The script runs in a read-only transaction. Review each workspace's suggested kind, original balance and source amount. Invalid workspace links need investigation before posting. A foreign currency such as USD needs an exact documented conversion when there is no compatible amount in the source record.
+
+`preview_legacy_accounts()` returns proposed mappings and source evidence to the workspace admin. Unambiguous workspaces post during the migration. If any row needs review, all its legacy accounts and links stay active. `post_legacy_accounts` takes a JSON object keyed by legacy account ID. Each value can specify `kind` and a `conversions` object keyed by the corresponding `source_key` from the preview. Supply a numeric target `amount` and an `evidence` reference for each required conversion. The RPC validates and posts the workspace in one transaction. `remap_legacy_account` takes the current mapping ID and a new kind. It preserves the previous mapping and appends linked reversing and replacement entries. An independently posted direct debit needs to be resolved before moving its legacy mapping. MONEY-2 owns the UI for these operations.
 
 ## Financial-effects rule
 

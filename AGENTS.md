@@ -138,6 +138,9 @@ navigation, images, performance. It replaces guesses from old training data.
 `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`). **Start the app only with `scripts/dev-up.sh`** (never `npm run dev` or
 `next dev` directly): it clears an oversized build cache and attaches a watchdog
 that stops a runaway or forgotten dev server. When your session's work is done,
-run `scripts/dev-down.sh`. Never commit `.env.local`; never expose
+run `scripts/dev-down.sh`. The app address is the one `scripts/dev-up.sh` prints on
+its `UP app` line (also in `.dev-port`): when another program holds port 3000 the
+app starts on the next free port — a page answering on some other port is not
+this app. Never commit `.env.local`; never expose
 the service key to the client. Local stack: Supabase docker at
 `http://127.0.0.1:54321`, seed users in `scripts/seed-dev.ts`.

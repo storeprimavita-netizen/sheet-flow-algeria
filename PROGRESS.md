@@ -1011,3 +1011,33 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Forms & offers opens the linked product’s Selling tab. Edit options jumps to the Options editor.
 - The order form filters available combinations by colour and supports mixed pieces. The storefront keeps its published, read-only variant chips until orders open.
 - Browser screenshots and keyboard checks are pending. The browser reached an unrelated service on port 3000 that returned a 404 for `/login`. The Supabase tests ran against the local stack.
+
+### MONEY-1 build
+- Three system accounts, append-only movements, atomic transfers and reversals, and live debit currency guards. The D97 preview, posting and remap operations are available for MONEY-2.
+- Local migration replay from the old schema posted DZD 100 from an opening amount, top-up, a USD debit with stored DZD equivalent, and ad spend. The USD Binance balance of 40 and courier balance of 20 stayed active in a separate workspace with unresolved conversions.
+- The existing Accounts screen still formats account amounts as whole dinars. MONEY-2 owns currency-specific display, mapping controls and stable client keys for manual submissions.
+
+### MONEY-1 review fixes
+- Foreign debits at the implicit rate of 1 stay pending until conversion is documented. Live dinar debit links require a usable stored equivalent. Linked debits stay posted when a generic reversal is refused.
+- Regression tests cover missing rates on both debit tables, legacy preflight and explicit posting, linked debit reversal, sequential remaps and read-only balance view grants.
+
+### MONEY-1 ship
+- Done — ZR, DZD and USDT ledger with audited transfers, reversals and deferred legacy conversion (migrations 00080–00085).
+- Verify — Full gate passed with 1,371 tests and live RLS. Independent review 2 passed.
+- Evidence — `docs/briefs/MONEY-1.review-2.md`, legacy replay above and D97.
+- Owner — Run the read-only legacy preflight before applying these migrations in production. Resolve any conversion exceptions with source evidence.
+- Next — MONEY-2 provides the mapping controls and currency-specific display.
+
+### STATS-1 ship
+- Done — Customer score reasons, visible order history and detail delivery rates in migration 00086. Lifetime value stays admin-only.
+- Verify — Full gate passed with 1,375 tests and live RLS. Independent review 1 passed.
+- Evidence — `docs/briefs/STATS-1.review-1.md`, `docs/DB.md` and D98.
+- Next — CONF-3 presents the score state and visible order count in the app.
+
+### Run report (Codex night, 2026-11-22)
+- Shipped — MONEY-1 (`1dd520e`) and STATS-1 (`51b7dd7`) to `v3`; full and merge gates passed with live RLS.
+- Parked — VAR-1-B (`v3-VAR-1-B`, `2a450f1`) passed the full gate. Browser review remains pending because the startup check accepted an unrelated service on port 3000.
+- Parked — P1-1-F waits for Q-30 on pre-order ad spend and the fixed-fee start date in `docs/QUESTIONS.md`.
+- Decisions — D97 records legacy ledger preview and remapping. D98 defines agent scores using visible history and default weights.
+- Owner inputs — C-1 holds Yalidine and carrier extraction; P3 OAuth requires owner Google Cloud setup. Deployment and other inputs remain in `docs/MASTER_PLAN.md`.
+- Next — Restore the MNW preview, resume independent browser review of VAR-1-B, and pick STORE-4 among eligible feature rows. P1-6 also needs browser verification.

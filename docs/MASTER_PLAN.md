@@ -136,14 +136,14 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | P1-1 | KPI contract migration (`orders.excluded_reason`, `kpi_lines`, `product_stock_v`) + tests | STATS | H | – | M | stats | O-1 | done |
-| P1-1-F | Follow-up (D40, review-4): drill-down order list filters by UTC day — use Algiers days (D46); `pnl_by_product` cost grows with products × orders — set-based rewrite; review-4 lows; review-1 Q6: `pnl_lines` ad spend window starts at the workspace's first order date, so spend logged before that day is dropped | STATS | H | – | M | stats | P1-1 | todo |
+| P1-1-F | Follow-up (D40, review-4): drill-down order list filters by UTC day — use Algiers days (D46); `pnl_by_product` cost grows with products × orders — set-based rewrite; review-4 lows; review-1 Q6: `pnl_lines` ad spend window starts at the workspace's first order date, so spend logged before that day is dropped | STATS | H | – | M | stats | P1-1 | blocked:Q-30 |
 | P1-2 | Dashboard v2 (STATS spec §Dashboard v2, D45): needs-action band, money band USD-first, order journey, profit waterfall, stock strip, product scorecard; move the rest to Statistics/Team/Money | STATS | L | ui | – | stats | P1-1 | done |
 | P1-2-F | Follow-up (review-2 lows): dashboard polish items + rendered tests for the bands | STATS | L | ui | – | stats | P1-2 | todo |
 | TEST-1 | Live test isolation: every live suite creates and cleans its own workspace/orders (cash.test uses up seed orders, so a second gate run fails without `db-reset.sh`); gate must pass twice in a row without a reset | – | L | – | – | shell | – | done |
 | TEST-2 | Intermittent live-DB test failures seen three times in the 2026-11-20 run (plus one first-run gate failure whose log was not read), each green on rerun and on branches that do not touch them: `src/lib/seasons.rls.test.ts:275` (foreign-key error on `seasons_workspace_id_fkey`, "backfill seeds only the six seasons") and timeouts in `kpi.test.ts` + `seasons.rls.test.ts` on the fast gate. Find the cause (suites sharing a workspace, a gate run while a reviewer runs its own, or load from the dev server), make each suite own its data, and show the full gate green 5 runs in a row with the app running Seen twice more while shipping NAV-4-S2 (2026-11-20), both green on rerun with no change: `src/lib/audit-redact.rls.test.ts` (`audit_log_workspace_id_fkey`) on the branch gate and `src/lib/cash.test.ts` (`cash_collections`, 23503) on the merge gate — same shape: a foreign key to a workspace that another test file has just removed. Seen again on the NAV-5-G branch gate (2026-11-20, `src/lib/reviews.rls.test.ts:74`, audit_log FK 23503 in teardown), green on rerun with no code change | – | L | – | – | shell | TEST-1 | done |
 | CONF-4 | Attempt timeline, callback time, "callbacks due" view | CONF | H | ui | M | orders | CONF-1 | todo |
 | CONF-5 | Auto-cancel job + phone blocklist / auto-hold | CONF | H | sec | M | orders | CONF-4 | todo |
-| MONEY-1 | Three-account ledger (D39): `kind` zr|dzd|usdt, USDT currency, append-only `account_entries`, "mark ZR payout taken" moves ZR → DZD, constraints, RLS, audit; map old accounts by D39 | MONEY | H | – | M | money | O-1 | todo |
+| MONEY-1 | Three-account ledger (D39): `kind` zr|dzd|usdt, USDT currency, append-only `account_entries`, "mark ZR payout taken" moves ZR → DZD, constraints, RLS, audit; map old accounts by D39 | MONEY | H | – | M | money | O-1 | done |
 | MONEY-2 | Accounts screen: three cards (ZR / DZD / USDT), quick-add ledger, transfer, mark ZR payout taken | MONEY | L | ui | – | money | MONEY-1, NAV-3 | todo |
 | MONEY-3 | "Paid from" on expense/ad-spend forms; statement export | MONEY | L | ui | – | money | MONEY-2 | todo |
 | NOTIF-1 | `notifications` + bell + inbox + prefs; task/meeting/order events | NOTIF | H | ui | M | team | O-1 | todo |
@@ -179,7 +179,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | SWAP-2 | Swap suggestion on confirmation: returning parcel with same product/size/colour → admin notification → Approve swap or Create new order (D37) | CARRIER | H | ui | M | orders | SWAP-1, NOTIF-1, STORE-1 | todo |
 | ZR-3 | "Your ZR history for this phone" in the confirmation sheet | CARRIER | H | ui | – | orders | C-1 | todo |
 | ZR-4 | ZR payments ledger → Money → Courier cash | CARRIER | H | ui | M | money | C-1, MONEY-1 | todo |
-| STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | todo |
+| STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | done |
 | STATS-4 | Time / attempt / product × wilaya cuts | STATS | L | ui | – | stats | STATS-3 | todo |
 | CARRIER-1 | Carrier interface + `shipments` (extract from ZR when carrier #2 starts) | CARRIER | H | sec | M | orders | P1-7 | todo |
 | CARRIER-2 | Yalidine adapter | CARRIER | H | sec | – | orders | CARRIER-1, C-1 | todo |

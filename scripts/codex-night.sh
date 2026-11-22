@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Keep the loop running with OpenAI Codex CLI, one task per fresh session, in
-# THIS terminal. Waits and retries when a usage limit is hit.
+# THIS terminal. When the usage limit is hit it waits until the time Codex gives
+# ("try again at 5:42 PM") and continues by itself — a chat cannot do that, so
+# this is the way to run a night that survives the limit.
 #
 #   scripts/codex-night.sh                    main agent: any task, database tasks included
 #   scripts/codex-night.sh codex-2 nodb       extra agent: only tasks without a migration
@@ -32,6 +34,28 @@ caffeinate -ims -w $$ &
 last=$(mktemp)
 trap 'rm -f "$last"; scripts/dev-down.sh >/dev/null 2>&1' EXIT   # never leave the dev server running after a run
 trap 'echo; say "stopped by you — pushed steps are kept"; exit 130' INT TERM
+# One run per folder: a chat night run ($loop-night) that a usage limit cut off leaves its flag behind.
+[ -f .night-run ] && { rm -f .night-run; say "a chat night run was marked as on in this folder — this terminal run takes over (do not continue that chat)"; }
+
+wait_secs() {   # seconds until the time in "try again at 5:42 PM" plus 2 minutes; 1800 when no usable time is given
+  python3 -I - "$1" <<'PY'
+import datetime, re, sys
+m = re.search(r"try again at (\d{1,2}):(\d{2})\s*([AP]M)?", sys.argv[1], re.I)
+if not m:
+    print(1800); sys.exit()
+h, mi, ap = int(m[1]), int(m[2]), (m[3] or "").upper()
+if ap == "PM" and h < 12: h += 12
+if ap == "AM" and h == 12: h = 0
+if h > 23 or mi > 59:
+    print(1800); sys.exit()
+now = datetime.datetime.now()
+t = now.replace(hour=h, minute=mi, second=0, microsecond=0)
+if t <= now:
+    t = now if (now - t).total_seconds() < 900 else t + datetime.timedelta(days=1)
+secs = int((t - now).total_seconds()) + 120
+print(secs if secs <= 8 * 3600 else 1800)     # a time further away than 8 h is not a daily reset: check every 30 min
+PY
+}
 
 bad=0; n=0; waits=0
 while :; do
@@ -65,8 +89,11 @@ while :; do
   if echo "$tail_txt" | grep -Eqi "not logged in|login required|401 unauthorized|please log in"; then say "not signed in — run: codex login"; break; fi
   if echo "$tail_txt" | grep -Eqi "usage limit|rate limit|quota|try again (in|at)|429|limit reached"; then
     waits=$((waits+1)); n=$((n-1))
-    say "usage limit reached — waiting 30 min, then continuing (wait $waits). $(echo "$tail_txt" | grep -Eio 'try again (in|at)[^.]{0,60}' | head -1)"
-    sleep 1800; bad=0; continue
+    hint=$(echo "$tail_txt" | grep -Eio 'try again (in|at)[^.]{0,60}' | tail -1)
+    secs=$(wait_secs "$hint"); case "$secs" in ''|*[!0-9]*) secs=1800 ;; esac
+    say "usage limit reached — continuing by itself at $(date -v+"${secs}"S '+%H:%M') (wait $waits). $hint"
+    scripts/notify.sh "Codex usage limit — the run continues at $(date -v+"${secs}"S '+%H:%M')" >/dev/null 2>&1 || true
+    sleep "$secs"; bad=0; continue
   fi
   bad=$((bad+1))
   [ "$bad" -ge 3 ] && { say "3 sessions in a row ended without a result — stopping. Last lines:"; tail -n 12 "$log" | cut -c1-200; break; }

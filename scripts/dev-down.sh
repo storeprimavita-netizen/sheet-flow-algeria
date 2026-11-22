@@ -6,9 +6,15 @@
 # Start again with scripts/dev-up.sh.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-port=${APP_PORT:-3000}
-pids=$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
-if [ -n "$pids" ]; then kill $pids 2>/dev/null; sleep 2; kill -9 $pids 2>/dev/null || true; echo "stopped  dev server on :$port"; else echo "no dev server on :$port"; fi
+. scripts/dev-lib.sh
+port=${APP_PORT:-$(saved_port || echo 3000)}
+# stop only THIS folder's server: another project or a Docker container on the port is left alone
+if mine "$port"; then
+  pids=$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)
+  kill $pids 2>/dev/null; sleep 2; kill -9 $pids 2>/dev/null || true; echo "stopped  dev server on :$port"
+elif [ -n "$(listener "$port")" ]; then echo "no dev server of this folder on :$port (the port belongs to $(who "$port") — left alone)"
+else echo "no dev server on :$port"; fi
+[ -n "${APP_PORT:-}" ] || rm -f .dev-port
 pkill -f "$(pwd)/node_modules/.bin/next dev" 2>/dev/null || true
 pkill -f "scripts/dev-watchdog.sh $port" 2>/dev/null || true
 if [ "${1:-}" = "--all" ]; then
