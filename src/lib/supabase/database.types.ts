@@ -113,14 +113,14 @@ isOneToOne: false
                   ]
                 },"account_legacy_mappings": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"destination_id": string,"evidence": NonNullable<Json>,"id": string,"legacy_account_id": string,"superseded_at": string | null,"updated_at": string,"workspace_id": string
+                    "created_at": string,"created_by": string | null,"destination_id": string,"evidence": NonNullable<Json>,"id": string,"legacy_account_id": string,"previous_mapping_id": string | null,"superseded_at": string | null,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"destination_id": string,"evidence": NonNullable<Json>,"id"?: string,"legacy_account_id": string,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id": string
+                    "created_at"?: string,"created_by"?: string | null,"destination_id": string,"evidence": NonNullable<Json>,"id"?: string,"legacy_account_id": string,"previous_mapping_id"?: string | null,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"destination_id"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"legacy_account_id"?: string,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                    "created_at"?: string,"created_by"?: string | null,"destination_id"?: string,"evidence"?: NonNullable<Json>,"id"?: string,"legacy_account_id"?: string,"previous_mapping_id"?: string | null,"superseded_at"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -152,6 +152,12 @@ isOneToOne: false
       columns: ["workspace_id","legacy_account_id"]
 isOneToOne: false
       referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
+    },{
+      foreignKeyName: "account_legacy_mappings_workspace_id_previous_mapping_id_fkey"
+      columns: ["workspace_id","previous_mapping_id"]
+isOneToOne: false
+      referencedRelation: "account_legacy_mappings"
       referencedColumns: ["workspace_id","id"]
     }
                   ]
@@ -2141,6 +2147,15 @@ isOneToOne: false
                            },
 "pnl_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
+                           },
+"post_legacy_accounts":
+{ Args: { "p_mappings"?: Json }; Returns: (string)[]
+                           },
+"preview_legacy_accounts":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"remap_legacy_account":
+{ Args: { "p_conversions"?: Json,"p_expected_mapping_id": string,"p_kind": string,"p_legacy_account_id": string }; Returns: string
                            },
 "reverse_account_entry":
 { Args: { "p_entry_id": string,"p_note"?: string,"p_occurred_on": string,"p_request_key": string }; Returns: string

@@ -292,8 +292,10 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
     expect(anonRows ?? []).toHaveLength(0);
     const { data: agentRows } = await confAgent.from("account_balances").select("account_id");
     expect(agentRows ?? []).toHaveLength(0);
-    const { error } = await adminUser.from("account_balances").select("account_id").eq("workspace_id", workspaceId);
+    const { data, error } = await adminUser.from("account_balances").select("account_id,currency,workspace_id");
     expect(error).toBeNull();
+    expect(data?.map((row) => row.currency).sort()).toEqual(["DZD", "DZD", "USDT"]);
+    expect(data?.every((row) => row.workspace_id === workspaceId)).toBe(true);
   });
 
   // 00022: one money model — every surface reads the same P&L lines.

@@ -1005,3 +1005,8 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Open questions: none blocking. Blocked tasks: none from this run.
 - Owner: remote `db push` for 00078 and 00079.
 - Next /auto: first eligible feature row in plan order (follow-ups VAR-1-F, CHART-1-B, CONF-1-F after features).
+
+### MONEY-1 build
+- Three system accounts, append-only movements, atomic transfers and reversals, and live debit currency guards. The D97 preview, posting and remap operations are available for MONEY-2.
+- Local migration replay from the old schema posted DZD 100 from an opening amount, top-up, a USD debit with stored DZD equivalent, and ad spend. The USD Binance balance of 40 and courier balance of 20 stayed active in a separate workspace with unresolved conversions.
+- The existing Accounts screen still formats account amounts as whole dinars. MONEY-2 owns currency-specific display, mapping controls and stable client keys for manual submissions.
