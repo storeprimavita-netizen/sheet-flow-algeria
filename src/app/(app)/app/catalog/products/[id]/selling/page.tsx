@@ -54,14 +54,19 @@ export default async function ProductSellingPage({ params }: { params: Promise<{
           <h2 className="text-base font-semibold">{t("title")}</h2>
           <p className="text-sm text-muted-foreground">{t("purpose")}</p>
         </div>
-        {storeUrl ? (
-          <ButtonLink href={storeUrl} variant="outline" size="sm">
-            <ExternalLink />
-            {t("viewOnStore")}
+        <div className="flex flex-wrap items-center gap-3">
+          <ButtonLink href={`/app/catalog/products/${id}#product-options`} variant="outline" size="sm">
+            {t("editOptions")}
           </ButtonLink>
-        ) : (
-          <p className="text-xs text-muted-foreground">{t("viewOnStoreNone")}</p>
-        )}
+          {storeUrl ? (
+            <ButtonLink href={storeUrl} variant="outline" size="sm">
+              <ExternalLink />
+              {t("viewOnStore")}
+            </ButtonLink>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("viewOnStoreNone")}</p>
+          )}
+        </div>
       </div>
 
       <PricingEditor
