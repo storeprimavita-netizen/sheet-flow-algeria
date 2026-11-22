@@ -1041,3 +1041,8 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Decisions — D97 records legacy ledger preview and remapping. D98 defines agent scores using visible history and default weights.
 - Owner inputs — C-1 holds Yalidine and carrier extraction; P3 OAuth requires owner Google Cloud setup. Deployment and other inputs remain in `docs/MASTER_PLAN.md`.
 - Next — Restore the MNW preview, resume independent browser review of VAR-1-B, and pick STORE-4 among eligible feature rows. P1-6 also needs browser verification.
+
+### VAR-1-B resumed verification
+
+- Full gate passed after syncing `v3`, with 1,377 tests and live RLS.
+- Startup selected port 3001 and Next logged HTTP 200 on `/login`. After the startup command exited, the local listener was gone and Chrome DevTools received `ERR_CONNECTION_REFUSED`. Screenshot and keyboard checks await a persistent preview.
