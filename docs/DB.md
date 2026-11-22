@@ -142,7 +142,9 @@ only reported by the migration as a NOTICE):
 
 | View | Feeds |
 |---|---|
-| `customer_stats` | Contacts page + confirmation queue inline risk. Risk formula documented in the migration + SPEC §5; weights from `settings.risk_weights` |
+| `customer_stats` | Customer lists, detail and confirmation queue. Caller-scoped history and risk using `settings.risk_weights` for admins |
+| `customer_delivery_stats` | Customer detail delivery cohort and admin lifetime delivered value |
+| `customer_product_stats` | Customer order counts by product under the caller's order visibility |
 | `wilaya_stats` | Dashboard per-wilaya table; `stop_shipping_auto` computed from `settings.stop_shipping_rule` (min_orders + min_delivery_rate), `stop_shipping_manual` from `wilaya_fees` |
 | `agent_performance` | Team performance page; per actor+stage: handled, confirmed/delivered, avg decision/delivery/total time |
 | `workspace_performance` | Team performance page header strip; same three timings, workspace-wide (00020) |
@@ -151,6 +153,18 @@ only reported by the migration as a NOTICE):
 
 Dashboard aggregate RPC(s) get added in the BI phase as migration
 `00008_dashboard.sql` (security invoker, filter params).
+
+### Customer analytics (00086, STATS-1, D98)
+
+The three customer views grant authenticated SELECT and inherit the customer's and orders' RLS. `customer_stats.history_scope` is `workspace` for admins and `visible` for agents. The scope depends on role. Agent displays identify visible history, show `total_orders`, and say “No visible orders” when the count is zero. `first_order_at` and `last_order_at` fall back to `created_at` when `placed_at` is absent. The last order is chosen by timestamp then highest order UUID. `last_confirmation_status` and `last_delivery_status` give that order's two stage statuses. Empty histories have null dates and statuses.
+
+Risk counts include all visible orders. `risk_score` keeps the formula `least(100, round(100 × weighted adverse counts / (returned weight × total orders)))`. Admins use configured numeric weights and default any missing or nonnumeric values to returned 2, cancelled 1 and no answer 0.5. Agents always use those defaults. Negative cancelled and no-answer weights are clamped to zero. A nonpositive returned weight yields `unscored` and a null score for an existing history. Empty history yields `new` and a null score. Other `risk_state` values are `neutral` (0), `warning` (1–29) and `high` (30+). Future filter bands map `neutral` to reliable, `warning` and `high` to risky, and `new` to new. `unscored` stays separate.
+
+`risk_reason` is `no_history`, `unscored`, `no_adverse_signal` or the largest positive weighted contribution (`returned`, `cancelled`, `no_answer`, in tie order). A rounded neutral score can have an adverse reason. Existing counts explain the reason. `customer_product_stats.order_count` counts visible orders per product and excludes missing products. Quantity does not affect the count.
+
+Use `.from("customer_delivery_stats").select("*").eq("customer_id", id).maybeSingle()` on the session client for keyed detail. `delivery_numerator` and `delivery_denominator` follow `kpi_order_set` and `kpi_rates`, including caller-visible replacements, exclusion flags and pickup history. `delivery_value` is a fraction and stays null until `delivery_matured` is true. The minimum denominator is 10, so many individual customer histories have no displayed rate. Empty cohorts return zero counts. `lifetime_delivered_value_dzd` sums the same eligible merchandise revenue as the KPI contract (`sale_price × quantity` on delivered orders, excluding swap originals). It is zero for admins with no eligible delivered value and null for agents.
+
+Local `EXPLAIN ANALYZE` on the seeded admin session showed one `kpi_order_set` execution and one grouped aggregate for both a single customer and a two-customer lookup. The single-customer plan used `orders_customer_idx`, and `kpi_rates` ran once per returned customer. The unfiltered `customer_stats` list and its batched ID lookup invoked neither KPI helper, and the batched lookup used `orders_customer_idx`.
 
 ## `settings` keys (seeded per workspace)
 
