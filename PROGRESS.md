@@ -1027,3 +1027,11 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Verify — Full gate passed with 1,375 tests and live RLS. Independent review 1 passed.
 - Evidence — `docs/briefs/STATS-1.review-1.md`, `docs/DB.md` and D98.
 - Next — CONF-3 presents the score state and visible order count in the app.
+
+### Run report (Codex night, 2026-11-22)
+- Shipped — MONEY-1 (`1dd520e`) and STATS-1 (`51b7dd7`) to `v3`; full and merge gates passed with live RLS.
+- Parked — VAR-1-B (`v3-VAR-1-B`, `2a450f1`) passed the full gate. Browser review remains pending because the startup check accepted an unrelated service on port 3000.
+- Parked — P1-1-F waits for Q-30 on pre-order ad spend and the fixed-fee start date in `docs/QUESTIONS.md`.
+- Decisions — D97 records legacy ledger preview and remapping. D98 defines agent scores using visible history and default weights.
+- Owner inputs — C-1 holds Yalidine and carrier extraction; P3 OAuth requires owner Google Cloud setup. Deployment and other inputs remain in `docs/MASTER_PLAN.md`.
+- Next — Restore the MNW preview, resume independent browser review of VAR-1-B, and pick STORE-4 among eligible feature rows. P1-6 also needs browser verification.
