@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { MoneyCurrencyField } from "@/components/fields/money-currency-field";
 import { saveFixedFee, deleteFixedFee } from "./actions";
 
+// Enforced by fixed_fees_currency_check; the shared enum also includes ledger currencies.
+type FixedFeeCurrency = Exclude<Tables<"fixed_fees">["currency"], "USDT">;
+
 export async function FixedFeesSection({
   fees,
   rates,
@@ -34,7 +37,7 @@ export async function FixedFeesSection({
               <Field label={t("fields.label")} className="sm:col-span-2">
                 <Input name="label" required defaultValue={f.label} />
               </Field>
-              <MoneyCurrencyField defaultAmount={f.amount} defaultCurrency={f.currency} rates={rates} />
+              <MoneyCurrencyField defaultAmount={f.amount} defaultCurrency={f.currency as FixedFeeCurrency} rates={rates} />
               <div className="text-sm text-muted-foreground">{formatCurrency(f.amount_dzd)}</div>
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
