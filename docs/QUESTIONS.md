@@ -8,6 +8,15 @@ owner may overturn").
 
 ## Open
 
+### Q-30 · P1-1-F · 2026-11-22
+
+If ads started on 1 June and the first order arrived on 5 June, which costs should the all-time profit report include for 1–4 June? Today the report starts on 5 June and misses those four days of ads.
+
+- **Recommended.** Count the earlier ads on the days you paid for them. Start daily fixed fees on 5 June, as today. This brings the recorded ads into profit while preserving the existing rent and salary totals.
+- Start the whole report on 1 June. Include ads, recorded expenses and four additional days of prorated fixed fees. At 30,000 DZD in monthly fixed fees, those four days add 4,000 DZD to costs.
+
+The daily chart will use the same rule as the all-time total. The current calculation stays in effect while P1-1-F waits for your answer.
+
 ### Q-16 · STORE-3 · 2026-11-19 · answered-by-default
 A customer whose phone is in dark mode opens your store. Should she see the
 store in dark colours? **Applied by default (D61):** yes. The store is ivory
