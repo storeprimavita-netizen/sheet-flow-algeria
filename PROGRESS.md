@@ -1021,3 +1021,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/MONEY-1.review-2.md`, legacy replay above and D97.
 - Owner — Run the read-only legacy preflight before applying these migrations in production. Resolve any conversion exceptions with source evidence.
 - Next — MONEY-2 provides the mapping controls and currency-specific display.
+
+### STATS-1 ship
+- Done — Customer score reasons, visible order history and detail delivery rates in migration 00086. Lifetime value stays admin-only.
+- Verify — Full gate passed with 1,375 tests and live RLS. Independent review 1 passed.
+- Evidence — `docs/briefs/STATS-1.review-1.md`, `docs/DB.md` and D98.
+- Next — CONF-3 presents the score state and visible order count in the app.

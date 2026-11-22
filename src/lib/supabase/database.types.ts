@@ -731,6 +731,12 @@ isOneToOne: false
       foreignKeyName: "orders_customer_id_fkey"
       columns: ["customer_id"]
 isOneToOne: false
+      referencedRelation: "customer_delivery_stats"
+      referencedColumns: ["customer_id"]
+    },{
+      foreignKeyName: "orders_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
       referencedRelation: "customer_stats"
       referencedColumns: ["id"]
     },{
@@ -1916,9 +1922,85 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"customer_delivery_stats": {
+                  Row: {
+                    "customer_id": string,"delivery_denominator": number | null,"delivery_matured": boolean | null,"delivery_numerator": number | null,"delivery_value": number | null,"lifetime_delivered_value_dzd": number | null,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "customers_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_product_stats": {
+                  Row: {
+                    "customer_id": string | null,"order_count": number | null,"product_id": string | null,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "orders_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customer_delivery_stats"
+      referencedColumns: ["customer_id"]
+    },{
+      foreignKeyName: "orders_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customer_stats"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stats"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_stages"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "product_variant_stock_v"
+      referencedColumns: ["product_id"]
+    },{
+      foreignKeyName: "orders_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "orders_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"customer_stats": {
                   Row: {
-                    "cancelled_orders": number | null,"commune": string | null,"confirmed_orders": number | null,"delivered_orders": number | null,"id": string,"name": string,"no_answer_orders": number | null,"phone": string,"returned_orders": number | null,"risk_score": number | null,"total_orders": number | null,"wilaya_code": number | null,"workspace_id": string
+                    "cancelled_orders": number | null,"commune": string | null,"confirmed_orders": number | null,"delivered_orders": number | null,"first_order_at": string | null,"history_scope": string | null,"id": string,"last_confirmation_status": Database["public"]['Enums']["confirmation_status"] | null,"last_delivery_status": Database["public"]['Enums']["delivery_status"] | null,"last_order_at": string | null,"name": string,"no_answer_orders": number | null,"phone": string,"returned_orders": number | null,"risk_reason": string | null,"risk_score": number | null,"risk_state": string | null,"total_orders": number | null,"wilaya_code": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Relationships: [
