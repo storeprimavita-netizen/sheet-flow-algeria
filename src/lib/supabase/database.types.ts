@@ -267,6 +267,18 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "workspaces"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ad_spend_workspace_account_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "account_balances"
+      referencedColumns: ["workspace_id","account_id"]
+    },{
+      foreignKeyName: "ad_spend_workspace_account_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
     }
                   ]
                 },"audit_log": {
@@ -447,6 +459,18 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "options"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "expenses_workspace_account_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "account_balances"
+      referencedColumns: ["workspace_id","account_id"]
+    },{
+      foreignKeyName: "expenses_workspace_account_fkey"
+      columns: ["workspace_id","account_id"]
+isOneToOne: false
+      referencedRelation: "accounts"
+      referencedColumns: ["workspace_id","id"]
     },{
       foreignKeyName: "expenses_workspace_id_fkey"
       columns: ["workspace_id"]
@@ -1999,7 +2023,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "apply_delivery_prices":
+            "append_account_entry":
+{ Args: { "p_account_id": string,"p_ad_spend_id"?: string,"p_amount": number,"p_category_id"?: string,"p_contact_id"?: string,"p_direction": string,"p_expense_id"?: string,"p_note"?: string,"p_occurred_on": string,"p_request_key"?: string }; Returns: string
+                           },
+"apply_delivery_prices":
 { Args: { "p": Json }; Returns: Json
                            },
 "apply_zr_state":
@@ -2115,6 +2142,9 @@ isOneToOne: false
 "pnl_summary":
 { Args: { "p_from"?: string,"p_product"?: string,"p_to"?: string }; Returns: Json
                            },
+"reverse_account_entry":
+{ Args: { "p_entry_id": string,"p_note"?: string,"p_occurred_on": string,"p_request_key": string }; Returns: string
+                           },
 "save_variant_config":
 { Args: { "p_config": Json,"p_product": string }; Returns: undefined
                            },
@@ -2138,6 +2168,9 @@ isOneToOne: false
                            },
 "swap_order":
 { Args: { "p_address": string,"p_commune": string,"p_customer_id": string,"p_customer_name": string,"p_customer_phone": string,"p_order_id": string,"p_wilaya_code": number }; Returns: string
+                           },
+"transfer_account_funds":
+{ Args: { "p_amount_in": number,"p_amount_out": number,"p_from_account_id": string,"p_note"?: string,"p_occurred_on": string,"p_rate_dzd"?: number,"p_request_key": string,"p_to_account_id": string }; Returns: string
                            },
 "transition_order_status":
 { Args: { "p_confirmation_comment"?: string,"p_confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"p_delivery_status"?: Database["public"]['Enums']["delivery_status"],"p_order_id": string }; Returns: boolean

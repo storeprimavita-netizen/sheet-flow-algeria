@@ -1136,6 +1136,12 @@
     "title": "Accounts",
     "subtitle": "Track spending budgets across your accounts",
     "noAccounts": "No accounts yet. Create one to start tracking spending.",
+    "errors": {
+      "systemOnly": "Your workspace already has its three system accounts.",
+      "invalidInput": "Check the account details and try again.",
+      "saveFailed": "Could not save this account.",
+      "topupFailed": "Could not record the top-up. Check the account currency and amount."
+    },
     "fields": {
       "name": "Account name",
       "currency": "Currency",
