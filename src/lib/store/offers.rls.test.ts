@@ -71,7 +71,7 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
     adminA = await userIn(ws, "admin");
     adminB = await userIn(ws2, "admin");
     agent = await userIn(ws, "confirmation_agent");
-    vi.mocked(requireAdminProfile).mockResolvedValue({ workspaceId: ws } as Awaited<ReturnType<typeof requireAdminProfile>>);
+    vi.mocked(requireAdminProfile).mockResolvedValue({ workspaceId: ws, role: "admin" });
     vi.mocked(createServerClient).mockResolvedValue(adminA);
   });
   afterAll(async () => {

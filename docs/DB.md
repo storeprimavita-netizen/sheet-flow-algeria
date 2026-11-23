@@ -126,6 +126,8 @@ only reported by the migration as a NOTICE):
 
 Both functions run as the caller, require the workspace's admin role, and are executable only by authenticated sessions. They use the same advisory lock as `save_variant_config` and validate row ownership and bounded input before writes. An error rolls back the entire save.
 
+The publish and published-relink actions check the effective storefront price when called. A later pricing change can make the page unpriced. The public data layer hides that page until a sellable price returns.
+
 ## Order triggers (00004)
 
 1. `orders_guard_fields` — agents can't cross stages nor touch

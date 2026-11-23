@@ -64,6 +64,50 @@ describe("store actions", () => {
     expect(await linkPageProduct(PAGE, null)).toEqual({ ok: true, id: PAGE });
   });
 
+  test.each([
+    ["missing product", null],
+    ["inactive product", { is_active: false, sale_price: 100 }],
+    ["no base price", { is_active: true, sale_price: null, pricing_mode: "per_variant" }],
+    ["zero plain price", { is_active: true, sale_price: 0, pricing_mode: "uniform" }],
+  ])("publish and published relink refuse %s", async (_label, product) => {
+    tables = { store_pages: { status: "published", product_id: PROD }, products: product };
+    expect(await publishPage(PAGE)).toEqual({ ok: false, error: "needs_product" });
+    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "needs_product" });
+    expect(writes).toEqual([]);
+  });
+
+  test("publish and relink require a positive effective variant price, including when sold out", async () => {
+    const price = { is_active: true, sale_price: 100, compare_at_price: null, pricing_mode: "per_variant", stock: 0, id: PROD };
+    const variant = { id: "variant", is_active: true, stock: 0, price_override: 0, compare_at_override: null };
+    tables = {
+      store_pages: { status: "published", product_id: PROD },
+      products: price,
+      product_options: [{ id: "size", position: 0, name: "Size" }],
+      product_option_values: [{ option_id: "size", id: "medium", price_delta: 0, label: "M" }],
+      product_variant_values: [{ variant_id: "variant", option_id: "size", value_id: "medium" }],
+      product_variants: [variant],
+    };
+    expect(await publishPage(PAGE)).toEqual({ ok: false, error: "needs_product" });
+    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "needs_product" });
+    expect(writes).toEqual([]);
+
+    variant.price_override = 250;
+    expect(await publishPage(PAGE)).toEqual({ ok: true, id: PAGE });
+    expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: true, id: PAGE });
+    expect(eqs).toContainEqual({ table: "products", op: "select", col: "workspace_id", val: "ws-1" });
+
+    variant.stock = 2;
+    expect(await publishPage(PAGE)).toEqual({ ok: true, id: PAGE });
+    tables.products = { ...price, sale_price: null };
+    expect(await publishPage(PAGE)).toEqual({ ok: false, error: "needs_product" });
+    tables.products = price;
+
+    // No active variants uses the base price, just as the public page does.
+    variant.is_active = false;
+    variant.price_override = 0;
+    expect(await publishPage(PAGE)).toEqual({ ok: true, id: PAGE });
+  });
+
   test("linkPageProduct fails on a missing page and throws on a page read error", async () => {
     tables = { store_pages: null, products: { is_active: true, sale_price: 100 } };
     expect(await linkPageProduct(PAGE, PROD)).toEqual({ ok: false, error: "failed" });

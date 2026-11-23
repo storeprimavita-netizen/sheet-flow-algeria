@@ -5,6 +5,7 @@ import { CrumbRecord } from "@/components/breadcrumbs";
 import { ButtonLink } from "@/components/button-link";
 import { PageHeader } from "@/components/page-header";
 import { blocksSchema, seoSchema } from "@/lib/store/blocks";
+import { isProductPublishable } from "@/lib/store/product-pricing";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
@@ -12,7 +13,7 @@ import { PageEditor } from "../../_components/page-editor";
 import { getStore, requireStoreAdmin } from "../../_lib/data";
 
 export default async function StorePageEditor({ params }: { params: Promise<{ id: string }> }) {
-  await requireStoreAdmin();
+  const { workspaceId } = await requireStoreAdmin();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const t = await getTranslations("store.admin");
@@ -24,9 +25,10 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
   if (pageError) throw new Error(pageError.message);
   if (!page || !store) notFound();
 
-  const [{ data: products, error: productsError }, { data: used, error: usedError }] = await Promise.all([
-    supabase.from("products").select("id, name, is_active, sale_price").order("name"),
+  const [{ data: products, error: productsError }, { data: used, error: usedError }, productOk] = await Promise.all([
+    supabase.from("products").select("id, name").order("name"),
     supabase.from("store_pages").select("product_id").eq("store_id", store.id).neq("id", id),
+    page.product_id ? isProductPublishable(supabase, workspaceId, page.product_id) : false,
   ]);
   if (productsError || usedError) throw new Error((productsError ?? usedError)!.message);
   const taken = new Set((used ?? []).map((u) => u.product_id));
@@ -54,7 +56,7 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
           slug: page.slug,
           status: page.status,
           productId: page.product_id,
-          productOk: !!linked && linked.is_active && linked.sale_price !== null,
+          productOk,
           blocks: blocks.success ? blocks.data : [],
           seo: seo.success ? seo.data : {},
         }}

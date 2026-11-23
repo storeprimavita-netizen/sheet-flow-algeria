@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireAdminProfile } from "@/lib/rbac";
 import { blocksSchema, seoSchema } from "@/lib/store/blocks";
+import { isProductPublishable } from "@/lib/store/product-pricing";
 import { isVerifiedOrder } from "@/lib/store/reviews";
 import { invalidateStorePublic } from "@/lib/store/invalidate";
 import { storeSettingsSchema } from "@/lib/store/settings";
@@ -130,7 +131,7 @@ export async function linkPageProduct(pageId: string, productId: string | null):
   const { data: page, error: pageError } = await supabase.from("store_pages").select("status").eq("id", ids.data.pageId).eq("workspace_id", workspaceId).maybeSingle();
   if (pageError) throw new Error(`linkPageProduct: ${pageError.message}`);
   if (!page) return fail("failed");
-  if (page.status === "published" && (!ids.data.productId || !(await assertPublishable(supabase, ids.data.productId)))) return fail("needs_product");
+  if (page.status === "published" && (!ids.data.productId || !(await isProductPublishable(supabase, workspaceId, ids.data.productId)))) return fail("needs_product");
   const { data, error } = await supabase
     .from("store_pages")
     .update({ product_id: ids.data.productId })
@@ -144,13 +145,6 @@ export async function linkPageProduct(pageId: string, productId: string | null):
   return { ok: true, id: pageId };
 }
 
-/** A page can only answer 200 when its product is active and priced. */
-async function assertPublishable(supabase: Awaited<ReturnType<typeof createClient>>, productId: string): Promise<boolean> {
-  const { data: pr, error } = await supabase.from("products").select("is_active, sale_price").eq("id", productId).maybeSingle();
-  if (error) throw new Error(`assertPublishable: ${error.message}`);
-  return !!pr?.is_active && pr.sale_price !== null;
-}
-
 async function setPublished(pageId: string, publish: boolean): Promise<StoreResult> {
   const { workspaceId } = await requireAdminProfile();
   const id = uuid.safeParse(pageId);
@@ -161,7 +155,7 @@ async function setPublished(pageId: string, publish: boolean): Promise<StoreResu
     // the UI disables Publish, but a direct call must not publish a page that would answer 404
     const { data: pg, error: pgError } = await supabase.from("store_pages").select("product_id").eq("id", id.data).eq("workspace_id", workspaceId).maybeSingle();
     if (pgError) throw new Error(`setPublished: ${pgError.message}`);
-    if (!pg?.product_id || !(await assertPublishable(supabase, pg.product_id))) return fail("needs_product");
+    if (!pg?.product_id || !(await isProductPublishable(supabase, workspaceId, pg.product_id))) return fail("needs_product");
     productId = pg.product_id;
   }
   let update = supabase
