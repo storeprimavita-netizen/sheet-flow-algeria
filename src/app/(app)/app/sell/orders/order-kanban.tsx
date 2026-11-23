@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { OrderNo } from "@/components/order-no";
 import { Empty } from "@/components/empty";
 import { PhoneLinks } from "@/components/phone-links";
+import { CustomerRisk, CustomerScoreCard } from "../confirmation/customer-score-card";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusPill } from "@/components/status-pill";
 import { useStatusLabel } from "@/components/status-labels-provider";
@@ -51,9 +52,10 @@ function cardValue(row: KanbanRow, field: KanbanField): ReactNode {
 }
 
 export function OrderKanban({
-  scope, rows, presentation, isAdmin, empty,
+  scope, rows, presentation, isAdmin, empty, customerScoreScope,
 }: {
   scope: ViewScope;
+  customerScoreScope?: string | null;
   rows: KanbanRow[];
   presentation: ViewPresentation;
   isAdmin: boolean;
@@ -186,7 +188,9 @@ export function OrderKanban({
                               ) : null}
                               {loading ? <LoaderCircle aria-label={t("orderViews.board.moving")} className="ms-auto size-4 animate-spin motion-reduce:animate-none" /> : null}
                             </div>
-                            <bdi className="block truncate" title={row.customerName ?? undefined}>{row.customerName ?? "—"}</bdi>
+                            {scope === "confirmation" && customerScoreScope ? (
+                              <CustomerScoreCard scope={customerScoreScope} orderId={row.id} name={row.customerName} />
+                            ) : <bdi className="block truncate" title={row.customerName ?? undefined}>{row.customerName ?? "—"}</bdi>}
                             {row.customerPhone ? <PhoneLinks phone={row.customerPhone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
                             {row.swappedTo ? <SwapBadge to={row.swappedTo} /> : null}
                             {cardFields.length ? (
@@ -197,7 +201,9 @@ export function OrderKanban({
                                       field === "total" && scope === "shipping" ? t("orders.toCollect") :
                                         field === "score" && !isAdmin ? t("orderViews.board.visibleScore") : t(`orderViews.card.${field}`)
                                     }</dt>
-                                    <dd className="min-w-0 break-words text-end [font-variant-numeric:tabular-nums]">{cardValue(row, field) ?? "—"}</dd>
+                                    <dd className="min-w-0 break-words text-end [font-variant-numeric:tabular-nums]">{field === "score" && scope === "confirmation" && row.customerRisk !== undefined
+                                      ? <CustomerRisk summary={row.customerRisk} scoped={!isAdmin} />
+                                      : cardValue(row, field) ?? "—"}</dd>
                                   </div>
                                 ))}
                               </dl>

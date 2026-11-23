@@ -3,6 +3,7 @@ import {
   type ViewPresentation, type ViewScope,
 } from "@/lib/order-views";
 import { allStatuses, getStatus, statusOptionsFor } from "@/lib/statuses";
+import type { ScoreSummary } from "../../confirmation/_lib/customer-score";
 import type { SwapTo } from "./swap-links";
 
 export type KanbanStage = "confirmation" | "delivery";
@@ -21,6 +22,7 @@ export type KanbanRow = {
   total?: number;
   age?: string;
   score?: { value: number; reason?: string };
+  customerRisk?: ScoreSummary | null;
   locked?: boolean;
   swappedTo?: SwapTo | null;
   duplicate?: boolean;

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { AutoTextarea } from "@/components/fields/auto-textarea";
 import { StatusPill } from "@/components/status-pill";
-import { RiskBadge } from "@/components/risk-badge";
+import { CustomerRisk } from "./customer-score-card";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { allStatuses, getStatus } from "@/lib/statuses";
 import { whatsappHref } from "@/lib/customers";
@@ -126,10 +126,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
 
       {/* risk + dial count */}
       <div className="flex flex-wrap items-center gap-2">
-        <RiskBadge score={order.risk_score} reason={order.risk_reason} size="md" />
-        <Chip token="neutral" size="sm">
-          {t("fields.deliveryRate")}: <span className="num">{order.delivery_rate}</span>
-        </Chip>
+        <CustomerRisk summary={order.risk} scoped={order.scopedHistory} />
         <Chip token="neutral" size="sm" icon={<Phone className="h-3 w-3" />}>
           {t("orders.logAttempt")}: <span className="num">{order.confirmation_attempts}</span>
         </Chip>

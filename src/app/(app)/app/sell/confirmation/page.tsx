@@ -1,8 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin } from "@/lib/rbac";
-import { customerDeliveryRate } from "@/lib/customers";
+import { getProfile, getUser } from "@/lib/rbac";
+import { customerScoreScope, scoreSummary } from "./_lib/customer-score";
 import { formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
@@ -32,7 +32,11 @@ export default async function ConfirmationQueuePage({
   const showAll = sp.show === "all";
   const t = await getTranslations();
   const supabase = await createClient();
-  const isAdmin = await isCurrentUserAdmin();
+  const [profile, user] = await Promise.all([getProfile(), getUser()]);
+  const isAdmin = profile?.role === "admin";
+  const scoreScope = user && profile && (isAdmin || profile.role === "confirmation_agent")
+    ? customerScoreScope(user.id, profile.workspaceId, profile.role)
+    : null;
 
   // Default = actionable only (same list as the sidebar badge); "show closed"
   // adds cancelled. Confirmed orders live in the delivery queue.
@@ -57,7 +61,7 @@ export default async function ConfirmationQueuePage({
 
   const [{ data: stats }, { data: history }] = await Promise.all([
     customerIds.length
-      ? supabase.from("customer_stats").select("*").in("id", customerIds)
+      ? supabase.from("customer_stats").select("id, total_orders, risk_score, risk_state, risk_reason, returned_orders, cancelled_orders, no_answer_orders").in("id", customerIds)
       : Promise.resolve({ data: [] as never[] }),
     customerIds.length
       ? supabase
@@ -82,9 +86,15 @@ export default async function ConfirmationQueuePage({
     const recent = (o.customer_id ? historyByCustomer.get(o.customer_id) ?? [] : [])
       .filter((h) => h.id !== o.id)
       .slice(0, 5);
-    const returned = stat?.returned_orders ?? 0;
-    const cancelled = stat?.cancelled_orders ?? 0;
-    const total = stat?.total_orders ?? 0;
+    const risk = scoreSummary.safeParse({
+      score: stat?.risk_score,
+      state: stat?.risk_state,
+      reason: stat?.risk_reason,
+      total: stat?.total_orders,
+      returned: stat?.returned_orders,
+      cancelled: stat?.cancelled_orders,
+      noAnswer: stat?.no_answer_orders,
+    });
     return {
       id: o.id,
       order_seq: o.order_seq,
@@ -101,9 +111,8 @@ export default async function ConfirmationQueuePage({
       placed_at: o.placed_at,
       is_duplicate_suspect: o.is_duplicate_suspect ?? false,
       duplicate_of: o.duplicate_of,
-      risk_score: stat?.risk_score ?? 0,
-      risk_reason: t("orders.riskReason", { total, returned, cancelled }),
-      delivery_rate: customerDeliveryRate(stat)?.label ?? "—",
+      risk: risk.success ? risk.data : null,
+      scopedHistory: !isAdmin,
       recent,
       // shipped orders: agents may not log attempts (DB already blocks writes, 00025)
       locked: !isAdmin && (o.delivery_status !== "wait_for_deposit" || (Array.isArray(o.zr) ? o.zr.length > 0 : !!o.zr)),
@@ -115,7 +124,6 @@ export default async function ConfirmationQueuePage({
     const locale = await getLocale();
     for (const [index, order] of orders.entries()) {
       const row = rows[index];
-      const score = order.customer_id ? statById.get(order.customer_id)?.risk_score : null;
       boardRows.push({
         id: row.id, orderSeq: row.order_seq, customerName: row.customer_name, customerPhone: row.customer_phone,
         productId: order.product_id, productName: row.product_name,
@@ -123,7 +131,7 @@ export default async function ConfirmationQueuePage({
         status: row.confirmation_status, locked: row.locked || order.delivery_status === "swap",
         duplicate: row.is_duplicate_suspect, attempts: row.confirmation_attempts,
         total: (row.sale_price ?? 0) * row.quantity, age: formatRelativeTime(row.placed_at, locale),
-        score: score == null ? undefined : { value: score, reason: row.risk_reason },
+        customerRisk: row.risk,
       });
     }
   }
@@ -170,11 +178,11 @@ export default async function ConfirmationQueuePage({
       {ordersError ? <OrderBoardLoadError /> : presentation.layout === "kanban" ? (
         <div className="min-w-0 space-y-3">
           <NewOrdersPill />
-          <OrderKanban scope="confirmation" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
+          <OrderKanban scope="confirmation" rows={boardRows} presentation={presentation} isAdmin={isAdmin} customerScoreScope={scoreScope}
             empty={<OrderBoardEmpty scope="confirmation" filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
               resetHref={boardResetHref("/app/sell/confirmation", sp, active?.config, presentation)} />} />
         </div>
-      ) : <ConfirmationTable rows={rows} />}
+      ) : <ConfirmationTable rows={rows} scoreScope={scoreScope} />}
     </div>
   );
 }

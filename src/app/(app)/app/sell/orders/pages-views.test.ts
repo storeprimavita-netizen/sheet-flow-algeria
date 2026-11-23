@@ -15,7 +15,7 @@ function builder(table: string): Record<string, unknown> {
 
 vi.mock("next-intl/server", () => ({ getLocale: async () => "en", getTranslations: async () => (k: string) => k }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: (t: string) => builder(t) }) }));
-vi.mock("@/lib/rbac", () => ({ isCurrentUserAdmin: async () => false, requireProfile: async () => ({ workspaceId: "ws" }) }));
+vi.mock("@/lib/rbac", () => ({ isCurrentUserAdmin: async () => false, getProfile: async () => ({ role: "confirmation_agent", workspaceId: "ws" }), getUser: async () => ({ id: "user" }), requireProfile: async () => ({ workspaceId: "ws" }) }));
 vi.mock("@/lib/option-sets", () => ({ getOptionSet: async () => [] }));
 vi.mock("../_lib/swap-links", () => ({ swapTargets: async () => new Map() }));
 vi.mock("./_lib/swap-links", () => ({ swapTargets: async () => new Map() }));
