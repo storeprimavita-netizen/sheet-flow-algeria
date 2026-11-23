@@ -8,6 +8,17 @@ owner may overturn").
 
 ## Open
 
+### Q-31 · STORE-4 · 2026-11-23
+
+A buyer accepts three pieces for 10,000 DZD, then calls before dispatch and asks for two. What merchandise total should an admin record for the revised order?
+
+- **Recommended.** Quote the two selected pieces using the current store prices and applicable offer. Show the new total to the admin and save it once the buyer agrees.
+- Let the admin enter the exact merchandise total agreed with the buyer, including a negotiated amount. Show the original checkout total alongside the revision.
+
+The initial 10,000 DZD charge follows D61 and D99. D14 counts that amount as merchandise revenue at delivery and adds the delivery fee separately for collection. D99 records the actual sizes on individual lines so stock follows each piece. A confirmation agent can see size, quantity and COD details for orders already visible to them. The existing database guard in `00025_agent_permission_matrix.sql` permits confirmation-field edits only. CONF-6 separately covers applying a configured offer during the call. Admins can change an order’s size today, and the database allows them to edit quantity and price. Freezing all store orders would narrow that admin capability.
+
+STORE-4 is waiting on the rule for a revised basket. Until the owner chooses, the accepted quote stands and checkout implementation remains parked. The original checkout receipt preserves what the buyer first accepted under either option.
+
 ### Q-30 · P1-1-F · 2026-11-22
 
 If ads started on 1 June and the first order arrived on 5 June, which costs should the all-time profit report include for 1–4 June? Today the report starts on 5 June and misses those four days of ads.
