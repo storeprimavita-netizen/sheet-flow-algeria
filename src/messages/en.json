@@ -2020,6 +2020,20 @@
       "age": "Order age",
       "score": "Customer score"
     },
+    "board": {
+      "label": "Order board",
+      "moveOrder": "Change status for order {order}",
+      "confirmMove": "Confirm change",
+      "moving": "Updating order",
+      "missingGroup": "Not specified",
+      "carrierWarning": "Status updated. Sending the order to ZR Express needs attention.",
+      "error": {
+        "invalid": "This status change is invalid.",
+        "locked": "This order can no longer be moved here.",
+        "forbidden": "You cannot change this order.",
+        "failed": "The status could not be changed. Try again."
+      }
+    },
     "seed": {
       "kanban_by_status": "Kanban by status",
       "new": "New",
