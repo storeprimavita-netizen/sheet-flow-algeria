@@ -53,3 +53,5 @@ STORE-3-F · `00087_selling_transactions.sql` · align admin RPC offer-label val
 CONF-2 · `00088_order_view_kanban.sql` · enforce the display-only swap rule under the row lock on the status-only path (review 1)
 CONF-2 · `sell/orders/actions.ts` · use stable codes for translated board move rejections (review 1)
 CONF-2 · `sell/orders/order-kanban.tsx` · clear a stale move error after server props report a different card status (review 1)
+CONF-3 · Confirmation score row and card · distinguish the absence of a saved link, a phone match and a parse error (review 2)
+CONF-3 · customer score queries · consider reuse of scoped delivery statistics when several cards refer to the same customer (review 2)
