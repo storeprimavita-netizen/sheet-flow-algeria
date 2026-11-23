@@ -2134,6 +2134,9 @@ isOneToOne: false
 "chart_range_ok":
 { Args: { "p_from": string,"p_to": string }; Returns: boolean
                            },
+"confirmation_customer_score":
+{ Args: { "p_order_id": string }; Returns: Json
+                           },
 "current_app_role":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
