@@ -46,3 +46,4 @@ MONEY-1 · expense and ad-spend actions · translate the debit currency constrai
 STATS-1 · `00086_customer_score.sql:5` · use an indexed last-order lookup if name and phone filtering spends too much on history ranking (review 1)
 STATS-1 · `00086_customer_score.sql:63` · keep delivery analytics reads under a bounded customer scope (review 1)
 STATS-1 · customer analytics views · document that callers use the user session client to preserve RLS and scope labels (review 1)
+MONEY-1 · Settings → Options · add the missing money category heading in Arabic (`settings.options.sets.money_category`, observed during VAR-1-B review 1)
