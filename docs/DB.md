@@ -118,6 +118,14 @@ Owner post-push check (expect 0 rows for postgres-owned functions; others are
 only reported by the migration as a NOTICE):
 `select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and has_function_privilege('anon',p.oid,'execute');`
 
+## Selling transactions (00087, STORE-3-F)
+
+`save_product_pricing` saves the price mode, compare price, option deltas and variant overrides in one transaction. It clears every delta outside per-value mode and every override outside per-variant mode.
+
+`save_product_offers` replaces the product's quantity-offer list and bump in one transaction. Existing quantity IDs identify rows of the same product and kind. New rows receive IDs that are returned in input order. Updating the bump preserves its ID.
+
+Both functions run as the caller, require the workspace's admin role, and are executable only by authenticated sessions. They use the same advisory lock as `save_variant_config` and validate row ownership and bounded input before writes. An error rolls back the entire save.
+
 ## Order triggers (00004)
 
 1. `orders_guard_fields` — agents can't cross stages nor touch
