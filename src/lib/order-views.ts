@@ -15,6 +15,13 @@ export const SORT_COLUMNS: Record<string, string> = {
 export const VIEW_SCOPES = ["confirmation", "shipping", "all"] as const;
 export type ViewScope = (typeof VIEW_SCOPES)[number];
 export const MAX_VIEWS_PER_GROUP = 20;
+export const VIEW_LAYOUTS = ["table", "kanban"] as const;
+export const KANBAN_GROUPS = ["status", "attempts", "wilaya", "product"] as const;
+export const KANBAN_FIELDS = ["product", "wilaya", "total", "attempts", "age", "score"] as const;
+export type ViewLayout = (typeof VIEW_LAYOUTS)[number];
+export type KanbanGroup = (typeof KANBAN_GROUPS)[number];
+export type KanbanField = (typeof KANBAN_FIELDS)[number];
+export type ViewPresentation = { layout: ViewLayout; groupBy: KanbanGroup; cardFields: KanbanField[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,6 +49,8 @@ export type FilterKey = (typeof FILTER_KEYS)[number];
 export const viewConfigSchema = z.object({
   ...keySchemas,
   columns: z.array(z.string().max(40)).max(40),
+  groupBy: z.enum(KANBAN_GROUPS),
+  cardFields: z.array(z.enum(KANBAN_FIELDS)).max(KANBAN_FIELDS.length),
 }).partial();
 export type ViewConfig = z.infer<typeof viewConfigSchema>;
 
@@ -57,14 +66,57 @@ export function parseViewConfig(raw: unknown): ViewConfig {
     const r = keySchemas[k].safeParse(v);
     if (r.success) out[k] = r.data;
   }
-  const cols = viewConfigSchema.shape.columns.safeParse((raw as Raw).columns);
-  if (cols.success && cols.data) out.columns = cols.data;
+  for (const key of ["columns", "groupBy", "cardFields"] as const) {
+    const result = viewConfigSchema.shape[key].safeParse((raw as Raw)[key]);
+    if (result.success && result.data !== undefined) out[key] = result.data;
+  }
   return out as ViewConfig;
 }
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
+export function availableKanbanFields(scope: ViewScope, isAdmin: boolean): readonly KanbanField[] {
+  if (scope === "confirmation") return KANBAN_FIELDS;
+  if (scope === "shipping") return isAdmin ? ["product", "wilaya", "total", "attempts", "age"] : ["product", "wilaya", "total", "age"];
+  return isAdmin ? KANBAN_FIELDS : ["product", "wilaya", "attempts", "age", "score"];
+}
+
+export function availableKanbanGroups(scope: ViewScope, isAdmin: boolean): readonly KanbanGroup[] {
+  return scope === "shipping" && !isAdmin ? ["status", "wilaya", "product"] : KANBAN_GROUPS;
+}
+
+export function viewPresentation(
+  scope: ViewScope,
+  isAdmin: boolean,
+  view: Pick<OrderViewDto, "layout" | "config"> | null,
+  sp: SearchParams = {},
+): ViewPresentation {
+  const layout = z.enum(VIEW_LAYOUTS).safeParse(first(sp.layout));
+  const group = viewConfigSchema.shape.groupBy.safeParse(first(sp.groupBy));
+  const urlFields = typeof sp.cardFields === "string" ? sp.cardFields.split(",").filter(Boolean) : undefined;
+  const fields = viewConfigSchema.shape.cardFields.safeParse(urlFields);
+  const allowed = availableKanbanFields(scope, isAdmin);
+  const groupBy = group.data ?? view?.config.groupBy ?? "status";
+  const defaults: KanbanField[] = scope === "confirmation" ? ["product", "attempts", "score"] : ["product", "wilaya", "total"];
+  return {
+    layout: layout.success ? layout.data : view?.layout ?? (scope === "shipping" && sp.view === "kanban" ? "kanban" : "table"),
+    groupBy: availableKanbanGroups(scope, isAdmin).includes(groupBy) ? groupBy : "status",
+    cardFields: [...new Set(fields.data ?? view?.config.cardFields ?? defaults)].filter((field) => allowed.includes(field)),
+  };
+}
+
+export function presentationDirty(saved: ViewPresentation, current: ViewPresentation) {
+  return saved.layout !== current.layout || saved.groupBy !== current.groupBy ||
+    saved.cardFields.join(",") !== current.cardFields.join(",");
+}
+
+export function serializePresentation(params: URLSearchParams, { layout, groupBy, cardFields }: ViewPresentation) {
+  params.set("layout", layout);
+  params.set("groupBy", groupBy);
+  params.set("cardFields", cardFields.join(","));
+  return params;
+}
 /** URL string -> typed value (undefined when empty or invalid). */
 function parseUrlValue(key: FilterKey, s: string): unknown {
   if (!s) return undefined;
@@ -150,10 +202,11 @@ export type OrderViewDto = {
   seed_key: string | null;
   shared: boolean;
   position: number;
+  layout: ViewLayout;
   config: ViewConfig;
 };
 
-export const SEED_NAMES: Record<string, string> = { new: "New", no_answer: "No answer", duplicates: "Duplicates" };
+export const SEED_NAMES: Record<string, string> = { new: "New", no_answer: "No answer", duplicates: "Duplicates", kanban_by_status: "Kanban by status" };
 
 /** Seeded views show a translated name until an admin renames them. */
 export function isUnrenamedSeed(v: Pick<OrderViewDto, "seed_key" | "name">): boolean {

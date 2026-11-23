@@ -1,19 +1,24 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin } from "@/lib/rbac";
 import { customerDeliveryRate } from "@/lib/customers";
+import { formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
 import { OrderTabs } from "../orders/order-tabs";
-import { effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation, serializeConfig } from "@/lib/order-views";
 import { applyOrderConfig, orderSort, ROW_LIMIT } from "../orders/_lib/order-query";
 import { listViews, resolveView } from "../orders/_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../orders/view-tabs";
 import { QueueFilterBar } from "../orders/queue-filter-bar";
 import { CONFIRMATION_STATUSES } from "@/lib/enums";
 import { ConfirmationTable, type ConfRow } from "./confirmation-table";
+import { NewOrdersPill } from "./new-orders-pill";
+import { OrderBoardLoadError, OrderKanban } from "../orders/order-kanban";
+import { OrderBoardEmpty } from "../orders/order-board-empty";
+import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_lib/kanban";
 
 const rest = (sp: Record<string, string | string[] | undefined>) =>
   new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
@@ -34,17 +39,19 @@ export default async function ConfirmationQueuePage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product:products(name), zr:zr_shipments(order_id)",
+      "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product_id, wilaya_code, product:products(name), wilaya:wilayas(name), zr:zr_shipments(order_id)",
     );
   const viewsResult = await listViews("confirmation");
   const { active, invalid } = resolveView(viewsResult.views, sp.view);
   const cfg = effectiveConfig(active?.config ?? null, sp);
+  const presentation = viewPresentation("confirmation", isAdmin, active, sp);
+  const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("confirmation", isAdmin, active), presentation));
   query = applyOrderConfig(query, cfg);
   // oldest first unless the view sorts; the page's own filter below is applied last, so a view can only narrow
   const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
   query = query.order(sort.column, { ascending: sort.ascending });
   query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
-  const { data: orders } = await query;
+  const { data: orders, error: ordersError } = await query;
 
   const customerIds = [...new Set((orders ?? []).map((o) => o.customer_id).filter((id): id is string => !!id))];
 
@@ -103,13 +110,33 @@ export default async function ConfirmationQueuePage({
     };
   });
 
+  const boardRows: KanbanRow[] = [];
+  if (presentation.layout === "kanban" && orders) {
+    const locale = await getLocale();
+    for (const [index, order] of orders.entries()) {
+      const row = rows[index];
+      const score = order.customer_id ? statById.get(order.customer_id)?.risk_score : null;
+      boardRows.push({
+        id: row.id, orderSeq: row.order_seq, customerName: row.customer_name, customerPhone: row.customer_phone,
+        productId: order.product_id, productName: row.product_name,
+        wilayaCode: order.wilaya_code, wilayaName: order.wilaya?.name ?? null,
+        status: row.confirmation_status, locked: row.locked || order.delivery_status === "swap",
+        duplicate: row.is_duplicate_suspect, attempts: row.confirmation_attempts,
+        total: (row.sale_price ?? 0) * row.quantity, age: formatRelativeTime(row.placed_at, locale),
+        score: score == null ? undefined : { value: score, reason: row.risk_reason },
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("nav.confirmation")}
         subtitle={t("navPurpose.confirmation")}
         related={isAdmin ? [{ href: "/app/sell/shipping", label: t("nav.shipping") }] : undefined}
       >
-        <ButtonLink href={showAll ? "/app/sell/confirmation" : "/app/sell/confirmation?show=all"} variant="outline" size="sm">
+        <ButtonLink href={presentation.layout === "kanban"
+          ? boardShowClosedHref("/app/sell/confirmation", sp)
+          : showAll ? "/app/sell/confirmation" : "/app/sell/confirmation?show=all"} variant="outline" size="sm">
           {showAll ? t("orders.showActionable") : t("orders.showClosed")}
         </ButtonLink>
       </PageHeader>
@@ -119,24 +146,35 @@ export default async function ConfirmationQueuePage({
         views={viewsResult.views}
         activeId={active?.id ?? null}
         effective={cfg}
-        dirty={active ? isDirty(active.config, sp) : false}
+        dirty={dirty}
+        presentation={presentation}
         isAdmin={isAdmin}
         loadError={!!viewsResult.error}
         keep={showAll ? "show=all" : ""}
       />
       {invalid ? <InvalidViewNotice rest={rest(sp)} /> : null}
       <QueueFilterBar
+        scope="confirmation"
+        presentation={presentation}
+        isAdmin={isAdmin}
         statusKey="confirmation_status"
         statusLabel={t("fields.confirmation_status")}
         statusOptions={CONFIRMATION_STATUSES.filter((s) => s !== "confirmed" && (showAll || (ACTIONABLE_CONFIRMATION as readonly string[]).includes(s))).map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }))}
         q={cfg.q ?? ""}
         status={serializeConfig(cfg).get("confirmation_status") ?? ""}
-        viewKeys={Object.keys(active?.config ?? {})}
+        viewKeys={FILTER_KEYS.filter((key) => active?.config[key] !== undefined)}
       />
       {(orders ?? []).length >= ROW_LIMIT ? (
         <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
       ) : null}
-      <ConfirmationTable rows={rows} />
+      {ordersError ? <OrderBoardLoadError /> : presentation.layout === "kanban" ? (
+        <div className="min-w-0 space-y-3">
+          <NewOrdersPill />
+          <OrderKanban scope="confirmation" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
+            empty={<OrderBoardEmpty scope="confirmation" filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
+              resetHref={boardResetHref("/app/sell/confirmation", sp, active?.config, presentation)} />} />
+        </div>
+      ) : <ConfirmationTable rows={rows} />}
     </div>
   );
 }

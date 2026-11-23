@@ -50,3 +50,6 @@ MONEY-1 · Settings → Options · add the missing money category heading in Ara
 STORE-3-F · Selling offers · offer a translated reload instruction after stale-row rejection (review 1)
 STORE-3-F · Selling actions · distinguish bump candidate rejection with a specific error discriminator (review 1)
 STORE-3-F · `00087_selling_transactions.sql` · align admin RPC offer-label validation with the form’s emoji cleanup (review 1)
+CONF-2 · `00088_order_view_kanban.sql` · enforce the display-only swap rule under the row lock on the status-only path (review 1)
+CONF-2 · `sell/orders/actions.ts` · use stable codes for translated board move rejections (review 1)
+CONF-2 · `sell/orders/order-kanban.tsx` · clear a stale move error after server props report a different card status (review 1)

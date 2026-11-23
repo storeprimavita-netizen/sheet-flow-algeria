@@ -18,7 +18,8 @@ import { getStatus, ORDER_SOURCE_TOKEN, type StatusToken } from "@/lib/statuses"
 
 export type Opt = { value: string; label: string; token?: StatusToken };
 
-import { CLEARED } from "@/lib/order-views";
+import { CLEARED, serializePresentation, type ViewPresentation } from "@/lib/order-views";
+import { ViewPresentationControls } from "./view-presentation-controls";
 
 const ALL = CLEARED; // Radix Select needs a non-empty sentinel for the "All" row; same marker clears a view filter in the URL
 
@@ -32,6 +33,8 @@ export function OrdersFilterBar({
   categories,
   drill,
   dropped,
+  presentation,
+  isAdmin,
 }: {
   products: Opt[];
   wilayas: Opt[];
@@ -44,6 +47,8 @@ export function OrdersFilterBar({
   /** Statistics-only filters, already checked by the page. */
   drill: DrillFilters;
   dropped: DrillKey[];
+  presentation: ViewPresentation;
+  isAdmin: boolean;
 }) {
   const t = useTranslations();
   const statusLabel = useStatusLabel();
@@ -84,6 +89,7 @@ export function OrdersFilterBar({
   function clearAll() {
     const next = new URLSearchParams();
     if (sp.get("view")) next.set("view", sp.get("view")!);
+    serializePresentation(next, presentation);
     for (const k of viewKeys) next.set(k, CLEARED);
     router.push(next.size ? `${pathname}?${next.toString()}` : pathname, { scroll: false });
   }
@@ -181,6 +187,10 @@ export function OrdersFilterBar({
           <Copy className="h-3.5 w-3.5" />
           {t("orders.duplicatesOnly")}
         </Button>
+        <ViewPresentationControls scope="all" isAdmin={isAdmin} presentation={presentation} onChange={(value) => {
+          const next = serializePresentation(new URLSearchParams(sp.toString()), value);
+          router.push(`${pathname}?${next.toString()}`, { scroll: false });
+        }} />
       </div>
       {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">

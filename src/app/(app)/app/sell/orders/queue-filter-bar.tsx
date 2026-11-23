@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { SearchParamInput, type SearchBoxHandle } from "@/components/fields/search-param-input";
-import { CLEARED } from "@/lib/order-views";
+import { CLEARED, serializePresentation, type ViewPresentation, type ViewScope } from "@/lib/order-views";
+import { ViewPresentationControls } from "./view-presentation-controls";
 
 export type QueueStatusOpt = { value: string; label: string };
 
@@ -18,6 +19,9 @@ export function QueueFilterBar({
   q,
   status,
   viewKeys,
+  scope,
+  presentation,
+  isAdmin,
 }: {
   statusKey: "confirmation_status" | "delivery_status";
   statusLabel: string;
@@ -26,6 +30,9 @@ export function QueueFilterBar({
   q: string;
   status: string;
   viewKeys: string[];
+  scope: ViewScope;
+  presentation: ViewPresentation;
+  isAdmin: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -45,6 +52,13 @@ export function QueueFilterBar({
   }
 
   const selected = statusOptions.find((o) => o.value === status);
+  function changePresentation(value: ViewPresentation) {
+    const next = serializePresentation(new URLSearchParams(sp.toString()), value);
+    if (scope === "shipping" && next.get("view") === "kanban") next.delete("view");
+    box.current?.mergeInto(next);
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  }
+
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="min-w-48 flex-1">
@@ -66,6 +80,7 @@ export function QueueFilterBar({
           </SelectContent>
         </Select>
       </label>
+      <ViewPresentationControls scope={scope} isAdmin={isAdmin} presentation={presentation} onChange={changePresentation} />
     </div>
   );
 }

@@ -54,7 +54,63 @@ export async function updateOrderStatus(params: {
     p_confirmation_comment: stage === "confirmation" ? comment || undefined : undefined,
   });
   if (error) return { ok: false, error: error.message };
+  return finishStatusUpdate(orderId, stage, status, changed);
+}
+
+const boardMoveSchema = z.discriminatedUnion("stage", [
+  z.object({ orderId: z.string().uuid(), stage: z.literal("confirmation"), status: z.enum(CONFIRMATION_STATUSES) }),
+  z.object({ orderId: z.string().uuid(), stage: z.literal("delivery"), status: z.enum(MANUAL_DELIVERY_STATUSES) }),
+]);
+
+export type BoardMoveResult =
+  | { ok: true; warning: boolean }
+  | { ok: false; error: "invalid" | "locked" | "forbidden" | "failed" };
+
+export async function moveOrderOnBoard(input: unknown): Promise<BoardMoveResult> {
+  const parsed = boardMoveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { orderId, stage, status } = parsed.data;
+  const profile = await getProfile();
+  if (profile?.role !== "admin" && !(profile?.role === "confirmation_agent" && stage === "confirmation")) {
+    return { ok: false, error: "forbidden" };
+  }
+  const supabase = await createClient();
+  const { data: order, error: readError } = await supabase.from("orders")
+    .select("delivery_status").eq("id", orderId).eq("workspace_id", profile.workspaceId).maybeSingle();
+  if (readError) return { ok: false, error: "failed" };
+  if (!order) return { ok: false, error: "forbidden" };
+  if (order.delivery_status === "swap") return { ok: false, error: "locked" };
+
+  // Generated RPC types omit SQL nullability. The overload requires these keys
+  // to be present, and consumes null statuses and note under the order lock.
+  const { data: changed, error } = await supabase.rpc("transition_order_status", {
+    p_order_id: orderId,
+    p_confirmation_status: (stage === "confirmation" ? status : null) as Enums<"confirmation_status">,
+    p_delivery_status: (stage === "delivery" ? status : null) as Enums<"delivery_status">,
+    p_confirmation_comment: null as unknown as string,
+    p_preserve_confirmation_comment: true,
+  });
+  if (error) {
+    if (error.message === "order already handed to delivery") return { ok: false, error: "locked" };
+    if (error.message === "order not found" || error.message.startsWith("not authorized") || error.message.includes("confirmation queue")) {
+      return { ok: false, error: "forbidden" };
+    }
+    return { ok: false, error: "failed" };
+  }
+  revalidatePath("/app/sell/confirmation");
+  revalidatePath("/app/sell/shipping");
+  const result = await finishStatusUpdate(orderId, stage, status, changed);
+  return { ok: true, warning: !!result.warning };
+}
+
+async function finishStatusUpdate(
+  orderId: string,
+  stage: "confirmation" | "delivery",
+  status: string,
+  changed: boolean | null,
+): Promise<Extract<UpdateResult, { ok: true }>> {
   markStorePublicStale(); // order status moves stock, which the public page shows
+  let warning: string | undefined;
 
   // ⚡ Auto-push to ZR on confirm (Settings → ZR Express, default off). Runs
   // with the service role: the confirming agent can't read the ZR API key
@@ -74,15 +130,14 @@ export async function updateOrderStatus(params: {
     if (profile?.workspaceId && SETTINGS_SCHEMAS.zr_auto_push.safeParse(flag?.value).data?.enabled) {
       const pushed = await pushToZR(admin, profile.workspaceId, orderId);
       if (!pushed.ok && !pushed.error.includes("already sent")) {
-        revalidatePath(`/app/sell/orders/${orderId}`);
-        return { ok: true, warning: `ZR Express: ${pushed.error}` };
+        warning = `ZR Express: ${pushed.error}`;
       }
     }
   }
 
   revalidatePath(`/app/sell/orders/${orderId}`);
   revalidatePath("/app/sell/orders");
-  return { ok: true };
+  return warning ? { ok: true, warning } : { ok: true };
 }
 
 /**

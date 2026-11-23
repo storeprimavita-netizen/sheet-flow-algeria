@@ -12,7 +12,7 @@ const DELETED = "44444444-4444-4444-8444-444444444444";
 // what the session client can see for scope "all": RLS already removed other people's private views,
 // the scope filter removed other scopes, and a deleted view is simply gone
 const visible: OrderViewDto[] = [
-  { id: A, name: "Mine", emoji: null, scope: "all", seed_key: null, shared: false, position: 0, config: { duplicates: "1" } },
+  { id: A, name: "Mine", emoji: null, scope: "all", seed_key: null, shared: false, position: 0, layout: "table", config: { duplicates: "1" } },
 ];
 
 describe("resolveView", () => {
@@ -23,6 +23,10 @@ describe("resolveView", () => {
   test("no param is Default, not invalid", () => {
     expect(resolveView(visible, undefined)).toEqual({ active: null, invalid: false });
     expect(resolveView(visible, "")).toEqual({ active: null, invalid: false });
+  });
+  test("only Shipping recognizes the legacy Kanban alias", () => {
+    expect(resolveView([], "kanban", "shipping")).toEqual({ active: null, invalid: false });
+    expect(resolveView([], "kanban", "confirmation")).toEqual({ active: null, invalid: true });
   });
   test.each([
     ["another user's private id", FOREIGN_PRIVATE],

@@ -74,20 +74,54 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
   test("seeds exist for a new workspace, are idempotent, and a deleted seed does not return", async () => {
     const seeds = async (w: string) =>
       (await svc.from("order_views").select("seed_key, scope, owner_id").eq("workspace_id", w).not("seed_key", "is", null)).data!;
-    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "new", "no_answer"]);
+    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "new", "no_answer"]);
     expect((await seeds(ws)).every((r) => r.owner_id === null)).toBe(true);
     const del = await svc.from("order_views").delete().eq("workspace_id", ws).eq("seed_key", "new");
     expect(del.error).toBeNull();
     // other writes to the workspace do not re-seed
     await svc.from("workspaces").update({ name: tag() }).eq("id", ws);
-    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "no_answer"]);
+    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "no_answer"]);
   });
 
-  test("authenticated cannot call seed_order_views", async () => {
+  test("authenticated cannot call order-view seed helpers", async () => {
     for (const c of [admin, agent]) {
-      const r = await c.rpc("seed_order_views" as never, { ws } as never);
-      expect(r.error).not.toBeNull();
+      expect((await c.rpc("seed_order_views", { ws })).error).not.toBeNull();
+      expect((await c.rpc("seed_confirmation_kanban", { ws })).error).not.toBeNull();
+      expect((await c.rpc("order_views_seed_for_workspace")).error).not.toBeNull();
     }
+  });
+
+  test("Kanban seed backfill preserves old deletions and skips name clashes and full groups", async () => {
+    const confirmationViews = () => svc.from("order_views").select("seed_key, layout, position")
+      .eq("workspace_id", ws).eq("scope", "confirmation").is("owner_id", null).order("position");
+    expect((await confirmationViews()).data).toContainEqual({
+      seed_key: "kanban_by_status", layout: "kanban", position: 2,
+    });
+
+    const removed = await svc.from("order_views").delete().eq("workspace_id", ws)
+      .in("seed_key", ["new", "kanban_by_status"]);
+    expect(removed.error).toBeNull();
+    const backfill = () => svc.rpc("seed_confirmation_kanban", { ws });
+
+    const clash = await svc.from("order_views").insert(view(null, "KANBAN BY STATUS", { scope: "confirmation", position: 9 }))
+      .select("id").single();
+    expect(clash.error).toBeNull();
+    expect((await backfill()).error).toBeNull();
+    expect((await confirmationViews()).data?.some((row) => row.seed_key === "kanban_by_status")).toBe(false);
+    expect((await svc.from("order_views").delete().eq("id", clash.data!.id)).error).toBeNull();
+
+    const added = await svc.from("order_views").insert(Array.from({ length: 19 }, (_, index) =>
+      view(null, `Board cap ${index}`, { scope: "confirmation", position: index + 2 }),
+    )).select("id");
+    expect(added.error).toBeNull();
+    expect((await backfill()).error).toBeNull();
+    expect((await confirmationViews()).data).toHaveLength(20);
+    expect((await svc.from("order_views").delete().in("id", added.data!.map((row) => row.id))).error).toBeNull();
+    expect((await backfill()).error).toBeNull();
+    expect((await confirmationViews()).data).toEqual([
+      { seed_key: "no_answer", layout: "table", position: 1 },
+      { seed_key: "kanban_by_status", layout: "kanban", position: 2 },
+    ]);
   });
 
   test("agent writes and reads own; cannot see another's private view", async () => {
@@ -160,13 +194,13 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     const { data } = await svc.from("workspaces").select("id").not("id", "in", `(${ws},${ws2})`).limit(1);
     if (!data?.length) return; // fresh stack without a pre-existing workspace
     const r = await svc.from("order_views").select("seed_key").eq("workspace_id", data[0].id).not("seed_key", "is", null);
-    expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["duplicates", "new", "no_answer"]);
+    expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "new", "no_answer"]);
   });
 
-  test("seed_order_views called twice as service role stays at 3 rows", async () => {
+  test("seed_order_views called twice as service role stays at 4 rows", async () => {
     for (let i = 0; i < 2; i++) expect((await svc.rpc("seed_order_views" as never, { ws: ws2 } as never)).error).toBeNull();
     const r = await svc.from("order_views").select("id").eq("workspace_id", ws2).not("seed_key", "is", null);
-    expect(r.data).toHaveLength(3);
+    expect(r.data).toHaveLength(4);
   });
 
   test("padded names, seed_key on personal rows and negative positions are refused", async () => {
