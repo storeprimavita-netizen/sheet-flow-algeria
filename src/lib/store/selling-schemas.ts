@@ -78,4 +78,17 @@ export const offersInputSchema = z
 
 export const formInputSchema = z.object({ productId: uuid, fields: formFieldsSchema, deliveryMethods: deliveryMethodsSchema }).strict();
 
-export type SellingResult = { ok: true } | { ok: false; error: "invalid" | "notFound" | "forbidden" | "bump" | "failed" };
+export type SellingResult<Data = unknown> = ({ ok: true } & Data) | { ok: false; error: "invalid" | "notFound" | "forbidden" | "bump" | "failed" };
+
+/** Attach saved IDs by client row key so edits and reordering made during a save survive. */
+export function reconcileOfferIds<Row extends { key: string; id: string | null }>(
+  currentRows: Row[],
+  submittedKeys: string[],
+  offerIds: string[],
+): Row[] {
+  const idsByKey = new Map(submittedKeys.map((key, index) => [key, offerIds[index]]));
+  return currentRows.map((row) => {
+    const id = idsByKey.get(row.key);
+    return id && row.id !== id ? { ...row, id } : row;
+  });
+}

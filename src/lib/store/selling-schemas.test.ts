@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { buildPricingPayload, formInputSchema, offersInputSchema, pricingInputSchema } from "./selling-schemas";
+import { buildPricingPayload, formInputSchema, offersInputSchema, pricingInputSchema, reconcileOfferIds } from "./selling-schemas";
 
 const id = "4f1c9d8e-7a3b-4c2d-9e5f-1a2b3c4d5e6f";
 const offer = { id: null, label: "x2", qty: 2, total: 9000, isDefault: false, isActive: true, activeFrom: null, activeTo: null };
@@ -41,5 +41,18 @@ describe("selling schemas", () => {
     expect(un.deltas.every((d) => d.delta === 0)).toBe(true);
     expect(un.overrides.every((o) => o.price === null && o.compareAt === null)).toBe(true);
     expect(pricingInputSchema.safeParse(un).success).toBe(true);
+  });
+
+  test("offer IDs follow client row keys through edits, removal and reorder", () => {
+    const rows = [
+      { key: "second", id: null, label: "Edited while saving" },
+      { key: "first", id: "original-id", label: "Original row" },
+      { key: "new", id: null, label: "Added while saving" },
+    ];
+    expect(reconcileOfferIds(rows, ["first", "second", "removed"], ["original-id", "saved-id", "removed-id"])).toEqual([
+      { ...rows[0], id: "saved-id" },
+      rows[1],
+      rows[2],
+    ]);
   });
 });

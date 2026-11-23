@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/rbac";
 import { loadProductVariants } from "@/lib/catalog/variants-data";
 import { parseDeliveryMethods, parseFormFields } from "@/lib/store/form-fields";
 import { createClient } from "@/lib/supabase/server";
+import { notAssigned } from "@/lib/variants";
 
 import { FormEditor } from "./_components/form-editor";
 import { OffersEditor, type OfferRow } from "./_components/offers-editor";
@@ -21,7 +22,7 @@ export default async function ProductSellingPage({ params }: { params: Promise<{
 
   const [{ data: product }, variantMap, { data: values }, { data: overrides }, { data: offers }, { data: form }, { data: candidates }, { data: sized }, { data: pages }] =
     await Promise.all([
-      supabase.from("products").select("sale_price, compare_at_price, pricing_mode").eq("id", id).maybeSingle(),
+      supabase.from("products").select("sale_price, compare_at_price, pricing_mode, stock").eq("id", id).maybeSingle(),
       loadProductVariants(supabase, [id]),
       supabase.from("product_option_values").select("id, price_delta").eq("product_id", id),
       supabase.from("product_variants").select("id, price_override, compare_at_override").eq("product_id", id),
@@ -34,6 +35,7 @@ export default async function ProductSellingPage({ params }: { params: Promise<{
   if (!product) notFound();
 
   const pv = variantMap.get(id);
+  const unassigned = pv?.variants.length ? notAssigned(product.stock, pv.variants.map((v) => v.stock)) : 0;
   const delta = new Map((values ?? []).map((v) => [v.id, v.price_delta]));
   const over = new Map((overrides ?? []).map((v) => [v.id, v]));
   const sizedIds = new Set((sized ?? []).map((s) => s.product_id));
@@ -53,6 +55,7 @@ export default async function ProductSellingPage({ params }: { params: Promise<{
         <div>
           <h2 className="text-base font-semibold">{t("title")}</h2>
           <p className="text-sm text-muted-foreground">{t("purpose")}</p>
+          {unassigned > 0 ? <p className="mt-1 text-sm text-muted-foreground">{t("unassignedStock", { count: unassigned })}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <ButtonLink href={`/app/catalog/products/${id}#product-options`} variant="outline" size="sm">

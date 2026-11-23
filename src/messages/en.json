@@ -1796,6 +1796,7 @@
         "purpose": "How this product is priced, the quantity offers and bump, and the order-form fields.",
         "viewOnStore": "View on store",
         "editOptions": "Edit options",
+        "unassignedStock": "{count, plural, one {# piece is unassigned to a size} other {# pieces are unassigned to a size}}. Unassigned stock counts towards availability for every size.",
         "viewOnStoreNone": "Publish a page for this product to view it on the store.",
         "errorTitle": "The Selling tab could not load",
         "save": "Save",
