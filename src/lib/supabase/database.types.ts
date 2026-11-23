@@ -2242,6 +2242,12 @@ isOneToOne: false
 "reverse_account_entry":
 { Args: { "p_entry_id": string,"p_note"?: string,"p_occurred_on": string,"p_request_key": string }; Returns: string
                            },
+"save_product_offers":
+{ Args: { "p_bump": Json,"p_offers": Json,"p_product": string }; Returns: (string)[]
+                           },
+"save_product_pricing":
+{ Args: { "p_compare_at"?: number,"p_deltas": Json,"p_mode": string,"p_overrides": Json,"p_product": string }; Returns: undefined
+                           },
 "save_variant_config":
 { Args: { "p_config": Json,"p_product": string }; Returns: undefined
                            },

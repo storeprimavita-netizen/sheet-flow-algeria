@@ -1065,3 +1065,17 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Verify — Full gate passed with 1,377 tests and live RLS. Independent UI review 1 passed.
 - Evidence — `docs/briefs/VAR-1-B.review-1.md` and `docs/design/audit/VAR-1-B/`. Submission-validation focus was verified by the builder. The independent review did not repeat that action.
 - Next — STORE-4.
+
+### STORE-3-F build and browser evidence
+
+- Pricing and offers now save in separate atomic, workspace-scoped RPCs. Returned offer IDs follow client row keys across edits and reordering. All three Selling saves refresh the public cache.
+- Page readiness and publish actions share the storefront price calculation. The Selling hint appears with 142 unassigned pieces on Abaya Noor and is absent when Abaya Luxe has zero unassigned pieces.
+- Chrome DevTools screenshots in `docs/design/audit/STORE-3-F/` cover the Selling and page editors in EN/AR, dark/light and at 390/1280 px, plus the Arabic public product at both widths and themes. The screens fit their viewports and the readiness explanation remained readable in RTL.
+- Browser saves switched per-value pricing to uniform and cleared all three stored deltas. Two offer rows kept their IDs through add, save, reorder, edit and save again without reload. Publish was enabled for the priced draft and disabled with an explanation for the zero-price draft.
+- Browser checks used local seed/demo data and left both synthetic pages in draft. Storefront submission remains closed.
+
+### STORE-3-F ship
+- Done — Atomic pricing and offer saves retain offer IDs, refresh the public cache, and check storefront prices before publishing.
+- Verify — Full gate passed with 1,389 tests and live RLS. Independent security and UI review passed.
+- Evidence — `docs/briefs/STORE-3-F.review-1.md` and `docs/design/audit/STORE-3-F/` record browser checks and review coverage.
+- Next — STORE-4 can now use stable offer IDs.

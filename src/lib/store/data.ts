@@ -9,24 +9,13 @@ import type { Database } from "@/lib/supabase/database.types";
 
 import { blocksSchema, seoSchema, type Block, type Seo } from "./blocks";
 import { parseDeliveryMethods, parseFormFields, type FormField } from "./form-fields";
-import { comparePrice, lowestPrice, offerSaving, unitPrice, visibleOffers, type PricingMode } from "./offer-price";
+import { comparePrice, offerSaving, visibleOffers, type PricingMode } from "./offer-price";
+import { loadEffectivePrice, type PublicOption, type PublicVariant } from "./product-pricing";
 import { isVerifiedOrder, publicReviewName } from "./reviews";
 import { instagramLink, publicSettingsSchema, waLink } from "./settings";
 import { isHttps, slugSchema, storeSlugSchema, stripEmoji } from "./url";
-import { sizeInStock } from "./variant-stock";
+export type { PublicOption, PublicOptionValue, PublicSwatch, PublicVariant } from "./product-pricing";
 
-export type PublicSwatch = { color: string | null; image: string | null };
-export type PublicOptionValue = { label: string; swatch: PublicSwatch | null; inStock: boolean };
-/** One chip row per option (Size, Color...). A value is in stock when any active size with it has stock. */
-export type PublicOption = { name: string; kind: "text" | "color"; values: PublicOptionValue[] };
-export type PublicVariant = {
-  id: string;
-  label: string;
-  inStock: boolean;
-  price: number;
-  compareAt: number | null;
-  color?: { key: number; label: string; swatch: PublicSwatch | null; remainingLabel: string | null };
-};
 export type PublicOffer = { id: string; label: string; qty: number; total: number; saving: number };
 export type PublicBump = { id: string; name: string; price: number };
 export type PublicForm = { fields: FormField[]; deliveryMethods: ("home" | "stopdesk")[] };
@@ -106,7 +95,6 @@ export async function loadPublicProductPage(db: Db, storeSlug: string, pageSlug:
 type StoreRow = Pick<Database["public"]["Tables"]["stores"]["Row"], "id" | "workspace_id" | "slug" | "name" | "theme" | "settings">;
 type PageRow = Pick<Database["public"]["Tables"]["store_pages"]["Row"], "slug" | "title" | "blocks" | "seo">;
 type ProductRow = Pick<Database["public"]["Tables"]["products"]["Row"], "id" | "name" | "sale_price" | "compare_at_price" | "pricing_mode" | "images" | "stock">;
-
 /** Shared by the public page and the admin preview: the same DTO either way, so a preview shows what a visitor will see. */
 export async function assembleProductPage(db: Db, store: StoreRow, page: PageRow & { id?: string }, product: ProductRow, now: Date = new Date()): Promise<PublicProductPage> {
   return (await buildProductPage(db, store, page, product, now)).dto;
@@ -125,25 +113,18 @@ async function buildProductPage(
   const settings = publicSettingsSchema.safeParse(store.settings);
   const set = settings.success ? settings.data : {};
 
-  const mode: PricingMode = product.pricing_mode === "per_value" || product.pricing_mode === "per_variant" ? product.pricing_mode : "uniform";
-  const base = product.sale_price === null ? null : Number(product.sale_price);
-  const compareBase = product.compare_at_price === null ? null : Number(product.compare_at_price);
-
   const list = blocks.success ? blocks.data : [];
-  const [variants, related, offerRows, form, reviews] = await Promise.all([
-    loadVariants(db, product, mode, base, compareBase),
+  const [{ mode, variants, hasSizes, unit, uniformInput }, related, offerRows, form, reviews] = await Promise.all([
+    loadEffectivePrice(db, product),
     loadRelated(db, store.id, store.workspace_id, list, page.id),
     loadOffers(db, product.id, store.workspace_id, now),
     loadForm(db, product.id),
     list.some((b) => b.type === "reviews") ? loadReviews(db, store.workspace_id, product.id) : Promise.resolve({ avg: 0, count: 0, items: [] }),
   ]);
 
-  // The price shown on the page: the lowest sellable size, or the plain price when the product has no sizes.
-  const hasSizes = variants.sizes > 0;
-  const unit = hasSizes ? lowestPrice(variants.list.map((v) => v.price)) : base !== null ? unitPrice({ mode: "uniform", basePrice: base, compareAt: null, valueDeltas: [], override: null, compareOverride: null }) : null;
   const priceFrom = hasSizes && new Set(variants.list.map((v) => v.price)).size > 1;
   const cheapest = hasSizes ? variants.list.find((v) => v.price === unit) : undefined;
-  const compareAt = hasSizes ? (cheapest?.compareAt ?? null) : unit !== null && compareBase !== null ? comparePrice({ mode: "uniform", basePrice: base ?? 0, compareAt: compareBase, valueDeltas: [], override: null, compareOverride: null }, unit) : null;
+  const compareAt = hasSizes ? (cheapest?.compareAt ?? null) : unit !== null && uniformInput ? comparePrice(uniformInput, unit) : null;
   // an offer is shown when it saves something at the cheapest size (the saving is the smallest one)
   const offers: PublicOffer[] =
     unit === null
@@ -253,84 +234,6 @@ export async function loadReviews(db: Db, workspaceId: string, productId: string
   };
 }
 
-/** D54.4: stock rule lives in variant-stock.ts. A size whose price is <= 0 is refused (not offered). */
-async function loadVariants(
-  db: Db,
-  product: ProductRow,
-  mode: PricingMode,
-  base: number | null,
-  compareBase: number | null,
-): Promise<{ list: PublicVariant[]; options: PublicOption[]; sizes: number }> {
-  const productId = product.id;
-  const [opts, vals, vars, joins] = await Promise.all([
-    db.from("product_options").select("id, name, kind, position").eq("product_id", productId).order("position"),
-    db.from("product_option_values").select("id, option_id, label, position, price_delta, swatch_color, swatch_image").eq("product_id", productId).order("position"),
-    db.from("product_variants").select("id, stock, is_active, price_override, compare_at_override").eq("product_id", productId),
-    db.from("product_variant_values").select("variant_id, option_id, value_id").eq("product_id", productId),
-  ]);
-  const failed = [opts, vals, vars, joins].find((r) => r.error);
-  if (failed?.error) throw new Error(`variants lookup failed: ${failed.error.message}`);
-  const pos = new Map((opts.data ?? []).map((o) => [o.id, o.position]));
-  const value = new Map((vals.data ?? []).map((v) => [v.id, v]));
-  const colorOption = opts.data?.find((o) => o.kind === "color");
-  const colorKeys = new Map((vals.data ?? []).filter((v) => v.option_id === colorOption?.id).map((v, index) => [v.id, index]));
-  const total = (vars.data ?? []).reduce((n, v) => n + v.stock, 0);
-  const active = (vars.data ?? []).filter((v) => v.is_active);
-  const list = active.flatMap((v): PublicVariant[] => {
-    const mine = (joins.data ?? [])
-      .filter((j) => j.variant_id === v.id)
-      .sort((a, b) => (pos.get(a.option_id) ?? 0) - (pos.get(b.option_id) ?? 0))
-      .flatMap((j) => (value.has(j.value_id) ? [value.get(j.value_id)!] : []));
-    if (!mine.length || base === null) return [];
-    const input = {
-      mode,
-      basePrice: base,
-      compareAt: compareBase,
-      valueDeltas: mine.map((m) => m.price_delta),
-      override: v.price_override,
-      compareOverride: v.compare_at_override,
-    };
-    const price = unitPrice(input);
-    if (price === null) return [];
-    const variant = {
-      id: v.id,
-      label: mine.map((m) => m.label).join(" / "),
-      inStock: sizeInStock(v.stock, product.stock, total),
-      price,
-      compareAt: comparePrice(input, price),
-    };
-    const colorValue = mine.find((m) => m.option_id === colorOption?.id);
-    const colorKey = colorValue && colorKeys.get(colorValue.id);
-    if (!colorValue || colorKey === undefined) return [variant];
-    return [{
-      ...variant,
-      color: {
-        key: colorKey,
-        label: colorValue.label,
-        swatch: publicSwatch(colorValue),
-        remainingLabel: mine.filter((m) => m !== colorValue).map((m) => m.label).join(" / ") || null,
-      },
-    }];
-  });
-  // chip rows for the product page (VAR-1): a value is in stock when any active size that carries it is
-  const stockOf = new Map<string, boolean>();
-  for (const v of active) {
-    const has = sizeInStock(v.stock, product.stock, total);
-    for (const j of (joins.data ?? []).filter((x) => x.variant_id === v.id)) stockOf.set(j.value_id, (stockOf.get(j.value_id) ?? false) || has);
-  }
-  const options = (opts.data ?? []).flatMap((o) => {
-    const values = (vals.data ?? [])
-      .filter((v) => v.option_id === o.id && stockOf.has(v.id))
-      .map((v): PublicOptionValue => ({
-        label: v.label,
-        swatch: o.kind === "color" ? publicSwatch(v) : null,
-        inStock: stockOf.get(v.id) ?? false,
-      }));
-    return values.length ? [{ name: o.name, kind: o.kind === "color" ? ("color" as const) : ("text" as const), values }] : [];
-  });
-  return { list, options, sizes: active.length };
-}
-
 type OfferRows = OfferInputRow[] & { bump: PublicBump | null };
 type OfferInputRow = { id: string; label: string; qty: number; total: number };
 
@@ -381,16 +284,6 @@ async function loadForm(db: Db, productId: string): Promise<PublicForm> {
   };
 }
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
-const SAFE_SWATCH_URL = /^https:\/\/[^\s"'()<>\\]{1,2040}$/;
-
-function publicSwatch({ swatch_color, swatch_image }: { swatch_color: string | null; swatch_image: string | null }): PublicSwatch | null {
-  // A validated photo takes precedence and is rendered only as an image source.
-  const image = swatch_image && isHttps(swatch_image) && SAFE_SWATCH_URL.test(swatch_image) ? swatch_image : null;
-  const color = !image && swatch_color && HEX.test(swatch_color) ? swatch_color : null;
-  return image || color ? { color, image } : null;
-}
-
 async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks: Block[], selfId?: string): Promise<PublicRelated[]> {
   const ids = blocks.flatMap((b) => (b.type === "related" ? b.pageIds : [])).filter((id) => id !== selfId).slice(0, 6);
   if (!ids.length) return [];
@@ -421,13 +314,7 @@ async function loadRelated(db: Db, storeId: string, workspaceId: string, blocks:
     ordered.map(async (pg): Promise<PublicRelated | null> => {
       const pr = pg.product_id ? byId.get(pg.product_id) : undefined;
       if (!pr || pr.sale_price === null) return null;
-      const mode: PricingMode = pr.pricing_mode === "per_value" || pr.pricing_mode === "per_variant" ? pr.pricing_mode : "uniform";
-      const base = Number(pr.sale_price);
-      const { list, sizes } = await loadVariants(db, pr, mode, base, pr.compare_at_price === null ? null : Number(pr.compare_at_price));
-      const price =
-        sizes > 0
-          ? lowestPrice(list.map((v) => v.price))
-          : unitPrice({ mode: "uniform", basePrice: base, compareAt: null, valueDeltas: [], override: null, compareOverride: null });
+      const { unit: price } = await loadEffectivePrice(db, pr);
       if (price === null) return null;
       return { slug: pg.slug, title: stripEmoji(pr.name) || pg.title, image: (pr.images ?? []).find(isHttps) ?? null, price };
     }),

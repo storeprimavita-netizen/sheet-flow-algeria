@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/format";
 import { offerSaving } from "@/lib/store/offer-price";
-import { MAX_QUANTITY_OFFERS } from "@/lib/store/selling-schemas";
+import { MAX_QUANTITY_OFFERS, reconcileOfferIds } from "@/lib/store/selling-schemas";
 
 import { saveOffers } from "../actions";
 import { SaveBar, type SaveState } from "./save-bar";
@@ -34,7 +34,9 @@ export function OffersEditor({ productId, salePrice, offers, bump: initialBump, 
   const [bump, setBump] = React.useState<Bump | null>(initialBump);
   const [state, setState] = React.useState<SaveState>({ kind: "idle" });
   const [dirty, setDirty] = React.useState(false);
+  const editRevision = React.useRef(0);
   const touch = () => {
+    editRevision.current += 1;
     setDirty(true);
     setState((s) => (s.kind === "saved" ? { kind: "idle" } : s));
   };
@@ -61,15 +63,25 @@ export function OffersEditor({ productId, salePrice, offers, bump: initialBump, 
       return;
     }
     setState({ kind: "saving" });
-    const res = await saveOffers({
-      productId,
-      offers: rows.map((r) => ({ id: r.id, label: r.label.trim(), qty: r.qty, total: r.total, isDefault: r.isDefault, isActive: r.isActive, activeFrom: startOf(r.from), activeTo: endOf(r.to) })),
-      bump: bump && bump.productId ? { productId: bump.productId, price: bump.price, label: bump.label.trim(), isActive: bump.isActive } : null,
-    });
-    if (res.ok) {
-      setState({ kind: "saved" });
-      setDirty(false);
-    } else setState({ kind: "error", reason: t(`errors.${res.error}`) });
+    const submittedRevision = editRevision.current;
+    const submittedKeys = rows.map((r) => r.key);
+    try {
+      const res = await saveOffers({
+        productId,
+        offers: rows.map((r) => ({ id: r.id, label: r.label.trim(), qty: r.qty, total: r.total, isDefault: r.isDefault, isActive: r.isActive, activeFrom: startOf(r.from), activeTo: endOf(r.to) })),
+        bump: bump && bump.productId ? { productId: bump.productId, price: bump.price, label: bump.label.trim(), isActive: bump.isActive } : null,
+      });
+      if (!res.ok) {
+        setState({ kind: "error", reason: t(`errors.${res.error}`) });
+        return;
+      }
+      setRows((current) => reconcileOfferIds(current, submittedKeys, res.offerIds));
+      const editedDuringSave = editRevision.current !== submittedRevision;
+      setState({ kind: editedDuringSave ? "idle" : "saved" });
+      setDirty(editedDuringSave);
+    } catch {
+      setState({ kind: "error", reason: t("errors.failed") });
+    }
   }
 
   return (

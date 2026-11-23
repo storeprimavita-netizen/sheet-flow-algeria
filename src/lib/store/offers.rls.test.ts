@@ -1,9 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { updateTag } from "next/cache";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
+import { saveForm, saveOffers, savePricing } from "@/app/(app)/app/catalog/products/[id]/selling/actions";
+import { requireAdminProfile } from "@/lib/rbac";
 import { buildPricingPayload } from "@/lib/store/selling-schemas";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import { deleteWorkspaces } from "@/lib/test-cleanup";
+
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
+vi.mock("@/lib/rbac", () => ({ requireAdminProfile: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 /** Live STORE-3 checks: offers, forms and price columns (grants, RLS, integrity). */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -34,6 +42,7 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
   let svc: SupabaseClient;
   let anon: SupabaseClient;
   let adminA: SupabaseClient;
+  let adminB: SupabaseClient;
   let agent: SupabaseClient;
   let ws: string;
   let ws2: string;
@@ -60,7 +69,10 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
     ws = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     ws2 = (await svc.from("workspaces").insert({ name: tag() }).select("id").single()).data!.id;
     adminA = await userIn(ws, "admin");
+    adminB = await userIn(ws2, "admin");
     agent = await userIn(ws, "confirmation_agent");
+    vi.mocked(requireAdminProfile).mockResolvedValue({ workspaceId: ws, role: "admin" });
+    vi.mocked(createServerClient).mockResolvedValue(adminA);
   });
   afterAll(async () => {
     if (!svc) return;
@@ -136,21 +148,137 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
     expect(after.data).toEqual({ bump_product_id: null });
   });
 
-  test("saving per_value with a delta, then uniform, leaves every price_delta at 0", async () => {
+  test("live savePricing clears every delta when switching from per_value to uniform or per_variant", async () => {
     const p = await product();
     const opt = (await svc.from("product_options").insert({ workspace_id: ws, product_id: p, name: "Size" }).select("id").single()).data!.id;
-    const val = (await svc.from("product_option_values").insert({ workspace_id: ws, product_id: p, option_id: opt, label: "XL" }).select("id").single()).data!.id;
-    // same writes as savePricing, on an admin session, with the editor's payload
-    const save = async (mode: "per_value" | "uniform") => {
-      const pl = buildPricingPayload({ productId: p, mode, compareAt: null, deltas: { [val]: 300 }, overrides: {}, variantIds: [] });
-      for (const d of pl.deltas) expect((await adminA.from("product_option_values").update({ price_delta: d.delta }).eq("id", d.valueId).eq("product_id", p)).error).toBeNull();
-      expect((await adminA.from("products").update({ pricing_mode: pl.mode }).eq("id", p)).error).toBeNull();
+    const values = await svc.from("product_option_values").insert(["L", "XL"].map((label) => ({ workspace_id: ws, product_id: p, option_id: opt, label }))).select("id");
+    expect(values.error).toBeNull();
+    const deltas = Object.fromEntries(values.data!.map((value, index) => [value.id, 300 + index * 100]));
+    const save = async (mode: "per_value" | "uniform" | "per_variant") => {
+      vi.mocked(updateTag).mockClear();
+      const input = buildPricingPayload({ productId: p, mode, compareAt: null, deltas, overrides: {}, variantIds: [] });
+      expect(await savePricing(input)).toEqual({ ok: true });
+      expect(updateTag).toHaveBeenCalledExactlyOnceWith("store-public");
     };
-    const deltas = async () => (await svc.from("product_option_values").select("price_delta").eq("product_id", p)).data!.map((r) => Number(r.price_delta));
-    await save("per_value");
-    expect(await deltas()).toEqual([300]);
-    await save("uniform");
-    expect(await deltas()).toEqual([0]);
+    const readDeltas = async () => (await svc.from("product_option_values").select("price_delta").eq("product_id", p).order("price_delta")).data!.map((r) => Number(r.price_delta));
+    for (const next of ["uniform", "per_variant"] as const) {
+      await save("per_value");
+      expect(await readDeltas()).toEqual([300, 400]);
+      await save(next);
+      expect(await readDeltas()).toEqual([0, 0]);
+    }
+  });
+
+  test("pricing refuses stale, foreign and fractional rows before changing any price", async () => {
+    const p = await product();
+    const sameWorkspaceProduct = await product();
+    const foreignProduct = await product(ws2);
+    const optionValue = async (productId: string, workspaceId: string) => {
+      const { data: option } = await svc.from("product_options").insert({ workspace_id: workspaceId, product_id: productId, name: "Size" }).select("id").single();
+      const { data } = await svc.from("product_option_values").insert({ workspace_id: workspaceId, product_id: productId, option_id: option!.id, label: "M" }).select("id").single();
+      return data!.id as string;
+    };
+    const local = await optionValue(p, ws);
+    const other = await optionValue(sameWorkspaceProduct, ws);
+    const outside = await optionValue(foreignProduct, ws2);
+    const { data: variant } = await svc.from("product_variants").insert({ workspace_id: ws, product_id: p, price_override: 4500, compare_at_override: 6500 }).select("id").single();
+    const { data: outsideVariant } = await svc.from("product_variants").insert({ workspace_id: ws2, product_id: foreignProduct }).select("id").single();
+    const args = { p_product: p, p_mode: "per_value", p_compare_at: 6000, p_deltas: [{ valueId: local, delta: 300 }], p_overrides: [] };
+    for (const valueId of [other, outside, crypto.randomUUID()]) {
+      const res = await adminA.rpc("save_product_pricing", { ...args, p_deltas: [...args.p_deltas, { valueId, delta: 200 }] });
+      expect(res.error?.code).toBe("22023");
+    }
+    expect((await adminA.rpc("save_product_pricing", { ...args, p_deltas: [...args.p_deltas, { valueId: local, delta: 200 }] })).error?.code).toBe("22023");
+    expect((await adminA.rpc("save_product_pricing", { ...args, p_deltas: [{ valueId: local, delta: 1.5 }] })).error?.code).toBe("22023");
+    expect((await adminA.rpc("save_product_pricing", {
+      ...args,
+      p_overrides: [{ variantId: outsideVariant!.id, price: 5000, compareAt: null }],
+    })).error?.code).toBe("22023");
+    expect((await svc.from("product_option_values").select("price_delta").eq("id", local).single()).data).toEqual({ price_delta: 0 });
+    expect((await svc.from("products").select("pricing_mode, compare_at_price").eq("id", p).single()).data).toEqual({ pricing_mode: "uniform", compare_at_price: null });
+    expect((await svc.from("product_variants").select("price_override, compare_at_override").eq("id", variant!.id).single()).data).toEqual({ price_override: 4500, compare_at_override: 6500 });
+    expect((await adminA.rpc("save_product_pricing", args)).error).toBeNull();
+    expect((await svc.from("product_variants").select("price_override, compare_at_override").eq("id", variant!.id).single()).data).toEqual({ price_override: null, compare_at_override: null });
+  });
+
+  const quantityRow = (label: string, id: string | null = null, isDefault = false) => ({
+    id, label, isDefault, qty: 2, total: 9000, isActive: true, activeFrom: null, activeTo: null,
+  });
+
+  test("offer saves return stable IDs and roll back the list if the bump fails", async () => {
+    const p = await product();
+    const bump = { productId: await product(), label: "Bump", price: 1000, isActive: true };
+    const original = [quantityRow("First offer", null, true), quantityRow("Second offer")];
+    vi.mocked(updateTag).mockClear();
+    const first = await saveOffers({ productId: p, offers: original, bump });
+    expect(first.ok).toBe(true);
+    expect(updateTag).toHaveBeenCalledExactlyOnceWith("store-public");
+    if (!first.ok) return;
+    const [firstId, secondId] = first.offerIds;
+    const savedBump = () => svc.from("product_offers").select("id, label").eq("product_id", p).eq("kind", "bump").single();
+    const bumpId = (await savedBump()).data!.id;
+    const reorder = [quantityRow("Second changed", secondId, true), quantityRow("First changed", firstId)];
+    const second = await saveOffers({ productId: p, offers: reorder, bump: { ...bump, label: "Updated bump" } });
+    expect(second).toEqual({ ok: true, offerIds: [secondId, firstId] });
+    expect((await savedBump()).data).toEqual({ id: bumpId, label: "Updated bump" });
+    vi.mocked(updateTag).mockClear();
+    expect(await saveOffers({ productId: p, offers: [quantityRow("Rejected")], bump: { ...bump, productId: p } })).toEqual({ ok: false, error: "bump" });
+    expect(updateTag).not.toHaveBeenCalled();
+    const current = await svc.from("product_offers").select("id, label, is_default").eq("product_id", p).eq("kind", "quantity").order("position");
+    expect(current.data).toEqual([{ id: secondId, label: "Second changed", is_default: true }, { id: firstId, label: "First changed", is_default: false }]);
+    expect((await savedBump()).data).toEqual({ id: bumpId, label: "Updated bump" });
+  });
+
+  test("offer saves reject invalid row ownership and serialize simultaneous saves", async () => {
+    const p = await product();
+    const bumpId = (await svc.from("product_offers").insert({
+      workspace_id: ws, product_id: p, kind: "bump", label: "Bump", bump_product_id: await product(), bump_price: 500,
+    }).select("id").single()).data!.id;
+    const other = (await offer(await product())).data!.id;
+    const outside = (await offer(await product(ws2), { workspace_id: ws2 })).data!.id;
+    const replace = (p_offers: ReturnType<typeof quantityRow>[]) => adminA.rpc("save_product_offers", { p_product: p, p_offers, p_bump: null });
+    for (const id of [bumpId, other, outside, crypto.randomUUID()]) {
+      expect((await replace([quantityRow("Rejected", id)])).error?.code).toBe("22023");
+    }
+    expect((await replace([{ ...quantityRow("Rejected"), qty: 2.5 }])).error?.code).toBe("22023");
+    expect((await replace([{ ...quantityRow("Rejected"), total: 10000001 }])).error?.code).toBe("22023");
+    const initial = await replace([quantityRow("Keep")]);
+    expect(initial.error).toBeNull();
+    const keepId = initial.data![0];
+    const [left, right] = await Promise.all([
+      replace([quantityRow("Left", keepId, true), quantityRow("Left new")]),
+      replace([quantityRow("Right", keepId, true), quantityRow("Right new")]),
+    ]);
+    expect(left.error).toBeNull();
+    expect(right.error).toBeNull();
+    const { data } = await svc.from("product_offers").select("id, label, is_default").eq("product_id", p).order("position");
+    expect(data).toHaveLength(2);
+    expect(data?.[0].id).toBe(keepId);
+    expect(data?.map((row) => row.is_default)).toEqual([true, false]);
+    expect([["Left", "Left new"], ["Right", "Right new"]]).toContainEqual(data?.map((row) => row.label));
+  });
+
+  test("selling RPCs reject sessions without an admin role on the product workspace", async () => {
+    const p = await product();
+    for (const c of [anon, agent, adminB]) {
+      expect((await c.rpc("save_product_pricing", { p_product: p, p_mode: "per_value", p_deltas: [], p_overrides: [] })).error).not.toBeNull();
+      expect((await c.rpc("save_product_offers", { p_product: p, p_offers: [quantityRow("Qty")], p_bump: null })).error).not.toBeNull();
+    }
+    expect((await svc.from("products").select("pricing_mode").eq("id", p).single()).data).toEqual({ pricing_mode: "uniform" });
+    expect((await svc.from("product_offers").select("id").eq("product_id", p)).data).toEqual([]);
+  });
+
+  test("selling actions refresh the public cache only after a successful write", async () => {
+    const p = await product();
+    const form = { productId: p, fields: [], deliveryMethods: ["home"] };
+    vi.mocked(updateTag).mockClear();
+    expect(await saveForm(form)).toEqual({ ok: true });
+    expect(updateTag).toHaveBeenCalledExactlyOnceWith("store-public");
+    vi.mocked(updateTag).mockClear();
+    expect(await saveForm({ ...form, productId: await product(ws2) })).toEqual({ ok: false, error: "notFound" });
+    expect(await saveOffers({ productId: p, offers: [quantityRow("Removed row", crypto.randomUUID())], bump: null })).toEqual({ ok: false, error: "failed" });
+    expect(await savePricing({ productId: p, mode: "per_value", compareAt: null, deltas: [{ valueId: crypto.randomUUID(), delta: 1 }], overrides: [] })).toEqual({ ok: false, error: "failed" });
+    expect(updateTag).not.toHaveBeenCalled();
   });
 
   test("forms: fields size, delivery methods", async () => {
@@ -189,5 +317,34 @@ describe.skipIf(!URL)("offers, forms, price columns (live DB)", () => {
     expect(r.error).toBeNull();
     expect((await svc.from("product_variants").select("price_override, sku").eq("id", v).single()).data).toEqual({ price_override: 4200, sku: "S1" });
     expect((await svc.from("product_option_values").select("price_delta").eq("id", val).single()).data).toEqual({ price_delta: 300 });
+  });
+
+  test("concurrent option replacement and pricing resolve in one product lock order", async () => {
+    const p = await product();
+    const optionId = crypto.randomUUID();
+    const original = crypto.randomUUID();
+    const replacement = crypto.randomUUID();
+    const config = (id: string) => ({
+      p_product: p,
+      p_config: { options: [{ id: optionId, name: "Size", values: [{ id, label: "M" }] }], variants: [] },
+    });
+    expect((await adminA.rpc("save_variant_config", config(original))).error).toBeNull();
+    const [variantConfig, pricing] = await Promise.all([
+      adminA.rpc("save_variant_config", config(replacement)),
+      adminA.rpc("save_product_pricing", {
+        p_product: p, p_mode: "per_value", p_compare_at: 5500,
+        p_deltas: [{ valueId: original, delta: 300 }], p_overrides: [],
+      }),
+    ]);
+    expect(variantConfig.error).toBeNull();
+    expect((await svc.from("product_option_values").select("id, price_delta").eq("product_id", p)).data)
+      .toEqual([{ id: replacement, price_delta: 0 }]);
+    const { data: price } = await svc.from("products").select("pricing_mode, compare_at_price").eq("id", p).single();
+    if (pricing.error) {
+      expect(pricing.error.code).toBe("22023");
+      expect(price).toEqual({ pricing_mode: "uniform", compare_at_price: null });
+    } else {
+      expect(price).toEqual({ pricing_mode: "per_value", compare_at_price: 5500 });
+    }
   });
 });
