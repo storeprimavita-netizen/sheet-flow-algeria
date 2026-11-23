@@ -157,11 +157,15 @@ textarea.store-input { min-block-size: calc(var(--tap) * 2); resize: vertical; }
 .store-input[aria-invalid="true"] { border-color: var(--danger); }
 .store-field-err { color: var(--danger); font-size: var(--text-small); }
 
-.store-size-pick { position: relative; display: inline-flex; }
+.store-size-pick { position: relative; display: inline-flex; max-inline-size: 100%; }
+.store-size-pick .store-size { flex-wrap: wrap; overflow-wrap: anywhere; }
 .store-size-pick input { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .store-size-pick input:disabled { cursor: not-allowed; }
 .store-size-pick input:checked + .store-size { background: var(--brand-fill); color: var(--on-brand); border-color: var(--brand-fill); }
 .store-size-pick input:focus-visible + .store-size { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.store-color-pick .store-dot { inline-size: 2rem; block-size: 2rem; }
+.store-color-pick input:checked + .store-size { background: var(--surface-200); color: var(--ink); border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+.store-unavailable { text-decoration: none; display: inline-block; font-size: var(--text-small); }
 .store-size-delta { font-size: var(--text-small); margin-inline-start: var(--space-2); opacity: .85; }
 
 .store-offer { display: flex; align-items: center; gap: var(--space-3); min-block-size: var(--tap); padding: var(--space-2) var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--surface-100); cursor: pointer; }

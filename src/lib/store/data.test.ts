@@ -300,7 +300,18 @@ describe.skipIf(!URL)("public product page DAL (live DB)", () => {
       { label: "Red", swatch: { color: "#ff0000", image: null }, inStock: false },
       { label: "Floral", swatch: { color: null, image: "https://cdn.example.com/f.jpg" }, inStock: false },
     ]);
+    expect(dto!.variants.find((v) => v.id === x)?.color).toEqual({
+      key: 0, label: "Red", swatch: { color: "#ff0000", image: null }, remainingLabel: "M",
+    });
+    expect(dto!.variants.find((v) => v.id === y)?.color).toEqual({
+      key: 1, label: "Floral", swatch: { color: null, image: "https://cdn.example.com/f.jpg" }, remainingLabel: "M",
+    });
     expect(JSON.stringify(dto!.options)).not.toMatch(/SECRET|workspace_id|cost|"id"/);
+    expect(JSON.stringify(dto!.variants)).not.toContain(red);
+    expect(JSON.stringify(dto!.variants)).not.toContain(photo);
+    const { error: inactiveError } = await svc.from("product_variants").update({ is_active: false }).eq("id", y);
+    expect(inactiveError).toBeNull();
+    expect((await loadPublicProductPage(svc, store.slug, "abaya"))!.variants.map((v) => v.id)).toEqual([x]);
     // the DB refuses a hostile URL; a swatch on a text option is refused too
     expect((await svc.from("product_option_values").update({ swatch_image: "https://a/x.png);position:fixed" }).eq("id", photo)).error).not.toBeNull();
     expect((await svc.from("product_option_values").update({ swatch_color: "#00ff00" }).eq("id", m)).error).not.toBeNull();

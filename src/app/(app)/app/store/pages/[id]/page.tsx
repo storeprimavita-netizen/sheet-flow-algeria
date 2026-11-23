@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { CrumbRecord } from "@/components/breadcrumbs";
+import { ButtonLink } from "@/components/button-link";
 import { PageHeader } from "@/components/page-header";
 import { blocksSchema, seoSchema } from "@/lib/store/blocks";
 import { createClient } from "@/lib/supabase/server";
@@ -37,7 +38,13 @@ export default async function StorePageEditor({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <div>
         <CrumbRecord label={page.title} />
-        <PageHeader title={t("editor.title")} subtitle={t("editor.purpose")} />
+        <PageHeader title={t("editor.title")} subtitle={t("editor.purpose")}>
+          {linked ? (
+            <ButtonLink href={`/app/catalog/products/${linked.id}/selling`} variant="outline">
+              {t("editor.formsOffers")}
+            </ButtonLink>
+          ) : null}
+        </PageHeader>
       </div>
       <PageEditor
         key={`${page.id}-${page.slug}-${page.status}`}

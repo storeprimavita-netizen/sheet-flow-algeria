@@ -171,7 +171,7 @@ export function VariantsEditor({
   };
 
   return (
-    <section className="card-surface space-y-5 rounded-xl p-5" aria-labelledby="variants-title" aria-busy={busy}>
+    <section id="product-options" className="card-surface scroll-mbs-16 space-y-5 rounded-xl p-5" aria-labelledby="variants-title" aria-busy={busy}>
       <div className="space-y-1">
         <h2 id="variants-title" className="text-sm font-semibold">
           {options.length > 1 ? t("titleVariants") : t("titleSizes")}

@@ -1006,6 +1006,12 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Owner: remote `db push` for 00078 and 00079.
 - Next /auto: first eligible feature row in plan order (follow-ups VAR-1-F, CHART-1-B, CONF-1-F after features).
 
+### VAR-1-B build
+
+- Forms & offers opens the linked product’s Selling tab. Edit options jumps to the Options editor.
+- The order form filters available combinations by colour and supports mixed pieces. The storefront keeps its published, read-only variant chips until orders open.
+- Browser screenshots and keyboard checks are pending. The browser reached an unrelated service on port 3000 that returned a 404 for `/login`. The Supabase tests ran against the local stack.
+
 ### MONEY-1 build
 - Three system accounts, append-only movements, atomic transfers and reversals, and live debit currency guards. The D97 preview, posting and remap operations are available for MONEY-2.
 - Local migration replay from the old schema posted DZD 100 from an opening amount, top-up, a USD debit with stored DZD equivalent, and ad spend. The USD Binance balance of 40 and courier balance of 20 stayed active in a separate workspace with unresolved conversions.
@@ -1036,8 +1042,26 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Owner inputs — C-1 holds Yalidine and carrier extraction; P3 OAuth requires owner Google Cloud setup. Deployment and other inputs remain in `docs/MASTER_PLAN.md`.
 - Next — Restore the MNW preview, resume independent browser review of VAR-1-B, and pick STORE-4 among eligible feature rows. P1-6 also needs browser verification.
 
+### VAR-1-B resumed verification
+
+- Full gate passed after syncing `v3`, with 1,377 tests and live RLS.
+- Startup selected port 3001 and Next logged HTTP 200 on `/login`. After the startup command exited, the local listener was gone and Chrome DevTools received `ERR_CONNECTION_REFUSED`. Screenshot and keyboard checks await a persistent preview.
+
 ### Run report (Codex night resume, 2026-11-22)
 - Shipped — none. VAR-1-B synced with current `v3` and pushed at `a9e283e`. Full gate passed with 1,377 tests and live RLS.
 - Parked — VAR-1-B. The port fix starts MNW on 3001 and returns HTTP 200 for `/login`, but the listener disappears when the launch call exits. Builder screenshots and independent browser review still need a persistent preview.
 - Decisions — none. Q-30 and the owner inputs in `docs/MASTER_PLAN.md` remain open.
 - Next — Start the local preview from Terminal with `scripts/dev-up.sh`. Resume VAR-1-B browser checks on the printed address, then pick STORE-4.
+
+### VAR-1-B browser verification
+
+- Chrome DevTools on port 3001 captured the linked and unlinked editors, Selling, product Options, Size sets and the colour backfill dialog in EN and AR, light and dark, at 390 and 1280 px. Arabic preview and public storefront captures cover both themes and widths. Files are in `docs/design/audit/VAR-1-B/`.
+- Followed Forms & offers through to the Options anchor. The unlinked draft has no shortcut. Screens fit the viewport. The public product shows stock labels and the orders-opening notice. The preview shows legible photo, hex and text chips, with colour targets measuring 44 px.
+- The keyboard check confirmed ArrowDown clears an incompatible variant. Empty submission focuses the first enabled colour and selection clears its error. The two-piece shortcut copies the first combination. Turning it off leaves burgundy M and floral S in distinct `variant_0` and `variant_1` fields at both widths and themes.
+- The existing Settings → Options screen logs a missing `settings.options.sets.money_category` translation. The Size sets section rendered in both languages. No VAR-1-B layout fixes were needed.
+
+### VAR-1-B ship
+- Done — Storefront colour choices and the Forms & offers → Edit options shortcut are ready.
+- Verify — Full gate passed with 1,377 tests and live RLS. Independent UI review 1 passed.
+- Evidence — `docs/briefs/VAR-1-B.review-1.md` and `docs/design/audit/VAR-1-B/`. Submission-validation focus was verified by the builder. The independent review did not repeat that action.
+- Next — STORE-4.
