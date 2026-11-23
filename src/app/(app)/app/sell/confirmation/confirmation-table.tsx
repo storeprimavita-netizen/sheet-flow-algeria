@@ -79,7 +79,9 @@ export function ConfirmationTable({ rows, scoreScope }: { rows: ConfRow[]; score
       header: t("fields.risk"),
       align: "center",
       cell: (r) => (
-        <CustomerRisk summary={r.risk} scoped={r.scopedHistory} />
+        <div className="min-w-28">
+          <CustomerRisk summary={r.risk} scoped={r.scopedHistory} compact />
+        </div>
       ),
     },
     {

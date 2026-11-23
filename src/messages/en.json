@@ -1984,6 +1984,8 @@
     "noVisibleOrders": "No visible orders",
     "visibleCount": "{count, plural, one {# visible order} other {# visible orders}}",
     "workspaceCount": "{count, plural, one {# order in this workspace} other {# orders in this workspace}}",
+    "visibleCountShort": "{count} visible",
+    "workspaceCountShort": "{count, plural, one {# order} other {# orders}}",
     "total": "Total orders",
     "delivered": "Delivered",
     "returned": "Returned",
@@ -2006,6 +2008,14 @@
       "neutral": "Neutral",
       "warning": "Elevated risk",
       "high": "High risk"
+    },
+    "reasonShort": {
+      "no_history": "No order history",
+      "unscored": "Score unavailable",
+      "no_adverse_signal": "No adverse signals",
+      "returned": "{count} returned",
+      "cancelled": "{count} cancelled",
+      "no_answer": "{count} unanswered"
     },
     "reason": {
       "no_history": "No order history",

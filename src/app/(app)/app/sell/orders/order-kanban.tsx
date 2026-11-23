@@ -202,7 +202,7 @@ export function OrderKanban({
                                         field === "score" && !isAdmin ? t("orderViews.board.visibleScore") : t(`orderViews.card.${field}`)
                                     }</dt>
                                     <dd className="min-w-0 break-words text-end [font-variant-numeric:tabular-nums]">{field === "score" && scope === "confirmation" && row.customerRisk !== undefined
-                                      ? <CustomerRisk summary={row.customerRisk} scoped={!isAdmin} />
+                                      ? <CustomerRisk summary={row.customerRisk} scoped={!isAdmin} compact />
                                       : cardValue(row, field) ?? "—"}</dd>
                                   </div>
                                 ))}

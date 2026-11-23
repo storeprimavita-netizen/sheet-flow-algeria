@@ -14,21 +14,26 @@ import { currentStatus } from "@/lib/statuses";
 import { loadCustomerScore } from "./score-actions";
 import type { CustomerScore, CustomerScoreResult, ScoreSummary } from "./_lib/customer-score";
 
-export function CustomerRisk({ summary, scoped }: { summary: ScoreSummary | null; scoped: boolean }) {
+export function CustomerRisk({ summary, scoped, compact = false }: {
+  summary: ScoreSummary | null;
+  scoped: boolean;
+  compact?: boolean;
+}) {
   const t = useTranslations("customerScore");
   if (!summary) return <span className="text-xs text-muted-foreground">{t("unlinked")}</span>;
 
   const count = summary.reason === "returned" ? summary.returned
     : summary.reason === "cancelled" ? summary.cancelled : summary.noAnswer;
   return (
-    <div className="space-y-1">
+    <div className={compact ? "space-y-0.5" : "space-y-1"}>
       {summary.score === null ? null : <RiskBadge score={summary.score} />}
       <p className="text-xs text-muted-foreground">
         {summary.state === "new" && scoped ? t("noVisibleOrders") : t(`state.${summary.state}`)}
-        {" · "}{t(scoped ? "visibleCount" : "workspaceCount", { count: summary.total })}
+        {" · "}{t(scoped ? (compact ? "visibleCountShort" : "visibleCount")
+          : (compact ? "workspaceCountShort" : "workspaceCount"), { count: summary.total })}
       </p>
       {summary.score !== null ? (
-        <p className="text-xs text-muted-foreground">{t(`reason.${summary.reason}`, { count })}</p>
+        <p className="text-xs text-muted-foreground">{t(`${compact ? "reasonShort" : "reason"}.${summary.reason}`, { count })}</p>
       ) : null}
     </div>
   );

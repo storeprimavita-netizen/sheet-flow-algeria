@@ -1984,6 +1984,8 @@
     "noVisibleOrders": "لا توجد طلبات مرئية",
     "visibleCount": "عدد الطلبات المرئية: {count}",
     "workspaceCount": "عدد الطلبات في مساحة العمل: {count}",
+    "visibleCountShort": "{count} مرئية",
+    "workspaceCountShort": "الطلبات: {count}",
     "total": "إجمالي الطلبات",
     "delivered": "تم التسليم",
     "returned": "مرتجعة",
@@ -2006,6 +2008,14 @@
       "neutral": "محايد",
       "warning": "مخاطر مرتفعة",
       "high": "مخاطر عالية"
+    },
+    "reasonShort": {
+      "no_history": "لا يوجد سجل طلبات",
+      "unscored": "التقييم غير متاح",
+      "no_adverse_signal": "لا توجد مؤشرات سلبية",
+      "returned": "مرتجعة: {count}",
+      "cancelled": "ملغاة: {count}",
+      "no_answer": "دون رد: {count}"
     },
     "reason": {
       "no_history": "لا يوجد سجل طلبات",
