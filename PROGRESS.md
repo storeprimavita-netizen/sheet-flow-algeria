@@ -1099,3 +1099,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Verified hover into the panel without moving focus, keyboard Enter and Escape with focus restored, activation in a touch-enabled viewport, simulated loading and retry recovery, and customer and related order links. An agent session showed the visible-order delivery label and omitted lifetime value. A physical-device tap and an in-flight role switch were not observed in the browser.
 - Local plan inspection found an ordered scan on the normalized phone expression index with sequential scans disabled for the small seed. The keyed delivery view uses the customer primary key and order customer index. It still evaluates the existing caller-scoped KPI cohort when a linked card opens.
 - Web guidance: `hovercard` keeps focus in place during passive hover, and `viewport-aware-dropdowns` calls for edge resilience and logical placement. The shared Radix primitives provide the button/dialog and collision behavior, with available-width and available-height constraints.
+
+### CONF-3 review fixes
+
+- The scoped snapshot distinguishes unresolved saved links from unlinked orders and sorts undated related orders last. The queue labels the absence of saved history separately from the card's phone lookup. Live fixtures cover an unresolved link, undated ordering and caller-scoped delivery maturity. In-flight role-switch coverage remains limited to the component remount key.
+- The score card opens toward the side with more room, with Radix collision handling still active. The 390 px test cards opened above their triggers with 439–459 px of panel height. Table and Kanban fit at 390/1280 in both languages and themes. Saved the 16 `review-*` captures in `docs/design/audit/CONF-3/`.
+- Each resolved lookup still computes the caller-scoped delivery cohort. The full gate passed with 1,414 tests and live RLS.
