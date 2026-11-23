@@ -1052,3 +1052,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Parked — VAR-1-B. The port fix starts MNW on 3001 and returns HTTP 200 for `/login`, but the listener disappears when the launch call exits. Builder screenshots and independent browser review still need a persistent preview.
 - Decisions — none. Q-30 and the owner inputs in `docs/MASTER_PLAN.md` remain open.
 - Next — Start the local preview from Terminal with `scripts/dev-up.sh`. Resume VAR-1-B browser checks on the printed address, then pick STORE-4.
+
+### VAR-1-B browser verification
+
+- Chrome DevTools on port 3001 captured the linked and unlinked editors, Selling, product Options, Size sets and the colour backfill dialog in EN and AR, light and dark, at 390 and 1280 px. Arabic preview and public storefront captures cover both themes and widths. Files are in `docs/design/audit/VAR-1-B/`.
+- Followed Forms & offers through to the Options anchor. The unlinked draft has no shortcut. Screens fit the viewport. The public product shows stock labels and the orders-opening notice. The preview shows legible photo, hex and text chips, with colour targets measuring 44 px.
+- The keyboard check confirmed ArrowDown clears an incompatible variant. Empty submission focuses the first enabled colour and selection clears its error. The two-piece shortcut copies the first combination. Turning it off leaves burgundy M and floral S in distinct `variant_0` and `variant_1` fields at both widths and themes.
+- The existing Settings → Options screen logs a missing `settings.options.sets.money_category` translation. The Size sets section rendered in both languages. No VAR-1-B layout fixes were needed.
