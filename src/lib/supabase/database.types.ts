@@ -2251,6 +2251,9 @@ isOneToOne: false
 "save_variant_config":
 { Args: { "p_config": Json,"p_product": string }; Returns: undefined
                            },
+"seed_confirmation_kanban":
+{ Args: { "ws": string }; Returns: undefined
+                           },
 "seed_order_views":
 { Args: { "ws": string }; Returns: undefined
                            },
@@ -2277,6 +2280,8 @@ isOneToOne: false
                            },
 "transition_order_status":
 { Args: { "p_confirmation_comment"?: string,"p_confirmation_status"?: Database["public"]['Enums']["confirmation_status"],"p_delivery_status"?: Database["public"]['Enums']["delivery_status"],"p_order_id": string }; Returns: boolean
+                           } |
+{ Args: { "p_confirmation_comment": string,"p_confirmation_status": Database["public"]['Enums']["confirmation_status"],"p_delivery_status": Database["public"]['Enums']["delivery_status"],"p_order_id": string,"p_preserve_confirmation_comment": boolean }; Returns: boolean
                            },
 "variant_label":
 { Args: { "p_variant": string }; Returns: string

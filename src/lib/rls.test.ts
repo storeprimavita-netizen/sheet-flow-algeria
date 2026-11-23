@@ -449,6 +449,58 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       await admin.from("orders").update({ confirmation_status: "wait_for_confirmation", assigned_confirmation_agent: null }).eq("id", target!.id);
     });
 
+    test("CONF-2 status-only RPC preserves notes and compatibility under the existing permissions", async () => {
+      const createOrder = async (workspace_id: string) => {
+        const { data, error } = await admin.from("orders").insert({
+          workspace_id, source: "manual", customer_name: "Local CONF-2 fixture",
+          customer_phone: "0550000012", sale_price: 1000, quantity: 1, wilaya_code: 16,
+          confirmation_comment: "Saved note",
+        }).select("id").single();
+        if (error) throw error;
+        return data!.id as string;
+      };
+      const id = await createOrder(workspaceId);
+      const foreign = await createOrder(ws2Id);
+      const args = {
+        p_order_id: id, p_confirmation_status: "no_answer", p_delivery_status: null,
+        p_confirmation_comment: null, p_preserve_confirmation_comment: true,
+      };
+      const move = (client: SupabaseClient, patch: Record<string, unknown> = {}) =>
+        client.rpc("transition_order_status", { ...args, ...patch });
+      const read = () => admin.from("orders").select("confirmation_status, confirmation_comment").eq("id", id).single();
+      const history = () => admin.from("order_status_history").select("id", { count: "exact", head: true }).eq("order_id", id);
+      try {
+        const initial = (await read()).data;
+        const entries = (await history()).count;
+        const anon = sign(LOCAL_URL!, ANON_KEY);
+        expect((await anon.rpc("transition_order_status", { p_order_id: id })).error).not.toBeNull();
+        expect((await move(anon)).error).not.toBeNull();
+        expect((await move(delivAgent)).error).not.toBeNull();
+        expect((await move(confAgent, { p_order_id: foreign })).error).not.toBeNull();
+        expect((await move(confAgent, { p_preserve_confirmation_comment: null })).error).not.toBeNull();
+        expect((await move(confAgent, { p_confirmation_comment: "Replace note" })).error).not.toBeNull();
+        expect((await move(adminUser, { p_confirmation_status: null, p_delivery_status: "swap" })).error).not.toBeNull();
+        expect((await read()).data).toEqual(initial);
+        expect((await history()).count).toBe(entries);
+
+        expect(await move(confAgent)).toMatchObject({ data: true, error: null });
+        expect((await read()).data).toEqual({ confirmation_status: "no_answer", confirmation_comment: "Saved note" });
+        expect(await move(confAgent)).toMatchObject({ data: false, error: null });
+        expect((await history()).count).toBe(entries! + 1);
+        expect(await confAgent.rpc("transition_order_status", {
+          p_order_id: id, p_confirmation_status: "no_answer", p_confirmation_comment: "Edited note",
+        })).toMatchObject({ data: false, error: null });
+        expect((await read()).data?.confirmation_comment).toBe("Edited note");
+
+        const shipped = await admin.from("orders").update({ delivery_status: "in_transit" }).eq("id", id);
+        expect(shipped.error).toBeNull();
+        expect((await move(confAgent, { p_confirmation_status: "cancelled" })).error).not.toBeNull();
+        expect((await read()).data?.confirmation_status).toBe("no_answer");
+      } finally {
+        expect((await admin.from("orders").delete().in("id", [id, foreign])).error).toBeNull();
+      }
+    });
+
     test("delivery agent cannot confirm an order via the RPC either (authorization re-checked server-side)", async () => {
       const { data: target } = await admin
         .from("orders")
