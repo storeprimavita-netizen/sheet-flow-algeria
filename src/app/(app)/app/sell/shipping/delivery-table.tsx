@@ -19,11 +19,30 @@ import type { Column } from "@/components/data-table/types";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getStatus } from "@/lib/statuses";
 import { pushOrdersToZRExpress, updateOrderStatus } from "../orders/actions";
-import type { DelivRow } from "./delivery-view";
+import type { SwapTo } from "../orders/_lib/swap-links";
 import { OrderNo } from "@/components/order-no";
 
-/** Apply a delivery-status change; toast + refresh. Shared by table + kanban. */
-export function useAdvanceDelivery() {
+export type DelivRow = {
+  id: string;
+  order_seq: number;
+  customer_name: string | null;
+  customer_phone: string | null;
+  product_name: string | null;
+  quantity: number;
+  delivery_fee: number | null;
+  to_collect: number;
+  tracking_number: string | null;
+  zr_state: string | null;
+  wilaya_name: string | null;
+  delivery_type: string;
+  delivery_status: string;
+  commune: string | null;
+  placed_at: string | null;
+  swapped_to: SwapTo | null;
+};
+
+/** Apply a delivery-status change, then show a toast and refresh. */
+function useAdvanceDelivery() {
   const t = useTranslations();
   const router = useRouter();
   return React.useCallback(
@@ -48,7 +67,7 @@ function accent(status: string): string {
   return "";
 }
 
-export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; toolbar?: React.ReactNode; isAdmin: boolean }) {
+export function DeliveryTable({ rows, isAdmin }: { rows: DelivRow[]; isAdmin: boolean }) {
   const t = useTranslations();
   const router = useRouter();
   const advance = useAdvanceDelivery();
@@ -146,7 +165,6 @@ export function DeliveryTable({ rows, toolbar, isAdmin }: { rows: DelivRow[]; to
       rows={rows}
       rowKey={(r) => r.id}
       defaultDensity="compact"
-      toolbar={toolbar}
       selectable={isAdmin}
       bulkActions={(keys, clear) => (
         <Button size="sm" variant="outline" disabled={sending} onClick={() => sendToZR(keys, clear)}>

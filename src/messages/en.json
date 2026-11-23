@@ -2021,6 +2021,7 @@
       "score": "Customer score"
     },
     "board": {
+      "visibleScore": "Score (visible orders)",
       "label": "Order board",
       "moveOrder": "Change status for order {order}",
       "confirmMove": "Confirm change",

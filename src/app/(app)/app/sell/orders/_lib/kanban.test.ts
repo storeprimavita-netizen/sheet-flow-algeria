@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { canDropOnColumn, groupKanbanRows, kanbanTargets, moveKanbanRow, type KanbanRow } from "./kanban";
+import { boardResetHref, canDropOnColumn, groupKanbanRows, kanbanTargets, moveKanbanRow, type KanbanRow } from "./kanban";
 
 const row = (id: string, fields: Partial<KanbanRow> = {}): KanbanRow => ({
   id, orderSeq: 1, customerName: null, customerPhone: null, productId: null,
@@ -45,5 +45,14 @@ describe("order board", () => {
     expect(columns(moved).find((column) => column.key === "confirmed")?.rows.map((item) => item.id)).toEqual(["one"]);
     expect(columns(rows).find((column) => column.key === "wait_for_confirmation")?.rows.map((item) => item.id)).toEqual(["one", "two"]);
     expect(moved[1]).toBe(rows[1]);
+  });
+
+  test("empty board reset keeps its layout and selected view while clearing inherited filters", () => {
+    const url = new URL(boardResetHref("/app/sell/confirmation",
+      { view: "saved", show: "all", page: "2", q: "customer" }, { q: "saved search", groupBy: "status" },
+      { layout: "kanban", groupBy: "wilaya", cardFields: ["wilaya"] }), "http://localhost");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      view: "saved", show: "all", layout: "kanban", groupBy: "wilaya", cardFields: "wilaya", q: "__all",
+    });
   });
 });

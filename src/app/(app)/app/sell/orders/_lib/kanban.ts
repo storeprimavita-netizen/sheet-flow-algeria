@@ -1,4 +1,7 @@
-import type { KanbanGroup, ViewScope } from "@/lib/order-views";
+import {
+  CLEARED, FILTER_KEYS, serializePresentation, type KanbanGroup, type SearchParams, type ViewConfig,
+  type ViewPresentation, type ViewScope,
+} from "@/lib/order-views";
 import { allStatuses, getStatus, statusOptionsFor } from "@/lib/statuses";
 import type { SwapTo } from "./swap-links";
 
@@ -75,4 +78,18 @@ export function groupKanbanRows(rows: KanbanRow[], group: KanbanGroup, stage: Ka
 
 export function moveKanbanRow(rows: KanbanRow[], move: { orderId: string; status: string }) {
   return rows.map((row) => row.id === move.orderId ? { ...row, status: move.status } : row);
+}
+
+export function boardResetHref(
+  path: string, sp: SearchParams, config: ViewConfig | undefined, presentation: ViewPresentation,
+) {
+  const reset = serializePresentation(new URLSearchParams(), presentation);
+  for (const key of ["view", "show"]) {
+    const value = sp[key];
+    if (typeof value === "string" && value) reset.set(key, value);
+  }
+  for (const key of FILTER_KEYS) {
+    if (config?.[key] !== undefined) reset.set(key, CLEARED);
+  }
+  return `${path}?${reset.toString()}`;
 }

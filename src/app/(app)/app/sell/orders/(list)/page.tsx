@@ -1,9 +1,10 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { isCurrentUserAdmin, requireProfile } from "@/lib/rbac";
 import type { Enums } from "@/lib/supabase/database.types";
 import { getOptionSet } from "@/lib/option-sets";
+import { formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { swapTargets } from "../_lib/swap-links";
@@ -19,6 +20,9 @@ import { DrillBanner } from "@/components/stats/drill-banner";
 import { COMMUNE_UNKNOWN_PARAM, communeBannerLabel, isRealIsoDate, MAX_COMMUNE_KEY, OUTCOME_DRILLS } from "@/lib/query-string";
 import { ORDER_SOURCES } from "@/lib/enums";
 import { OrdersAllTable, type AllRow } from "./orders-all-table";
+import { OrderKanban } from "../order-kanban";
+import { OrderBoardEmpty } from "../order-board-empty";
+import { boardResetHref, type KanbanRow } from "../_lib/kanban";
 
 const PAGE_SIZE = 25;
 
@@ -97,7 +101,7 @@ export default async function AllOrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_seq, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, source, placed_at, commune, address, wilaya_code, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
+      "id, order_seq, order_number, quantity, sale_price, delivery_fee, confirmation_status, delivery_status, confirmation_attempts, source, placed_at, commune, address, product_id, wilaya_code, customer_id, customer_name, customer_phone, is_duplicate_suspect, duplicate_of, swapped_to_order_id, assigned_confirmation_agent, assigned_delivery_agent, product:products(name, images), wilaya:wilayas(name)",
       { count: "exact" },
     );
 
@@ -214,6 +218,30 @@ export default async function AllOrdersPage({
     events: eventsByOrder.get(o.id) ?? [],
   }));
 
+  const boardRows: KanbanRow[] = [];
+  if (presentation.layout === "kanban" && orders) {
+    const customerIds = presentation.cardFields.includes("score")
+      ? [...new Set(orders.flatMap((order) => order.customer_id ? [order.customer_id] : []))]
+      : [];
+    const [locale, { data: stats }] = await Promise.all([
+      getLocale(),
+      customerIds.length ? supabase.from("customer_stats").select("id,risk_score").in("id", customerIds) : { data: [] },
+    ]);
+    const scoreByCustomer = new Map((stats ?? []).map((stat) => [stat.id, stat.risk_score]));
+    for (const [index, order] of orders.entries()) {
+      const row = rows[index];
+      const risk = order.customer_id ? scoreByCustomer.get(order.customer_id) : undefined;
+      boardRows.push({
+        id: row.id, orderSeq: row.order_seq, customerName: row.customer_name, customerPhone: row.customer_phone,
+        productId: order.product_id, productName: row.product_name, wilayaCode: order.wilaya_code, wilayaName: row.wilaya_name,
+        status: row.confirmation_status, deliveryStatus: row.confirmation_status === "confirmed" ? row.delivery_status : undefined,
+        locked: row.delivery_status === "swap", swappedTo: row.swapped_to, duplicate: row.is_duplicate_suspect,
+        attempts: order.confirmation_attempts ?? 0, total: isAdmin ? (row.sale_price ?? 0) * row.quantity : undefined,
+        age: formatRelativeTime(row.placed_at, locale), score: risk == null ? undefined : { value: risk },
+      });
+    }
+  }
+
   const productOpts: Opt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
   const wilayaOpts: Opt[] = (wilayas ?? []).map((w) => ({ value: String(w.code), label: w.name }));
   // every workspace member (admins included) so a conf_agent chip always has a name
@@ -223,6 +251,14 @@ export default async function AllOrdersPage({
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
   if (active?.config.q) withoutQ.set("q", CLEARED); // the view's own q must be cleared too
   const clearQueryHref = `/app/sell/orders${withoutQ.size ? `?${withoutQ.toString()}` : ""}`;
+  const lastPage = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+  const pageHref = (nextPage: number) => {
+    const query = new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
+      typeof value === "string" ? [[key, value]] : [],
+    ));
+    query.set("page", String(nextPage));
+    return `/app/sell/orders?${query.toString()}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -272,7 +308,23 @@ export default async function AllOrdersPage({
         dropped={droppedDrill}
       />
 
-      <OrdersAllTable
+      {presentation.layout === "kanban" ? (
+        <div className="min-w-0 space-y-3">
+          <OrderKanban scope="all" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
+            empty={<OrderBoardEmpty scope="all" isAdmin={isAdmin}
+              filtered={!!drillMetric || !!category || !!confAgent || !!deliveryType || FILTER_KEYS.some((key) => cfg[key] !== undefined)}
+              resetHref={boardResetHref("/app/sell/orders", sp, active?.config, presentation)} />} />
+          {page > 1 || lastPage > 1 ? (
+            <nav aria-label={t("table.page")} className="flex items-center justify-between gap-2 text-sm">
+              <span className="num text-muted-foreground">{t("table.page")} {page} / {lastPage}</span>
+              <div className="flex gap-2">
+                {page > 1 ? <ButtonLink href={pageHref(Math.min(page - 1, lastPage))} variant="outline" size="sm">{t("common.prev")}</ButtonLink> : null}
+                {page < lastPage ? <ButtonLink href={pageHref(page + 1)} variant="outline" size="sm">{t("common.next")}</ButtonLink> : null}
+              </div>
+            </nav>
+          ) : null}
+        </div>
+      ) : <OrdersAllTable
         rows={rows}
         total={count ?? 0}
         pageSize={PAGE_SIZE}
@@ -281,7 +333,7 @@ export default async function AllOrdersPage({
         actorNames={actorNames}
         query={q}
         clearQueryHref={clearQueryHref}
-      />
+      />}
     </div>
   );
 }

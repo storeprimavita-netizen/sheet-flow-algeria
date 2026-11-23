@@ -8,6 +8,7 @@ import { GripVertical, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { OrderNo } from "@/components/order-no";
+import { Empty } from "@/components/empty";
 import { PhoneLinks } from "@/components/phone-links";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusPill } from "@/components/status-pill";
@@ -26,6 +27,17 @@ import { canDropOnColumn, groupKanbanRows, kanbanStage, kanbanTargets, moveKanba
 
 type Move = { orderId: string; status: string };
 type Failure = { move: Move; error: Extract<BoardMoveResult, { ok: false }>["error"] };
+
+export function OrderBoardLoadError() {
+  const t = useTranslations("orders");
+  const router = useRouter();
+  return (
+    <Empty>
+      <p role="alert">{t("loadError")}</p>
+      <Button className="mt-3" type="button" variant="outline" onClick={() => router.refresh()}>{t("retry")}</Button>
+    </Empty>
+  );
+}
 
 function cardValue(row: KanbanRow, field: KanbanField): ReactNode {
   switch (field) {
@@ -181,7 +193,10 @@ export function OrderKanban({
                               <dl className="space-y-1 text-xs">
                                 {cardFields.map((field) => (
                                   <div key={field} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-2">
-                                    <dt className="text-muted-foreground">{t(`orderViews.card.${field}`)}</dt>
+                                    <dt className="text-muted-foreground">{
+                                      field === "total" && scope === "shipping" ? t("orders.toCollect") :
+                                        field === "score" && !isAdmin ? t("orderViews.board.visibleScore") : t(`orderViews.card.${field}`)
+                                    }</dt>
                                     <dd className="min-w-0 break-words text-end [font-variant-numeric:tabular-nums]">{cardValue(row, field) ?? "—"}</dd>
                                   </div>
                                 ))}

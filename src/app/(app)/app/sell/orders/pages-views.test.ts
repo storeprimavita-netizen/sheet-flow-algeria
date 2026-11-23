@@ -13,7 +13,7 @@ function builder(table: string): Record<string, unknown> {
   return q;
 }
 
-vi.mock("next-intl/server", () => ({ getTranslations: async () => (k: string) => k }));
+vi.mock("next-intl/server", () => ({ getLocale: async () => "en", getTranslations: async () => (k: string) => k }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: (t: string) => builder(t) }) }));
 vi.mock("@/lib/rbac", () => ({ isCurrentUserAdmin: async () => false, requireProfile: async () => ({ workspaceId: "ws" }) }));
 vi.mock("@/lib/option-sets", () => ({ getOptionSet: async () => [] }));
@@ -39,6 +39,35 @@ beforeEach(() => {
 });
 
 describe("order pages and views", () => {
+  test("Confirmation uses the seeded board and a URL table override without changing its orders query", async () => {
+    views = [{
+      id: ADMIN_VIEW, name: "Kanban by status", emoji: null, scope: "confirmation",
+      seed_key: "kanban_by_status", shared: true, position: 2, layout: "kanban", config: {},
+    }];
+    const { default: Page } = await import("../confirmation/page");
+    const board = await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW }) });
+    expect(hasType(board, "OrderKanban")).toBe(true);
+    const boardRead = [...calls];
+    calls.length = 0;
+    const table = await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW, layout: "table" }) });
+    expect(hasType(table, "ConfirmationTable")).toBe(true);
+    expect(calls).toEqual(boardRead);
+  });
+
+  test("Shipping accepts the old board address and keeps non-admins read-only", async () => {
+    const { default: Page } = await import("../shipping/page");
+    const board = await Page({ searchParams: Promise.resolve({ view: "kanban" }) });
+    expect(hasType(board, "InvalidViewNotice")).toBe(false);
+    expect(findProps(board, "OrderKanban")).toMatchObject({ scope: "shipping", isAdmin: false });
+  });
+
+  test("All board uses the same bounded page read as the table", async () => {
+    const { default: Page } = await import("./(list)/page");
+    const board = await Page({ searchParams: Promise.resolve({ layout: "kanban", page: "2" }) });
+    expect(hasType(board, "OrderKanban")).toBe(true);
+    expect(calls).toContain("range:25=49");
+  });
+
   test("delivery filters confirmed whatever the view says", async () => {
     views = [
       { id: ADMIN_VIEW, name: "V", emoji: null, scope: "shipping", seed_key: null, shared: true, position: 0, layout: "table", config: { confirmation_status: ["no_answer"] } },
