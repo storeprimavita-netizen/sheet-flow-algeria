@@ -20,7 +20,7 @@ export function CustomerRisk({ summary, scoped, compact = false }: {
   compact?: boolean;
 }) {
   const t = useTranslations("customerScore");
-  if (!summary) return <span className="text-xs text-muted-foreground">{t("unlinked")}</span>;
+  if (!summary) return <span className="text-xs text-muted-foreground">{t("noSavedHistory")}</span>;
 
   const count = summary.reason === "returned" ? summary.returned
     : summary.reason === "cancelled" ? summary.cancelled : summary.noAnswer;
@@ -49,7 +49,9 @@ function ScoreDetails({ data }: { data: CustomerScore }) {
 
   return (
     <div className="space-y-3">
-      <CustomerRisk summary={customer} scoped={scoped} />
+      {customer ? <CustomerRisk summary={customer} scoped={scoped} /> : (
+        <p className="text-muted-foreground">{t(data.link === "unresolved" ? "unresolved" : "unlinked")}</p>
+      )}
       {customer ? (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
           <Fact label={t("total")} value={formatInt(customer.total)} />
@@ -102,11 +104,13 @@ function ScoreTrigger({ scope, orderId, name }: { scope: string; orderId: string
   const t = useTranslations("customerScore");
   const titleId = useId();
   const [mode, setMode] = useState<"hover" | "pinned" | null>(null);
+  const [side, setSide] = useState<"top" | "bottom">("bottom");
   const [result, setResult] = useState<CustomerScoreResult | null>(null);
   const [pending, setPending] = useState(false);
   const timestamp = useRef(0);
   const loading = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef(false);
 
@@ -132,6 +136,10 @@ function ScoreTrigger({ scope, orderId, name }: { scope: string; orderId: string
 
   function open(next: "hover" | "pinned") {
     restoreFocus.current = next === "pinned";
+    if (!mode && trigger.current) {
+      const bounds = trigger.current.getBoundingClientRect();
+      setSide(bounds.top > window.innerHeight - bounds.bottom ? "top" : "bottom");
+    }
     setMode(next);
     if (Date.now() - timestamp.current > CACHE_MS) void load();
   }
@@ -145,6 +153,7 @@ function ScoreTrigger({ scope, orderId, name }: { scope: string; orderId: string
     <Popover open={mode !== null} onOpenChange={(next) => { if (!next) { cancelTimer(); setMode(null); } }}>
       <PopoverTrigger asChild>
         <button
+          ref={trigger}
           type="button"
           aria-label={t("openFor", { name: name ?? t("unknown") })}
           className="block max-w-full truncate rounded-sm text-start font-medium underline decoration-dotted underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -169,6 +178,7 @@ function ScoreTrigger({ scope, orderId, name }: { scope: string; orderId: string
       </PopoverTrigger>
       <PopoverContent
         ref={panel}
+        side={side}
         tabIndex={-1}
         aria-labelledby={titleId}
         className="max-h-[var(--radix-popover-content-available-height)] max-w-[min(calc(100vw-1rem),var(--radix-popover-content-available-width))] overflow-auto text-xs"

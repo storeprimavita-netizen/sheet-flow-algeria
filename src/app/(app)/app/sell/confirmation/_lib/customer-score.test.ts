@@ -11,7 +11,7 @@ const linked = {
 describe("confirmation customer snapshot", () => {
   test("keeps visible scope and adverse reasons at zero while dropping restricted fields", () => {
     const result = parseCustomerScore({
-      scope: "visible", customer: { ...linked, phone: "ignored", cost: 400 }, related: [], hasMore: false,
+      scope: "visible", link: "resolved", customer: { ...linked, phone: "ignored", cost: 400 }, related: [], hasMore: false,
     }, false);
     expect(result).toMatchObject({ status: "ready", data: { customer: { score: 0, reason: "no_answer", deliveryRate: null } } });
     expect(result).not.toHaveProperty("data.customer.lifetime");
@@ -19,18 +19,23 @@ describe("confirmation customer snapshot", () => {
     expect(result).not.toHaveProperty("data.customer.cost");
   });
 
-  test("distinguishes unlinked, empty, new and unscored states", () => {
+  test("distinguishes unresolved, unlinked, empty, new and unscored states", () => {
     const data = { scope: "workspace", related: [], hasMore: false };
     expect(parseCustomerScore(null, true)).toEqual({ status: "empty" });
-    expect(parseCustomerScore({ ...data, customer: null }, true)).toMatchObject({ status: "ready", data: { customer: null } });
+    for (const link of ["unlinked", "unresolved"]) {
+      expect(parseCustomerScore({ ...data, link, customer: null }, true))
+        .toMatchObject({ status: "ready", data: { link, customer: null } });
+    }
     for (const [state, reason] of [["new", "no_history"], ["unscored", "unscored"]]) {
-      expect(parseCustomerScore({ ...data, customer: { ...linked, score: null, state, reason } }, true))
+      expect(parseCustomerScore({ ...data, link: "resolved", customer: { ...linked, score: null, state, reason } }, true))
         .toMatchObject({ status: "ready", data: { customer: { score: null, state, lifetime: 900 } } });
     }
   });
 
   test("fails safely when the scope or payload is unexpected", () => {
-    expect(parseCustomerScore({ scope: "workspace", customer: linked, related: [], hasMore: false }, false))
+    expect(parseCustomerScore({ scope: "workspace", link: "resolved", customer: linked, related: [], hasMore: false }, false))
+      .toEqual({ status: "error" });
+    expect(parseCustomerScore({ scope: "workspace", link: "unresolved", customer: linked, related: [], hasMore: false }, true))
       .toEqual({ status: "error" });
     expect(parseCustomerScore({ scope: "workspace", customer: { id: linked.id }, related: [] }, true))
       .toEqual({ status: "error" });

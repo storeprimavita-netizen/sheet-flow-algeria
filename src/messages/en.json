@@ -1981,6 +1981,8 @@
     "empty": "Customer history is no longer available.",
     "retry": "Retry",
     "unlinked": "Customer record not linked",
+    "unresolved": "Linked customer record unavailable",
+    "noSavedHistory": "No saved customer history",
     "noVisibleOrders": "No visible orders",
     "visibleCount": "{count, plural, one {# visible order} other {# visible orders}}",
     "workspaceCount": "{count, plural, one {# order in this workspace} other {# orders in this workspace}}",

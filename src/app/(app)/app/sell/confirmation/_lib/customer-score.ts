@@ -30,12 +30,13 @@ const customer = scoreSummary.extend({
 });
 const snapshot = z.object({
   scope: z.enum(["workspace", "visible"]),
+  link: z.enum(["resolved", "unresolved", "unlinked"]),
   customer: customer.nullable(),
   related: z.array(z.object({
     id: z.uuid(), seq: z.number().int(), at: z.string().nullable(), ...orderStatuses,
   })).max(5),
   hasMore: z.boolean(),
-});
+}).refine(({ link, customer }) => (link === "resolved") === (customer !== null));
 
 export type CustomerScore = z.infer<typeof snapshot>;
 export type CustomerScoreResult =

@@ -209,6 +209,13 @@ describe.skipIf(!url)("STATS-1 customer analytics (live RLS)", () => {
       delivery_numerator: 1, delivery_denominator: 1, delivery_value: null, delivery_matured: false,
       lifetime_delivered_value_dzd: null,
     });
+    const anchor = { p_order_id: ids.at(-1)! };
+    expect(await admin.rpc("confirmation_customer_score", anchor)).toMatchObject({
+      error: null, data: { customer: { deliveryRate: 0.7 } },
+    });
+    expect(await confirmation.rpc("confirmation_customer_score", anchor)).toMatchObject({
+      error: null, data: { customer: { deliveryRate: null } },
+    });
     expect(await deliveryStats(await customer())).toMatchObject({
       delivery_numerator: 0, delivery_denominator: 0, delivery_value: null, delivery_matured: false,
       lifetime_delivered_value_dzd: 0,
@@ -278,7 +285,7 @@ describe.skipIf(!url)("STATS-1 customer analytics (live RLS)", () => {
     const snapshot = (session: Client, orderId = anchor) => session.rpc("confirmation_customer_score", { p_order_id: orderId });
     const adminView = await snapshot(admin);
     expect(adminView.error).toBeNull();
-    expect(adminView.data).toMatchObject({ scope: "workspace", customer: { id, lifetime: 0, productOrders: 7, deliveryRate: null }, hasMore: true });
+    expect(adminView.data).toMatchObject({ scope: "workspace", link: "resolved", customer: { id, lifetime: 0, productOrders: 7, deliveryRate: null }, hasMore: true });
     const agentView = await snapshot(confirmation);
     expect(agentView.error).toBeNull();
     expect(agentView.data).toMatchObject({
@@ -306,21 +313,40 @@ describe.skipIf(!url)("STATS-1 customer analytics (live RLS)", () => {
       expect(await snapshot(inactive.session)).toMatchObject({ data: null, error: null });
     }
 
-    const [orphan, related, placeholder, short] = await orders(id, [
+    const [orphan, related, placeholder, short, , , undated] = await orders(id, [
       { customer_id: null, customer_phone: "0551020771" },
       { customer_id: null, customer_phone: "213551020771" },
       { customer_id: null, customer_phone: "0000000000" },
       { customer_id: null, customer_phone: "123" },
       { customer_id: null, customer_phone: "0000000000" },
       { customer_id: null, customer_phone: "123" },
+      { customer_id: null, customer_phone: "0551020771", placed_at: null },
     ]);
     expect((await snapshot(confirmation, orphan)).data).toMatchObject({
-      customer: null, related: [{ id: related }], hasMore: false,
+      link: "unlinked", customer: null, related: [{ id: related }, { id: undated, at: null }], hasMore: false,
     });
     for (const orderId of [placeholder, short]) {
       expect((await snapshot(confirmation, orderId)).data).toMatchObject({ customer: null, related: [], hasMore: false });
     }
   }, 20_000);
+
+  test("CONF-3 keeps an unresolved saved reference separate from phone matches", async () => {
+    const phone = "0551020772";
+    const local = await customer(workspace, phone);
+    const outsideWorkspace = await customer(otherWorkspace, phone);
+    const [anchor, related] = await orders(local, [
+      { customer_id: outsideWorkspace, customer_phone: phone },
+      { customer_phone: phone },
+    ]);
+    for (const session of [admin, confirmation]) {
+      const snapshot = await session.rpc("confirmation_customer_score", { p_order_id: anchor });
+      expect(snapshot.error).toBeNull();
+      expect(snapshot.data).toMatchObject({
+        link: "unresolved", customer: null, related: [{ id: related }], hasMore: false,
+      });
+      expect(JSON.stringify(snapshot.data)).not.toContain(outsideWorkspace);
+    }
+  });
 
   test("exposes the three invoker views with SELECT-only grants", () => {
     const grants = psql(`select c.relname, privilege
