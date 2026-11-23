@@ -1086,3 +1086,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Browser self-critique at port 3001 covers EN/AR, dark/light and 390/1280 without page overflow. The first mobile pass found a full-width grouping select that pushed card settings down, so the trigger now sizes to its content. The board retains view settings when Show closed is toggled. Captures are in `docs/design/audit/CONF-2/`.
 - Local fixture checks cover keyboard selection, desktop drag events, touch-emulated selection, dialog cancel and focus restoration after a confirmed card leaves. Save as personal, Save, Reset, no-match clear, a rejected stale move, and read-only Shipping were checked live. ZR auto-push was off.
 - The drag check sent browser drag events to the live board. A physical drag gesture and a forced queue query failure were not checked.
+
+### CONF-2 ship
+- Done — Saved Kanban views for Confirmation, Shipping and All support drag and status selection with note-preserving moves.
+- Verify — Full gate passed with 1,406 tests and live RLS. Independent security and UI review passed.
+- Evidence — `docs/briefs/CONF-2.review-1.md` and `docs/design/audit/CONF-2/` record browser checks and coverage limits.
+- Next — CONF-3.
