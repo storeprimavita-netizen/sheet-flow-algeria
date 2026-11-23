@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
 import { OrderTabs } from "../orders/order-tabs";
-import { effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation, serializeConfig } from "@/lib/order-views";
 import { applyOrderConfig, orderSort, ROW_LIMIT } from "../orders/_lib/order-query";
 import { listViews, resolveView } from "../orders/_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../orders/view-tabs";
@@ -39,6 +39,8 @@ export default async function ConfirmationQueuePage({
   const viewsResult = await listViews("confirmation");
   const { active, invalid } = resolveView(viewsResult.views, sp.view);
   const cfg = effectiveConfig(active?.config ?? null, sp);
+  const presentation = viewPresentation("confirmation", isAdmin, active, sp);
+  const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("confirmation", isAdmin, active), presentation));
   query = applyOrderConfig(query, cfg);
   // oldest first unless the view sorts; the page's own filter below is applied last, so a view can only narrow
   const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
@@ -119,19 +121,23 @@ export default async function ConfirmationQueuePage({
         views={viewsResult.views}
         activeId={active?.id ?? null}
         effective={cfg}
-        dirty={active ? isDirty(active.config, sp) : false}
+        dirty={dirty}
+        presentation={presentation}
         isAdmin={isAdmin}
         loadError={!!viewsResult.error}
         keep={showAll ? "show=all" : ""}
       />
       {invalid ? <InvalidViewNotice rest={rest(sp)} /> : null}
       <QueueFilterBar
+        scope="confirmation"
+        presentation={presentation}
+        isAdmin={isAdmin}
         statusKey="confirmation_status"
         statusLabel={t("fields.confirmation_status")}
         statusOptions={CONFIRMATION_STATUSES.filter((s) => s !== "confirmed" && (showAll || (ACTIONABLE_CONFIRMATION as readonly string[]).includes(s))).map((s) => ({ value: s, label: t(`status.confirmation_status.${s}`) }))}
         q={cfg.q ?? ""}
         status={serializeConfig(cfg).get("confirmation_status") ?? ""}
-        viewKeys={Object.keys(active?.config ?? {})}
+        viewKeys={FILTER_KEYS.filter((key) => active?.config[key] !== undefined)}
       />
       {(orders ?? []).length >= ROW_LIMIT ? (
         <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>

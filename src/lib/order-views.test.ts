@@ -8,6 +8,9 @@ import {
   parseViewConfig,
   parseViewId,
   serializeConfig,
+  serializePresentation,
+  presentationDirty,
+  viewPresentation,
   viewInputSchema,
 } from "./order-views";
 
@@ -52,6 +55,33 @@ describe("order views config", () => {
     const c = parseViewConfig({ confirmation_status: ["no_answer", "closed_phone"], wilaya_code: 16, q: "ali" });
     expect(parseUrlConfig(Object.fromEntries(serializeConfig(c))).values).toEqual(c);
   });
+  test("board presentation supports old layouts, URL overrides and round-trips", () => {
+    expect(viewPresentation("all", true, null).layout).toBe("table");
+    expect(viewPresentation("shipping", true, null, { view: "kanban" }).layout).toBe("kanban");
+    expect(viewPresentation("confirmation", true, null, { view: "kanban" }).layout).toBe("table");
+    const view = { layout: "kanban" as const, config: parseViewConfig({ groupBy: "wilaya", cardFields: ["wilaya", "age"] }) };
+    const saved = viewPresentation("confirmation", false, view);
+    const edited = viewPresentation("confirmation", false, view, { layout: "table", groupBy: "product", cardFields: "" });
+    expect(saved).toEqual({ layout: "kanban", groupBy: "wilaya", cardFields: ["wilaya", "age"] });
+    expect(edited).toEqual({ layout: "table", groupBy: "product", cardFields: [] });
+    expect(presentationDirty(saved, edited)).toBe(true);
+    expect(presentationDirty(saved, viewPresentation("confirmation", false, view))).toBe(false);
+    const params = serializePresentation(new URLSearchParams("view=shared&q=amina"), edited);
+    expect(params.get("view")).toBe("shared");
+    expect(params.get("q")).toBe("amina");
+    expect(viewPresentation("confirmation", false, null, Object.fromEntries(params))).toEqual(edited);
+  });
+
+  test("malformed or incompatible saved presentation renders with safe defaults", () => {
+    const view = { layout: "kanban" as const, config: parseViewConfig({
+      groupBy: "attempts", cardFields: ["score", "product", "attempts", "product"], arbitrary: "column",
+    }) };
+    expect(viewPresentation("shipping", false, view, { layout: "grid" })).toEqual({
+      layout: "kanban", groupBy: "status", cardFields: ["product"],
+    });
+    expect(parseViewConfig({ groupBy: "grid", cardFields: ["invalid"], duplicates: "1" })).toEqual({ duplicates: "1" });
+  });
+
   test("junk view ids", () => {
     expect(parseViewId("abc")).toBeNull();
     expect(parseViewId(["a"])).toBeNull();

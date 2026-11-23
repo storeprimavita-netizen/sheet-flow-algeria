@@ -10,7 +10,7 @@ import { swapTargets } from "../_lib/swap-links";
 import { OrderTabs } from "../order-tabs";
 import { DRILL_FILTER_KEYS, parseDrillFilters } from "../_lib/drill-filters";
 import { OrdersFilterBar, type Opt } from "../orders-filter-bar";
-import { CLEARED, effectiveConfig, isDirty, serializeConfig } from "@/lib/order-views";
+import { CLEARED, effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation, serializeConfig } from "@/lib/order-views";
 import { listViews, resolveView } from "../_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../view-tabs";
 import { applyOrderConfig, orderSort } from "../_lib/order-query";
@@ -101,9 +101,12 @@ export default async function AllOrdersPage({
       { count: "exact" },
     );
 
+  const isAdmin = await isCurrentUserAdmin();
   const viewsResult = await listViews("all");
   const { active, invalid } = resolveView(viewsResult.views, sp.view);
   const cfg = effectiveConfig(active?.config ?? null, sp);
+  const presentation = viewPresentation("all", isAdmin, active, sp);
+  const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("all", isAdmin, active), presentation));
   const q = cfg.q ?? "";
   if (drillIds) {
     // the id page is the whole filter in drill mode
@@ -216,7 +219,6 @@ export default async function AllOrdersPage({
   // every workspace member (admins included) so a conf_agent chip always has a name
   const agentOpts: Opt[] = members.map((a) => ({ value: a.id, label: a.name }));
   const categoryOpts: Opt[] = categoryOptions.map((o) => ({ value: o.id, label: o.label }));
-  const isAdmin = await isCurrentUserAdmin();
   const restParams = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : [])));
   const withoutQ = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "q" && k !== "page" ? [[k, v]] : [])));
   if (active?.config.q) withoutQ.set("q", CLEARED); // the view's own q must be cleared too
@@ -235,7 +237,8 @@ export default async function AllOrdersPage({
         views={viewsResult.views}
         activeId={active?.id ?? null}
         effective={cfg}
-        dirty={active ? isDirty(active.config, sp) : false}
+        dirty={dirty}
+        presentation={presentation}
         isAdmin={isAdmin}
         loadError={!!viewsResult.error}
         keep=""
@@ -257,11 +260,13 @@ export default async function AllOrdersPage({
       ) : null}
 
       <OrdersFilterBar
+        presentation={presentation}
+        isAdmin={isAdmin}
         products={productOpts}
         wilayas={wilayaOpts}
         agents={agentOpts}
         values={Object.fromEntries(serializeConfig(cfg))}
-        viewKeys={Object.keys(active?.config ?? {})}
+        viewKeys={FILTER_KEYS.filter((key) => active?.config[key] !== undefined)}
         categories={categoryOpts}
         drill={drillChecked}
         dropped={droppedDrill}

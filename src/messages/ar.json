@@ -2003,7 +2003,25 @@
     "notAvailable": "هذا العرض غير متاح",
     "dismiss": "إغلاق",
     "limitNotice": "يتم عرض أول {count} طلب. ضيّق القائمة بعرض أو بفلاتر.",
+    "layout": "عرض الطلبات",
+    "groupBy": "تجميع اللوحة حسب",
+    "cardFields": "حقول البطاقة",
+    "group": {
+      "status": "الحالة",
+      "attempts": "المحاولات",
+      "wilaya": "الولاية",
+      "product": "المنتج"
+    },
+    "card": {
+      "product": "المنتج",
+      "wilaya": "الولاية",
+      "total": "المجموع",
+      "attempts": "المحاولات",
+      "age": "عمر الطلب",
+      "score": "تقييم الزبون"
+    },
     "seed": {
+      "kanban_by_status": "لوحة حسب الحالة",
       "new": "جديد",
       "no_answer": "لا يردّ",
       "duplicates": "مكرّرة"

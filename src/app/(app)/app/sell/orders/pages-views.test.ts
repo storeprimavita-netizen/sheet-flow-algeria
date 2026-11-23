@@ -41,7 +41,7 @@ beforeEach(() => {
 describe("order pages and views", () => {
   test("delivery filters confirmed whatever the view says", async () => {
     views = [
-      { id: ADMIN_VIEW, name: "V", emoji: null, scope: "shipping", seed_key: null, shared: true, position: 0, config: { confirmation_status: ["no_answer"] } },
+      { id: ADMIN_VIEW, name: "V", emoji: null, scope: "shipping", seed_key: null, shared: true, position: 0, layout: "table", config: { confirmation_status: ["no_answer"] } },
     ];
     const { default: Page } = await import("../shipping/page");
     await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW, confirmation_status: "cancelled" }) });

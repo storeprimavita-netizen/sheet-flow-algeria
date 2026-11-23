@@ -2003,7 +2003,25 @@
     "notAvailable": "That view is not available",
     "dismiss": "Dismiss",
     "limitNotice": "Showing the first {count} orders. Narrow the list with a view or filters.",
+    "layout": "Order layout",
+    "groupBy": "Group board by",
+    "cardFields": "Card fields",
+    "group": {
+      "status": "Status",
+      "attempts": "Attempts",
+      "wilaya": "Wilaya",
+      "product": "Product"
+    },
+    "card": {
+      "product": "Product",
+      "wilaya": "Wilaya",
+      "total": "Total",
+      "attempts": "Attempts",
+      "age": "Order age",
+      "score": "Customer score"
+    },
     "seed": {
+      "kanban_by_status": "Kanban by status",
       "new": "New",
       "no_answer": "No answer",
       "duplicates": "Duplicates"

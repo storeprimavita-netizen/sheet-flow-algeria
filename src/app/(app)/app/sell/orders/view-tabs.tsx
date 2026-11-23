@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { isUnrenamedSeed, serializeConfig, type OrderViewDto, type ViewConfig, type ViewScope } from "@/lib/order-views";
+import {
+  isUnrenamedSeed, serializeConfig, serializePresentation, viewPresentation,
+  type OrderViewDto, type ViewConfig, type ViewPresentation, type ViewScope,
+} from "@/lib/order-views";
 import { SavedViewBar } from "./saved-view-bar";
 import { ViewNameDialog } from "./view-name-dialog";
 import { createView, deleteView, moveView, renameView } from "./views-actions";
@@ -21,6 +24,7 @@ type Props = {
   activeId: string | null;
   effective: ViewConfig;
   dirty: boolean;
+  presentation: ViewPresentation;
   isAdmin: boolean;
   loadError: boolean;
   /** extra params that survive a view switch (e.g. `show=all`) */
@@ -30,7 +34,7 @@ type Props = {
 const pill =
   "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm md:min-h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, loadError, keep }: Props) {
+export function ViewTabs({ scope, views, activeId, effective, dirty, presentation, isAdmin, loadError, keep }: Props) {
   const t = useTranslations("orderViews");
   const router = useRouter();
   const path = usePathname();
@@ -58,7 +62,10 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
   }, [activeId]);
 
   async function copyLink(v: OrderViewDto) {
-    const qs = v.shared ? `view=${v.id}` : serializeConfig(v.id === activeId ? effective : v.config).toString();
+    const qs = v.shared ? `view=${v.id}` : serializePresentation(
+      serializeConfig(v.id === activeId ? effective : v.config),
+      v.id === activeId ? presentation : viewPresentation(scope, isAdmin, v),
+    ).toString();
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${href(qs)}`);
       setNote(t("linkCopied"));
@@ -172,7 +179,7 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
         {note}
       </p>
 
-      <SavedViewBar view={active} scope={scope} effective={effective} dirty={dirty} isAdmin={isAdmin} keep={keep} />
+      <SavedViewBar view={active} scope={scope} effective={effective} dirty={dirty} presentation={presentation} isAdmin={isAdmin} keep={keep} />
 
       {rename ? (
         <ViewNameDialog
@@ -200,7 +207,7 @@ export function ViewTabs({ scope, views, activeId, effective, dirty, isAdmin, lo
           submitLabel={t("save")}
           returnFocus={() => triggers.current.get(saveAsFrom.id) ?? null}
           onSubmit={async (v) => {
-            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: false, config: saveAsFrom.config });
+            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: false, layout: saveAsFrom.layout, config: saveAsFrom.config });
             if (r.ok) router.replace(href(`view=${r.id}`));
             return r;
           }}

@@ -9,6 +9,7 @@ import { getProfile } from "@/lib/rbac";
 import {
   MAX_VIEWS_PER_GROUP,
   parseViewConfig,
+  VIEW_LAYOUTS,
   VIEW_SCOPES,
   viewInputSchema,
 } from "@/lib/order-views";
@@ -24,6 +25,7 @@ const createSchema = viewInputSchema.and(
     scope: z.enum(VIEW_SCOPES),
     shared: z.boolean(),
     config: z.unknown(),
+    layout: z.enum(VIEW_LAYOUTS).default("table"),
   }),
 );
 const DUPLICATE = "23505";
@@ -51,7 +53,7 @@ export async function createView(input: unknown): Promise<ViewResult> {
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { supabase, user, profile } = await who();
   if (!user || !profile) return { ok: false, error: "forbidden" };
-  const { name, emoji, scope, shared } = parsed.data;
+  const { name, emoji, scope, shared, layout } = parsed.data;
   if (shared && profile.role !== "admin") return { ok: false, error: "forbidden" };
   const config = parseViewConfig(parsed.data.config) as NonNullable<Json>;
 
@@ -69,6 +71,7 @@ export async function createView(input: unknown): Promise<ViewResult> {
       name,
       emoji,
       scope,
+      layout,
       config,
       position: (existing?.[0]?.position ?? -1) + 1,
     })
@@ -91,8 +94,10 @@ async function updateOne(id: string, patch: TablesUpdate<"order_views">): Promis
   return { ok: true, id };
 }
 
-export async function saveView(id: string, config: unknown): Promise<ViewResult> {
-  return updateOne(id, { config: parseViewConfig(config) as NonNullable<Json> });
+export async function saveView(id: string, config: unknown, layout?: unknown): Promise<ViewResult> {
+  const parsed = z.enum(VIEW_LAYOUTS).optional().safeParse(layout);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  return updateOne(id, { config: parseViewConfig(config) as NonNullable<Json>, layout: parsed.data });
 }
 
 export async function renameView(id: string, input: unknown): Promise<ViewResult> {

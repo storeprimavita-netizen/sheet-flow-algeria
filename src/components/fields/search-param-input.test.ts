@@ -112,6 +112,19 @@ describe("search param sync", () => {
     expect(texts).toEqual([]);
   });
 
+  test("a same-view layout switch carries pending search text", () => {
+    const { s, writes } = setup({ qs: "view=a&page=2&confirmation_status=no_answer" });
+    s.type("Amina");
+    const params = new URLSearchParams("view=a&page=2&confirmation_status=no_answer");
+    params.set("layout", "kanban");
+    s.mergeInto(params);
+    expect(Object.fromEntries(params)).toEqual({
+      view: "a", confirmation_status: "no_answer", layout: "kanban", q: "Amina",
+    });
+    vi.advanceTimersByTime(1000);
+    expect(writes).toEqual([]);
+  });
+
   test("i: status picked while the search write is loading still carries the search", () => {
     const { s, writes } = setup();
     s.type("Amina");

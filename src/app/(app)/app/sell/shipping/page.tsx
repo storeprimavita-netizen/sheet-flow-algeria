@@ -7,7 +7,7 @@ import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_DELIVERY } from "@/lib/statuses";
 import { swapTargets } from "../orders/_lib/swap-links";
 import { OrderTabs } from "../orders/order-tabs";
-import { effectiveConfig, isDirty } from "@/lib/order-views";
+import { effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation } from "@/lib/order-views";
 import { applyOrderConfig, orderSort, ROW_LIMIT } from "../orders/_lib/order-query";
 import { listViews, resolveView } from "../orders/_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../orders/view-tabs";
@@ -35,8 +35,10 @@ export default async function DeliveryQueuePage({
       "id, order_seq, customer_name, customer_phone, quantity, sale_price, delivery_fee, delivery_type, delivery_status, swapped_to_order_id, commune, placed_at, product:products(name), wilaya:wilayas(name), zr:zr_shipments(tracking_number, state)",
     );
   const viewsResult = await listViews("shipping");
-  const { active, invalid } = resolveView(viewsResult.views, sp.view);
+  const { active, invalid } = resolveView(viewsResult.views, sp.view, "shipping");
   const cfg = effectiveConfig(active?.config ?? null, sp);
+  const presentation = viewPresentation("shipping", isAdmin, active, sp);
+  const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("shipping", isAdmin, active), presentation));
   query = applyOrderConfig(query, cfg);
   const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
   // fixed page filter applied last: whatever the view says, only confirmed orders are listed here
@@ -81,24 +83,28 @@ export default async function DeliveryQueuePage({
         views={viewsResult.views}
         activeId={active?.id ?? null}
         effective={cfg}
-        dirty={active ? isDirty(active.config, sp) : false}
+        dirty={dirty}
+        presentation={presentation}
         isAdmin={isAdmin}
         loadError={!!viewsResult.error}
         keep={showAll ? "show=all" : ""}
       />
       {invalid ? <InvalidViewNotice rest={rest} /> : null}
       <QueueFilterBar
+        scope="shipping"
+        presentation={presentation}
+        isAdmin={isAdmin}
         statusKey="delivery_status"
         statusLabel={t("fields.delivery_status")}
         statusOptions={DELIVERY_STATUSES.filter((s) => showAll || (ACTIONABLE_DELIVERY as readonly string[]).includes(s)).map((s) => ({ value: s, label: t(`status.delivery_status.${s}`) }))}
         q={cfg.q ?? ""}
         status={cfg.delivery_status ?? ""}
-        viewKeys={Object.keys(active?.config ?? {})}
+        viewKeys={FILTER_KEYS.filter((key) => active?.config[key] !== undefined)}
       />
       {(orders ?? []).length >= ROW_LIMIT ? (
         <p role="status" className="text-sm text-muted-foreground">{t("orderViews.limitNotice", { count: ROW_LIMIT })}</p>
       ) : null}
-      <DeliveryView rows={rows} isAdmin={isAdmin} />
+      <DeliveryView rows={rows} isAdmin={isAdmin} layout={presentation.layout} />
     </div>
   );
 }

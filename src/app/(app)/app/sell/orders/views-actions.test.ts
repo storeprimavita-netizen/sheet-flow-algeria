@@ -6,6 +6,7 @@ let updateResult: Result;
 let insertResult: Result;
 let countResult: Result;
 const inserted: unknown[] = [];
+const updated: unknown[] = [];
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/rbac", () => ({ getProfile: async () => ({ role, workspaceId: "ws-1" }) }));
@@ -16,7 +17,10 @@ vi.mock("@/lib/supabase/server", () => ({
       const q: Record<string, unknown> = {};
       for (const m of ["select", "eq", "is", "order", "limit"]) q[m] = () => q;
       q.then = (res: (v: Result) => unknown) => res(countResult);
-      q.update = () => ({ eq: () => ({ select: async () => updateResult }) });
+      q.update = (patch: unknown) => {
+        updated.push(patch);
+        return { eq: () => ({ select: async () => updateResult }) };
+      };
       q.delete = () => ({ eq: () => ({ select: async () => updateResult }) });
       q.insert = (row: unknown) => {
         inserted.push(row);
@@ -35,6 +39,7 @@ const input = (over: Record<string, unknown> = {}) => ({ name: "Mine", scope: "a
 beforeEach(() => {
   role = "admin";
   inserted.length = 0;
+  updated.length = 0;
   countResult = { data: [], error: null, count: 0 };
   insertResult = { data: [{ id: ID }], error: null };
   updateResult = { data: [{ id: ID }], error: null };
@@ -44,6 +49,16 @@ describe("view actions", () => {
   test("create stores owner/workspace server-side and a sanitized config", async () => {
     expect(await createView(input())).toEqual({ ok: true, id: ID });
     expect(inserted[0]).toMatchObject({ workspace_id: "ws-1", owner_id: "u1", config: { duplicates: "1" } });
+  });
+  test("Save and Save as mine persist the board presentation", async () => {
+    const config = { groupBy: "product", cardFields: ["wilaya", "age"] };
+    expect(await saveView(ID, config, "kanban")).toEqual({ ok: true, id: ID });
+    expect(updated[0]).toEqual({ layout: "kanban", config });
+    role = "confirmation_agent";
+    expect(await createView(input({ scope: "confirmation", layout: "kanban", config }))).toEqual({ ok: true, id: ID });
+    expect(inserted[0]).toMatchObject({ owner_id: "u1", layout: "kanban", config });
+    expect(await saveView(ID, config, "grid")).toEqual({ ok: false, error: "invalid" });
+    expect(updated).toHaveLength(1);
   });
   test("agent cannot create a shared view", async () => {
     role = "confirmation_agent";

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import type { OrderViewDto, ViewConfig, ViewScope } from "@/lib/order-views";
+import type { OrderViewDto, ViewConfig, ViewPresentation, ViewScope } from "@/lib/order-views";
 import { createView, saveView } from "./views-actions";
 import { ViewNameDialog } from "./view-name-dialog";
 
@@ -15,6 +15,7 @@ export function SavedViewBar({
   scope,
   effective,
   dirty,
+  presentation,
   isAdmin,
   keep,
 }: {
@@ -22,6 +23,7 @@ export function SavedViewBar({
   scope: ViewScope;
   effective: ViewConfig;
   dirty: boolean;
+  presentation: ViewPresentation;
   isAdmin: boolean;
   keep: string;
 }) {
@@ -34,11 +36,13 @@ export function SavedViewBar({
   const saveAsRef = useRef<HTMLButtonElement>(null);
   const canSave = !!view && (isAdmin || !view.shared);
   const withKeep = (qs: string) => `${path}?${[qs, keep].filter(Boolean).join("&")}`;
+  const { layout, groupBy, cardFields } = presentation;
+  const config = { ...effective, groupBy, cardFields };
 
   async function save() {
     if (!view) return;
     setBusy(true);
-    const r = await saveView(view.id, { ...effective, columns: view.config.columns });
+    const r = await saveView(view.id, config, layout);
     setBusy(false);
     setStatus(r.ok ? t("saved") : t(`error.${r.error}`));
     if (r.ok) router.refresh();
@@ -94,7 +98,7 @@ export function SavedViewBar({
           submitLabel={t("save")}
           returnFocus={() => saveAsRef.current}
           onSubmit={async (v) => {
-            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: isAdmin && v.shared, config: effective });
+            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: isAdmin && v.shared, layout, config });
             if (r.ok) router.replace(withKeep(`view=${r.id}`));
             return r;
           }}

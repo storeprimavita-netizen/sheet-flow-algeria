@@ -12,7 +12,6 @@ export async function listViews(scope: ViewScope): Promise<ViewsResult> {
     .from("order_views")
     .select("id, name, emoji, scope, seed_key, owner_id, position, layout, config, created_at")
     .eq("scope", scope)
-    .eq("layout", "table") // kanban rows are ignored until CONF-2
     .order("position")
     .order("created_at");
   if (error) {
@@ -27,6 +26,7 @@ export async function listViews(scope: ViewScope): Promise<ViewsResult> {
     seed_key: r.seed_key,
     shared: r.owner_id === null,
     position: r.position,
+    layout: r.layout === "kanban" ? "kanban" : "table",
     config: parseViewConfig(r.config),
   }));
   views.sort((a, b) => Number(b.shared) - Number(a.shared) || a.position - b.position);
@@ -40,8 +40,11 @@ export async function listViews(scope: ViewScope): Promise<ViewsResult> {
 export function resolveView(
   views: OrderViewDto[],
   param: string | string[] | undefined,
+  scope?: ViewScope,
 ): { active: OrderViewDto | null; invalid: boolean } {
-  if (param === undefined || param === "") return { active: null, invalid: false };
+  if (param === undefined || param === "" || (scope === "shipping" && param === "kanban")) {
+    return { active: null, invalid: false };
+  }
   const id = parseViewId(param);
   const active = id ? (views.find((v) => v.id === id) ?? null) : null;
   return { active, invalid: !active };
