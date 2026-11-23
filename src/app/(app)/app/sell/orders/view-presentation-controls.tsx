@@ -28,12 +28,12 @@ export function ViewPresentationControls({
     <div className="flex max-w-full flex-wrap items-center gap-2">
       <div role="group" aria-label={t("orderViews.layout")} className="inline-flex gap-1 rounded-md border border-border p-0.5">
         <Button type="button" variant={layout === "table" ? "secondary" : "ghost"} size="sm"
-          className="min-h-10 gap-1.5 md:min-h-8" aria-pressed={layout === "table"}
+          className="min-h-11 gap-1.5 md:min-h-8" aria-pressed={layout === "table"}
           onClick={() => layout !== "table" && onChange({ ...presentation, layout: "table" })}>
           <Table2 aria-hidden className="size-4" />{t("orders.viewTable")}
         </Button>
         <Button type="button" variant={layout === "kanban" ? "secondary" : "ghost"} size="sm"
-          className="min-h-10 gap-1.5 md:min-h-8" aria-pressed={layout === "kanban"}
+          className="min-h-11 gap-1.5 md:min-h-8" aria-pressed={layout === "kanban"}
           onClick={() => layout !== "kanban" && onChange({ ...presentation, layout: "kanban" })}>
           <LayoutGrid aria-hidden className="size-4" />{t("orders.viewKanban")}
         </Button>
@@ -45,7 +45,7 @@ export function ViewPresentationControls({
             const group = availableKanbanGroups(scope, isAdmin).find((item) => item === value);
             if (group) onChange({ ...presentation, groupBy: group });
           }}>
-            <SelectTrigger aria-labelledby={groupLabel} className="min-h-11 md:min-h-9">
+            <SelectTrigger aria-labelledby={groupLabel} className="min-h-11 w-auto min-w-32 md:min-h-9">
               <SelectValue>{t(`orderViews.group.${groupBy}`)}</SelectValue>
             </SelectTrigger>
             <SelectContent>

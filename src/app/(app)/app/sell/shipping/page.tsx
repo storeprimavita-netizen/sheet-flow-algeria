@@ -17,7 +17,7 @@ import { DELIVERY_STATUSES } from "@/lib/enums";
 import { DeliveryTable, type DelivRow } from "./delivery-table";
 import { OrderBoardLoadError, OrderKanban } from "../orders/order-kanban";
 import { OrderBoardEmpty } from "../orders/order-board-empty";
-import { boardResetHref, type KanbanRow } from "../orders/_lib/kanban";
+import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_lib/kanban";
 
 export default async function DeliveryQueuePage({
   searchParams,
@@ -92,7 +92,9 @@ export default async function DeliveryQueuePage({
         subtitle={t("navPurpose.shipping")}
         related={isAdmin ? [{ href: "/app/sell/confirmation", label: t("nav.confirmation") }] : undefined}
       >
-        <ButtonLink href={showAll ? "/app/sell/shipping" : "/app/sell/shipping?show=all"} variant="outline" size="sm">
+        <ButtonLink href={presentation.layout === "kanban"
+          ? boardShowClosedHref("/app/sell/shipping", sp)
+          : showAll ? "/app/sell/shipping" : "/app/sell/shipping?show=all"} variant="outline" size="sm">
           {showAll ? t("orders.showActionable") : t("orders.showClosed")}
         </ButtonLink>
       </PageHeader>

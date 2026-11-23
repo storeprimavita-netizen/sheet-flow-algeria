@@ -93,3 +93,12 @@ export function boardResetHref(
   }
   return `${path}?${reset.toString()}`;
 }
+
+export function boardShowClosedHref(path: string, sp: SearchParams) {
+  const next = new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
+    typeof value === "string" ? [[key, value]] : [],
+  ));
+  if (next.get("show") === "all") next.delete("show");
+  else next.set("show", "all");
+  return `${path}${next.size ? `?${next}` : ""}`;
+}

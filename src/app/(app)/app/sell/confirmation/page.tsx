@@ -18,7 +18,7 @@ import { ConfirmationTable, type ConfRow } from "./confirmation-table";
 import { NewOrdersPill } from "./new-orders-pill";
 import { OrderBoardLoadError, OrderKanban } from "../orders/order-kanban";
 import { OrderBoardEmpty } from "../orders/order-board-empty";
-import { boardResetHref, type KanbanRow } from "../orders/_lib/kanban";
+import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_lib/kanban";
 
 const rest = (sp: Record<string, string | string[] | undefined>) =>
   new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
@@ -134,7 +134,9 @@ export default async function ConfirmationQueuePage({
         subtitle={t("navPurpose.confirmation")}
         related={isAdmin ? [{ href: "/app/sell/shipping", label: t("nav.shipping") }] : undefined}
       >
-        <ButtonLink href={showAll ? "/app/sell/confirmation" : "/app/sell/confirmation?show=all"} variant="outline" size="sm">
+        <ButtonLink href={presentation.layout === "kanban"
+          ? boardShowClosedHref("/app/sell/confirmation", sp)
+          : showAll ? "/app/sell/confirmation" : "/app/sell/confirmation?show=all"} variant="outline" size="sm">
           {showAll ? t("orders.showActionable") : t("orders.showClosed")}
         </ButtonLink>
       </PageHeader>
