@@ -209,6 +209,13 @@ describe.skipIf(!url)("STATS-1 customer analytics (live RLS)", () => {
       delivery_numerator: 1, delivery_denominator: 1, delivery_value: null, delivery_matured: false,
       lifetime_delivered_value_dzd: null,
     });
+    const anchor = { p_order_id: ids.at(-1)! };
+    expect(await admin.rpc("confirmation_customer_score", anchor)).toMatchObject({
+      error: null, data: { customer: { deliveryRate: 0.7 } },
+    });
+    expect(await confirmation.rpc("confirmation_customer_score", anchor)).toMatchObject({
+      error: null, data: { customer: { deliveryRate: null } },
+    });
     expect(await deliveryStats(await customer())).toMatchObject({
       delivery_numerator: 0, delivery_denominator: 0, delivery_value: null, delivery_matured: false,
       lifetime_delivered_value_dzd: 0,
@@ -255,6 +262,89 @@ describe.skipIf(!url)("STATS-1 customer analytics (live RLS)", () => {
       expect(result.error).toBeNull();
       expect(result.data).toEqual([]);
       expect((await client(anonKey).from(view).select("workspace_id")).error?.code).toBe("42501");
+    }
+  });
+
+  test("CONF-3 snapshot inherits order scope and omits restricted data", async () => {
+    const phone = "0551020770";
+    const id = await customer(workspace, phone);
+    const anchorTime = "2026-03-12T09:00:00Z";
+    const [anchor, local, international, dialPrefix, bare, hiddenA, hiddenB, closed] = await orders(id, [
+      { customer_phone: phone, customer_id: null, placed_at: anchorTime },
+      { customer_phone: phone },
+      { customer_phone: "+213551020770", confirmation_status: "no_answer" },
+      { customer_phone: "00213551020770", confirmation_status: "closed_phone" },
+      { customer_phone: "551020770" },
+      { customer_phone: phone, confirmation_status: "confirmed", delivery_status: "in_transit" },
+      { customer_phone: phone, confirmation_status: "confirmed", delivery_status: "out_for_delivery" },
+      { customer_phone: phone, confirmation_status: "cancelled" },
+    ]);
+    const foreign = await service.from("orders").insert({ workspace_id: otherWorkspace, customer_phone: phone })
+      .select("id").single();
+    expect(foreign.error).toBeNull();
+    const snapshot = (session: Client, orderId = anchor) => session.rpc("confirmation_customer_score", { p_order_id: orderId });
+    const adminView = await snapshot(admin);
+    expect(adminView.error).toBeNull();
+    expect(adminView.data).toMatchObject({ scope: "workspace", link: "resolved", customer: { id, lifetime: 0, productOrders: 7, deliveryRate: null }, hasMore: true });
+    const agentView = await snapshot(confirmation);
+    expect(agentView.error).toBeNull();
+    expect(agentView.data).toMatchObject({
+      scope: "visible", customer: { id, productOrders: 4, deliveryRate: null },
+      related: [local, international, dialPrefix, bare].sort().reverse().map((orderId) => ({ id: orderId })),
+      hasMore: false,
+    });
+    expect(agentView.data).not.toHaveProperty("customer.lifetime");
+    expect(JSON.stringify(agentView.data)).not.toMatch(/"(?:customer_phone|phone|address|cost|payout)"\s*:/i);
+    for (const [session, orderId] of [
+      [confirmation, hiddenA], [confirmation, hiddenB], [confirmation, closed],
+      [admin, foreign.data!.id], [otherAdmin, anchor], [delivery, anchor],
+      [admin, crypto.randomUUID()],
+    ] as const) {
+      const result = await snapshot(session, orderId);
+      expect(result.error).toBeNull();
+      expect(result.data).toBeNull();
+    }
+    expect((await snapshot(client(anonKey))).error).not.toBeNull();
+    expect((await snapshot(service)).error).not.toBeNull();
+
+    for (const role of ["admin", "confirmation_agent"] as const) {
+      const inactive = await member(workspace, role);
+      expect((await service.from("profiles").update({ is_active: false }).eq("user_id", inactive.id)).error).toBeNull();
+      expect(await snapshot(inactive.session)).toMatchObject({ data: null, error: null });
+    }
+
+    const [orphan, related, placeholder, short, , , undated] = await orders(id, [
+      { customer_id: null, customer_phone: "0551020771" },
+      { customer_id: null, customer_phone: "213551020771" },
+      { customer_id: null, customer_phone: "0000000000" },
+      { customer_id: null, customer_phone: "123" },
+      { customer_id: null, customer_phone: "0000000000" },
+      { customer_id: null, customer_phone: "123" },
+      { customer_id: null, customer_phone: "0551020771", placed_at: null },
+    ]);
+    expect((await snapshot(confirmation, orphan)).data).toMatchObject({
+      link: "unlinked", customer: null, related: [{ id: related }, { id: undated, at: null }], hasMore: false,
+    });
+    for (const orderId of [placeholder, short]) {
+      expect((await snapshot(confirmation, orderId)).data).toMatchObject({ customer: null, related: [], hasMore: false });
+    }
+  }, 20_000);
+
+  test("CONF-3 keeps an unresolved saved reference separate from phone matches", async () => {
+    const phone = "0551020772";
+    const local = await customer(workspace, phone);
+    const outsideWorkspace = await customer(otherWorkspace, phone);
+    const [anchor, related] = await orders(local, [
+      { customer_id: outsideWorkspace, customer_phone: phone },
+      { customer_phone: phone },
+    ]);
+    for (const session of [admin, confirmation]) {
+      const snapshot = await session.rpc("confirmation_customer_score", { p_order_id: anchor });
+      expect(snapshot.error).toBeNull();
+      expect(snapshot.data).toMatchObject({
+        link: "unresolved", customer: null, related: [{ id: related }], hasMore: false,
+      });
+      expect(JSON.stringify(snapshot.data)).not.toContain(outsideWorkspace);
     }
   });
 

@@ -6,7 +6,8 @@ import { Chip } from "@/components/ui/chip";
 import { ButtonLink } from "@/components/button-link";
 import { StatusPill } from "@/components/status-pill";
 import { PhoneLinks } from "@/components/phone-links";
-import { RiskBadge } from "@/components/risk-badge";
+import { CustomerRisk, CustomerScoreCard } from "./customer-score-card";
+import type { ScoreSummary } from "./_lib/customer-score";
 import { DataTable } from "@/components/data-table/data-table";
 import type { Column } from "@/components/data-table/types";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -30,15 +31,14 @@ export type ConfRow = {
   placed_at: string | null;
   is_duplicate_suspect: boolean;
   duplicate_of: string | null;
-  risk_score: number;
-  risk_reason: string;
-  delivery_rate: string;
+  risk: ScoreSummary | null;
+  scopedHistory: boolean;
   /** non-admin + already shipped: hide attempt logging */
   locked: boolean;
   recent: { id: string; order_seq: number; delivery_status: string; placed_at: string | null }[];
 };
 
-export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
+export function ConfirmationTable({ rows, scoreScope }: { rows: ConfRow[]; scoreScope: string | null }) {
   const t = useTranslations();
   const orderedKeys = rows.map((r) => r.id);
 
@@ -63,7 +63,8 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
       header: t("fields.customer"),
       cell: (r) => (
         <div className="min-w-0">
-          <div className="truncate">{r.customer_name ?? "—"}</div>
+          {scoreScope ? <CustomerScoreCard scope={scoreScope} orderId={r.id} name={r.customer_name} />
+            : <div className="truncate">{r.customer_name ?? "—"}</div>}
           {r.customer_phone ? (
             <PhoneLinks phone={r.customer_phone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} />
           ) : null}
@@ -78,9 +79,8 @@ export function ConfirmationTable({ rows }: { rows: ConfRow[] }) {
       header: t("fields.risk"),
       align: "center",
       cell: (r) => (
-        <div className="space-y-0.5">
-          <RiskBadge score={r.risk_score} reason={r.risk_reason} />
-          <div className="num text-xs text-muted-foreground">{r.delivery_rate}</div>
+        <div className="min-w-28">
+          <CustomerRisk summary={r.risk} scoped={r.scopedHistory} compact />
         </div>
       ),
     },

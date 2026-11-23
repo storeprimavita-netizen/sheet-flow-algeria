@@ -1092,3 +1092,21 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Verify — Full gate passed with 1,406 tests and live RLS. Independent security and UI review passed.
 - Evidence — `docs/briefs/CONF-2.review-1.md` and `docs/design/audit/CONF-2/` record browser checks and coverage limits.
 - Next — CONF-3.
+### CONF-3 build and browser verification
+
+- Confirmation table, sheet and Kanban use the scoped score summary. The name opens a lazy Radix card backed by an invoker RPC with bounded same-phone results. The queue no longer calculates a separate delivery-rate cue.
+- Captured table and Kanban in EN/AR, light/dark and 390/1280 under `docs/design/audit/CONF-3/`. All cards fit the viewport. Shortened the queue counts and reasons after inspecting the first captures, then repeated the matrix.
+- Verified hover into the panel without moving focus, keyboard Enter and Escape with focus restored, activation in a touch-enabled viewport, simulated loading and retry recovery, and customer and related order links. An agent session showed the visible-order delivery label and omitted lifetime value. A physical-device tap and an in-flight role switch were not observed in the browser.
+- Local plan inspection found an ordered scan on the normalized phone expression index with sequential scans disabled for the small seed. The keyed delivery view uses the customer primary key and order customer index. It still evaluates the existing caller-scoped KPI cohort when a linked card opens.
+- Web guidance: `hovercard` keeps focus in place during passive hover, and `viewport-aware-dropdowns` calls for edge resilience and logical placement. The shared Radix primitives provide the button/dialog and collision behavior, with available-width and available-height constraints.
+
+### CONF-3 review fixes
+
+- The scoped snapshot distinguishes unresolved saved links from unlinked orders and sorts undated related orders last. The queue labels the absence of saved history separately from the card's phone lookup. Live fixtures cover an unresolved link, undated ordering and caller-scoped delivery maturity. In-flight role-switch coverage remains limited to the component remount key.
+- The score card opens toward the side with more room, with Radix collision handling still active. The 390 px test cards opened above their triggers with 439–459 px of panel height. Table and Kanban fit at 390/1280 in both languages and themes. Saved the 16 `review-*` captures in `docs/design/audit/CONF-3/`.
+- Each resolved lookup still computes the caller-scoped delivery cohort. The full gate passed with 1,414 tests and live RLS.
+
+### CONF-3 ship
+- Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
+- Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
+- Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
