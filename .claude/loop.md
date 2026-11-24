@@ -1,6 +1,7 @@
 # MNW loop v3 — the factory (Pick → Brief → Build → Gate → Review → Ship, repeat)
 
 One loop, several agents (Claude Code, OpenAI Codex, Google Antigravity), one shared state: **git**.
+Unattended runs: `scripts/night.sh` coordinates the stages below as separate headless sessions, one program and model per job (`docs/NIGHT.md`, D101).
 The main session is a cheap coordinator; heavy work runs in forked subagents that
 write one file and reply in one line. A task can resume in a fresh session, on
 another machine, or in the other agent, because everything it needs is in files

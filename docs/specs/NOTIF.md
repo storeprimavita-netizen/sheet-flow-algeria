@@ -1,4 +1,4 @@
-# NOTIF — notifications (in-app + Telegram)
+# NOTIF — notifications (in-app + Telegram + ntfy)
 
 Owner chose in-app + Telegram (D17). Slack was removed in phase 1 and stays out.
 
@@ -52,6 +52,31 @@ enforced where the notification is built (typed builders per event), tested.
 - Optional group chat for the team (admin links a group the same way) for
   meeting reminders and the daily summary.
 
+## ntfy (NOTIF-4, D100)
+
+For phone alerts without an app of our own: the free ntfy app (Android, iPhone)
+or its web page subscribes to a topic; the server publishes with one HTTPS POST.
+
+- Settings → Notifications → ntfy (admin): server address (default
+  `https://ntfy.sh`, a self-hosted server works the same), topic, optional
+  access token, "Send test", and a QR code / link that opens the subscription.
+  Stored in `integration_configs` (admin-only); the token never reaches the
+  browser after saving.
+- The app generates the topic (32+ random characters) and can replace it in one
+  tap: on the free ntfy.sh service anyone who knows the topic can read it, so
+  the topic is a secret and is replaced when a team member leaves.
+- A topic is shared by its subscribers, so ntfy carries only workspace-level
+  alerts: new order, and the admin alerts of NOTIF-3. Personal notifications
+  (task assigned to me, my callback) stay on the bell and Telegram.
+- New-order alert: title "New order", text `#number · product · wilaya · total`,
+  click link to the order in the app (login required). Never the customer's
+  name, phone or address, never cost or profit. Sent right after the order is
+  saved, outside the request that saved it; the outbox only retries.
+- Limits to state in the UI: free ntfy.sh allows 250 messages a day and gives no
+  delivery guarantee; iPhone delivery is less reliable than Android. Above that
+  volume: a paid ntfy plan or a self-hosted server — the owner's choice.
+- Later, not in this row: push from the app's own installed web page (Web Push).
+
 ## Rules
 
 - Dev/preview never send real Telegram messages (no-op sender unless
@@ -66,11 +91,12 @@ enforced where the notification is built (typed builders per event), tested.
 
 NOTIF-1 table + bell + inbox + prefs + task/meeting/order events (lane db) ·
 NOTIF-2 Telegram linking + webhook + outbox worker · NOTIF-3 admin alerts
-(stock, balance, stuck orders, daily summary).
+(stock, balance, stuck orders, daily summary) · NOTIF-4 ntfy channel.
 
 ## Acceptance
 
 User A cannot read user B's notifications (RLS test) · agent-targeted builders
 have no money fields (type-level + test) · wrong secret header → 401 and no
 row · expired or reused link code is rejected · failed send retries, then
-marks failed without throwing.
+marks failed without throwing · an ntfy message never contains a customer name,
+phone or address (builder test) · the ntfy token is not returned to the browser.

@@ -18,6 +18,7 @@
 # Checked 2026-11-22 against Codex 0.171: the flags exist, the account answers,
 # the project settings and rules load. No whole task has been run with it yet.
 # Before the first night run: scripts/codex-setup.sh must end with READY.
+# Newer and cheaper: scripts/night.sh (one session per stage, a model per job, several programs — docs/NIGHT.md).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 name=${1:-codex}; filter=${2:-}; max=${3:-0}

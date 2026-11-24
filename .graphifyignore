@@ -1,0 +1,9 @@
+docs/
+*.md
+*.mdx
+node_modules/
+.next/
+.worktrees/
+THEME+CALCULATOR/
+prices/
+src/lib/supabase/database.types.ts

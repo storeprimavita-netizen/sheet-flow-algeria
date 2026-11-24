@@ -6,6 +6,8 @@ If you are **Codex** (desktop app or CLI), follow "In Codex". If you are **Antig
 
 # In Codex
 
+Cost note for the owner, print it once at the start: `this chat run costs several times more than scripts/night.sh in Terminal (docs/NIGHT.md)`. When you wait for an agent, use the longest wait the tool allows and never poll: every wait re-sends this whole chat.
+
 You are the night coordinator of this chat. The owner reads it, so print one short line per event and nothing else. You do not read or write code yourself: every stage runs in a fresh subagent, so this chat stays small over many tasks.
 
 Arguments (all optional, any order): a number = stop after that many tasks (default: no limit) · `nodb` = only tasks without a migration (column `M` is `–`) · `as:<name>` = claim name (default `codex`).

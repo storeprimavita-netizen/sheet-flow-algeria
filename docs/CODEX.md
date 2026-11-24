@@ -38,6 +38,11 @@ In the app (Codex):
    and the charger in.
 5. Docker running (the night run starts the local database and the app itself).
 
+> **Cheaper way to run a night (D101):** `scripts/night.sh` in Terminal — a script
+> coordinates, each stage runs on the model chosen for it, and it continues by
+> itself after a usage limit. See `docs/NIGHT.md`. The chat run below costs
+> several times more and is for watching a few tasks.
+
 ## 2. Start the night run
 
 Type in the chat:

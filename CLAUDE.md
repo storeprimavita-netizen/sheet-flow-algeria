@@ -21,9 +21,7 @@ Skills: `karpathy-guidelines` + `mnw-codebase-hygiene` before code,
 Tooling notes and sources: `docs/TOOLING.md`. Antigravity setup:
 `docs/ANTIGRAVITY.md`. Codex setup: `docs/CODEX.md`.
 
-## graphify (optional)
+## graphify
 
-If `graphify` is installed and `graphify-out/graph.json` exists: run
-`graphify query "<question>"` before broad searches, `graphify path "<A>" "<B>"`
-for relationships, and `graphify update .` after modifying code. If it is not
-installed, use the Explore agent and targeted Grep instead — do not block on it.
+The code-map rule is in AGENTS.md ("Find code with the map first"). Without
+graphify, use the Explore agent and targeted Grep — do not block on it.
