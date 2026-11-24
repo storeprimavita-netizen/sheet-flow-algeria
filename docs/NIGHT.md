@@ -42,10 +42,15 @@ reviewed by the other two (a program never reviews its own work first).
 Questions go to Claude Fable whichever run raises them. Three programs are
 three separate usage limits — that is the extra capacity; when one is at its
 limit, that run waits for it, the other two keep going.
-A program that is not installed or not signed in is skipped, not replaced:
-until `agy` is installed (`curl -fsSL https://antigravity.google/cli/install.sh | bash`,
-then run `agy` once to sign in, then `scripts/agy-setup.sh`), `start` runs Codex
-and Claude only. Other mixes: `scripts/night-workers.sh start codex claude`.
+A program that is not installed, not signed in or not set up is skipped, not replaced.
+Antigravity (`agy` 1.5.16, installed 2026-11-24, signed in through the Antigravity
+app) joins once its command rules are written — run once
+`scripts/agy-setup.sh --write-permissions` (it adds the allowed and the forbidden
+commands to `~/.gemini/antigravity-cli/settings.json`, with a backup); without
+them an unattended `agy` has no rule against a raw push or a remote database
+command, so the runner does not use it. This account offers Gemini 4 Hydrogen
+and Claude Opus 4.6 through Antigravity, not Gemini 4 Neon; the table uses what
+is there. Other mixes: `scripts/night-workers.sh start codex claude`.
 Only one run at a time changes the local database, so the extra runs skip tasks
 with a migration; most launch-path rows have one and stay with the main run.
 
@@ -59,15 +64,15 @@ one when a program is missing, at its limit or fails.
 
 | Job | First choice | Then |
 |---|---|---|
-| Pick the task, write the brief | Codex GPT-6.2-Sol, medium | Antigravity Gemini 4 Neon · Claude Sonnet |
-| Build, risk high | Codex GPT-6.2-Sol, high | Gemini 4 Neon · Claude Sonnet |
-| Build, risk low | Codex GPT-6.2-Sol, medium | Gemini 4 Neon · Claude Sonnet |
-| Build a small follow-up (no database change) | Codex GPT-6-Luna, medium | GPT-6.2-Sol when the gate fails · Gemini 4 Hydrogen · Claude Haiku |
-| Review a screen | Codex GPT-6.1-Terra, medium | Gemini 4 Neon · Claude Sonnet |
-| Review high-risk work | Codex GPT-6.2-Astra, high | Claude Opus · Gemini 4 Neon |
-| Review a security surface (public form, webhook, tokens, permissions) | Claude Opus | Codex GPT-6.2-Astra · Gemini 4 Neon |
-| Answer a question a task raised | Claude Fable | Codex GPT-6.2-Astra · Gemini 4 Neon |
-| Final gate, progress note, merge | Codex GPT-6-Luna, low | GPT-6.2-Sol low · Gemini 4 Hydrogen · Claude Haiku |
+| Pick the task, write the brief | Codex GPT-6.2-Sol, medium | Antigravity Gemini 4 Hydrogen (high) · Claude Sonnet |
+| Build, risk high | Codex GPT-6.2-Sol, high | Gemini 4 Hydrogen (extra high) · Claude Sonnet |
+| Build, risk low | Codex GPT-6.2-Sol, medium | Gemini 4 Hydrogen (high) · Claude Sonnet |
+| Build a small follow-up (no database change) | Codex GPT-6-Luna, medium | GPT-6.2-Sol when the gate fails · Gemini 4 Hydrogen (medium) · Claude Haiku |
+| Review a screen | Codex GPT-6.1-Terra, medium | Gemini 4 Hydrogen (high) · Claude Sonnet |
+| Review high-risk work | Codex GPT-6.2-Astra, high | Claude Opus 4.6 through Antigravity · Claude Opus |
+| Review a security surface (public form, webhook, tokens, permissions) | Claude Opus | Claude Opus 4.6 through Antigravity · Codex GPT-6.2-Astra |
+| Answer a question a task raised | Claude Fable | Codex GPT-6.2-Astra · Claude Opus 4.6 through Antigravity |
+| Final gate, progress note, merge | Codex GPT-6-Luna, low | GPT-6.2-Sol low · Gemini 4 Hydrogen (low) · Claude Haiku |
 
 Why: Codex charges per million tokens (input / output, in credits) Luna 2.5 /
 12.5, Sol 50 / 250, Astra 200 / 1000. Luna does the mechanical work, Sol writes
@@ -105,5 +110,5 @@ it helps most for "where is X" and "what uses Y".
   questions decided or sent to the owner, failed build, failed gate, failed
   ship, reviewer that writes nothing, usage-limit wait, end of the plan).
 - One real minimal session through `scripts/stage.sh` on Codex and on Claude.
-- NOT yet: a whole real task from pick to ship, and the Antigravity lane
-  (`agy` is not installed). Watch the first task.
+- One real minimal session on Antigravity too (it answered and ran a command).
+- NOT yet: a whole real task from pick to ship, on any program. Watch the first task.

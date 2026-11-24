@@ -30,7 +30,7 @@ may run in parallel. Pick the first `todo` row, top to bottom, whose deps are
 | T-1 | Create the Telegram bot (BotFather) and give the token | NOTIF-2 live test | closed for building (D38: owner enters the bot token in Settings; live test waits for it) |
 | N-1 | Decide: stay on Vercel Hobby (daily cron — reminders arrive late) or a plan with frequent cron | NOTIF timing, tracking outbox latency | open |
 | A-1 | Approve the `mcp-handler` dependency; enable Supabase OAuth server (beta) for AI-2 | AI-1, AI-2 | open |
-| G-1 | Optional: install and sign in to `agy` (Antigravity CLI) — it becomes the second program of the night run (`docs/NIGHT.md`). `graphify` is installed (2026-11-24) | Antigravity lane of the night run | open |
+| G-1 | Run once `scripts/agy-setup.sh --write-permissions` so Antigravity (`agy`, installed and signed in 2026-11-24) may join the night run (`docs/NIGHT.md`). `graphify` is installed | Antigravity run of the night | open |
 
 ## Launch path (owner, 2026-11-24) — build these first, in this order
 

@@ -20,7 +20,8 @@
 # A session that runs past its time limit is stopped and the next entry starts the same job.
 #
 # Checked 2026-11-24: the codex and claude flags against the installed programs.
-# The agy lane follows antigravity.google/docs/cli/headless and is NOT tested (agy not installed).
+# The agy lane: one minimal real session answered and ran a command (agy 1.5.16); no whole stage yet.
+# agy must run in the project folder or a full clone: inside a `git worktree` its sandbox cannot reach .git.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 conf=.agents/stage-models.conf
@@ -32,10 +33,21 @@ have() {   # is the program installed (and allowed)?
   case "$1" in
     codex) command -v codex >/dev/null 2>&1 || [ -x "$app_cli" ] ;;
     claude) [ "${USE_CLAUDE:-1}" != 0 ] && [ ! -f .no-claude ] && command -v claude >/dev/null 2>&1 ;;
-    agy) command -v agy >/dev/null 2>&1 ;;
+    # Antigravity is used only once its allow/deny rules are written (scripts/agy-setup.sh --write-permissions):
+    # in `--mode auto` without them nothing forbids a raw push or a remote database command.
+    agy) command -v agy >/dev/null 2>&1 && { [ "${AGY_NO_RULES_OK:-}" = 1 ] || grep -q '"deny"' "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null; } ;;
     *) return 1 ;;
   esac
 }
+agy_models() {   # lines "id<TAB>label" of the account, cached for 10 minutes
+  local c="$tmp/mnw-agy-models-$(id -u).txt"
+  if [ ! -s "$c" ] || [ -n "$(find "$c" -mmin +10 2>/dev/null)" ]; then
+    perl -e 'alarm 60; exec @ARGV' agy models </dev/null 2>/dev/null | grep -v '^Fetching' | grep -v '^[[:space:]]*$' > "$c.tmp" || true
+    [ -s "$c.tmp" ] && mv "$c.tmp" "$c" || rm -f "$c.tmp"
+  fi
+  cat "$c" 2>/dev/null || true
+}
+agy_id() { local l; l=$(agy_models); grep -iE -- "$1" <<< "$l" | head -1 | cut -f1; }
 limit_file() { echo "$tmp/mnw-limit-$1-$(id -u)"; }
 limited_until() {   # unix time until which the program is at its usage limit, or 0
   local f t; f=$(limit_file "$1"); t=$(cat "$f" 2>/dev/null || echo 0)
@@ -82,7 +94,8 @@ if [ "${1:-}" = "models" ]; then
     line=""
     while read -r e; do
       cli=${e%%:*}
-      if ! have "$cli"; then mark="(not installed)"; elif [ "$(limited_until "$cli")" != 0 ]; then mark="(at its limit until $(date -r "$(limited_until "$cli")" '+%H:%M'))"; else mark=""; fi
+      if [ "$cli" = agy ] && command -v agy >/dev/null 2>&1 && ! have agy; then mark="(rules not written: scripts/agy-setup.sh --write-permissions)"
+      elif ! have "$cli"; then mark="(not installed)"; elif [ "$cli" = agy ] && [ -z "$(agy_id "$(echo "$e" | cut -d: -f2)")" ]; then mark="(not on this account)"; elif [ "$(limited_until "$cli")" != 0 ]; then mark="(at its limit until $(date -r "$(limited_until "$cli")" '+%H:%M'))"; else mark=""; fi
       line="$line${line:+  →  }$e${mark:+ $mark}"
     done <<< "$(entries "$role")"
     printf '%-12s %s\n' "$role" "$line"
@@ -146,10 +159,13 @@ except ValueError:
 PY
       grep -q '^ERROR ' "$out" && code=1 ;;
     agy)
-      id=$(agy models 2>/dev/null </dev/null | grep -iE -- "$model" | head -1 | cut -f1)
+      id=$(agy_id "$model")
       [ -n "$id" ] || { echo "[stage] agy has no model matching '$model' on this account" >&2; tried=$((tried-1)); continue; }
       # shellcheck disable=SC2086
-      agy -p "$prompt" --model "$id" ${effort:+--effort "$effort"} --print-timeout "${mins}m" --output-format json ${AGY_FLAGS:-} \
+      # --mode auto: edits and the commands allowed in ~/.gemini/antigravity-cli/settings.json run without asking
+      # (scripts/agy-setup.sh --write-permissions); anything else is refused, the run still exits 0.
+      perl -e 'alarm shift; exec @ARGV' "$((mins*60+120))" agy -p "$prompt" --model "$id" ${effort:+--effort "$effort"} --mode auto \
+        --print-timeout "${mins}m" --output-format json ${AGY_FLAGS:-} \
         </dev/null >"$log" 2>&1 || code=$?
       python3 -I - "$log" > "$out" <<'PY' || true
 import json, sys

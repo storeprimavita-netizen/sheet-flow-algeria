@@ -51,13 +51,16 @@ case "$cmd" in
     command -v tmux >/dev/null 2>&1 || { echo "tmux is not installed (brew install tmux) — or open one Terminal window per copy and run scripts/night.sh there"; exit 1; }
     tmux has-session -t "$session" 2>/dev/null && { echo "already running — look: tmux attach -t $session   stop: scripts/night-workers.sh stop"; exit 1; }
     shift; leads=${*:-codex agy claude}
-    have() { case "$1" in codex) command -v codex >/dev/null 2>&1 || [ -x "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" ] ;; agy|claude) command -v "$1" >/dev/null 2>&1 ;; *) return 1 ;; esac; }
+    have() { case "$1" in codex) command -v codex >/dev/null 2>&1 || [ -x "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" ] ;; claude) command -v claude >/dev/null 2>&1 ;; agy) command -v agy >/dev/null 2>&1 && grep -q '"deny"' "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null ;; *) return 1 ;; esac; }
     k=1; started=0
     for lead in $leads; do
       case "$lead" in codex|agy|claude) ;; *) echo "unknown program '$lead' (codex | agy | claude)"; exit 1 ;; esac
       if [ "$k" = 1 ]; then d=$root; w=main; run="STAGE_PREFER=$lead scripts/night.sh $lead"; what="all tasks, database tasks included"
       else d="$root/.worktrees/w$k"; w="w$k"; run="STAGE_PREFER=$lead scripts/night.sh w$k-$lead nodb"; what="tasks without a database change"; fi
-      if ! have "$lead"; then echo "skipped $w   $lead is not installed or not signed in — this run is not started (docs/NIGHT.md)"; k=$((k+1)); continue; fi
+      if ! have "$lead"; then
+        if [ "$lead" = agy ] && command -v agy >/dev/null 2>&1; then echo "skipped $w   agy has no allow/deny rules yet — run once: scripts/agy-setup.sh --write-permissions"
+        else echo "skipped $w   $lead is not installed or not signed in — this run is not started (docs/NIGHT.md)"; fi
+        k=$((k+1)); continue; fi
       if [ "$k" != 1 ] && [ ! -d "$d/.git" ]; then echo "skipped $w   the copy $d does not exist — run: scripts/night-workers.sh setup"; k=$((k+1)); continue; fi
       cmdline="$run; echo; echo '[$w ($lead) ended — press Enter to close]'; read -r _"
       if [ "$started" = 0 ]; then tmux new-session -d -s "$session" -n "$w-$lead" -c "$d" "$cmdline"; else tmux new-window -d -t "$session" -n "$w-$lead" -c "$d" "$cmdline"; fi
