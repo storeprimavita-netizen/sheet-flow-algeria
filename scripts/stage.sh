@@ -7,7 +7,9 @@
 #   scripts/stage.sh <role> <stage> "<arguments>"   stage: analyse | execute | verify | ship | decide | say
 #       (stage `say`: the arguments are the whole prompt)
 #
-#   STAGE_PREFER=agy       try that program's entries first (a parallel worker on another account)
+#   STAGE_PREFER=agy       the program that leads this run: its entries come first for briefs, builds and
+#                          ships, and LAST for reviews (work is reviewed by another program); questions
+#                          always follow the `decide` line
 #   STAGE_MINUTES=120      time limit of the session (default per stage)
 #   STAGE_DRY=1            do not start anything; print what would run (tests)
 #
@@ -63,7 +65,16 @@ entries() {   # entries of a role, one per line, STAGE_PREFER's program first
   local row; row=$(grep -E "^$1[[:space:]]*=" "$conf" | head -1 | cut -d= -f2-)
   [ -n "$row" ] || { echo "unknown role '$1' — see $conf" >&2; return 1; }
   row=$(echo "$row" | tr '|' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$')
-  if [ -n "${STAGE_PREFER:-}" ]; then { echo "$row" | grep "^$STAGE_PREFER:"; echo "$row" | grep -v "^$STAGE_PREFER:"; } ; else echo "$row"; fi
+  local lead=${STAGE_PREFER:-}
+  case "$1" in
+    decide) lead="" ;;                         # questions always go to the model chosen for them
+  esac
+  if [ -z "$lead" ]; then echo "$row"; return 0; fi
+  case "$1" in
+    # the program that leads this run builds; its work is reviewed by the OTHER programs first
+    review-*) grep -v "^$lead:" <<< "$row" || true; grep "^$lead:" <<< "$row" || true ;;
+    *)        grep "^$lead:" <<< "$row" || true; grep -v "^$lead:" <<< "$row" || true ;;
+  esac
 }
 
 if [ "${1:-}" = "models" ]; then

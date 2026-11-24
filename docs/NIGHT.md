@@ -23,20 +23,37 @@ they sit on the branch of a task this run has claimed; otherwise the run asks
 you to commit or set them aside first. The run continues by itself after a usage limit: it waits
 until the time the program gives and goes on.
 
-Two or three runs at the same time:
+## Codex + Antigravity + Claude at the same time (D105)
+
 ```
-scripts/night-workers.sh setup          once: creates the copy .worktrees/w2
-scripts/night-workers.sh start          main run + one extra run (tasks without a database change)
-scripts/night-workers.sh start agy      the extra run tries Antigravity first (its own usage limit)
-tmux attach -t mnw                      watch them (Ctrl+B then D leaves them running)
+scripts/night-workers.sh setup          once: creates the copies .worktrees/w2 and w3
+scripts/night-workers.sh start          one run per program, all at once
+tmux attach -t mnw                      watch them (Ctrl+B then 0/1/2 switches · Ctrl+B then D leaves them running)
 scripts/night-workers.sh status | stop
 ```
-Two runs on the same account share one usage limit: the work finishes sooner,
-the limit is reached sooner too. A second account (Antigravity) adds capacity.
+| Run | Led by | Takes |
+|---|---|---|
+| main folder | Codex | every task, database changes included (the launch path) |
+| copy w2 | Antigravity (`agy`) | tasks without a database change |
+| copy w3 | Claude Code | tasks without a database change |
+
+Each run writes briefs, builds and ships with its lead program, and its work is
+reviewed by the other two (a program never reviews its own work first).
+Questions go to Claude Fable whichever run raises them. Three programs are
+three separate usage limits — that is the extra capacity; when one is at its
+limit, that run waits for it, the other two keep going.
+A program that is not installed or not signed in is skipped, not replaced:
+until `agy` is installed (`curl -fsSL https://antigravity.google/cli/install.sh | bash`,
+then run `agy` once to sign in, then `scripts/agy-setup.sh`), `start` runs Codex
+and Claude only. Other mixes: `scripts/night-workers.sh start codex claude`.
+Only one run at a time changes the local database, so the extra runs skip tasks
+with a migration; most launch-path rows have one and stay with the main run.
 
 ## Who does what
 
-`scripts/stage.sh models` prints the table as it resolves right now. The file
+`scripts/stage.sh models` prints the table as it resolves right now
+(`STAGE_PREFER=claude scripts/stage.sh models` shows it for a run led by Claude).
+The table below is the order for a single `scripts/night.sh` run. The file
 is `.agents/stage-models.conf`: one line per job, first entry first, the next
 one when a program is missing, at its limit or fails.
 
@@ -49,7 +66,7 @@ one when a program is missing, at its limit or fails.
 | Review a screen | Codex GPT-6.1-Terra, medium | Gemini 4 Neon · Claude Sonnet |
 | Review high-risk work | Codex GPT-6.2-Astra, high | Claude Opus · Gemini 4 Neon |
 | Review a security surface (public form, webhook, tokens, permissions) | Claude Opus | Codex GPT-6.2-Astra · Gemini 4 Neon |
-| Answer a question a task raised | Codex GPT-6.2-Astra, high | Claude Opus · Gemini 4 Neon |
+| Answer a question a task raised | Claude Fable | Codex GPT-6.2-Astra · Gemini 4 Neon |
 | Final gate, progress note, merge | Codex GPT-6-Luna, low | GPT-6.2-Sol low · Gemini 4 Hydrogen · Claude Haiku |
 
 Why: Codex charges per million tokens (input / output, in credits) Luna 2.5 /

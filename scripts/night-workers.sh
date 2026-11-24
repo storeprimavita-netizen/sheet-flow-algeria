@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Several agents building at the same time, each in its own copy of the project.
 #
-#   scripts/night-workers.sh setup [N]          create N extra copies (default 1): .worktrees/w2, w3 …
-#   scripts/night-workers.sh start [N] [cli]    start the main run + N extra runs (default: every copy that exists)
-#                                               in one tmux session; `cli` = program the extra runs try first
-#                                               (agy | codex | claude — another account means another usage limit)
+#   scripts/night-workers.sh setup [N]          create N extra copies (default 2): .worktrees/w2, w3
+#   scripts/night-workers.sh start [programs]   start one run per program, all at once, in one tmux session.
+#                                               Default: codex agy claude — Codex leads the main folder (all
+#                                               tasks), Antigravity leads w2 and Claude leads w3 (tasks without
+#                                               a database change). Each run builds with its lead program and
+#                                               has its work reviewed by the other two; questions go to Fable.
+#                                               A program that is not installed is skipped, never replaced.
+#                                               Other mixes: `start codex claude` · `start codex codex`
 #   scripts/night-workers.sh status             what each copy is doing, and what is claimed
 #   scripts/night-workers.sh stop               stop all runs (pushed steps are kept)
 #   scripts/night-workers.sh remove             delete the extra copies (pushed work is safe on GitHub)
@@ -15,7 +19,8 @@
 #     local database; their gate skips the live database tests, which the main agent runs on every merge;
 #   - each copy is a full clone with its own node_modules; the app of each copy gets its own port
 #     (scripts/dev-up.sh picks the next free one).
-# Two agents on the SAME account share one usage limit: they finish sooner, they do not do more.
+# Three programs = three separate usage limits, which is where the extra capacity comes from.
+# Two runs led by the SAME program share one limit: they finish sooner, they do not do more.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd); cd "$root"
 cmd=${1:-status}; session=mnw
@@ -23,7 +28,7 @@ copies() { ls -d "$root"/.worktrees/w[0-9]* 2>/dev/null || true; }
 
 case "$cmd" in
   setup)
-    n=${2:-1}; url=$(git remote get-url origin)
+    n=${2:-2}; url=$(git remote get-url origin)
     [ -f .env.local ] || { echo "missing .env.local in the main folder"; exit 1; }
     mkdir -p .worktrees
     for k in $(seq 2 $((n+1))); do
@@ -45,18 +50,21 @@ case "$cmd" in
   start)
     command -v tmux >/dev/null 2>&1 || { echo "tmux is not installed (brew install tmux) — or open one Terminal window per copy and run scripts/night.sh there"; exit 1; }
     tmux has-session -t "$session" 2>/dev/null && { echo "already running — look: tmux attach -t $session   stop: scripts/night-workers.sh stop"; exit 1; }
-    n=${2:-}; prefer=${3:-}
-    case "$n" in agy|codex|claude) prefer=$n; n="" ;; esac
-    tmux new-session -d -s "$session" -n main -c "$root" "scripts/night.sh; echo; echo '[main run ended — press Enter to close]'; read -r _"
-    echo "started main        (all tasks, database tasks included)"
-    i=0
-    for d in $(copies); do
-      i=$((i+1)); [ -n "$n" ] && [ "$i" -gt "$n" ] && break
-      w=$(basename "$d")
-      tmux new-window -d -t "$session" -n "$w" -c "$d" "${prefer:+STAGE_PREFER=$prefer }scripts/night.sh $w nodb; echo; echo '[$w ended — press Enter to close]'; read -r _"
-      echo "started $w          (tasks without a migration${prefer:+, tries $prefer first})"
+    shift; leads=${*:-codex agy claude}
+    have() { case "$1" in codex) command -v codex >/dev/null 2>&1 || [ -x "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" ] ;; agy|claude) command -v "$1" >/dev/null 2>&1 ;; *) return 1 ;; esac; }
+    k=1; started=0
+    for lead in $leads; do
+      case "$lead" in codex|agy|claude) ;; *) echo "unknown program '$lead' (codex | agy | claude)"; exit 1 ;; esac
+      if [ "$k" = 1 ]; then d=$root; w=main; run="STAGE_PREFER=$lead scripts/night.sh $lead"; what="all tasks, database tasks included"
+      else d="$root/.worktrees/w$k"; w="w$k"; run="STAGE_PREFER=$lead scripts/night.sh w$k-$lead nodb"; what="tasks without a database change"; fi
+      if ! have "$lead"; then echo "skipped $w   $lead is not installed or not signed in — this run is not started (docs/NIGHT.md)"; k=$((k+1)); continue; fi
+      if [ "$k" != 1 ] && [ ! -d "$d/.git" ]; then echo "skipped $w   the copy $d does not exist — run: scripts/night-workers.sh setup"; k=$((k+1)); continue; fi
+      cmdline="$run; echo; echo '[$w ($lead) ended — press Enter to close]'; read -r _"
+      if [ "$started" = 0 ]; then tmux new-session -d -s "$session" -n "$w-$lead" -c "$d" "$cmdline"; else tmux new-window -d -t "$session" -n "$w-$lead" -c "$d" "$cmdline"; fi
+      started=$((started+1)); echo "started $w   led by $lead — $what; its work is reviewed by the other programs"
+      k=$((k+1))
     done
-    [ "$i" = 0 ] && echo "no extra copies — create one with: scripts/night-workers.sh setup"
+    [ "$started" = 0 ] && { echo "nothing started"; exit 1; }
     echo "watch:  tmux attach -t $session      (Ctrl+B then 0/1/2 switches run · Ctrl+B then D leaves them running)" ;;
   status)
     tmux has-session -t "$session" 2>/dev/null && tmux list-windows -t "$session" -F 'running  #{window_name}' || echo "no run started by this script"
@@ -77,5 +85,5 @@ case "$cmd" in
       if [ -n "$(git -C "$d" status --porcelain)" ] || [ -n "$(git -C "$d" log --branches --not --remotes --oneline | head -1)" ]; then echo "KEPT    $d has uncommitted or unpushed work — look at it first"; continue; fi
       rm -rf "$d"; echo "removed $d"
     done ;;
-  *) echo "usage: $0 setup [N] | start [N] [agy|codex|claude] | status | stop | remove"; exit 1 ;;
+  *) echo "usage: $0 setup [N] | start [codex agy claude] | status | stop | remove"; exit 1 ;;
 esac
