@@ -192,7 +192,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ZR-3 | "Your ZR history for this phone" in the confirmation sheet | CARRIER | H | ui | – | orders | C-1 | todo |
 | ZR-4 | ZR payments ledger → Money → Courier cash | CARRIER | H | ui | M | money | C-1, MONEY-1 | todo |
 | STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | done |
-| STATS-4 | Time (weekday / hour) and product × wilaya cuts on Statistics, from the SQL already shipped — no database change (D108); the call metrics moved to STATS-5 | STATS | L | ui | – | stats | STATS-3 | claimed:w2-agy |
+| STATS-4 | Time (weekday / hour) and product × wilaya cuts on Statistics, from the SQL already shipped — no database change (D108); the call metrics moved to STATS-5 | STATS | L | ui | – | stats | STATS-3 | blocked:two sessions in a row changed nothing — look at v3-STATS-4 |
 | STATS-5 | Call metrics on Statistics (D108, split from STATS-4): time to first call vs confirmation rate, attempts needed to confirm, confirmation rate by attempt number — new SQL on the D46 order set with matching drills; orders with no recorded call counted apart as "not recorded", never estimated, no backfill | STATS | H | ui | M | stats | STATS-4, CONF-4 | todo |
 | CARRIER-1 | Carrier interface + `shipments` (extract from ZR when carrier #2 starts) | CARRIER | H | sec | M | orders | P1-7 | todo |
 | CARRIER-2 | Yalidine adapter | CARRIER | H | sec | – | orders | CARRIER-1, C-1 | todo |
