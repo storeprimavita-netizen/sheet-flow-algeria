@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { asKpiDaily, kpiPct, type KpiGroupRates } from "@/lib/kpi";
+import { asKpiDaily, KPI_DAILY_MAX_DAYS, kpiPct, type KpiGroupRates } from "@/lib/kpi";
 import { worstFirst, collapseSlices } from "@/lib/chart-math";
 import { formatInt, formatPercent } from "@/lib/format";
 import { drillHref, ordersQs, type DashboardFilters } from "@/lib/query-string";
@@ -37,7 +37,7 @@ const fallback = (h = 220) => <ChartSkeleton height={h} />;
 async function DailyCharts({ scope }: { scope: Scope }) {
   const t = await getTranslations("statistics.charts");
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("kpi_daily", rpcArgs(scope));
+  const { data, error } = await supabase.rpc("kpi_daily", rpcArgs(scope)).order("day", { ascending: false }).limit(KPI_DAILY_MAX_DAYS);
   if (error) {
     console.error("statistics/kpi_daily", error.message);
     return (
