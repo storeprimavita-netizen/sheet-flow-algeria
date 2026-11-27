@@ -97,6 +97,7 @@ export async function MoneyBand({
                   noRateHint=""
                 />
               }
+              sub={t("costPerDeliveredSub")}
               hint={t("costPerDeliveredHint")}
               href={hrefs.finance}
             />

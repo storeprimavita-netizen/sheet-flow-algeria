@@ -26,7 +26,7 @@ export async function OrderJourney({
             <Funnel
               stages={[
                 { label: t("received"), count: kpi.counts.received, href: hrefs.received },
-                { label: t("confirmed"), count: kpi.counts.confirmed, href: hrefs.confirmed },
+                { label: t("confirmed"), count: kpi.counts.confirmed, href: hrefs.confirmed, dropNote: t("vsReceived") },
                 { label: t("onRoad"), count: kpi.counts.on_road_orders, href: hrefs.onRoad, dropFrom: -1 },
                 { label: t("delivered"), count: kpi.counts.delivered, href: hrefs.delivered, dropFrom: 1, dropNote: t("vsConfirmed") },
               ]}

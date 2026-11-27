@@ -123,7 +123,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("dashboard.title")} subtitle={t("dashboard.subtitle")}>
+      <PageHeader title={t("nav.home")} subtitle={t("dashboard.subtitle")}>
         <AddAdSpendModal products={productOpts.map((p) => ({ id: p.value, name: p.label }))} rates={rates} />
         <ButtonLink href="/app/sell/orders/new" variant="outline">
           {t("orders.new")}

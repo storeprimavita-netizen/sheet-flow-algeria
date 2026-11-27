@@ -70,7 +70,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
                     </span>
                   ) : null}
                 </span>
-                <span className="grid grid-cols-4 gap-3 text-xs text-muted-foreground sm:w-80 sm:shrink-0">
+                <span className="grid grid-cols-3 gap-3 text-xs sm:grid-cols-4 text-muted-foreground sm:w-80 sm:shrink-0">
                   {(
                     [
                       ["inStock", r.inStock],
@@ -79,7 +79,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
                       ["delivered", r.delivered],
                     ] as const
                   ).map(([k, v]) => (
-                    <span key={k} className="flex flex-col">
+                    <span key={k} className={k === "delivered" ? "hidden flex-col sm:flex" : "flex flex-col"}>
                       <span className="truncate">{t(k)}</span>
                       <span className="num text-sm font-medium text-foreground">{v}</span>
                     </span>

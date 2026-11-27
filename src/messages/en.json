@@ -948,7 +948,6 @@
     "busy": "Please wait..."
   },
   "dashboard": {
-    "title": "Dashboard",
     "subtitle": "Orders, money, stock and products at a glance.",
     "kpi": {
       "revenue": "Revenue",
@@ -1030,6 +1029,7 @@
         "adSpend": "Ad spend",
         "adSpendHint": "Ad spend for the period. Paid in USD: dollars first, dinars under it.",
         "costPerDelivered": "Cost per delivered",
+        "costPerDeliveredSub": "Incl. product, returns, ads, expenses and fixed fees",
         "costPerDeliveredHint": "All costs divided by delivered orders: what each delivered order really costs you.",
         "roas": "ROAS",
         "roasHint": "Revenue divided by ad spend. Above 1 means ads return more than they cost.",
@@ -1076,6 +1076,7 @@
         "collectedHint": "Coming with ZR sync",
         "paidOut": "Paid out",
         "paidOutHint": "Coming with the money module",
+        "vsReceived": "of received",
         "vsConfirmed": "of confirmed"
       },
       "stock": {
