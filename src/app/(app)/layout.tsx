@@ -9,14 +9,11 @@ import { dirFor } from "@/i18n/config";
 import { THEME_COOKIE, defaultTheme, isTheme } from "@/lib/theme";
 import "./globals.css";
 
-// Self-hosted at build time. No adjusted fallback on the Latin face: it is
-// local Arial, which has Arabic glyphs and sits ahead of Plex Arabic in the
-// stack, so Arabic text would never reach the Arabic font.
+// Self-hosted at build time; the font stack is in globals.css.
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
-  adjustFontFallback: false,
   variable: "--font-plex-sans",
 });
 const plexArabic = IBM_Plex_Sans_Arabic({

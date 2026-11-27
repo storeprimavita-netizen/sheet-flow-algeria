@@ -90,6 +90,7 @@ describe("proxy matcher", () => {
     const { config } = await import("@/proxy");
     const { unstable_doesMiddlewareMatch } = await import("next/experimental/testing/server");
     const matches = (url: string) => unstable_doesMiddlewareMatch({ config, url });
+    // Slash forms test the matcher only: Next answers them with a 308 before routing.
     const hooks = ["shopify", "lightfunnel", "zrexpress"].flatMap((n) => [`/api/webhooks/${n}`, `/api/webhooks/${n}/`]);
     for (const p of [...hooks, "/api/webhooks", "/s/x/y", "/_next/static/chunks/a.js", "/_next/image"]) expect(matches(p), p).toBe(false);
     for (const p of ["/api/webhooks-extra", "/api/cron/zr-sync", "/app/statistics", "/login"]) expect(matches(p), p).toBe(true);

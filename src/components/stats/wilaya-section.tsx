@@ -9,12 +9,27 @@ import { kpiPct } from "@/lib/kpi";
 import type { DashboardFilters } from "@/lib/query-string";
 import type { WilayaMapDatum } from "@/components/dashboard/algeria-map";
 import { WilayaTable, type StatsRow } from "@/components/stats/wilaya-table";
+import { Button } from "@/components/ui/button";
 
 export type { StatsRow };
 
+/** The map's own error state, so a failed chunk never takes the table with it.
+ * Reload, not retry: React.lazy keeps what it first resolved. */
+function MapUnavailable() {
+  const t = useTranslations();
+  return (
+    <div role="alert" className="flex aspect-square w-full max-w-[360px] flex-col items-center justify-center gap-3 rounded-md border border-border p-4 text-center">
+      <p className="text-sm text-muted-foreground">{t("statistics.mapUnavailable")}</p>
+      <Button type="button" variant="outline" size="sm" onClick={() => window.location.reload()}>
+        {t("statistics.reloadPage")}
+      </Button>
+    </div>
+  );
+}
+
 // d3 geometry loads in its own chunk so the table does not wait for it. The
 // placeholder is the map's footprint (its viewBox is square).
-const AlgeriaMap = dynamic(() => import("@/components/dashboard/algeria-map").then((m) => m.AlgeriaMap), {
+const AlgeriaMap = dynamic(() => import("@/components/dashboard/algeria-map").then((m) => m.AlgeriaMap, () => MapUnavailable), {
   ssr: false,
   loading: () => <div aria-hidden className="aspect-square w-full max-w-[360px] animate-pulse rounded-md bg-border" />,
 });

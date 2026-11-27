@@ -84,7 +84,12 @@
   --color-sidebar-border: var(--border);
   --color-sidebar-ring: var(--focus);
 
-  --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+  /* Both real families come before the next/font variables: each variable also
+   * names a local-Arial fallback, and Arial has Arabic glyphs, so the Latin one
+   * would otherwise catch all Arabic text ahead of Plex Arabic. The literal names
+   * depend on Turbopack, which keeps family names unhashed (`next build
+   * --webpack` hashes them). */
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── Dark (default) ───────────────────────────────────────────────── */

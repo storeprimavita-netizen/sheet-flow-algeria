@@ -1110,3 +1110,7 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
 - Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
 - Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
+
+## P1-6 build notes (2026-11-28)
+- Screenshots (dev, local seed): login EN dark; Statistics EN dark, AR light 390 (placeholder), AR dark (map), map-failure state EN dark; Dashboard AR light 390; All orders AR light 390 and EN light. Fixed: Arabic fell to local Arial through the Latin next/font fallback.
+- Not shot: the full theme x locale x width matrix; coloured map fills (seed map is grey).

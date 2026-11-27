@@ -2107,6 +2107,8 @@
     }
   },
   "statistics": {
+    "mapUnavailable": "The map could not load. The table has all the figures.",
+    "reloadPage": "Reload page",
     "title": "Statistics",
     "subtitle": "Confirmation, delivery and return rates by wilaya and commune. Open a wilaya to see its communes; every count opens the orders behind it.",
     "received": "Received",
