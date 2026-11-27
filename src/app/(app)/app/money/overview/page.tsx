@@ -125,7 +125,7 @@ export default async function FinanceOverviewPage({
           {pnl ? (
             <div className="space-y-3">
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <Link href={`/app/money/courier-cash?tab=income${qs({})}`} className="text-muted-foreground hover:underline">
+                <Link href={`/app/money/courier-cash${qs({ tab: "income" })}`} className="text-muted-foreground hover:underline">
                   {t("dashboard.pnl.revenue")}
                 </Link>
                 <span className="num">{formatCurrency(pnl.revenue)}</span>

@@ -193,7 +193,7 @@ describe.skipIf(!URL)("chart series (live DB, 00078)", () => {
   test("a far-future order: the ordered, limited kpi_daily is 366 days ending on its day", async () => {
     const id = await order(p1, "2099-06-01T10:00:00+01:00");
     try {
-      const { data, error } = await admin.rpc("kpi_daily", { p_from: FROM, p_to: "2099-06-30" }).order("day", { ascending: false }).limit(366);
+      const { data, error } = await admin.rpc("kpi_daily", { p_from: FROM }).order("day", { ascending: false }).limit(366);
       expect(error).toBeNull();
       const rows = (data ?? []) as unknown as Day[];
       expect(rows).toHaveLength(366);
