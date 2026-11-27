@@ -9,6 +9,8 @@ import { getOptionSet } from "@/lib/option-sets";
 import { PageHeader } from "@/components/page-header";
 import { PhoneLinks } from "@/components/phone-links";
 import { Empty } from "@/components/empty";
+import { ButtonLink } from "@/components/button-link";
+import { orderHome, purposeKey } from "@/components/nav-model";
 import { DeleteButton } from "@/components/delete-button";
 import { OrderWorkflow } from "../order-workflow";
 import { AssignmentCard } from "./assignment-card";
@@ -42,10 +44,14 @@ export default async function OrderDetailPage({
     .maybeSingle();
 
   if (!order) {
+    const home = orderHome(role);
     return (
       <div className="space-y-6">
-        <PageHeader title={t("nav.all")} subtitle={t("navPurpose.all")} />
+        <PageHeader title={t(`nav.${home.key}`)} subtitle={t(purposeKey(home))} />
         <Empty>{t("orders.notFound")}</Empty>
+        <ButtonLink href={home.href} variant="outline">
+          {t("orders.backToQueue", { page: t(`nav.${home.key}`) })}
+        </ButtonLink>
       </div>
     );
   }
@@ -158,7 +164,7 @@ export default async function OrderDetailPage({
               {t("orders.platformRef")}: <bdi dir="ltr">{order.order_number}</bdi>
             </>
           ) : (
-            t("navPurpose.all")
+            t(purposeKey(orderHome(role)))
           )
         }
       >

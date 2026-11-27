@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { GROUPS, MY_DAY, bottomBar, activeBarHref, groupCounterTotal, HOME, activeLeafHref, crumbsFor, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
+import { GROUPS, MY_DAY, bottomBar, activeBarHref, groupCounterTotal, HOME, activeLeafHref, crumbsFor, orderHome, navLeaves, purposeKey, parseClosedGroups, visibleNav } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
@@ -254,5 +254,14 @@ describe("app shell (D32, review-4)", () => {
       expect(get(en, purposeKey(l)), `en ${l.key}`).toBeTypeOf("string");
       expect(get(ar, purposeKey(l)), `ar ${l.key}`).toBeTypeOf("string");
     }
+  });
+});
+
+describe("orderHome", () => {
+  it("orderHome is the role's own queue, All orders for admin", () => {
+    expect(orderHome("admin").href).toBe("/app/sell/orders");
+    expect(orderHome("confirmation_agent").key).toBe("confirmation");
+    expect(orderHome("delivery_agent").key).toBe("shipping");
+    expect(orderHome(null).key).toBe("all");
   });
 });
