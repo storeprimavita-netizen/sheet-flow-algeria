@@ -1132,3 +1132,6 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/NAV-2-F.review-2.md`; screenshots only pre-fix in `docs/design/audit/NAV-2-F/`.
 - Owner — none. Live RLS suite not run (no database task).
 - Next — `/auto` picks NAV-2-G (follow-up row, D110).
+
+## NAV-2-G
+Bdi removed from crumbs, CrumbList extracted, tail shrink-0, 3 tests added. Screenshot matrix (docs/design/audit/NAV-2-G/) NOT taken: no app/browser run in this parallel worker session; sweep at 640-768 px and the record min-width edge case remain to check.
