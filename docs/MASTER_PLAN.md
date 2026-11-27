@@ -192,7 +192,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ZR-3 | "Your ZR history for this phone" in the confirmation sheet | CARRIER | H | ui | – | orders | C-1 | todo |
 | ZR-4 | ZR payments ledger → Money → Courier cash | CARRIER | H | ui | M | money | C-1, MONEY-1 | todo |
 | STATS-1 | Customer score fields + reasons | STATS | L | – | M | stats | P1-1 | done |
-| STATS-4 | Time / attempt / product × wilaya cuts | STATS | L | ui | – | stats | STATS-3 | todo |
+| STATS-4 | Time / attempt / product × wilaya cuts | STATS | L | ui | – | stats | STATS-3 | claimed:w2-agy |
 | CARRIER-1 | Carrier interface + `shipments` (extract from ZR when carrier #2 starts) | CARRIER | H | sec | M | orders | P1-7 | todo |
 | CARRIER-2 | Yalidine adapter | CARRIER | H | sec | – | orders | CARRIER-1, C-1 | todo |
 | CARRIER-3 | Routing: default carrier per wilaya, then success-rate suggestion | CARRIER | L | ui | M | orders | CARRIER-2, STATS-2 | todo |
