@@ -111,7 +111,7 @@ export function CommandPalette({ role, children }: { role: Role | null; children
 
       <CommandDialog open={open} onOpenChange={setOpen} filter={paletteFilter}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
-        <div role="status" className="text-sm text-muted-foreground empty:hidden px-4 py-2">
+        <div role="status" className="px-4 py-2 text-sm text-muted-foreground empty:p-0">
           {noNavMatch ? t("cmd.noNavMatch") : null}
         </div>
         <CommandList>
