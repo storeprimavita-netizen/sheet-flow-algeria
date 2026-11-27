@@ -1123,3 +1123,5 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/CHART-1-B.review-2.md`; screenshots in `docs/design/audit/CHART-1-B/`.
 - Owner — live RLS suite not run here (nodb worker); far-future-order and my-day live tests still unverified.
 - Next — run the live suite on the owner machine; open LOWs tracked in docs/BACKLOG.md.
+
+- NAV-2-F: screenshots NOT taken (no running app in this session); crumb truncation fix applied blind (title + 40% min-width on last crumb below sm). Low 5/6 left unchanged (6 in BACKLOG).
