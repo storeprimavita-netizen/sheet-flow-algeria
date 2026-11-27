@@ -33,3 +33,7 @@ Goal — Help admins see when orders arrive and where products fail to deliver, 
 ## Decision — D108 (settled)
 
 STATS-4 is split. This task builds only the no-migration Statistics views above: no new SQL function, no migration, no rate computed in the page, no all-pairs product × wilaya grid. The call metrics are plan row STATS-5 (migration, after STATS-4 and CONF-4); its brief must specify event capture, treatment of older orders without call events ("not recorded", never estimated, no backfill), and matching D4/D46 SQL rate and drill cohorts before implementation.
+
+## Claim — D109 (settled)
+
+`claimed:w2-agy` is the claim of the run in the copy `w2`. The session that builds this task there works under that name, whichever program it is (Codex, Antigravity or Claude). Do not rename the claim and do not ask about it; a row under any other name stays untouched.
