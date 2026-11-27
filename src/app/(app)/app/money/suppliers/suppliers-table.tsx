@@ -38,7 +38,7 @@ function TypeChip({ type }: { type: string }) {
   );
 }
 
-export function SuppliersTable({ rows }: { rows: SupplierRow[] }) {
+export function SuppliersTable({ rows, total }: { rows: SupplierRow[]; total: number }) {
   const t = useTranslations();
 
   const columns: Column<SupplierRow>[] = [
@@ -81,6 +81,7 @@ export function SuppliersTable({ rows }: { rows: SupplierRow[] }) {
       tableId="contacts-suppliers"
       columns={columns}
       rows={rows}
+      total={total}
       rowKey={(r) => r.id}
       empty={{
         title: t("contacts.suppliersNone"),
