@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/fields/date-field";
 import { formatDate } from "@/lib/format";
+import { isRealIsoDate } from "@/lib/query-string";
 import { Chip } from "@/components/ui/chip";
 
 /** Date-range filter — all-time by default (matches `agent_performance`'s own
@@ -17,7 +18,11 @@ export function PerformanceFilterBar() {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const get = (k: string) => sp.get(k) ?? "";
+  // Same rule as the page: a malformed date shows no chip and never reaches the date picker.
+  const get = (k: "from" | "to") => {
+    const v = sp.get(k);
+    return v && isRealIsoDate(v) ? v : "";
+  };
 
   function setDates(from: string, to: string) {
     const next = new URLSearchParams(sp.toString());
@@ -25,6 +30,7 @@ export function PerformanceFilterBar() {
       if (v) next.set(k, v);
       else next.delete(k);
     }
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -32,6 +38,7 @@ export function PerformanceFilterBar() {
     const next = new URLSearchParams(sp.toString());
     if (!v) next.delete(k);
     else next.set(k, v);
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 

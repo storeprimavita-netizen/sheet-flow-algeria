@@ -67,3 +67,8 @@ P1-5 · `money/finance-filter-bar.tsx` · chip buttons use `focus:outline-none` 
 P1-5 · `money/courier-cash/_components/collections-tab.tsx` · deposits column headed "Placed at" shows `deposited_on` (review-5 #4, pre-existing)
 P1-5 · courier cash pagers · focus falls to body when Previous/Next disappears; no pending state during a slow read (review-6 #2, #3)
 P1-5 · courier cash cards · customer name is not bidi-isolated with `<bdi>` (review-6 #4, pre-existing)
+P1-5 · `src/lib/utils.ts` `sortRows` · `?sort=__proto__` or `valueOf` ends on the error screen; check `Object.hasOwn` (review-8 #2)
+P1-5 · team performance · name sort compares code points, needs `Intl.Collator`; filtered-empty wording; chip focus ring (review-8 #5-#7)
+P1-5 · team performance date window · aggregates the whole history in the app on every sort or page click; a SQL function would be cheaper (review-8 #1, #3)
+P1-5 · `team/performance/page.tsx` · with a date filter the workspace averages skip null-actor history rows that `workspace_performance` counts, so picking a date can change what delivery and total averages measure (review-9 #1, pre-existing, wrong-number risk)
+P1-5 · team performance · `?from=0000-01-01` and repeated `sort` params are not handled (review-9 #2, #3; crafted URLs)

@@ -1,8 +1,12 @@
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/rbac";
 import { formatDuration } from "@/lib/format";
+import { fetchAll, lastPage, pageHref, pageRange, parsePage } from "@/lib/list-pagination";
+import { isRealIsoDate } from "@/lib/query-string";
+import { sortRows } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { TeamTabs } from "../team-tabs";
 import { PerformanceFilterBar } from "./performance-filter-bar";
@@ -28,18 +32,23 @@ export default async function PerformancePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const from = typeof sp.from === "string" ? sp.from : "";
-  const to = typeof sp.to === "string" ? sp.to : "";
+  // A malformed date is ignored, never sent to the database.
+  const from = typeof sp.from === "string" && isRealIsoDate(sp.from) ? sp.from : "";
+  const to = typeof sp.to === "string" && isRealIsoDate(sp.to) ? sp.to : "";
 
   const t = await getTranslations();
   const { workspaceId } = await requireAdminProfile();
   const supabase = await createClient();
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, display_name")
-    .eq("workspace_id", workspaceId);
-  const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? p.user_id]));
+  const profiles = await fetchAll((start, end) =>
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .eq("workspace_id", workspaceId)
+      .order("user_id")
+      .range(start, end),
+  );
+  const nameById = new Map(profiles.map((p) => [p.user_id, p.display_name ?? p.user_id]));
 
   let rows: PerfRow[];
   let strip: { decision: string | null; delivery: string | null; total: string | null };
@@ -47,27 +56,39 @@ export default async function PerformancePage({
     // Date-windowed: re-derive the view's own aggregation from the raw
     // history (a view can't take a date param), same grouping/filters as
     // `agent_performance` (00006_analytics.sql).
-    let query = supabase
-      .from("order_status_history")
-      .select("actor, stage, to_status, created_at, order_id, order:orders(created_at)")
-      .not("actor", "is", null);
-    if (from) query = query.gte("created_at", from);
-    if (to) query = query.lte("created_at", `${to}T23:59:59`);
-    const { data: history } = await query;
+    const history = await fetchAll((start, end) => {
+      let query = supabase
+        .from("order_status_history")
+        .select("actor, stage, to_status, created_at, order_id, order:orders(created_at)")
+        .not("actor", "is", null);
+      if (from) query = query.gte("created_at", from);
+      if (to) query = query.lte("created_at", `${to}T23:59:59`);
+      return query.order("id").range(start, end);
+    });
 
     // The confirmed crossing that anchors delivery time often predates the
-    // window, so fetch it unwindowed for every order seen in-window.
-    const orderIds = [...new Set((history ?? []).map((h) => h.order_id))];
-    const { data: confRows } = await (orderIds.length
-      ? supabase
+    // window, so fetch it unwindowed for every order seen in-window. Chunked:
+    // hundreds of ids in one `.in()` overrun the URL.
+    const orderIds = [...new Set(history.map((h) => h.order_id))];
+    const readConfirmations = (chunk: string[]) =>
+      fetchAll((start, end) =>
+        supabase
           .from("order_status_history")
           .select("order_id, created_at")
-          .in("order_id", orderIds)
+          .in("order_id", chunk)
           .eq("stage", "confirmation")
           .eq("to_status", "confirmed")
-      : Promise.resolve({ data: [] as never[] }));
+          .order("id")
+          .range(start, end),
+      );
+    // Eight chunks at a time: a wide window has too many to read one by one.
+    const chunks = Array.from({ length: Math.ceil(orderIds.length / 100) }, (_, i) => orderIds.slice(i * 100, (i + 1) * 100));
+    const confRows: Awaited<ReturnType<typeof readConfirmations>> = [];
+    for (let i = 0; i < chunks.length; i += 8) {
+      confRows.push(...(await Promise.all(chunks.slice(i, i + 8).map(readConfirmations))).flat());
+    }
     const confByOrder = new Map<string, string[]>();
-    for (const c of confRows ?? []) {
+    for (const c of confRows) {
       const list = confByOrder.get(c.order_id) ?? [];
       list.push(c.created_at);
       confByOrder.set(c.order_id, list);
@@ -90,7 +111,7 @@ export default async function PerformancePage({
     const wsDeliveryMs: number[] = [];
     const wsTotalMs: number[] = [];
     const groups = new Map<string, Group>();
-    for (const h of history ?? []) {
+    for (const h of history) {
       if (!h.actor) continue;
       const key = `${h.actor} ${h.stage}`;
       const g: Group =
@@ -154,11 +175,20 @@ export default async function PerformancePage({
     });
     strip = { decision: avg(wsDecisionMs), delivery: avg(wsDeliveryMs), total: avg(wsTotalMs) };
   } else {
-    const [{ data }, { data: wp }] = await Promise.all([
-      supabase.from("agent_performance").select("*").eq("workspace_id", workspaceId),
+    const [data, { data: wp, error: wpError }] = await Promise.all([
+      fetchAll((start, end) =>
+        supabase
+          .from("agent_performance")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .order("user_id")
+          .order("stage")
+          .range(start, end),
+      ),
       supabase.from("workspace_performance").select("*").eq("workspace_id", workspaceId).maybeSingle(),
     ]);
-    rows = (data ?? [])
+    if (wpError) throw new Error(wpError.message);
+    rows = data
       .filter((r): r is typeof r & { user_id: string; stage: string } => Boolean(r.user_id && r.stage))
       .map((r) => {
         const handled = r.orders_handled ?? 0;
@@ -183,6 +213,19 @@ export default async function PerformancePage({
     };
   }
 
+  // Sort the whole set before slicing; the stable sort keeps (user, stage) order on ties.
+  const byAgent = sortRows(rows, { id: (r) => `${r.user_id} ${r.stage}` }, "id", "asc");
+  const sorted = sortRows(
+    byAgent,
+    { agent: (r) => r.name.toLowerCase(), handled: (r) => r.orders_handled, rate: (r) => r.rate ?? -1 },
+    typeof sp.sort === "string" ? sp.sort : null,
+    sp.dir === "desc" ? "desc" : "asc",
+  );
+  const page = parsePage(sp.page);
+  const last = lastPage(sorted.length);
+  if (page > last) redirect(pageHref("/app/team/performance", sp, "page", last));
+  const [start, end] = pageRange(page);
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("nav.performance")} subtitle={t("navPurpose.performance")} />
@@ -194,7 +237,7 @@ export default async function PerformancePage({
         <Stat label={t("team.avgDeliveryTime")} value={formatDuration(strip.delivery)} />
         <Stat label={t("team.avgTotalTime")} value={formatDuration(strip.total)} />
       </div>
-      <PerformanceTable rows={rows} />
+      <PerformanceTable rows={sorted.slice(start, end + 1)} total={sorted.length} />
     </div>
   );
 }

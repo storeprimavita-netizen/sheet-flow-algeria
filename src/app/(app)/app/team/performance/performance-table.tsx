@@ -20,7 +20,7 @@ export type PerfRow = {
   avg_total_time: string | null;
 };
 
-export function PerformanceTable({ rows }: { rows: PerfRow[] }) {
+export function PerformanceTable({ rows, total }: { rows: PerfRow[]; total: number }) {
   const t = useTranslations();
 
   const columns: Column<PerfRow>[] = [
@@ -60,6 +60,7 @@ export function PerformanceTable({ rows }: { rows: PerfRow[] }) {
       tableId="team-performance"
       columns={columns}
       rows={rows}
+      total={total}
       rowKey={(r) => `${r.user_id}-${r.stage}`}
       empty={{ title: t("team.performanceNone") }}
     />
