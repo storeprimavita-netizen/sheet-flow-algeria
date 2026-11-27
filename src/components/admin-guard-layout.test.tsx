@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 
 const requireAdmin = vi.fn();
 const getProfile = vi.fn();
+vi.mock("next-intl/server", () => ({ getMessages: async () => ({ statistics: {} }) }));
 vi.mock("@/lib/rbac", () => ({ requireAdmin: (to: string) => requireAdmin(to), getProfile: () => getProfile() }));
 
 import StatsLayout from "@/app/(app)/app/statistics/layout";
@@ -22,7 +23,8 @@ describe("statistics layout guard", () => {
   test("an admin gets the children", async () => {
     getProfile.mockResolvedValueOnce({ role: "admin", workspaceId: "w" });
     requireAdmin.mockResolvedValueOnce(undefined);
-    await expect(StatsLayout({ children: "ok" })).resolves.toBe("ok");
+    const el = await StatsLayout({ children: "ok" });
+    expect(el.props.children).toBe("ok");
   });
   test("no profile goes to /no-access before requireAdmin", async () => {
     getProfile.mockResolvedValueOnce(null);

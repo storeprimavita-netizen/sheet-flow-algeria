@@ -35,7 +35,9 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
-  const messages = await getMessages();
+  // `statistics` is large and only two routes read it on the client; their
+  // layouts add it back (StatisticsMessagesProvider).
+  const { statistics: _scoped, ...messages } = await getMessages();
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get(THEME_COOKIE)?.value;
   const theme = isTheme(themeCookie) ? themeCookie : defaultTheme;
