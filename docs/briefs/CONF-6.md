@@ -6,6 +6,8 @@ Goal — Let a confirmation agent apply an admin-defined quantity offer to an el
 
 ## Decision required before build
 
+**Settled by D106 (2026-11-27):** CONF-6 depends on STORE-4 and has a migration; the recommendation below is adopted. Revise this brief after STORE-4 ships.
+
 - The plan lists `M: –` and depends on STORE-3. `supabase/migrations/00025_agent_permission_matrix.sql` blocks agent edits to `orders.quantity` and `orders.sale_price`, including through the existing status RPC. `src/lib/rls.test.ts` verifies that guard. `supabase/migrations/00077_store_offers_forms.sql` restricts offer configuration to admins. There is no session-scoped agent action that applies an offer to an order.
 - `confirmation-sheet.tsx` displays `sale_price × quantity`. A three-piece offer for 10,000 DZD needs the exact merchandise amount and the line-aware stock reconciliation specified in D99 and the pending STORE-4 brief. `00044_variant_stock_wiring.sql` reconciles the current single-variant representation. STORE-4's brief describes an admin-only edit path.
 - Recommended owner decision — add STORE-4 as a prerequisite and mark CONF-6 as requiring a migration for a narrowly scoped offer operation. Keep the D10 direct-edit restrictions and D102 receipt history. A UI-only change cannot meet the current spec.

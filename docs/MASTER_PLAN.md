@@ -180,7 +180,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | ID | Task | Spec | Risk | Surface | M | Lane | Deps | Status |
 |---|---|---|---|---|---|---|---|---|
 | RES-3 | Validate-with-stock + promote to product + draft page | RES | H | ui | – | catalog | RES-2, STORE-2 | todo |
-| CONF-6 | Apply an offer during the confirmation call | CONF | H | ui | – | orders | STORE-3 | claimed:w2-agy |
+| CONF-6 | Apply an offer during the confirmation call (D106: one narrow agent operation on top of STORE-4's order lines) | CONF | H | ui,sec | M | orders | STORE-3, STORE-4 | todo |
 
 ## Wave 5 — growth
 
