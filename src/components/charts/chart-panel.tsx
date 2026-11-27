@@ -101,7 +101,13 @@ export function ChartTable({ data }: { data: ChartTableData }) {
               {r.map((c, ci) =>
                 ci === 0 ? (
                   <th key={ci} scope="row" className="px-2 py-1.5 text-start font-normal">
-                    <bdi>{c}</bdi>
+                    {data.rowHrefs?.[ri] ? (
+                      <Link href={data.rowHrefs[ri]} className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-0">
+                        <bdi>{c}</bdi>
+                      </Link>
+                    ) : (
+                      <bdi>{c}</bdi>
+                    )}
                   </th>
                 ) : (
                   <td key={ci} dir="ltr" className="num px-2 py-1.5 text-end">

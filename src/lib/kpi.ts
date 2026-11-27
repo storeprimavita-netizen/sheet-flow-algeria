@@ -88,12 +88,16 @@ export function asKpiGroup(rates: unknown, extras: unknown): KpiGroup | null {
 export type KpiDailyMoney = { revenue: number; cogs: number; return_fees: number; ad_spend: number; expenses: number; fixed: number; costs: number; net_profit: number };
 export type KpiDailyRow = { day: string; rates: KpiGroupRates; money: KpiDailyMoney | null; immature: boolean };
 
-/** Narrow `kpi_daily` rows; malformed rows are dropped. */
+/** Most days a daily chart draws: the latest ones (callers order desc + limit in the query). */
+export const KPI_DAILY_MAX_DAYS = 366;
+
+/** Narrow `kpi_daily` rows, oldest day first; malformed rows are dropped. */
 export function asKpiDaily(rows: unknown): KpiDailyRow[] {
   if (!Array.isArray(rows)) return [];
-  return rows.flatMap((r) =>
+  const out = rows.flatMap((r) =>
     isObj(r) && typeof r.day === "string" && isObj(r.rates) && isObj(r.rates.counts)
       ? [{ day: r.day, rates: r.rates as unknown as KpiGroupRates, money: isObj(r.money) ? (r.money as unknown as KpiDailyMoney) : null, immature: r.immature === true }]
       : [],
   );
+  return out.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
 }

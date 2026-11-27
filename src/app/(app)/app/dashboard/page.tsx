@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/rbac";
-import { asKpi, asKpiDaily, type Kpi } from "@/lib/kpi";
+import { asKpi, asKpiDaily, KPI_DAILY_MAX_DAYS, type Kpi } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { AddAdSpendModal } from "@/components/dashboard/add-ad-spend-modal";
@@ -67,7 +67,7 @@ export default async function DashboardPage({
     Promise.resolve(products0),
     supabase.rpc("dashboard_stats", rpcParams),
     prevParams ? supabase.rpc("dashboard_stats", prevParams) : Promise.resolve(null),
-    supabase.rpc("kpi_daily", rpcParams),
+    supabase.rpc("kpi_daily", rpcParams).order("day", { ascending: false }).limit(KPI_DAILY_MAX_DAYS),
     supabase.rpc("current_fx_rate", { p_ws: profile.workspaceId, p_currency: "EUR" }),
     supabase.from("orders").select("id", count).eq("confirmation_status", "wait_for_confirmation"),
     supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),

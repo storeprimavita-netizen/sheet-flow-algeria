@@ -47,6 +47,16 @@ describe("dashboard reads SQL figures only", () => {
     expect(readFileSync(files[0], "utf8")).toContain('rpc("kpi_daily"');
     expect(comp("money-chart.tsx")).not.toMatch(/\/ ?\w*(revenue|costs)|revenue ?[-*] |profit ?=/);
   });
+  test("both daily callers limit kpi_daily to the latest days", () => {
+    const stats = readFileSync(path.resolve(__dirname, "../../../../components/stats/stats-charts.tsx"), "utf8");
+    for (const src of [readFileSync(files[0], "utf8"), stats]) {
+      expect(src).toMatch(/rpc\("kpi_daily"[^;]*\.order\("day", \{ ascending: false \}\)\.limit\(KPI_DAILY_MAX_DAYS\)/);
+    }
+  });
+  test("finance cost bar is empty when every cost is zero", () => {
+    const src = readFileSync(path.resolve(__dirname, "../money/overview/page.tsx"), "utf8");
+    expect(src).toContain("costSlices.some((s) => s.value !== 0)");
+  });
   test("the profit waterfall is gone and nothing imports it", () => {
     expect(() => readFileSync(path.resolve(__dirname, "../../../../components/dashboard/pnl-waterfall.tsx"), "utf8")).toThrow();
     const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : /\.tsx?$/.test(e.name) && !e.name.endsWith(".test.ts") ? [path.join(d, e.name)] : []));

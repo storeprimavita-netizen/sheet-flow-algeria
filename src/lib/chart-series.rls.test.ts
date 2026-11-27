@@ -190,6 +190,19 @@ describe.skipIf(!URL)("chart series (live DB, 00078)", () => {
     for (const r of rows) expect(r.money!.fixed).toBeGreaterThanOrEqual(0);
   });
 
+  test("a far-future order: the ordered, limited kpi_daily is 366 days ending on its day", async () => {
+    const id = await order(p1, "2099-06-01T10:00:00+01:00");
+    try {
+      const { data, error } = await admin.rpc("kpi_daily", { p_from: FROM }).order("day", { ascending: false }).limit(366);
+      expect(error).toBeNull();
+      const rows = (data ?? []) as unknown as Day[];
+      expect(rows).toHaveLength(366);
+      expect(rows[0].day).toBe("2099-06-01");
+    } finally {
+      await svc.from("orders").delete().eq("id", id);
+    }
+  }, 60000);
+
   test("outcome drills list exactly the orders each outcome counts", async () => {
     const { data } = await admin.rpc("kpi_outcomes", { p_from: FROM, p_to: TO });
     for (const o of data as unknown as { outcome: string; n: number }[]) {

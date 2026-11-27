@@ -125,7 +125,7 @@ export default async function FinanceOverviewPage({
           {pnl ? (
             <div className="space-y-3">
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <Link href={`/app/money/courier-cash?tab=income${qs({})}`} className="text-muted-foreground hover:underline">
+                <Link href={`/app/money/courier-cash${qs({ tab: "income" })}`} className="text-muted-foreground hover:underline">
                   {t("dashboard.pnl.revenue")}
                 </Link>
                 <span className="num">{formatCurrency(pnl.revenue)}</span>
@@ -133,7 +133,7 @@ export default async function FinanceOverviewPage({
               <StackedBar
                 title={t("dashboard.v2.money.chart.costsTitle")}
                 head={[t("dashboard.v2.money.chart.costHead"), t("dashboard.v2.money.chart.amountHead"), t("dashboard.v2.money.chart.shareHead")]}
-                empty={costSlices.length ? null : { title: t("dashboard.v2.money.noData") }}
+                empty={costSlices.some((s) => s.value !== 0) ? null : { title: t("dashboard.v2.money.noData") }}
                 slices={costSlices}
               />
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2 text-sm font-semibold">

@@ -21,7 +21,7 @@ type Who = { c: SupabaseClient; id: string };
 
 describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
   const prefix = "myd-";
-  const svc = client(SERVICE_KEY);
+  let svc: ReturnType<typeof client>; // created in beforeAll: a skipped describe still runs its body, with no URL
   const users: string[] = [];
   let ws = "";
   let ws2 = "";
@@ -51,6 +51,7 @@ describe.skipIf(!URL)("my day numbers (live DB, D86)", () => {
   const day = (who: Who, role: "confirmation_agent" | "delivery_agent") => getMyDay(who.c as unknown as SupabaseClient<Database>, who.id, role);
 
   beforeAll(async () => {
+    svc = client(SERVICE_KEY);
     await deleteLeakedWorkspaces(svc, prefix);
     ws = (await svc.from("workspaces").insert({ name: `${prefix}${crypto.randomUUID()}` }).select("id").single()).data!.id;
     ws2 = (await svc.from("workspaces").insert({ name: `${prefix}${crypto.randomUUID()}` }).select("id").single()).data!.id;
