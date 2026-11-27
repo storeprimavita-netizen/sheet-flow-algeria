@@ -73,15 +73,15 @@ export function Breadcrumbs() {
           return (
             <li
               key={i}
-              className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${last ? "text-foreground" : "shrink-0"}`}
+              className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${last ? "text-foreground max-sm:min-w-[40%]" : "sm:shrink-0"}`}
             >
               {i > 0 ? <ChevronRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden="true" /> : null}
               {c.href && !last ? (
-                <Link href={c.href} className="hover:text-foreground hover:underline">
+                <Link href={c.href} title={c.label} className="truncate hover:text-foreground hover:underline">
                   <bdi>{c.label}</bdi>
                 </Link>
               ) : (
-                <span aria-current={last ? "page" : undefined} className="truncate">
+                <span aria-current={last ? "page" : undefined} title={c.label} className="truncate">
                   <bdi>{c.label}</bdi>
                 </span>
               )}

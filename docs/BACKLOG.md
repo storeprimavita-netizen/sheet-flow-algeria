@@ -56,3 +56,5 @@ CONF-2 · `sell/orders/order-kanban.tsx` · clear a stale move error after serve
 CONF-3 · Confirmation score row and card · distinguish the absence of a saved link, a phone match and a parse error (review 2)
 CONF-3 · customer score queries · consider reuse of scoped delivery statistics when several cards refer to the same customer (review 2)
 - Bounding the series in SQL for a far-future placed_at needs a migration (kpi_daily still computes to the last order day); also reject absurd webhook placed_at. From CHART-1-B.
+- Agent "Show closed" button takes its own row at 390 px (NAV-2 review 3 #6, later UI pass).
+- NAV-2 review 3 missing tests: GroupHub leaf set / redirect / counts; page title key = sidebar key.
