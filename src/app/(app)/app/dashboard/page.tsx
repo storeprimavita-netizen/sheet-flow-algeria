@@ -13,7 +13,7 @@ import { StockStrip, type StockRow } from "@/components/dashboard/stock-strip";
 import { ProductScorecard, type ScorecardRow } from "@/components/dashboard/product-scorecard";
 import { DashboardFilterBar, type Opt } from "./dashboard-filter-bar";
 import { financeQs, ordersQs, type DashboardFilters } from "@/lib/query-string";
-import { AT_COURIER, RETRY_CONFIRMATION, STUCK_DAYS } from "@/lib/statuses";
+import { AT_COURIER, RETRY_CONFIRMATION, stuckCutoff } from "@/lib/statuses";
 
 // Dashboard v2 (P1-2): six bands, admin-only (AdminGuardLayout sends agents to /app/orders).
 // Every figure comes from SQL: dashboard_stats().kpi = kpi_lines (P1-1), per_product, product_stock_v.
@@ -49,7 +49,7 @@ export default async function DashboardPage({
   if (filters.product && !(products0.data ?? []).some((p) => p.id === filters.product)) filters.product = undefined;
   const rpcParams = { p_from: filters.from, p_to: filters.to, p_product: filters.product ? [filters.product] : undefined };
 
-  const stuckBefore = new Date(Date.now() - STUCK_DAYS * 86400000).toISOString();
+  const stuckBefore = stuckCutoff();
   const count = { count: "exact" as const, head: true };
 
   // delta-vs-previous-period only makes sense for a bounded range.
@@ -72,7 +72,7 @@ export default async function DashboardPage({
     supabase.from("orders").select("id", count).eq("confirmation_status", "wait_for_confirmation"),
     supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").eq("delivery_status", "wait_for_deposit"),
     supabase.from("orders").select("id", count).in("confirmation_status", [...RETRY_CONFIRMATION]),
-    supabase.from("orders").select("id", count).in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
+    supabase.from("orders").select("id", count).eq("confirmation_status", "confirmed").in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckBefore),
     (() => {
       const q = supabase.from("product_stock_v").select("product_id, in_stock, reserved, on_road, delivered, low");
       return filters.product ? q.eq("product_id", filters.product) : q;

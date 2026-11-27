@@ -62,4 +62,11 @@ describe("dashboard reads SQL figures only", () => {
     const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : /\.tsx?$/.test(e.name) && !e.name.endsWith(".test.ts") ? [path.join(d, e.name)] : []));
     for (const f of walk(path.resolve(__dirname, "../../../../"))) expect(readFileSync(f, "utf8"), f).not.toMatch(/pnl-waterfall|PnlWaterfall/);
   });
+  test("dashboard and shipping page share the stuck predicate", () => {
+    for (const p of [path.resolve(__dirname, "page.tsx"), path.resolve(__dirname, "../sell/shipping/page.tsx")]) {
+      const src = readFileSync(p, "utf8");
+      expect(src, p).toMatch(/stuckCutoff\(\)/);
+      expect(src, p).toMatch(/AT_COURIER/);
+    }
+  });
 });

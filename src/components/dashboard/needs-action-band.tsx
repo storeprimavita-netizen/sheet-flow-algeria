@@ -35,7 +35,7 @@ export async function NeedsActionBand({ counts }: { counts: NeedsActionCounts | 
             tone={counts.stuck > 0 ? "danger" : undefined}
             sub={t("stuckSub", { days: STUCK_DAYS })}
             hint={t("stuckHint")}
-            href="/app/sell/shipping"
+            href="/app/sell/shipping?stuck=1"
           />
         </div>
       )}

@@ -5,7 +5,7 @@ import { isCurrentUserAdmin } from "@/lib/rbac";
 import { formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
-import { ACTIONABLE_DELIVERY } from "@/lib/statuses";
+import { ACTIONABLE_DELIVERY, AT_COURIER, STUCK_DAYS, stuckCutoff } from "@/lib/statuses";
 import { swapTargets } from "../orders/_lib/swap-links";
 import { OrderTabs } from "../orders/order-tabs";
 import { effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation } from "@/lib/order-views";
@@ -26,6 +26,7 @@ export default async function DeliveryQueuePage({
 }) {
   const sp = await searchParams;
   const showAll = sp.show === "all";
+  const stuck = sp.stuck === "1";
   const t = await getTranslations();
   const supabase = await createClient();
   const isAdmin = await isCurrentUserAdmin();
@@ -48,6 +49,7 @@ export default async function DeliveryQueuePage({
   // fixed page filter applied last: whatever the view says, only confirmed orders are listed here
   query = query.order(sort.column, { ascending: sort.ascending }).eq("confirmation_status", "confirmed");
   if (!showAll) query = query.in("delivery_status", ACTIONABLE_DELIVERY);
+  if (stuck) query = query.in("delivery_status", [...AT_COURIER]).lt("updated_at", stuckCutoff());
   const { data: orders, error: ordersError } = await query;
 
   const swaps = await swapTargets(supabase, orders ?? []);
@@ -110,6 +112,12 @@ export default async function DeliveryQueuePage({
         loadError={!!viewsResult.error}
         keep={showAll ? "show=all" : ""}
       />
+      {stuck ? (
+        <p role="status" className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <span>{t("orderViews.stuckNotice", { days: STUCK_DAYS })}</span>
+          <ButtonLink href="/app/sell/shipping" variant="outline" size="sm">{t("orderViews.stuckClear")}</ButtonLink>
+        </p>
+      ) : null}
       {invalid ? <InvalidViewNotice rest={rest} /> : null}
       <QueueFilterBar
         scope="shipping"
@@ -127,8 +135,8 @@ export default async function DeliveryQueuePage({
       ) : null}
       {ordersError ? <OrderBoardLoadError /> : presentation.layout === "kanban" ? (
         <OrderKanban scope="shipping" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
-          empty={<OrderBoardEmpty scope="shipping" filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
-            resetHref={boardResetHref("/app/sell/shipping", sp, active?.config, presentation)} />} />
+          empty={<OrderBoardEmpty scope="shipping" filtered={stuck || FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
+            resetHref={stuck ? "/app/sell/shipping" : boardResetHref("/app/sell/shipping", sp, active?.config, presentation)} />} />
       ) : <DeliveryTable rows={rows} isAdmin={isAdmin} />}
     </div>
   );

@@ -2059,6 +2059,8 @@
     "loadError": "Could not load views",
     "notAvailable": "That view is not available",
     "dismiss": "Dismiss",
+    "stuckNotice": "Stuck parcels · no update for {days}+ days",
+    "stuckClear": "Show all",
     "limitNotice": "Showing the first {count} orders. Narrow the list with a view or filters.",
     "layout": "Order layout",
     "groupBy": "Group board by",
