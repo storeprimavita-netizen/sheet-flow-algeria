@@ -27,7 +27,7 @@ export function AddAdSpendModal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" className="gap-1.5">
+        <Button type="button" variant="outline" className="gap-1.5 max-sm:min-h-11">
           <Plus className="h-4 w-4" />
           {t("cmd.addAdSpend")}
         </Button>

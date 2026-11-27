@@ -50,7 +50,7 @@ export async function MoneyBand({
   return (
       <Band id="band-money" title={t("title")}>
         {kpi.usd_rate == null ? (
-          <Link href="/app/settings?section=exchange-rates" className="mb-1 inline-block text-xs font-medium text-primary hover:underline">
+          <Link href="/app/settings?section=exchange-rates" className="mb-1 inline-flex items-center text-xs font-medium max-sm:min-h-11 text-primary hover:underline">
             {noRate}
           </Link>
         ) : null}

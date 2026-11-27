@@ -50,7 +50,7 @@ export async function ProductScorecard({ rows, hasProducts }: { rows: ScorecardR
       ) : (
         <div className="space-y-2">
           {noRate ? (
-            <Link href="/app/settings?section=exchange-rates" className="inline-block text-xs font-medium text-primary hover:underline">
+            <Link href="/app/settings?section=exchange-rates" className="inline-flex items-center text-xs font-medium text-primary hover:underline max-sm:min-h-11">
               {tm("noRate")}
             </Link>
           ) : null}

@@ -11,7 +11,7 @@ export function RetryButton({ label }: { label: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
-    <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => start(() => router.refresh())}>
+    <Button type="button" variant="ghost" size="sm" className="max-sm:min-h-11" disabled={pending} onClick={() => start(() => router.refresh())}>
       <RefreshCw className={pending ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
       {label}
     </Button>

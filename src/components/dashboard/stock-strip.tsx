@@ -35,7 +35,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
       ) : rows.length === 0 ? (
         <Empty className="space-y-3 p-6">
           <p>{t("empty")}</p>
-          <ButtonLink href="/app/catalog/products/new" variant="outline">
+          <ButtonLink href="/app/catalog/products/new" variant="outline" className="max-sm:min-h-11">
             {t("add")}
           </ButtonLink>
         </Empty>
@@ -70,7 +70,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
                     </span>
                   ) : null}
                 </span>
-                <span className="grid grid-cols-3 gap-3 text-xs sm:grid-cols-4 text-muted-foreground sm:w-80 sm:shrink-0">
+                <span className="grid grid-cols-3 gap-3 text-xs text-muted-foreground sm:grid-cols-4 sm:w-80 sm:shrink-0">
                   {(
                     [
                       ["inStock", r.inStock],
@@ -88,7 +88,7 @@ export async function StockStrip({ rows }: { rows: StockRow[] | null }) {
               </Link>
             ))}
             {rows.length > MAX_ROWS ? (
-              <Link href="/app/catalog/stock" className="block px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
+              <Link href="/app/catalog/stock" className="flex items-center px-4 py-2 text-xs max-sm:min-h-11 text-muted-foreground hover:text-foreground">
                 {t("viewAll", { n: rows.length })}
               </Link>
             ) : null}
