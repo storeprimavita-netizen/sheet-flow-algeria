@@ -215,6 +215,12 @@ export function parseClosedGroups(raw: string | null): Record<string, boolean> {
 /** i18n key (under navPurpose.*) of a leaf's one-line purpose. */
 export const purposeKey = (leaf: NavLeaf) => `navPurpose.${leaf.key}`;
 
+/** Where a role's order records live: an agent's own queue, otherwise All orders. */
+export function orderHome(role: Role | null): NavLeaf {
+  const own = role === "admin" ? undefined : visibleNav(role).groups[0]?.items[0];
+  return own ?? leafByHref("/app/sell/orders");
+}
+
 export type Crumb = { labelKey: string; href?: string };
 
 /**
@@ -227,7 +233,7 @@ export function crumbsFor(role: Role | null, pathname: string): Crumb[] {
   if (hub) return [{ labelKey: `nav.${hub.key}` }];
   let href = activeLeafHref(role, pathname);
   // Order records belong to "All orders", which agents cannot see: file them under their own queue.
-  if (!href && pathname.startsWith("/app/sell/orders/") && role !== "admin") href = groups[0]?.items[0]?.href;
+  if (!href && pathname.startsWith("/app/sell/orders/") && role !== "admin") href = orderHome(role).href;
   const group = groups.find((g) => g.items.some((l) => l.href === href));
   const leaf = group?.items.find((l) => l.href === href);
   if (!group || !leaf) return [];

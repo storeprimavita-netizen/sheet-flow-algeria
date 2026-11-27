@@ -423,7 +423,7 @@ export function AppShell({
               </Button>
             </CommandPalette>
             <Breadcrumbs />
-            <div className="ms-auto md:hidden">{brand}</div>
+            <div className="ms-auto hidden sm:block md:hidden">{brand}</div>
           </header>
           <main className="flex-1 p-4 max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] md:p-8">{children}</main>
           <MobileBottomBar role={role} counts={counts} onMore={() => setOpen(true)} moreRef={toggleRef} />

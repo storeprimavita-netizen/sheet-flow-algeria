@@ -1123,3 +1123,12 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/CHART-1-B.review-2.md`; screenshots in `docs/design/audit/CHART-1-B/`.
 - Owner — live RLS suite not run here (nodb worker); far-future-order and my-day live tests still unverified.
 - Next — run the live suite on the owner machine; open LOWs tracked in docs/BACKLOG.md.
+
+- NAV-2-F: screenshots NOT taken (no running app in this session); crumb truncation fix applied blind (title + 40% min-width on last crumb below sm). Low 5/6 left unchanged (6 in BACKLOG).
+
+### NAV-2-F ship
+- Done — NAV-2-F lows and the review-1 crumb fixes are in. Review-2 open items moved on: two mediums (Arabic crumb loses its start; screenshot matrix not delivered) → NAV-2-G; low (tail `shrink-0`) → BACKLOG.
+- Verify — `scripts/gate.sh` GATE OK on v3-NAV-2-F (tsc, 1,040 unit tests, i18n, color lint, build, protected paths, secret scan). Review 2 VERDICT: FIX, no HIGH open; rounds used up (D110).
+- Evidence — `docs/briefs/NAV-2-F.review-2.md`; screenshots only pre-fix in `docs/design/audit/NAV-2-F/`.
+- Owner — none. Live RLS suite not run (no database task).
+- Next — `/auto` picks NAV-2-G (follow-up row, D110).

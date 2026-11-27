@@ -372,6 +372,7 @@
     "edit": "Order",
     "none": "No orders in your queue.",
     "notFound": "This order is no longer visible to you — it may have moved to the next stage.",
+    "backToQueue": "Back to {page}",
     "history": "History",
     "workflow": "Update status / comment",
     "eventsNone": "No events yet.",
