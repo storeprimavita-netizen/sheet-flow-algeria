@@ -6,11 +6,10 @@ import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { nextRecord, type Rec, type StoredRec } from "@/components/breadcrumb-record";
 import { crumbsFor } from "@/components/nav-model";
 import type { Role } from "@/lib/roles";
 
-type Rec = { label: string; href?: string; tail?: string };
-type StoredRec = Rec & { path: string };
 
 const RecordCtx = createContext<((rec: Rec | null) => void) | null>(null);
 const CrumbsContext = createContext<{ role: Role | null; rec: Rec | null }>({ role: null, rec: null });
@@ -23,14 +22,7 @@ export function CrumbProvider({ role, children }: { role: Role | null; children:
   const [stored, setStored] = useState<StoredRec | null>(null);
   // Stable identity: consumers' effects must not re-run when the provider re-renders.
   const set = useCallback((rec: Rec | null) => {
-    setStored((prev) => {
-      if (!rec) return prev === null ? prev : null;
-      const path = pathRef.current;
-      if (prev && prev.path === path && prev.label === rec.label && prev.href === rec.href && prev.tail === rec.tail) {
-        return prev;
-      }
-      return { ...rec, path };
-    });
+    setStored((prev) => nextRecord(prev, rec, pathRef.current));
   }, []);
   const rec = stored && stored.path === pathname ? stored : null;
   const value = useMemo(() => ({ role, rec }), [role, rec]);

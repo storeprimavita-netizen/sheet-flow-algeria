@@ -44,9 +44,7 @@ export default async function FinanceExpensesPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("expenses.title")} subtitle={t("expenses.subtitle")}
-        related={[{ href: "/app/money/ad-spend", label: t("nav.adSpend") }, { href: "/app/money/accounts", label: t("nav.accounts") }]}
-      />
+      <PageHeader title={t("expenses.title")} subtitle={t("expenses.subtitle")} />
       <FinanceTabs active="expenses" />
       <FinanceFilterBar products={productOpts.map((p) => ({ value: p.id, label: p.name }))} showCategory />
       <ExpenseTable expenses={expenses ?? []} products={productOpts} suppliers={suppliers ?? []} subcategories={subcategories} accounts={accounts ?? []} rates={rates} />
