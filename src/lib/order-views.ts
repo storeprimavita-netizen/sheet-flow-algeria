@@ -15,6 +15,8 @@ export const SORT_COLUMNS: Record<string, string> = {
 export const VIEW_SCOPES = ["confirmation", "shipping", "all"] as const;
 export type ViewScope = (typeof VIEW_SCOPES)[number];
 export const MAX_VIEWS_PER_GROUP = 20;
+/** CONF-4: Confirmation-only queue slices. */
+export const QUEUE_SLICES = ["callbacks_due", "confirmed_today"] as const;
 export const VIEW_LAYOUTS = ["table", "kanban"] as const;
 export const KANBAN_GROUPS = ["status", "attempts", "wilaya", "product"] as const;
 export const KANBAN_FIELDS = ["product", "wilaya", "total", "attempts", "age", "score"] as const;
@@ -41,6 +43,7 @@ const keySchemas = {
   to: z.string().refine(isRealDate),
   sort: z.enum(Object.keys(SORT_COLUMNS) as [string, ...string[]]),
   dir: z.enum(["asc", "desc"]),
+  queue_slice: z.enum(QUEUE_SLICES),
 } as const;
 
 export const FILTER_KEYS = Object.keys(keySchemas) as (keyof typeof keySchemas)[];
@@ -206,7 +209,7 @@ export type OrderViewDto = {
   config: ViewConfig;
 };
 
-export const SEED_NAMES: Record<string, string> = { new: "New", no_answer: "No answer", duplicates: "Duplicates", kanban_by_status: "Kanban by status" };
+export const SEED_NAMES: Record<string, string> = { new: "New", no_answer: "No answer", duplicates: "Duplicates", kanban_by_status: "Kanban by status", callbacks_due: "Callbacks due", confirmed_today: "Today confirmed" };
 
 /** Seeded views show a translated name until an admin renames them. */
 export function isUnrenamedSeed(v: Pick<OrderViewDto, "seed_key" | "name">): boolean {

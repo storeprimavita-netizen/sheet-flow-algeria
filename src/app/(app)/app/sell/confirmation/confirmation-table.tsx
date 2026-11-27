@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { NewOrdersPill } from "./new-orders-pill";
 import { ConfirmationSheet } from "./confirmation-sheet";
 import { OrderNo } from "@/components/order-no";
+import { formatAlgiersDateTime } from "./_lib/callback";
 
 export type ConfRow = {
   id: string;
@@ -35,6 +36,11 @@ export type ConfRow = {
   scopedHistory: boolean;
   /** non-admin + already shipped: hide attempt logging */
   locked: boolean;
+  callback_at: string | null;
+  /** at or before the instant the page was read */
+  callback_due: boolean;
+  /** actionable, before handoff, and a role that may schedule */
+  can_callback: boolean;
   recent: { id: string; order_seq: number; delivery_status: string; placed_at: string | null }[];
 };
 
@@ -88,7 +94,16 @@ export function ConfirmationTable({ rows, scoreScope }: { rows: ConfRow[]; score
       id: "status",
       header: t("fields.confirmation_status"),
       align: "center",
-      cell: (r) => <StatusPill kind="confirmation" status={r.confirmation_status} size="sm" />,
+      cell: (r) => (
+        <div className="flex flex-col items-center gap-1">
+          <StatusPill kind="confirmation" status={r.confirmation_status} size="sm" />
+          {r.callback_at ? (
+            <span className={`whitespace-nowrap text-xs ${r.callback_due ? "text-warning" : "text-muted-foreground"}`}>
+              {t(r.callback_due ? "callbacks.overdue" : "callbacks.scheduled")}: <span className="num">{formatAlgiersDateTime(r.callback_at)}</span>
+            </span>
+          ) : null}
+        </div>
+      ),
     },
     { id: "placed_at", header: t("fields.placed_at"), cell: (r) => formatDate(r.placed_at) },
   ];

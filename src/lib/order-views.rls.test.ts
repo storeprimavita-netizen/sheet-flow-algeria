@@ -200,10 +200,10 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["callbacks_due", "confirmed_today", "duplicates", "kanban_by_status", "new", "no_answer"]);
   });
 
-  test("seed_order_views called twice as service role stays at 4 rows", async () => {
+  test("seed_order_views called twice as service role stays at 6 rows", async () => {
     for (let i = 0; i < 2; i++) expect((await svc.rpc("seed_order_views" as never, { ws: ws2 } as never)).error).toBeNull();
     const r = await svc.from("order_views").select("id").eq("workspace_id", ws2).not("seed_key", "is", null);
-    expect(r.data).toHaveLength(4);
+    expect(r.data).toHaveLength(6);
   });
 
   test("padded names, seed_key on personal rows and negative positions are refused", async () => {

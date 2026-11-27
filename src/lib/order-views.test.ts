@@ -102,3 +102,16 @@ describe("order views config", () => {
     expect(parseUrlConfig({ confirmation_status: "bogus" }).values.confirmation_status).toBeUndefined();
   });
 });
+
+describe("CONF-4 queue slice", () => {
+  test("a stored or URL slice is validated, can be cleared and marks the view modified", () => {
+    expect(parseViewConfig({ queue_slice: "callbacks_due" })).toEqual({ queue_slice: "callbacks_due" });
+    expect(parseViewConfig({ queue_slice: "everything" })).toEqual({});
+    const view = { queue_slice: "confirmed_today" } as const;
+    expect(effectiveConfig(view, { queue_slice: "junk" })).toEqual(view);
+    expect(effectiveConfig(view, { queue_slice: CLEARED })).toEqual({});
+    expect(isDirty(view, {})).toBe(false);
+    expect(isDirty(view, { queue_slice: CLEARED })).toBe(true);
+    expect(serializeConfig(view).toString()).toBe("queue_slice=confirmed_today");
+  });
+});

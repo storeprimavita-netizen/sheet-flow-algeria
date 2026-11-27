@@ -192,6 +192,7 @@ export function OrderKanban({
                               <CustomerScoreCard scope={customerScoreScope} orderId={row.id} name={row.customerName} />
                             ) : <bdi className="block truncate" title={row.customerName ?? undefined}>{row.customerName ?? "—"}</bdi>}
                             {row.customerPhone ? <PhoneLinks phone={row.customerPhone} callLabel={t("orders.call")} waLabel={t("orders.whatsapp")} /> : null}
+                            {row.callback ? <p className="num text-xs text-muted-foreground">{row.callback}</p> : null}
                             {row.swappedTo ? <SwapBadge to={row.swappedTo} /> : null}
                             {cardFields.length ? (
                               <dl className="space-y-1 text-xs">

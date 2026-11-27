@@ -18,6 +18,7 @@ import { allStatuses, getStatus } from "@/lib/statuses";
 import { whatsappHref } from "@/lib/customers";
 import { updateOrderStatus, logConfirmationAttempt } from "../orders/actions";
 import type { ConfRow } from "./confirmation-table";
+import { AttemptTimeline, CallbackForm } from "./callback-panel";
 import { OrderNo } from "@/components/order-no";
 
 /**
@@ -76,7 +77,8 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement;
-      if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") return;
+      // the date picker (portalled) and the callback form use the arrows themselves
+      if (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.closest("form, [data-radix-popper-content-wrapper]")) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
         openRow(nextKey);
@@ -128,7 +130,7 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
       <div className="flex flex-wrap items-center gap-2">
         <CustomerRisk summary={order.risk} scoped={order.scopedHistory} />
         <Chip token="neutral" size="sm" icon={<Phone className="h-3 w-3" />}>
-          {t("orders.logAttempt")}: <span className="num">{order.confirmation_attempts}</span>
+          {t("callbacks.dialCount")}: <span className="num">{order.confirmation_attempts}</span>
         </Chip>
         {order.is_duplicate_suspect && order.duplicate_of ? (
           <Link href={`/app/sell/orders/${order.duplicate_of}`}>
@@ -138,6 +140,8 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
           </Link>
         ) : null}
       </div>
+
+      <AttemptTimeline orderId={order.id} status={order.confirmation_status} />
 
       {/* previous orders */}
       <div className="space-y-1.5">
@@ -209,6 +213,8 @@ export function ConfirmationSheet({ order, orderedKeys }: { order: ConfRow; orde
           {t("orders.saveNext")}
         </Button>
       </div>
+
+      <CallbackForm order={order} />
     </div>
   );
 }

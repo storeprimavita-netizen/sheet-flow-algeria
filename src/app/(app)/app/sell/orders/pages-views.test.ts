@@ -6,7 +6,7 @@ let views: unknown[] = [];
 function builder(table: string): Record<string, unknown> {
   const q: Record<string, unknown> = {};
   const log = table === "orders" ? calls : [];
-  for (const m of ["select", "eq", "in", "or", "gte", "lte", "neq", "order", "range", "is"]) {
+  for (const m of ["select", "eq", "in", "or", "gte", "lte", "neq", "order", "range", "is", "not", "lt"]) {
     q[m] = (...a: unknown[]) => (log.push(`${m}:${a.map((x) => (Array.isArray(x) ? x.join("|") : String(x))).join("=")}`), q);
   }
   q.then = (res: (v: unknown) => unknown) => res({ data: [], count: 0, error: null });
@@ -103,6 +103,40 @@ function findProps(node: unknown, name: string): Record<string, unknown> | null 
   if (el.type?.name === name) return el.props ?? null;
   return findProps(el.props?.children, name);
 }
+
+describe("CONF-4 queue slices", () => {
+  const view = (queue_slice: string) => [{
+    id: ADMIN_VIEW, name: "V", emoji: null, scope: "confirmation", seed_key: queue_slice, shared: true,
+    position: 0, layout: "table", config: { queue_slice },
+  }];
+
+  test("Due keeps the actionable gate, sorts by callback then id, and table and board read the same rows", async () => {
+    views = view("callbacks_due");
+    const { default: Page } = await import("../confirmation/page");
+    await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW, show: "all" }) });
+    expect(calls).toContain("order:callback_at=[object Object]");
+    expect(calls).toContain("order:id=[object Object]");
+    expect(calls).toContain("in:confirmation_status=wait_for_confirmation|no_answer|closed_phone");
+    expect(calls).toContain("eq:delivery_status=wait_for_deposit");
+    expect(calls).toContain("is:zr=null");
+    const table = calls.filter((c) => !c.startsWith("lte:"));
+    calls.length = 0;
+    await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW, show: "all", layout: "kanban" }) });
+    expect(calls.filter((c) => !c.startsWith("lte:"))).toEqual(table);
+  });
+
+  test("Today confirmed replaces the actionable gate; clearing the slice restores it", async () => {
+    views = view("confirmed_today");
+    const { default: Page } = await import("../confirmation/page");
+    await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW }) });
+    expect(calls).toContain("eq:confirmation_status=confirmed");
+    expect(calls.some((c) => c.startsWith("in:confirmation_status="))).toBe(false);
+    calls.length = 0;
+    await Page({ searchParams: Promise.resolve({ view: ADMIN_VIEW, queue_slice: "__all" }) });
+    expect(calls).not.toContain("eq:confirmation_status=confirmed");
+    expect(calls).toContain("in:confirmation_status=wait_for_confirmation|no_answer|closed_phone");
+  });
+});
 
 describe("status filter options", () => {
   const values = (el: unknown) => (findProps(el, "QueueFilterBar")!.statusOptions as { value: string }[]).map((o) => o.value);

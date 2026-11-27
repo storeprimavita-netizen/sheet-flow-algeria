@@ -1,4 +1,5 @@
 import { parseOrderSeqQuery } from "@/lib/order-search";
+import { algiersDayStart } from "@/lib/my-day";
 import { cleanQuery, SORT_COLUMNS, type ViewConfig } from "@/lib/order-views";
 
 /** The slice of the PostgREST builder this file uses (keeps the helper generic over select shapes). */
@@ -41,6 +42,35 @@ export function applyOrderConfig<Q extends Filterable<Q>>(query: Q, cfg: ViewCon
   if (cfg.from) q = q.gte("placed_at", cfg.from);
   if (cfg.to) q = q.lte("placed_at", `${cfg.to}T23:59:59`);
   return q;
+}
+
+/** Added to the Confirmation select for `confirmed_today`: an inner embed filters parents without duplicating them. */
+export const CONFIRMED_EVENT_SELECT = ", confirmed_event:order_status_history!inner(id)";
+
+type Sliceable<Q> = Filterable<Q> & {
+  is(column: string, value: null): Q;
+  not(column: string, operator: "is", value: null): Q;
+  lt(column: string, value: string): Q;
+};
+
+/**
+ * CONF-4 Confirmation-only queue slices, applied before any limit.
+ * `callbacks_due` also needs the page's actionable status gate and the `zr` embed;
+ * `confirmed_today` needs CONFIRMED_EVENT_SELECT and replaces that gate.
+ */
+export function applyQueueSlice<Q extends Sliceable<Q>>(query: Q, slice: NonNullable<ViewConfig["queue_slice"]>, now: Date): Q {
+  if (slice === "callbacks_due") {
+    return query.eq("delivery_status", "wait_for_deposit").is("zr", null).lte("callback_at", now.toISOString());
+  }
+  const start = algiersDayStart(now);
+  const next = new Date(Date.parse(start) + 86_400_000).toISOString();
+  return query
+    .eq("confirmation_status", "confirmed")
+    .eq("confirmed_event.stage", "confirmation")
+    .not("confirmed_event.from_status", "is", null)
+    .eq("confirmed_event.to_status", "confirmed")
+    .gte("confirmed_event.created_at", start)
+    .lt("confirmed_event.created_at", next);
 }
 
 /** Allow-listed sort: unknown falls back to newest first. */

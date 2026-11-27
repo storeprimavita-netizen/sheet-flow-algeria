@@ -7,9 +7,10 @@ import { formatRelativeTime } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { ButtonLink } from "@/components/button-link";
 import { ACTIONABLE_CONFIRMATION } from "@/lib/statuses";
+import { formatAlgiersDateTime } from "./_lib/callback";
 import { OrderTabs } from "../orders/order-tabs";
 import { effectiveConfig, FILTER_KEYS, isDirty, presentationDirty, viewPresentation, serializeConfig } from "@/lib/order-views";
-import { applyOrderConfig, orderSort, ROW_LIMIT } from "../orders/_lib/order-query";
+import { applyOrderConfig, applyQueueSlice, CONFIRMED_EVENT_SELECT, orderSort, ROW_LIMIT } from "../orders/_lib/order-query";
 import { listViews, resolveView } from "../orders/_lib/views-data";
 import { InvalidViewNotice, ViewTabs } from "../orders/view-tabs";
 import { QueueFilterBar } from "../orders/queue-filter-bar";
@@ -22,6 +23,8 @@ import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_
 
 const rest = (sp: Record<string, string | string[] | undefined>) =>
   new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
+
+const shipped = (zr: unknown) => (Array.isArray(zr) ? zr.length > 0 : !!zr);
 
 export default async function ConfirmationQueuePage({
   searchParams,
@@ -38,23 +41,30 @@ export default async function ConfirmationQueuePage({
     ? customerScoreScope(user.id, profile.workspaceId, profile.role)
     : null;
 
-  // Default = actionable only (same list as the sidebar badge); "show closed"
-  // adds cancelled. Confirmed orders live in the delivery queue.
-  let query = supabase
-    .from("orders")
-    .select(
-      "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, product_id, wilaya_code, product:products(name), wilaya:wilayas(name), zr:zr_shipments(order_id)",
-    );
   const viewsResult = await listViews("confirmation");
   const { active, invalid } = resolveView(viewsResult.views, sp.view);
   const cfg = effectiveConfig(active?.config ?? null, sp);
   const presentation = viewPresentation("confirmation", isAdmin, active, sp);
   const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("confirmation", isAdmin, active), presentation));
+  const slice = cfg.queue_slice;
+  const now = new Date();
+
+  const columns = "id, order_seq, customer_id, customer_name, customer_phone, quantity, sale_price, confirmation_status, confirmation_comment, confirmation_attempts, commune, placed_at, is_duplicate_suspect, duplicate_of, delivery_status, callback_at, product_id, wilaya_code, product:products(name), wilaya:wilayas(name), zr:zr_shipments(order_id)";
+  // Default = actionable only (same list as the sidebar badge); "show closed"
+  // adds cancelled. Confirmed orders live in the delivery queue.
+  let query = supabase
+    .from("orders")
+    .select((slice === "confirmed_today" ? `${columns}${CONFIRMED_EVENT_SELECT}` : columns) as typeof columns);
   query = applyOrderConfig(query, cfg);
   // oldest first unless the view sorts; the page's own filter below is applied last, so a view can only narrow
-  const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
+  const sort = cfg.sort ? orderSort(cfg)
+    : { column: slice === "callbacks_due" ? "callback_at" : "created_at", ascending: true };
   query = query.order(sort.column, { ascending: sort.ascending });
-  query = showAll ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
+  if (slice === "callbacks_due") query = query.order("id", { ascending: true });
+  if (slice !== "confirmed_today") {
+    query = showAll && !slice ? query.neq("confirmation_status", "confirmed") : query.in("confirmation_status", ACTIONABLE_CONFIRMATION);
+  }
+  if (slice) query = applyQueueSlice(query, slice, now);
   const { data: orders, error: ordersError } = await query;
 
   const customerIds = [...new Set((orders ?? []).map((o) => o.customer_id).filter((id): id is string => !!id))];
@@ -114,8 +124,12 @@ export default async function ConfirmationQueuePage({
       risk: risk.success ? risk.data : null,
       scopedHistory: !isAdmin,
       recent,
+      callback_at: o.callback_at,
+      callback_due: !!o.callback_at && Date.parse(o.callback_at) <= now.getTime(),
+      can_callback: !!scoreScope && (ACTIONABLE_CONFIRMATION as readonly string[]).includes(o.confirmation_status)
+        && o.delivery_status === "wait_for_deposit" && !shipped(o.zr),
       // shipped orders: agents may not log attempts (DB already blocks writes, 00025)
-      locked: !isAdmin && (o.delivery_status !== "wait_for_deposit" || (Array.isArray(o.zr) ? o.zr.length > 0 : !!o.zr)),
+      locked: !isAdmin && (o.delivery_status !== "wait_for_deposit" || shipped(o.zr)),
     };
   });
 
@@ -132,6 +146,9 @@ export default async function ConfirmationQueuePage({
         duplicate: row.is_duplicate_suspect, attempts: row.confirmation_attempts,
         total: (row.sale_price ?? 0) * row.quantity, age: formatRelativeTime(row.placed_at, locale),
         customerRisk: row.risk,
+        callback: row.callback_at
+          ? `${t(row.callback_due ? "callbacks.overdue" : "callbacks.scheduled")}: ${formatAlgiersDateTime(row.callback_at)}`
+          : undefined,
       });
     }
   }

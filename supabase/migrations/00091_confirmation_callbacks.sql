@@ -12,7 +12,7 @@ create index orders_callback_due_idx on public.orders(workspace_id, callback_at,
 
 create or replace function public.guard_order_fields()
 returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   r text := public.current_app_role();
   allowed text[] := array['updated_at','confirmation_status','confirmation_comment',

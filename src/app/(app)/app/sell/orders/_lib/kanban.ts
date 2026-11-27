@@ -26,6 +26,8 @@ export type KanbanRow = {
   locked?: boolean;
   swappedTo?: SwapTo | null;
   duplicate?: boolean;
+  /** translated callback line (Confirmation only) */
+  callback?: string;
 };
 
 export type KanbanColumn = { key: string; label: string | null; rows: KanbanRow[] };

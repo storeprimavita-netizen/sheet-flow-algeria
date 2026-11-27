@@ -524,7 +524,7 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
         expect((await schedule(confAgent, confirm, "2000-01-01T00:00:00Z")).error?.code).toBe("22023");
         expect((await adminUser.from("orders").insert({ ...fixture, callback_at: future })).error?.code).toBe("42501");
         for (const client of [adminUser, confAgent, admin]) {
-          expect((await client.from("orders").update({ callback_at: future }).eq("id", confirm)).error?.code).not.toBeNull();
+          expect((await client.from("orders").update({ callback_at: future }).eq("id", confirm)).error).not.toBeNull();
         }
 
         const initial = (await order(confirm)).data!;

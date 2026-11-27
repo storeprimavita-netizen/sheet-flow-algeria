@@ -2092,6 +2092,8 @@
       }
     },
     "seed": {
+      "callbacks_due": "Callbacks due",
+      "confirmed_today": "Today confirmed",
       "kanban_by_status": "Kanban by status",
       "new": "New",
       "no_answer": "No answer",
@@ -2346,5 +2348,39 @@
     "breakEven": "Break-even: needs ≥ {pct}% delivery rate to profit.",
     "breakEvenNever": "Never profitable at these inputs.",
     "incomplete": "Incomplete inputs"
+  },
+  "callbacks": {
+    "title": "Callback",
+    "outcomes": "Call outcomes",
+    "dialCount": "Dial count",
+    "none": "No callback scheduled.",
+    "scheduled": "Callback",
+    "overdue": "Callback due",
+    "date": "Date",
+    "time": "Time",
+    "timezone": "Date and time are in Algiers time (Africa/Algiers).",
+    "save": "Save callback",
+    "saving": "Saving…",
+    "clear": "Clear callback",
+    "saved": "Callback saved",
+    "cleared": "Callback cleared",
+    "unavailable": "Callbacks are available only before handoff, while the order is awaiting confirmation.",
+    "loading": "Loading call outcomes",
+    "loadError": "Call outcomes could not be loaded.",
+    "retry": "Retry",
+    "empty": "No call outcome recorded yet.",
+    "latestOnly": "Showing the latest {count}.",
+    "fullHistory": "Full history",
+    "actor": {
+      "system": "System",
+      "unknown": "Unknown user"
+    },
+    "error": {
+      "invalid": "Choose both a date and a time.",
+      "past": "Choose a time in the future.",
+      "locked": "This order no longer accepts callbacks.",
+      "forbidden": "You are not allowed to change this callback.",
+      "failed": "The callback could not be saved. Try again."
+    }
   }
 }
