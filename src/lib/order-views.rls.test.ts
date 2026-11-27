@@ -74,19 +74,20 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
   test("seeds exist for a new workspace, are idempotent, and a deleted seed does not return", async () => {
     const seeds = async (w: string) =>
       (await svc.from("order_views").select("seed_key, scope, owner_id").eq("workspace_id", w).not("seed_key", "is", null)).data!;
-    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "new", "no_answer"]);
+    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["callbacks_due", "confirmed_today", "duplicates", "kanban_by_status", "new", "no_answer"]);
     expect((await seeds(ws)).every((r) => r.owner_id === null)).toBe(true);
     const del = await svc.from("order_views").delete().eq("workspace_id", ws).eq("seed_key", "new");
     expect(del.error).toBeNull();
     // other writes to the workspace do not re-seed
     await svc.from("workspaces").update({ name: tag() }).eq("id", ws);
-    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "no_answer"]);
+    expect((await seeds(ws)).map((r) => r.seed_key).sort()).toEqual(["callbacks_due", "confirmed_today", "duplicates", "kanban_by_status", "no_answer"]);
   });
 
   test("authenticated cannot call order-view seed helpers", async () => {
     for (const c of [admin, agent]) {
       expect((await c.rpc("seed_order_views", { ws })).error).not.toBeNull();
       expect((await c.rpc("seed_confirmation_kanban", { ws })).error).not.toBeNull();
+      expect((await c.rpc("seed_confirmation_callback_views", { ws })).error).not.toBeNull();
       expect((await c.rpc("order_views_seed_for_workspace")).error).not.toBeNull();
     }
   });
@@ -110,7 +111,7 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     expect((await confirmationViews()).data?.some((row) => row.seed_key === "kanban_by_status")).toBe(false);
     expect((await svc.from("order_views").delete().eq("id", clash.data!.id)).error).toBeNull();
 
-    const added = await svc.from("order_views").insert(Array.from({ length: 19 }, (_, index) =>
+    const added = await svc.from("order_views").insert(Array.from({ length: 17 }, (_, index) =>
       view(null, `Board cap ${index}`, { scope: "confirmation", position: index + 2 }),
     )).select("id");
     expect(added.error).toBeNull();
@@ -120,7 +121,9 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     expect((await backfill()).error).toBeNull();
     expect((await confirmationViews()).data).toEqual([
       { seed_key: "no_answer", layout: "table", position: 1 },
-      { seed_key: "kanban_by_status", layout: "kanban", position: 2 },
+      { seed_key: "callbacks_due", layout: "table", position: 3 },
+      { seed_key: "confirmed_today", layout: "table", position: 4 },
+      { seed_key: "kanban_by_status", layout: "kanban", position: 5 },
     ]);
   });
 
@@ -194,7 +197,7 @@ describe.skipIf(!URL)("order_views (live DB)", () => {
     const { data } = await svc.from("workspaces").select("id").not("id", "in", `(${ws},${ws2})`).limit(1);
     if (!data?.length) return; // fresh stack without a pre-existing workspace
     const r = await svc.from("order_views").select("seed_key").eq("workspace_id", data[0].id).not("seed_key", "is", null);
-    expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["duplicates", "kanban_by_status", "new", "no_answer"]);
+    expect((r.data ?? []).map((x) => x.seed_key).sort()).toEqual(["callbacks_due", "confirmed_today", "duplicates", "kanban_by_status", "new", "no_answer"]);
   });
 
   test("seed_order_views called twice as service role stays at 4 rows", async () => {

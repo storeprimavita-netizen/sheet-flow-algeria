@@ -501,6 +501,70 @@ describe.skipIf(!LOCAL_URL)("RLS: agents are financially blind", () => {
       }
     });
 
+    test("CONF-4 schedules callbacks within the queue and clears them on closure", async () => {
+      const fixture = {
+        workspace_id: workspaceId, source: "manual", customer_name: "Local callback fixture",
+        customer_phone: "0550000074", sale_price: 1000, quantity: 1, wilaya_code: 16,
+        confirmation_comment: "Keep this note", confirmation_attempts: 3,
+        assigned_confirmation_agent: (await adminUser.auth.getUser()).data.user!.id,
+      };
+      const created = await admin.from("orders").insert([fixture, fixture]).select("id");
+      expect(created.error).toBeNull();
+      const [confirm, cancel] = created.data!.map(({ id }) => id);
+      const future = new Date(Date.now() + 3600000).toISOString();
+      const schedule = (client: SupabaseClient, id: string, at: string | null = future) =>
+        client.rpc("set_order_callback", { p_order_id: id, p_callback_at: at });
+      const order = (id: string) => admin.from("orders")
+        .select("callback_at, confirmation_status, confirmation_comment, confirmation_attempts, assigned_confirmation_agent")
+        .eq("id", id).single();
+      try {
+        expect((await schedule(sign(LOCAL_URL!, ANON_KEY), confirm)).error).not.toBeNull();
+        expect((await schedule(delivAgent, confirm)).error).not.toBeNull();
+        expect((await confAgent.rpc("set_order_callback", { p_order_id: confirm })).error).not.toBeNull();
+        expect((await schedule(confAgent, confirm, "2000-01-01T00:00:00Z")).error?.code).toBe("22023");
+        expect((await adminUser.from("orders").insert({ ...fixture, callback_at: future })).error?.code).toBe("42501");
+        for (const client of [adminUser, confAgent, admin]) {
+          expect((await client.from("orders").update({ callback_at: future }).eq("id", confirm)).error?.code).not.toBeNull();
+        }
+
+        const initial = (await order(confirm)).data!;
+        expect((await schedule(confAgent, confirm)).error).toBeNull();
+        const scheduled = (await order(confirm)).data!;
+        expect({ ...scheduled, callback_at: null }).toEqual(initial);
+        expect(Date.parse(scheduled.callback_at)).toBe(Date.parse(future));
+        expect((await schedule(adminUser, confirm, null)).error).toBeNull();
+        expect((await order(confirm)).data!.callback_at).toBeNull();
+
+        expect((await schedule(confAgent, confirm)).error).toBeNull();
+        expect((await schedule(confAgent, cancel)).error).toBeNull();
+        const move = (id: string, status: string) => confAgent.rpc("transition_order_status", {
+          p_order_id: id, p_confirmation_status: status, p_delivery_status: null,
+          p_confirmation_comment: null, p_preserve_confirmation_comment: true,
+        });
+        expect((await move(confirm, "no_answer")).error).toBeNull();
+        expect((await move(confirm, "closed_phone")).error).toBeNull();
+        expect(Date.parse((await order(confirm)).data!.callback_at)).toBe(Date.parse(future));
+        expect((await move(confirm, "confirmed")).error).toBeNull();
+        expect((await confAgent.rpc("transition_order_status", {
+          p_order_id: cancel, p_confirmation_status: "cancelled", p_confirmation_comment: "No callback",
+        })).error).toBeNull();
+        expect((await order(confirm)).data).toMatchObject({ callback_at: null, confirmation_comment: initial.confirmation_comment });
+        expect((await order(cancel)).data).toMatchObject({ callback_at: null, confirmation_comment: "No callback" });
+        expect((await schedule(adminUser, confirm)).error?.code).toBe("55000");
+        expect((await admin.from("orders").update({ confirmation_status: "wait_for_confirmation" }).eq("id", confirm)).error).toBeNull();
+        expect((await order(confirm)).data!.callback_at).toBeNull();
+
+        const collision = await Promise.all([
+          schedule(confAgent, confirm),
+          adminUser.rpc("transition_order_status", { p_order_id: confirm, p_confirmation_status: "cancelled" }),
+        ]);
+        expect(collision[1].error).toBeNull();
+        expect((await order(confirm)).data).toMatchObject({ callback_at: null, confirmation_status: "cancelled" });
+      } finally {
+        expect((await admin.from("orders").delete().in("id", [confirm, cancel])).error).toBeNull();
+      }
+    });
+
     test("delivery agent cannot confirm an order via the RPC either (authorization re-checked server-side)", async () => {
       const { data: target } = await admin
         .from("orders")
