@@ -49,7 +49,8 @@ export function SavedViewBar({
     const box = activeSearchBox();
     if (box) {
       // sends the box text now and cancels the waiting write
-      const next = new URLSearchParams(sp.toString());
+      // built on the newest address so a status or layout change still loading is not superseded
+      const next = new URLSearchParams(box.latest() || sp.toString());
       box.mergeInto(next);
       router.replace(`${path}?${next}`, { scroll: false });
     }
@@ -112,9 +113,11 @@ export function SavedViewBar({
           returnFocus={() => saveAsRef.current}
           onSubmit={async (v) => {
             const box = activeSearchBox();
-            box?.mergeInto(new URLSearchParams(sp.toString())); // only cancels the waiting write
             const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: isAdmin && v.shared, layout, config: withBox(box) });
-            if (r.ok) router.replace(withKeep(`view=${r.id}`));
+            if (r.ok) {
+              box?.cancel(); // the text now lives in the new view
+              router.replace(withKeep(`view=${r.id}`));
+            }
             return r;
           }}
         />

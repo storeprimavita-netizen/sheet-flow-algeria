@@ -1127,3 +1127,4 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 ## CONF-1-F
 - Done — Queue search: status then typing keeps both; link click or Reset cancels the waiting write; Save / Save as send the box text; no-match state (table and board) on Confirmation and Delivery; `hold` removed.
 - Verify — gate run; live throttled checks and screenshots NOT done: no browser tool in this session.
+- Review 1 fix — Save builds its address on the box's newest query (a pending status/layout change is kept); Save as cancels the waiting write only on success. Screenshots in docs/design/audit/CONF-1-F/ not taken: no browser tool in this session.

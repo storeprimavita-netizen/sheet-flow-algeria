@@ -9,6 +9,8 @@ export type SearchSync = {
   mergeInto(params: URLSearchParams): void;
   /** the trimmed text in the box */
   text(): string;
+  /** the newest query string this box knows of (last write it sent, else the address) */
+  latest(): string;
   cancel(): void;
 };
 
@@ -100,6 +102,7 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
       sent.push(params.toString());
     },
     text: () => text.trim(),
+    latest: () => sent.at(-1) ?? lastQs ?? "",
     cancel: stop,
   };
 }

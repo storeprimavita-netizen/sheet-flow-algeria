@@ -179,6 +179,17 @@ describe("search param sync", () => {
     expect(Object.fromEntries(new URLSearchParams(writes[0]))).toEqual({ view: "a", status: "x", q: "Amina B" });
   });
 
+  test("latest() is the newest sent query, so a merge on it keeps a pending status", () => {
+    const { s } = setup();
+    const a = new URLSearchParams("view=a");
+    a.set("status", "x");
+    s.mergeInto(a);
+    const b = new URLSearchParams(s.latest());
+    s.mergeInto(b);
+    expect(b.get("status")).toBe("x");
+    expect(s.latest()).toBe(b.toString());
+  });
+
   test("m: link cancel then a slow outside address: nothing is written", () => {
     const { s, writes, texts } = setup();
     s.type("Amina");

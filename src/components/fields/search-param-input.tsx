@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createSearchSync, leavesAddress } from "./search-param-sync";
 
-export type SearchBoxHandle = { mergeInto: (params: URLSearchParams) => void; text: () => string };
+export type SearchBoxHandle = { mergeInto: (params: URLSearchParams) => void; text: () => string; latest: () => string; cancel: () => void };
 
 let active: SearchBoxHandle | null = null;
 /** the queue bar's search box, when mounted (lets the saved-view bar read its text) */
@@ -48,7 +48,7 @@ export function SearchParamInput({
   const [sync] = React.useState(() =>
     createSearchSync({ write: (qs) => writeRef.current(qs), onText: setValue, param, clearedMarker, initialText: value }),
   );
-  const handle = React.useMemo<SearchBoxHandle>(() => ({ mergeInto: sync.mergeInto, text: sync.text }), [sync]);
+  const handle = React.useMemo<SearchBoxHandle>(() => ({ mergeInto: sync.mergeInto, text: sync.text, latest: sync.latest, cancel: sync.cancel }), [sync]);
   React.useImperativeHandle(syncRef, () => handle, [handle]);
   const registers = syncRef != null;
   React.useEffect(() => {
