@@ -134,5 +134,17 @@ it helps most for "where is X" and "what uses Y".
   `STAGE: ok` read as "not settled", and a session cut off after claiming being
   followed by a second claim instead of the brief of the first; the main folder's
   test run also ran the tests of the copies in `.worktrees/` (398 extra files), so its
-  gate failed for reasons that were not its own.
+  gate failed for reasons that were not its own; the three runs shared one browser
+  profile ("profile already in use"), now each session starts the browser tool with
+  `--isolated` (its own temporary profile).
+- STILL OPEN after that night: a headless Codex session cannot call the browser tool
+  at all — the call "requires approval" and nobody is there: `scripts/stage.sh` starts
+  Codex with the approval policy `never` for that session (the project file
+  `.codex/config.toml` keeps `on-request` for chats), so the call is simply refused.
+  Codex then builds and reviews screens without ever seeing them, and UI tasks get
+  parked (STATS-4). The owner decides it: in `.codex/config.toml`, under
+  `[mcp_servers.chrome-devtools]`, the line `default_tools_approval_mode = "approve"`
+  (key and values read from the installed Codex on 2026-11-24, not yet tried in a run)
+  lets Codex use the local browser tool without asking. Until then, UI work belongs
+  to the run led by Claude.
 - NOT yet: a whole real task from pick to ship, on any program. Watch the first task.

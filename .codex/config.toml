@@ -45,7 +45,8 @@ prevent_idle_sleep = true           # keep the Mac awake while a run is working
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@1.13.0"]
+# --isolated: every session gets its own temporary browser profile, so several runs can use the browser at once
+args = ["-y", "chrome-devtools-mcp@1.13.0", "--isolated"]
 startup_timeout_sec = 60
 
 [mcp_servers.shadcn]
