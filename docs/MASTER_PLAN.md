@@ -166,7 +166,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | MONEY-2 | Accounts screen: three cards (ZR / DZD / USDT), quick-add ledger, transfer, mark ZR payout taken | MONEY | L | ui | – | money | MONEY-1, NAV-3 | claimed:w3-claude |
 | MONEY-3 | "Paid from" on expense/ad-spend forms; statement export | MONEY | L | ui | – | money | MONEY-2 | todo |
 | NOTIF-3 | Admin alerts: stock, balance, stuck orders, daily summary | NOTIF | L | – | – | team | NOTIF-2 | todo |
-| P1-5 | Lists: pagination / SQL views for contacts, cash, finance, performance | – | L | ui | – | orders | NAV-3 | blocked:question not settled — see docs/briefs/P1-5.md |
+| P1-5 | Lists: pagination / SQL views for contacts, cash, finance, performance | – | L | ui | – | orders | NAV-3 | todo |
 
 ## Wave 3 — catalog intelligence
 
@@ -205,7 +205,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | AI-1 | MCP route + personal access tokens + read tools + audit | AI | H | sec | M | ai | A-1, P1-1 | todo |
 | AI-2 | OAuth for Claude / ChatGPT (verify the two Supabase unknowns first) | AI | H | sec | – | ai | AI-1 | todo |
 | AI-3 | Owner guide + example questions | AI | L | – | – | ai | AI-1 | todo |
-| P1-6 | Perf: dynamic-import d3 map, next/font, i18n namespace split, exclude webhooks from proxy | – | L | – | – | shell | – | blocked:question not settled — see docs/briefs/P1-6.md |
+| P1-6 | Perf: dynamic-import d3 map, next/font, i18n namespace split, exclude webhooks from proxy | – | L | – | – | shell | – | todo |
 | LATER-1…5 | Return scanning · page A/B test · WhatsApp confirmation · card prepayment · agent commission | IDEAS | – | – | – | – | owner picks | todo |
 | P3 | Google Drive/Calendar OAuth (14h), CSP, last-admin guard, invite orphan cleanup | – | – | – | – | – | – | todo |
 

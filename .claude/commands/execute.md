@@ -4,7 +4,7 @@ model: sonnet
 effort: medium
 context: fork
 ---
-Implement docs/briefs/<id>.md ($ARGUMENTS = id) and nothing else, on branch `v3-<id>` cut from `v3` (create it if missing; if it exists, continue from its last commit). If a `docs/briefs/<id>.review-<n>.md` exists with `VERDICT: FIX`, fix exactly those findings.
+Implement docs/briefs/<id>.md ($ARGUMENTS = id; an `as:<name>` after it is only the claim name of the run that started you — the plan row reads `claimed:<name>`, that is your task) and nothing else, on branch `v3-<id>` cut from `v3` (create it if missing; if it exists, continue from its last commit). If a `docs/briefs/<id>.review-<n>.md` exists with `VERDICT: FIX`, fix exactly those findings.
 
 Rules: AGENTS.md is binding (no hardcoded colors or raw inputs, strings in en+ar, zod at every boundary, RLS). Invoke `karpathy-guidelines` and `mnw-codebase-hygiene` before writing code; `ponytail:ponytail` too if that plugin is installed. Before using a Next.js API you are not sure of, read the guide in `node_modules/next/dist/docs/`. Any HTML/CSS/client-JS work: consult `modern-web-guidance` first (search → retrieve; precedence and browser policy are in AGENTS.md). App UI: invoke `cod-ui-polish`. Storefront UI (anything under the public store routes): invoke `luxe-modesty-store-theme` instead — the two design systems never mix.
 

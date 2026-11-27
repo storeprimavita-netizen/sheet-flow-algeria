@@ -14,17 +14,21 @@
 #   STAGE_DRY=1            do not start anything; print what would run (tests)
 #
 # Prints the session's final reply, then one line `MODEL-USED: <cli>:<model>`.
-# Exit 0 done · 1 every entry failed (`MODEL-USED: none`) · 3 every usable entry is
-# at its usage limit (also prints `LIMIT-UNTIL: <unix time>`).
+# Exit 0 done · 1 every entry failed (`MODEL-USED: none`) · 3 a program is at its usage
+# limit and waiting helps (also prints `LIMIT-UNTIL: <unix time>`) · 130 stopped (Ctrl+C).
 # A reply is not proof: scripts/night.sh checks the files and branches afterwards.
 # A session that runs past its time limit is stopped and the next entry starts the same job.
 #
 # Checked 2026-11-24: the codex and claude flags against the installed programs.
 # The agy lane: one minimal real session answered and ran a command (agy 1.5.16); no whole stage yet.
+# First real run 2026-11-27: agy answered "--mode auto is not available for this account" and two
+# sessions (a build and a brief, about 4 minutes) used up the account's weekly quota (docs/NIGHT.md).
 # agy must run in the project folder or a full clone: inside a `git worktree` its sandbox cannot reach .git.
 set -uo pipefail
-cd "$(dirname "$0")/.."
-conf=.agents/stage-models.conf
+# scripts/night.sh runs a copy of this file taken from v3: STAGE_ROOT is then the project folder, STAGE_CONF the table
+cd "${STAGE_ROOT:-$(dirname "$0")/..}" || exit 1
+conf=${STAGE_CONF:-.agents/stage-models.conf}
+unset STAGE_ROOT STAGE_CONF      # used above only: never handed on to the sessions
 tmp=${TMPDIR:-/tmp}; tmp=${tmp%/}
 logdir="$HOME/Library/Logs"; mkdir -p "$logdir" 2>/dev/null || logdir=$tmp
 app_cli="/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
@@ -54,9 +58,15 @@ limited_until() {   # unix time until which the program is at its usage limit, o
   case "$t" in ''|*[!0-9]*) t=0 ;; esac
   [ "$t" -gt "$(date +%s)" ] && echo "$t" || echo 0
 }
-limit_secs() {      # seconds to wait, from "try again at 5:42 PM" / "resets 9pm"; 1800 when no time is given
+limit_secs() {      # seconds to wait, from "try again at 5:42 PM" / "resets 9pm" / "Resets in 167h56m7s"; 1800 when no time is given
   python3 -I - "$1" <<'PY'
 import datetime, re, sys
+# a length of time ("resets in 167h56m7s", "try again in 3 hours 20 minutes"): weekly quotas are given this way
+d = re.search(r"(?:try again|resets?)\s+in\s+((?:\d+\s*(?:d|h|m|s)[a-z]*\s*)+)", sys.argv[1], re.I)
+if d:
+    unit = {"d": 86400, "h": 3600, "m": 60, "s": 1}
+    secs = sum(int(n) * unit[u.lower()] for n, u in re.findall(r"(\d+)\s*([dhms])", d[1], re.I))
+    print(min(secs + 120, 31 * 86400) if secs > 0 else 1800); sys.exit()
 m = re.search(r"(?:try again at|resets?(?: at)?)\s+(\d{1,2})(?::(\d{2}))?\s*([AP]M)?", sys.argv[1], re.I)
 if not m:
     print(1800); sys.exit()
@@ -110,10 +120,13 @@ case "$stage" in
   *) echo "unknown stage '$stage'" >&2; exit 1 ;;
 esac
 mins=${STAGE_MINUTES:-$mins}
+# the decide command already ends with its own line; a `STAGE: ok` after it used to hide the decision from the runner
+decide_rule='The last line of your reply is exactly the one line the decide command asks for — `DECIDED: D<n> …` or `ASK: Q-<n> …` — with nothing after it (`STAGE: failed — <reason in one line>` only if you could not do either).'
 tail_rule='The last line of your reply is exactly one of: `STAGE: ok` · `STAGE: question — <the question in one line>` (the owner or a decision is needed before this can go on) · `STAGE: failed — <reason in one line>`.'
 
 prompt_for() {   # cli → the prompt that starts this stage there
-  local cli=$1
+  local cli=$1 tail_rule=$tail_rule
+  [ "$stage" = decide ] && tail_rule=$decide_rule
   if [ "$stage" = say ]; then printf '%s\n\n%s' "$args" "$tail_rule"; return; fi
   case "$cli" in
     codex) printf '$loop-%s — use the loop-%s skill. Arguments: %s\n\n%s' "$stage" "$stage" "$args" "$tail_rule" ;;
@@ -123,9 +136,13 @@ prompt_for() {   # cli → the prompt that starts this stage there
   esac
 }
 
-until=0; tried=0
-out=$(mktemp); log_base="$logdir/mnw-stage-$(date +%Y%m%d-%H%M%S)-$stage"
+until=0; tried=0; failed=0
+out=$(mktemp); log_base="$logdir/mnw-stage-$(date +%Y%m%d-%H%M%S)-$$-$stage"
 trap 'rm -f "$out"' EXIT
+# Ctrl+C (or a stop) ends the stage: without this, a program that catches the interrupt and
+# exits by itself looks like a failed session and the SAME job starts on the next program.
+# bash runs this once the program has returned: one that ignores the interrupt delays the stop until it ends.
+trap 'echo "[stage] stopped" >&2; echo "MODEL-USED: none"; exit 130' INT TERM
 while read -r e; do
   [ -n "$e" ] || continue
   cli=$(echo "$e" | cut -d: -f1); model=$(echo "$e" | cut -d: -f2); effort=$(echo "$e" | cut -d: -f3)
@@ -181,13 +198,14 @@ PY
   seen="$(tail -c 4000 "$log" 2>/dev/null) $(tail -c 2000 "$out" 2>/dev/null)"
   if [ "$code" != 0 ] || [ ! -s "$out" ]; then
     if grep -Eqi "usage limit|rate limit|limit reached|quota|resource.?exhausted|try again (in|at)|out of (extra )?usage|\b429\b" <<< "$seen"; then
-      hint=$(grep -Eio '(try again at|resets?( at)?) [^.]{0,40}' <<< "$seen" | tail -1)
+      hint=$(grep -Eio '(try again (at|in)|resets?( at| in)?) [^.]{0,40}' <<< "$seen" | tail -1)
       secs=$(limit_secs "$hint"); case "$secs" in ''|*[!0-9]*) secs=1800 ;; esac
       lu=$(( $(date +%s) + secs )); echo "$lu" > "$(limit_file "$cli")"
       { [ "$until" = 0 ] || [ "$lu" -lt "$until" ]; } && until=$lu
-      echo "[stage] $cli is at its usage limit until $(date -r "$lu" '+%H:%M') — next entry" >&2
+      echo "[stage] $cli is at its usage limit until $(date -r "$lu" '+%a %d %H:%M') — next entry" >&2
       continue
     fi
+    failed=$((failed+1))
     if grep -Eqi "not logged in|login required|401 unauthorized|please log in|not signed in|authentication required" <<< "$seen"; then
       echo "[stage] $cli is not signed in — next entry" >&2; continue
     fi
@@ -196,6 +214,10 @@ PY
   cat "$out"; echo; echo "MODEL-USED: $cli:$model"; exit 0
 done <<< "$(entries "$role")"
 
-# a program is at its limit and will come back: waiting helps, whatever the other entries did
-if [ "$until" != 0 ]; then echo "LIMIT-UNTIL: $until"; echo "MODEL-USED: none"; exit 3; fi
+# A program at its limit will come back: waiting helps when that is within 6 hours, whatever the
+# other entries did. A limit that ends far away (a weekly quota) is a reason to wait only when
+# nothing else could be tried — otherwise the job itself failed on the programs that ran.
+if [ "$until" != 0 ] && { [ "$failed" = 0 ] || [ $((until - $(date +%s))) -le 21600 ]; }; then
+  echo "LIMIT-UNTIL: $until"; echo "MODEL-USED: none"; exit 3
+fi
 echo "MODEL-USED: none"; exit 1

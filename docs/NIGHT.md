@@ -22,15 +22,23 @@ start). Files left uncommitted by a cut-off session are taken over only when
 they sit on the branch of a task this run has claimed; otherwise the run asks
 you to commit or set them aside first. The run continues by itself after a usage limit: it waits
 until the time the program gives and goes on.
+The runner (`scripts/night.sh`, `scripts/stage.sh`, the model table) always runs as
+it is on `v3`, even when the folder sits on an older task branch: a fix pushed to
+`v3` is in force at the next start. A run that is already going keeps the version
+it started with — stop it and start it again to pick a fix up.
 
 ## Codex + Antigravity + Claude at the same time (D105)
 
 ```
 scripts/night-workers.sh setup          once: creates the copies .worktrees/w2 and w3
 scripts/night-workers.sh start          one run per program, all at once
-tmux attach -t mnw                      watch them (Ctrl+B then 0/1/2 switches · Ctrl+B then D leaves them running)
+tmux attach -t mnw                      watch them
 scripts/night-workers.sh status | stop
 ```
+Inside the view: **Ctrl+B, release, then D** leaves it (the runs go on); Ctrl+B
+then 0 / 1 / 2 switches run. **Ctrl+C stops the run you are looking at** — its
+task stays claimed; `scripts/night-workers.sh start` brings back whichever run
+is missing and leaves the others alone.
 | Run | Led by | Takes |
 |---|---|---|
 | main folder | Codex | every task, database changes included (the launch path) |
@@ -51,6 +59,13 @@ them an unattended `agy` has no rule against a raw push or a remote database
 command, so the runner does not use it. This account offers Gemini 4 Hydrogen
 and Claude Opus 4.6 through Antigravity, not Gemini 4 Neon; the table uses what
 is there. Other mixes: `scripts/night-workers.sh start codex claude`.
+**Measured on the first real run (2026-11-27):** two Antigravity sessions (one
+build at `xhigh`, one brief at `high`) ran four minutes, read about 4.7 million
+tokens between them and ended with "Individual quota reached … resets in 167h"
+— the account's quota for the whole week. `agy` also answered "`--mode auto` is
+not available for this account". Until the owner's Google plan gives more, the
+run led by Antigravity is in practice a second run on Codex (its next entry);
+the runner records the reset date and does not try `agy` again before it.
 Only one run at a time changes the local database, so the extra runs skip tasks
 with a migration; most launch-path rows have one and stay with the main run.
 
@@ -111,4 +126,13 @@ it helps most for "where is X" and "what uses Y".
   ship, reviewer that writes nothing, usage-limit wait, end of the plan).
 - One real minimal session through `scripts/stage.sh` on Codex and on Claude.
 - One real minimal session on Antigravity too (it answered and ran a command).
+- First real start, 2026-11-27 (three runs): found and fixed — two copies picking
+  the same free app port, Ctrl+C handing the same job to the next program instead
+  of stopping the run, a weekly quota ("resets in 167h") read as a 30-minute limit,
+  build sessions not told the run's claim name (Codex in the copy led by Antigravity
+  asked to "move the claim" and the task was parked — D107), a decision followed by
+  `STAGE: ok` read as "not settled", and a session cut off after claiming being
+  followed by a second claim instead of the brief of the first; the main folder's
+  test run also ran the tests of the copies in `.worktrees/` (398 extra files), so its
+  gate failed for reasons that were not its own.
 - NOT yet: a whole real task from pick to ship, on any program. Watch the first task.
