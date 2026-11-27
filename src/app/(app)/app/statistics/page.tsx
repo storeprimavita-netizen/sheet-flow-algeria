@@ -37,6 +37,7 @@ export default async function StatisticsPage({
   // An unknown product id (deleted, mistyped) is dropped rather than filtering to nothing.
   if (f.product && !(products ?? []).some((p) => p.id === f.product)) f.product = undefined;
   const productOpts: StatsOpt[] = (products ?? []).map((p) => ({ value: p.id, label: p.name }));
+  const productName = productOpts.find((p) => p.value === f.product)?.label;
   const { workspaceId } = await requireProfile();
   const [categoryOptions, { data: wilayaRows }, { data: team }] = await Promise.all([
     getOptionSet(workspaceId, "product_category"),
@@ -45,6 +46,7 @@ export default async function StatisticsPage({
   ]);
   const categoryOpts: StatsOpt[] = categoryOptions.filter((o) => !o.archived_at).map((o) => ({ value: o.id, label: o.label }));
   const wilayaOpts: StatsOpt[] = (wilayaRows ?? []).map((w) => ({ value: String(w.code), label: `${w.code} — ${w.name}` }));
+  const wilayaName = f.wilaya ? wilayaOpts.find((w) => w.value === f.wilaya)?.label ?? f.wilaya : undefined;
   const agentOpts: StatsOpt[] = (team ?? [])
     .filter((a) => a.role !== "delivery_agent")
     .map((a) => ({ value: a.user_id, label: a.display_name ?? a.user_id.slice(0, 8) }));
@@ -197,21 +199,8 @@ export default async function StatisticsPage({
         </>
       ) : (
         <StatsCharts
-          scope={{ from: range.from, to: range.to, product: f.product, pFilters, filters }}
-          wilayaChart={
-            <WilayaChart
-              rows={rows}
-              filters={filters}
-              title={t("statistics.charts.byWilaya")}
-              labels={{
-                delivery: t("statistics.charts.delivery"),
-                received: t("statistics.charts.received"),
-                ordersCount: (n) => t("statistics.charts.ordersCount", { n }),
-                note: t("statistics.charts.floorNote", { n: 10 }),
-                empty: { title: t("statistics.charts.emptyFloor", { n: 10 }), action: t("statistics.charts.allOrders") },
-              }}
-            />
-          }
+          scope={{ from: range.from, to: range.to, product: f.product, wilayaName, pFilters, filters }}
+          wilayaChart={<WilayaChart rows={rows} filters={filters} productName={productName} />}
           where={
             <>
               {seasonCompare}

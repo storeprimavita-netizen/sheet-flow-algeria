@@ -1,22 +1,25 @@
 import { Suspense } from "react";
+import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
-import { asKpiDaily, kpiPct, type KpiGroupRates } from "@/lib/kpi";
+import { asKpiDaily, kpiPct, type KpiGroupRates, type KpiMetric } from "@/lib/kpi";
 import { worstFirst, collapseSlices } from "@/lib/chart-math";
 import { formatInt, formatPercent } from "@/lib/format";
 import { drillHref, ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { BarChart, type BarItem } from "@/components/charts/bar-chart";
-import { ChartLoadError, ChartSkeleton } from "@/components/charts/chart-panel";
+import { ChartLoadError, ChartPanel, ChartSkeleton } from "@/components/charts/chart-panel";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { LineChart, type LineSeries, type LineX } from "@/components/charts/line-chart";
 import type { StatsRow } from "@/components/stats/wilaya-section";
+import { tableClass } from "@/components/field";
+import { RateBar } from "@/components/stats/rate-bar";
 
 /** Floor for "worst first": a wilaya or product with fewer orders says nothing about its rate. */
 const MIN_ORDERS = 10;
 const TOP = 10;
 
-type Scope = { from?: string; to?: string; product?: string; pFilters: Record<string, string> | undefined; filters: DashboardFilters };
+type Scope = { from?: string; to?: string; product?: string; wilayaName?: string; pFilters: Record<string, string> | undefined; filters: DashboardFilters };
 const rpcArgs = (s: Scope) => ({ p_from: s.from, p_to: s.to, p_product: s.product ? [s.product] : undefined, p_filters: s.pFilters });
 const emptyOrders = (title: string, action: string) => ({ title, action: { label: action, href: "/app/sell/orders" } });
 
@@ -112,18 +115,75 @@ async function OutcomeChart({ scope }: { scope: Scope }) {
   );
 }
 
+type ComparisonRow = { id: string; name: string; delivery: KpiMetric };
+
+export function DeliveryComparison({ title, dimension, rows }: {
+  title: string;
+  dimension: "product" | "wilaya";
+  rows: ComparisonRow[];
+}) {
+  const t = useTranslations();
+  const sorted = [...rows].sort((a, b) =>
+    (a.delivery.value ?? Infinity) - (b.delivery.value ?? Infinity) || a.name.localeCompare(b.name),
+  );
+  return (
+    <ChartPanel
+      title={title}
+      empty={rows.length ? null : emptyOrders(t("statistics.emptyTitle"), t("statistics.charts.allOrders"))}
+      plot={
+        <table className={`${tableClass} [&_td]:px-2 [&_th]:px-2`}>
+          <caption className="sr-only">{title}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="text-start">{t(`fields.${dimension}`)}</th>
+              <th scope="col" className="text-end">{t("statistics.charts.outcome.delivered")}</th>
+              <th scope="col" className="text-end">{t("statistics.charts.shipped")}</th>
+              <th scope="col" className="text-end">{t("statistics.charts.delivery")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(({ id, name, delivery }) => {
+              const pct = kpiPct(delivery);
+              return (
+                <tr key={id}>
+                  <th scope="row" className="break-words text-start font-medium"><bdi>{name}</bdi></th>
+                  <td className="num text-end">{formatInt(delivery.num)}</td>
+                  <td className="num text-end">{formatInt(delivery.den)}</td>
+                  <td className="text-end">
+                    <div className="flex items-center justify-end gap-2">
+                      {pct === null ? null : <RateBar pct={pct} matured={delivery.matured} className="hidden xl:block" />}
+                      <span className="num">{formatPercent(pct)}</span>
+                    </div>
+                    {delivery.matured ? null : (
+                      <span className="block text-xs text-muted-foreground">{t("statistics.notEnoughData")}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      }
+    />
+  );
+}
+
 async function ProductChart({ scope }: { scope: Scope }) {
   const t = await getTranslations("statistics.charts");
+  const title = scope.wilayaName ? t("productsInWilaya", { name: scope.wilayaName }) : t("byProduct");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("kpi_by_product", rpcArgs(scope));
   if (error) {
     console.error("statistics/kpi_by_product", error.message);
-    return <ChartLoadError title={t("byProduct")} />;
+    return <ChartLoadError title={title} />;
   }
   const rows = (data ?? []).flatMap((r) => {
     const rates = r.rates as unknown as KpiGroupRates | null;
     return rates?.counts && r.product_id ? [{ id: r.product_id, name: r.product_name ?? "—", rates }] : [];
   });
+  if (scope.wilayaName) {
+    return <DeliveryComparison title={title} dimension="product" rows={rows.map((r) => ({ ...r, delivery: r.rates.delivery }))} />;
+  }
   const items: BarItem[] = worstFirst(rows, (r) => r.rates.counts.received, (r) => kpiPct(r.rates.delivery), MIN_ORDERS, TOP).map((r) => ({
     key: r.id,
     label: r.name,
@@ -135,7 +195,7 @@ async function ProductChart({ scope }: { scope: Scope }) {
   }));
   return (
     <BarChart
-      title={t("byProduct")}
+      title={title}
       items={items}
       orientation="h"
       valueHead={t("delivery")}
@@ -147,7 +207,17 @@ async function ProductChart({ scope }: { scope: Scope }) {
 }
 
 /** Delivery rate per wilaya, worst first, from the rows the page already loaded (kpi_by_wilaya). */
-export function WilayaChart({ rows, filters, title, labels }: { rows: StatsRow[]; filters: DashboardFilters; title: string; labels: { delivery: string; received: string; ordersCount: (n: string) => string; note: string; empty: { title: string; action: string } } }) {
+export function WilayaChart({ rows, filters, productName }: { rows: StatsRow[]; filters: DashboardFilters; productName?: string }) {
+  const t = useTranslations("statistics.charts");
+  if (productName) {
+    return (
+      <DeliveryComparison
+        title={t("wilayasForProduct", { name: productName })}
+        dimension="wilaya"
+        rows={rows.flatMap((r) => r.code === null ? [] : [{ id: String(r.code), name: r.name ?? String(r.code), delivery: r.group.rates.delivery }])}
+      />
+    );
+  }
   const items: BarItem[] = worstFirst(
     rows.filter((r) => r.code !== null),
     (r) => r.group.rates.counts.received,
@@ -159,19 +229,19 @@ export function WilayaChart({ rows, filters, title, labels }: { rows: StatsRow[]
     label: r.name ?? String(r.code),
     value: kpiPct(r.group.rates.delivery) ?? 0,
     display: formatPercent(kpiPct(r.group.rates.delivery)),
-    sub: labels.ordersCount(formatInt(r.group.rates.counts.received)),
+    sub: t("ordersCount", { n: formatInt(r.group.rates.counts.received) }),
     href: drillHref(filters, "received", { wilaya: r.code as number }),
     color: r.group.rates.delivery.matured ? undefined : "var(--neutral)",
   }));
   return (
     <BarChart
-      title={title}
+      title={t("byWilaya")}
       items={items}
       orientation="h"
-      valueHead={labels.delivery}
-      subHead={labels.received}
-      note={labels.note}
-      empty={items.length ? null : emptyOrders(labels.empty.title, labels.empty.action)}
+      valueHead={t("delivery")}
+      subHead={t("received")}
+      note={t("floorNote", { n: MIN_ORDERS })}
+      empty={items.length ? null : emptyOrders(t("emptyFloor", { n: MIN_ORDERS }), t("allOrders"))}
     />
   );
 }

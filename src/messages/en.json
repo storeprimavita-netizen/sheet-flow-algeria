@@ -2179,6 +2179,9 @@
       "other": "Other",
       "byWilaya": "Delivery rate by wilaya, worst first",
       "byProduct": "Delivery rate by product, worst first",
+      "wilayasForProduct": "Delivery by wilaya for {name}",
+      "productsInWilaya": "Delivery by product in {name}",
+      "shipped": "Shipped",
       "byWeekday": "Orders by weekday",
       "byHour": "Orders by hour of day",
       "weekday": {
