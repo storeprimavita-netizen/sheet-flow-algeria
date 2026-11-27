@@ -13,6 +13,7 @@ import { Chip } from "@/components/ui/chip";
 import { SelectOptionRow } from "@/components/fields/select-option-row";
 import { EXPENSE_CATEGORIES, AD_KINDS } from "@/lib/enums";
 import { EXPENSE_CATEGORY_TOKEN, type StatusToken } from "@/lib/statuses";
+import { parseFinanceFilters } from "./finance-filters";
 
 type Opt = { value: string; label: string; token?: StatusToken };
 
@@ -38,7 +39,9 @@ export function FinanceFilterBar({
   const pathname = usePathname();
   const sp = useSearchParams();
 
-  const get = (k: string) => sp.get(k) ?? "";
+  // Same parsing as the page: a malformed value shows no chip and never reaches the date picker.
+  const filters = parseFinanceFilters(Object.fromEntries(sp));
+  const get = (k: keyof typeof filters) => filters[k] ?? "";
 
   function setDates(from: string, to: string) {
     const next = new URLSearchParams(sp.toString());
@@ -46,6 +49,7 @@ export function FinanceFilterBar({
       if (v) next.set(k, v);
       else next.delete(k);
     }
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -53,6 +57,7 @@ export function FinanceFilterBar({
     const next = new URLSearchParams(sp.toString());
     if (!v || v === ALL) next.delete(k);
     else next.set(k, v);
+    next.delete("page");
     router.push(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
@@ -63,10 +68,10 @@ export function FinanceFilterBar({
   }));
   const kindOpts: Opt[] = AD_KINDS.map((k) => ({ value: k, label: t(`status.ad_kind.${k}`) }));
 
-  const selects: { key: string; label: string; opts: Opt[] }[] = [
-    ...(showProduct ? [{ key: "product", label: t("fields.product"), opts: products }] : []),
-    ...(showCategory ? [{ key: "category", label: t("fields.category"), opts: categoryOpts }] : []),
-    ...(showKind ? [{ key: "kind", label: t("fields.kind"), opts: kindOpts }] : []),
+  const selects: { key: "product" | "category" | "kind"; label: string; opts: Opt[] }[] = [
+    ...(showProduct ? [{ key: "product" as const, label: t("fields.product"), opts: products }] : []),
+    ...(showCategory ? [{ key: "category" as const, label: t("fields.category"), opts: categoryOpts }] : []),
+    ...(showKind ? [{ key: "kind" as const, label: t("fields.kind"), opts: kindOpts }] : []),
   ];
 
   const chips: { key: string; label: string }[] = [];

@@ -48,6 +48,8 @@ export function ExpenseTable({
   subcategories,
   accounts,
   rates,
+  total,
+  categoryTotals,
 }: {
   expenses: ExpenseRow[];
   productId?: string;
@@ -57,6 +59,10 @@ export function ExpenseTable({
   subcategories: OptionRow[];
   accounts?: { id: string; name: string }[];
   rates: { USD: number; EUR: number };
+  /** Set when `expenses` is one page of a longer list. */
+  total?: number;
+  /** Sums over the whole filtered set; computed from `expenses` when omitted. */
+  categoryTotals?: Record<string, number>;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -68,10 +74,11 @@ export function ExpenseTable({
   const subcategoryById = React.useMemo(() => new Map(subcategories.map((s) => [s.id, s])), [subcategories]);
 
   const totalsByCategory = React.useMemo(() => {
+    if (categoryTotals) return new Map(Object.entries(categoryTotals));
     const m = new Map<string, number>();
     for (const e of expenses) m.set(e.category, (m.get(e.category) ?? 0) + (e.amount_dzd ?? 0));
     return m;
-  }, [expenses]);
+  }, [expenses, categoryTotals]);
 
   async function del(id: string) {
     if (!window.confirm(t("common.deleteConfirm"))) return;
@@ -139,6 +146,7 @@ export function ExpenseTable({
         tableId="expenses"
         columns={columns}
         rows={expenses}
+        total={total}
         rowKey={(e) => e.id}
         defaultDensity="compact"
         empty={{ title: t("expenses.none"), description: t("expenses.emptyHint") }}

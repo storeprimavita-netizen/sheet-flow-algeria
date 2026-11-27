@@ -34,12 +34,15 @@ export function AdSpendTable({
   products,
   rates,
   productName,
+  total,
 }: {
   rows: AdSpendRow[];
   productId?: string;
   products?: { id: string; name: string; image?: string | null; status?: string | null }[];
   rates: { USD: number; EUR: number };
   productName: Map<string, string>;
+  /** Set when `rows` is one page of a longer list. */
+  total?: number;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -89,6 +92,7 @@ export function AdSpendTable({
         tableId="ad-spend"
         columns={columns}
         rows={rows}
+        total={total}
         rowKey={(a) => a.id}
         defaultDensity="compact"
         empty={{ title: t("finance.noAdSpendInRange") }}
