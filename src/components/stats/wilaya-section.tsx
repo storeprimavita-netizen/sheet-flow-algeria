@@ -1,15 +1,23 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { kpiPct } from "@/lib/kpi";
 import type { DashboardFilters } from "@/lib/query-string";
-import { AlgeriaMap, type WilayaMapDatum } from "@/components/dashboard/algeria-map";
+import type { WilayaMapDatum } from "@/components/dashboard/algeria-map";
 import { WilayaTable, type StatsRow } from "@/components/stats/wilaya-table";
 
 export type { StatsRow };
+
+// d3 geometry loads in its own chunk so the table does not wait for it. The
+// placeholder is the map's footprint (its viewBox is square).
+const AlgeriaMap = dynamic(() => import("@/components/dashboard/algeria-map").then((m) => m.AlgeriaMap), {
+  ssr: false,
+  loading: () => <div aria-hidden className="aspect-square w-full max-w-[360px] animate-pulse rounded-md bg-border" />,
+});
 
 /**
  * Per-wilaya table (source of truth for numbers) beside the Algeria choropleth
