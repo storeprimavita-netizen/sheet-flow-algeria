@@ -1110,3 +1110,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
 - Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
 - Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
+
+### STATS-4 execution
+
+- Statistics names the selected product or wilaya in the corresponding delivery comparison. The SQL rate, maturity and delivered and shipped counts remain visible for small cohorts. Both count links keep the resolved dates and all active filters.
+- Static self-check covered semantic row and column headers, bidirectional labels, linked nonzero counts, no-data and zero-rate text, and visible maturity. The responsive-table guide calls for a “Semantic Foundation” with native table elements. Compact cell padding and wrapping names keep the four columns usable on narrow screens pending browser verification.
+- The app started on port 3001. Chrome DevTools required unavailable approval, and the computer-use browser host was unavailable. Screenshots and interactive checks for EN/AR, light/dark, 390 px/desktop, keyboard navigation, and retry remain for independent UI review.
+- The fast gate passed in unit-only mode. The live comparison and drill assertions await a run with Supabase enabled for tests. The My Day suite now initializes its client inside setup so skipping the suite does not fail test collection.
