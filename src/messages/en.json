@@ -1509,6 +1509,8 @@
     "sizeName": "Size",
     "addSize": "Size",
     "addColor": "Color",
+    "sizeOptionExists": "A size option already exists.",
+    "colorOptionExists": "A color option already exists.",
     "maxOptions": "A product can have at most 3 options.",
     "fillSkus": "Fill empty SKUs",
     "skuHint": "Your own stock code for this exact piece: optional, customers never see it. Auto-fill uses product code + value initials, for example ABA-M-RED. Only empty SKUs are filled; what you typed is never overwritten.",

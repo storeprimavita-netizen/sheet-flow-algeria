@@ -74,6 +74,7 @@ export function VariantsEditor({
 
   // a saved option cannot be removed while saved sizes exist (stale); new options always can
   const hasSaved = variants.some((v) => v.saved);
+  const hasSize = options.some(isSizeOption);
   const hasColor = options.some((o) => o.kind === "color");
   const lockedOption = (o: VariantOption) => hasSaved && savedOptionIds.has(o.id);
   const optName = (o: VariantOption, i: number) => o.name.trim() || t("optionFallback", { n: i + 1 });
@@ -294,14 +295,20 @@ export function VariantsEditor({
           <Plus />
           {t("addOption")}
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || options.some(isSizeOption)} data-fk="open-size" onClick={() => startAdd("text", t("sizeName"), "open-size")}>
-          <Plus />
-          {t("addSize")}
-        </Button>
-        <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasColor} data-fk="open-color" onClick={() => startAdd("color", t("colorName"), "open-color")}>
-          <Plus />
-          {t("addColor")}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasSize} aria-describedby={options.length < 3 && !unsaved && hasSize ? "size-option-hint" : undefined} data-fk="open-size" onClick={() => startAdd("text", t("sizeName"), "open-size")}>
+            <Plus />
+            {t("addSize")}
+          </Button>
+          {options.length < 3 && !unsaved && hasSize ? <p id="size-option-hint" className="text-xs text-muted-foreground">{t("sizeOptionExists")}</p> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={options.length >= 3 || unsaved || hasColor} aria-describedby={options.length < 3 && !unsaved && hasColor ? "color-option-hint" : undefined} data-fk="open-color" onClick={() => startAdd("color", t("colorName"), "open-color")}>
+            <Plus />
+            {t("addColor")}
+          </Button>
+          {options.length < 3 && !unsaved && hasColor ? <p id="color-option-hint" className="text-xs text-muted-foreground">{t("colorOptionExists")}</p> : null}
+        </div>
         {options.length >= 3 ? <p className="text-xs text-muted-foreground">{t("maxOptions")}</p> : unsaved ? <p className="text-xs text-muted-foreground">{t("addOptionUnsaved")}</p> : null}
       </div>
 
