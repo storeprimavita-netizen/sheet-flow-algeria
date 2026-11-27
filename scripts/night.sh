@@ -9,9 +9,11 @@
 #   scripts/night.sh                     main agent: any task, database tasks included
 #   scripts/night.sh w2 nodb             extra agent in its own copy: only tasks without a migration
 #   scripts/night.sh codex "" 3          stop after 3 tasks
-#   Ctrl+C                               stop (pushed steps are kept)
+#   Ctrl+C                               stop this run (pushed steps are kept; the task stays claimed and
+#                                        the next run with the same name continues it)
 #
-#   STAGE_PREFER=agy|codex|claude        this agent tries that program first for every job
+#   STAGE_PREFER=agy|codex|claude        the program that leads this run: first for briefs, builds and
+#                                        ships, last for reviews (scripts/stage.sh)
 #   USE_CLAUDE=0  (or an empty file .no-claude)   never use Claude Code
 #
 # Usage limits: when every program for a job is at its limit, the run waits until
@@ -21,12 +23,36 @@
 # Written 2026-11-24. The coordinator logic is tested with stand-in stages
 # (scripts/night.sh has no model of its own); no whole task has been run with it yet.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+tmp=${TMPDIR:-/tmp}; tmp=${tmp%/}
+self_dir=$(cd "$(dirname "$0")" && pwd)
+cd "${NIGHT_ROOT:-${NIGHT_HOME:-$self_dir/..}}" || exit 1
+# The runner always runs as it is on v3, whatever branch this folder is on: a folder left on a
+# task branch cut before a fix would otherwise bring the old runner back at every start.
+# night.sh, stage.sh and the model table are copied out of origin/v3 and the run continues from
+# that copy (started with NIGHT_ROOT = this folder). The gate, step.sh and the skills stay those of the branch.
+# NIGHT_AS_IS=1 runs this file as it is (to try a change before it is on v3).
+from_copy=""; runner_dir=""; root=$(pwd -P)
+if [ -n "${NIGHT_ROOT:-}" ]; then from_copy=1; case "$self_dir" in */mnw-runner-??????) runner_dir=$self_dir ;; esac; fi
+unset NIGHT_ROOT NIGHT_HOME      # used above only: never handed on to the sessions, the gate or a trial copy of this file
+if [ -z "$from_copy" ] && [ -z "${STAGE_CMD:-}" ] && [ "${NIGHT_AS_IS:-}" != 1 ]; then
+  # one copy per run (removed when the run ends): a second start never touches the files of a run that is going
+  rd=$(mktemp -d "$tmp/mnw-runner-XXXXXX" 2>/dev/null) || rd=""
+  git fetch -q origin v3 2>/dev/null || true
+  if [ -n "$rd" ] && git show origin/v3:scripts/night.sh > "$rd/night.sh" 2>/dev/null && git show origin/v3:scripts/stage.sh > "$rd/stage.sh" 2>/dev/null \
+     && git show origin/v3:.agents/stage-models.conf > "$rd/stage-models.conf" 2>/dev/null \
+     && grep -q 'NIGHT_ROOT' "$rd/night.sh" && grep -q 'STAGE_ROOT' "$rd/stage.sh"; then
+    chmod +x "$rd/stage.sh"; NIGHT_ROOT=$root exec bash "$rd/night.sh" ${1+"$@"}
+  fi
+  [ -n "$rd" ] && rm -rf "$rd"
+fi
+[ -n "$runner_dir" ] && trap 'rm -rf "$runner_dir"' EXIT
+if [ -n "$from_copy" ]; then stage_default="$self_dir/stage.sh"; else stage_default=scripts/stage.sh; fi
+# the copied stage.sh is told where the project and the table are — for that one call only
+stage_run() { if [ -n "$from_copy" ]; then STAGE_ROOT=$root STAGE_CONF="$self_dir/stage-models.conf" "$STAGE" "$@"; else "$STAGE" "$@"; fi; }
 name=${1:-codex}; filter=${2:-}; max=${3:-0}
 case "$filter" in ""|nodb) ;; *) echo "usage: scripts/night.sh [name] [nodb] [max tasks]"; exit 1 ;; esac
 case "$max" in ''|*[!0-9]*) echo "usage: scripts/night.sh [name] [nodb] [max tasks]"; exit 1 ;; esac
-STAGE=${STAGE_CMD:-scripts/stage.sh}; GATE=${GATE_CMD:-scripts/gate.sh}
-tmp=${TMPDIR:-/tmp}; tmp=${tmp%/}
+STAGE=${STAGE_CMD:-$stage_default}; GATE=${GATE_CMD:-scripts/gate.sh}
 say() { echo "$(date '+%H:%M') ── [$name] $*"; }
 note() { scripts/notify.sh "$1" >/dev/null 2>&1 || true; }
 
@@ -42,7 +68,7 @@ echo $$ > "$lock/pid"
 command -v caffeinate >/dev/null 2>&1 && caffeinate -ims -w $$ &
 [ "$filter" = "nodb" ] && export GATE_SKIP_LIVE=1
 reply=$(mktemp); shipped=""; parked=""; used=""; started=$(date +%s)
-trap 'rm -rf "$reply" "$lock"; scripts/dev-down.sh >/dev/null 2>&1' EXIT
+trap 'rm -rf "$reply" "$lock" ${runner_dir:+"$runner_dir"}; scripts/dev-down.sh >/dev/null 2>&1' EXIT
 trap 'echo; say "stopped by you — pushed steps are kept"; exit 130' INT TERM
 
 # ---- reading the state from git -------------------------------------------------
@@ -51,6 +77,7 @@ row() { plan | grep -m1 -E "^\| $1 \|"; }
 status_of() { row "$1" | awk -F'|' '{s=$(NF-1); gsub(/^ +| +$/,"",s); print s}'; }
 has_migration() { [ "$(row "$1" | awk -F'|' '{m=$(NF-4); gsub(/ /,"",m); print m}')" = "M" ]; }
 is_followup() { local t; t=$(row "$1" | awk -F'|' '{print $3}'); grep -qiE '^ *(\*\*)?follow-up' <<< "$t"; }
+claimed_count() { plan | awk -F'|' -v n="claimed:$name" 'NF>9 {s=$(NF-1); gsub(/^ +| +$/,"",s); if (s==n) c++} END {print c+0}'; }
 claimed() { plan | awk -F'|' -v n="claimed:$name" 'NF>9 {s=$(NF-1); gsub(/^ +| +$/,"",s); if (s==n) {id=$2; gsub(/ /,"",id); print id; exit}}'; }
 branch_exists() { git rev-parse -q --verify "refs/heads/v3-$1" >/dev/null; }
 refs_of() { if branch_exists "$1"; then echo "v3-$1 v3"; else echo v3; fi; }
@@ -94,12 +121,15 @@ run_stage() {   # role stage args → the reply in $reply; waits and retries whe
   local role=$1 stage=$2 args=$3 code t0 model wait_s
   while :; do
     t0=$(date +%s); : > "$reply"
-    "$STAGE" "$role" "$stage" "$args" > "$reply" 2>>"$tmp/mnw-night-$name.err"; code=$?
+    stage_run "$role" "$stage" "$args" > "$reply" 2>>"$tmp/mnw-night-$name.err"; code=$?
     model=$(grep '^MODEL-USED: ' "$reply" | tail -1 | cut -d' ' -f2)
+    # the stage was stopped (Ctrl+C in this window, or a stop sent to it): the run stops too, it does not go on to the next stage
+    if [ "$code" = 130 ]; then echo; say "stopped by you — pushed steps are kept"; exit 130; fi
     if [ "$code" = 3 ]; then
       wait_s=$(( $(grep '^LIMIT-UNTIL: ' "$reply" | tail -1 | cut -d' ' -f2) - $(date +%s) + 60 )); [ "$wait_s" -gt 60 ] 2>/dev/null || wait_s=1800
+      if [ "$wait_s" -gt 43200 ]; then why="every program for '$role' is at its usage limit until $(date -v+"${wait_s}"S '+%a %d %b %H:%M') — start again then"; finish; exit 0; fi
       waited=$(( ${waited:-0} + wait_s ))
-      if [ "$waited" -gt 43200 ]; then say "NIGHT RUN ended · every program has been at its usage limit for 12 hours — start again when the limit is back"; note "[$name] night run ended — usage limit for 12 hours"; exit 0; fi
+      if [ "$waited" -gt 43200 ]; then why="every program has been at its usage limit for 12 hours — start again when the limit is back"; finish; exit 0; fi
       say "usage limit on every program for '$role' — continuing by itself at $(date -v+"${wait_s}"S '+%H:%M')"
       note "[$name] usage limit — the run continues at $(date -v+"${wait_s}"S '+%H:%M')"
       sleep "${NIGHT_SLEEP_CAP:-$wait_s}"; continue
@@ -128,7 +158,7 @@ PY
 }
 decide() {      # id question → 0 decided (go on), 1 parked
   local id=$1 q=$2 line
-  run_stage decide decide "$id $q"; line=$(stage_line)
+  run_stage decide decide "$id $q"; line=$(grep -E '^(DECIDED|ASK):' "$reply" | tail -1)   # not stage_line: `STAGE: ok` may follow it
   to_v3 || true
   case "$line" in
     DECIDED:*) say "   decision: ${line#DECIDED: }"; return 0 ;;
@@ -187,16 +217,16 @@ do_task() {     # id [question] → 0 shipped, 1 parked or lost
     if ! built "$id" || cut_off "$id" || { [ "${n:-0}" = 1 ] && [ "$v" != PASS ] && [ "$(code_time "$id")" -le "$(time_of "$id" "docs/briefs/$id.review-$n.md")" ]; }; then
       if [ "$v" = ESCALATE ] && [ "$n" != 0 ] && [ "$decided" != "$n" ]; then decided=$n; decide "$id" "docs/briefs/$id.review-$n.md" || return 1; continue; fi
       if ! built "$id" && has_migration "$id"; then say "   local database reset (the task has a migration)"; scripts/db-reset.sh >/dev/null 2>&1 || say "   db-reset failed — the build will report it"; fi
-      if cut_off "$id"; then run_stage "$brole" execute "$id — a previous session was cut off before finishing: continue the brief from the last commit of the branch, check every step of the brief is done, then run the full gate"
+      if cut_off "$id"; then run_stage "$brole" execute "$id as:$name — a previous session was cut off before finishing: continue the brief from the last commit of the branch, check every step of the brief is done, then run the full gate"
         if cut_off "$id"; then park "$id" "cut-off work was not continued — look at v3-$id"; return 1; fi
-      else run_stage "$brole" execute "$id"; fi
+      else run_stage "$brole" execute "$id as:$name"; fi
       line=$(stage_line)
       case "$line" in "STAGE: question"*) decide "$id" "${line#STAGE: question}" || return 1; continue ;; esac
       built "$id" || { gatefail=$((gatefail+1)); [ "$gatefail" -ge 2 ] && { park "$id" "build produced no code twice"; return 1; }; continue; }
       if ! gate_ok "$id"; then
         gatefail=$((gatefail+1)); [ "$gatefail" -ge 2 ] && { park "$id" "gate failed twice — built on v3-$id"; return 1; }
         [ "$brole" = build-small ] && brole=build      # a cheap model that fails the gate hands over to the next one
-        run_stage "$brole" execute "$id — the full gate is not OK: fix what scripts/gate.sh reports"; gate_ok "$id" || { park "$id" "gate failed twice — built on v3-$id"; return 1; }
+        run_stage "$brole" execute "$id as:$name — the full gate is not OK: fix what scripts/gate.sh reports"; gate_ok "$id" || { park "$id" "gate failed twice — built on v3-$id"; return 1; }
       fi
       continue
     fi
@@ -221,9 +251,22 @@ do_task() {     # id [question] → 0 shipped, 1 parked or lost
   park "$id" "too many stages without finishing — look at v3-$id"; return 1
 }
 
+finish() {      # the end of every run: back on v3, the report in PROGRESS.md, the last lines
+  to_v3 || true
+  if [ -n "$shipped$parked" ]; then
+    { echo; echo "### Run report (night.sh, $name, $(date +%F))"
+      echo "- Shipped — ${shipped:-none}"; echo "- Parked — ${parked:-none}"
+      echo "- Sessions (stage:program:model) — $(echo "$used" | tr ' ' '\n' | grep -v '^$' | sort | uniq -c | awk '{printf "%s×%s ", $1, $2}')"
+      echo "- Time — $(( ($(date +%s) - started) / 60 )) min. Open questions: docs/QUESTIONS.md."; } >> PROGRESS.md
+    scripts/step.sh "night run report ($name)" >/dev/null || say "could not push the run report"
+  fi
+  say "NIGHT RUN ended · $why"; say "shipped: ${shipped:-none}"; say "parked: ${parked:-none}"
+  note "[$name] night run ended — shipped: ${shipped:-none} · parked: ${parked:-none}"
+}
+
 # ---- the run --------------------------------------------------------------------
 say "night run · claim name $name · ${filter:-all tasks}${STAGE_PREFER:+ · prefers $STAGE_PREFER}"
-"$STAGE" models 2>/dev/null | sed 's/^/        /'
+stage_run models 2>/dev/null | sed 's/^/        /'
 [ -n "${STAGE_CMD:-}" ] || scripts/dev-up.sh | sed 's/^/        /'
 note "[$name] night run started"
 # Files not committed when the run starts: only the cut-off work of this agent's own claimed task is taken over.
@@ -239,9 +282,11 @@ while :; do
   id=$(claimed)
   ask=""
   if [ -z "$id" ]; then
-    run_stage brief analyse "$filter as:$name — first apply the 'Start of run' rule of .claude/commands/auto.md for questions the owner has answered in docs/QUESTIONS.md; then pick by its 'Pick' rule (feature rows before follow-up rows). If no task is eligible, change nothing and end with the line 'STAGE: nothing-eligible'."
+    run_stage brief analyse "$filter as:$name — first apply the 'Start of run' rule of .claude/commands/auto.md for questions the owner has answered in docs/QUESTIONS.md; then, if a row already reads claimed:$name (a session before you was cut off after claiming), that row is your task — brief it and claim nothing else; otherwise pick by its 'Pick' rule (feature rows before follow-up rows). If no task is eligible, change nothing and end with the line 'STAGE: nothing-eligible'."
     code=$?; ask=$(stage_line); case "$ask" in "STAGE: question"*) ask=${ask#STAGE: question} ;; *) ask="" ;; esac
     to_v3 || true; id=$(claimed)
+    # two rows claimed at once (a cut-off session claimed one, the next claimed another): the question may belong to either
+    if [ -n "$ask" ] && [ "$(claimed_count)" -gt 1 ]; then say "   more than one row is claimed by $name — the picking session's question is not carried to $id:$ask"; ask=""; fi
     if [ -z "$id" ]; then
       grep -q '^STAGE: nothing-eligible' "$reply" && break
       idle=$((idle+1)); [ "$idle" -ge 3 ] && { why="three sessions in a row picked nothing — see $HOME/Library/Logs"; break; }
@@ -254,13 +299,4 @@ while :; do
   command -v graphify >/dev/null 2>&1 && [ -f graphify-out/graph.json ] && to_v3 && GRAPHIFY_BACKEND=none graphify update . >/dev/null 2>&1   # keep the code map current, no model involved
 done
 
-to_v3 || true
-if [ -n "$shipped$parked" ]; then
-  { echo; echo "### Run report (night.sh, $name, $(date +%F))"
-    echo "- Shipped — ${shipped:-none}"; echo "- Parked — ${parked:-none}"
-    echo "- Sessions (stage:program:model) — $(echo "$used" | tr ' ' '\n' | grep -v '^$' | sort | uniq -c | awk '{printf "%s×%s ", $1, $2}')"
-    echo "- Time — $(( ($(date +%s) - started) / 60 )) min. Open questions: docs/QUESTIONS.md."; } >> PROGRESS.md
-  scripts/step.sh "night run report ($name)" >/dev/null || say "could not push the run report"
-fi
-say "NIGHT RUN ended · $why"; say "shipped: ${shipped:-none}"; say "parked: ${parked:-none}"
-note "[$name] night run ended — shipped: ${shipped:-none} · parked: ${parked:-none}"
+finish

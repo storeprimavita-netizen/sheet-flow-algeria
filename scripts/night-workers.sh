@@ -23,7 +23,7 @@
 # Two runs led by the SAME program share one limit: they finish sooner, they do not do more.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd); cd "$root"
-cmd=${1:-status}; session=mnw
+cmd=${1:-status}; session=mnw; tmpd=${TMPDIR:-/tmp}; tmpd=${tmpd%/}
 copies() { ls -d "$root"/.worktrees/w[0-9]* 2>/dev/null || true; }
 
 case "$cmd" in
@@ -49,28 +49,44 @@ case "$cmd" in
     echo "next:   scripts/night-workers.sh start" ;;
   start)
     command -v tmux >/dev/null 2>&1 || { echo "tmux is not installed (brew install tmux) — or open one Terminal window per copy and run scripts/night.sh there"; exit 1; }
-    tmux has-session -t "$session" 2>/dev/null && { echo "already running — look: tmux attach -t $session   stop: scripts/night-workers.sh stop"; exit 1; }
     shift; leads=${*:-codex agy claude}
+    for lead in $leads; do case "$lead" in codex|agy|claude) ;; *) echo "unknown program '$lead' (codex | agy | claude)"; exit 1 ;; esac; done
+    # runs that are already going are left alone; `start` only adds the ones that are missing (a run that was stopped)
+    exists=0; tmux has-session -t "$session" 2>/dev/null && exists=1
+    running() { [ "$exists" = 1 ] && tmux list-windows -t "$session" -F '#{window_name}' 2>/dev/null | grep -q "^$1-"; }
     have() { case "$1" in codex) command -v codex >/dev/null 2>&1 || [ -x "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" ] ;; claude) command -v claude >/dev/null 2>&1 ;; agy) command -v agy >/dev/null 2>&1 && grep -q '"deny"' "$HOME/.gemini/antigravity-cli/settings.json" 2>/dev/null ;; *) return 1 ;; esac; }
     k=1; started=0
     for lead in $leads; do
-      case "$lead" in codex|agy|claude) ;; *) echo "unknown program '$lead' (codex | agy | claude)"; exit 1 ;; esac
-      if [ "$k" = 1 ]; then d=$root; w=main; run="STAGE_PREFER=$lead scripts/night.sh $lead"; what="all tasks, database tasks included"
-      else d="$root/.worktrees/w$k"; w="w$k"; run="STAGE_PREFER=$lead scripts/night.sh w$k-$lead nodb"; what="tasks without a database change"; fi
+      if [ "$k" = 1 ]; then d=$root; w=main; run="$lead"; what="all tasks, database tasks included"
+      else d="$root/.worktrees/w$k"; w="w$k"; run="w$k-$lead nodb"; what="tasks without a database change"; fi
+      if running "$w"; then echo "running $w   left as it is"; k=$((k+1)); continue; fi
       if ! have "$lead"; then
         if [ "$lead" = agy ] && command -v agy >/dev/null 2>&1; then echo "skipped $w   agy has no allow/deny rules yet — run once: scripts/agy-setup.sh --write-permissions"
         else echo "skipped $w   $lead is not installed or not signed in — this run is not started (docs/NIGHT.md)"; fi
         k=$((k+1)); continue; fi
       if [ "$k" != 1 ] && [ ! -d "$d/.git" ]; then echo "skipped $w   the copy $d does not exist — run: scripts/night-workers.sh setup"; k=$((k+1)); continue; fi
-      cmdline="$run; echo; echo '[$w ($lead) ended — press Enter to close]'; read -r _"
-      if [ "$started" = 0 ]; then tmux new-session -d -s "$session" -n "$w-$lead" -c "$d" "$cmdline"; else tmux new-window -d -t "$session" -n "$w-$lead" -c "$d" "$cmdline"; fi
+      # start the runner as it is on v3 (scripts/night.sh explains why): the folder may sit on an older task branch
+      launcher="scripts/night.sh"; boot="$tmpd/mnw-boot-$w.sh"
+      git -C "$d" fetch -q origin v3 2>/dev/null || true
+      if git -C "$d" show origin/v3:scripts/night.sh > "$boot.new" 2>/dev/null && grep -q 'NIGHT_HOME' "$boot.new"; then mv -f "$boot.new" "$boot"; launcher="NIGHT_HOME='$d' bash '$boot'"; else rm -f "$boot.new"; fi
+      run="STAGE_PREFER=$lead $launcher $run"
+      # a run that has ended keeps its window (its last lines stay readable) under the name ended-<w>:
+      # `start` and `status` then no longer take it for a run that is going
+      tmux kill-window -t "$session:ended-$w" 2>/dev/null || true; tmux has-session -t "$session" 2>/dev/null || exists=0
+      cmdline="$run; tmux rename-window -t \"\$TMUX_PANE\" 'ended-$w' 2>/dev/null; echo; echo '[$w ($lead) ended — press Enter to close]'; read -r _"
+      if [ "$exists" = 0 ]; then tmux new-session -d -s "$session" -n "$w-$lead" -c "$d" "$cmdline"; exists=1; else tmux new-window -d -t "$session" -n "$w-$lead" -c "$d" "$cmdline"; fi
       started=$((started+1)); echo "started $w   led by $lead — $what; its work is reviewed by the other programs"
       k=$((k+1))
     done
     [ "$started" = 0 ] && { echo "nothing started"; exit 1; }
-    echo "watch:  tmux attach -t $session      (Ctrl+B then 0/1/2 switches run · Ctrl+B then D leaves them running)" ;;
+    # the way out is shown inside the view itself, on its bottom line
+    tmux set-option -t "$session" status-right-length 80 >/dev/null 2>&1 || true
+    tmux set-option -t "$session" status-right " leave: Ctrl+B then D  |  Ctrl+C STOPS this run " >/dev/null 2>&1 || true
+    echo "watch:  tmux attach -t $session"
+    echo "        leave the view: Ctrl+B, release, then D (the runs go on) · switch run: Ctrl+B then 0/1/2"
+    echo "        Ctrl+C inside the view STOPS the run you are looking at — bring it back with: scripts/night-workers.sh start" ;;
   status)
-    tmux has-session -t "$session" 2>/dev/null && tmux list-windows -t "$session" -F 'running  #{window_name}' || echo "no run started by this script"
+    tmux has-session -t "$session" 2>/dev/null && tmux list-windows -t "$session" -F '#{window_name}' | sed -e 's/^ended-\(.*\)$/ended    \1   (scripts\/night-workers.sh start brings it back)/' -e t -e 's/^/running  /' || echo "no run started by this script"
     for d in "$root" $(copies); do
       [ -d "$d/.git" ] || [ -f "$d/.git" ] || continue
       label=$(basename "$d"); [ "$d" = "$root" ] && label=main

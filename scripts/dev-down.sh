@@ -16,7 +16,7 @@ elif [ -n "$(listener "$port")" ]; then echo "no dev server of this folder on :$
 else echo "no dev server on :$port"; fi
 [ -n "${APP_PORT:-}" ] || rm -f .dev-port
 pkill -f "$(pwd)/node_modules/.bin/next dev" 2>/dev/null || true
-pkill -f "scripts/dev-watchdog.sh $port" 2>/dev/null || true
+pkill -f "$dev_root/scripts/dev-watchdog.sh $port" 2>/dev/null || true    # this folder's watchdog only (started with its full path)
 if [ "${1:-}" = "--all" ]; then
   npx supabase stop >/dev/null 2>&1 && echo "stopped  supabase"
   command -v colima >/dev/null 2>&1 && colima stop >/dev/null 2>&1 && echo "stopped  docker (colima)"
