@@ -84,7 +84,7 @@
   --color-sidebar-border: var(--border);
   --color-sidebar-ring: var(--focus);
 
-  --font-sans: "IBM Plex Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── Dark (default) ───────────────────────────────────────────────── */

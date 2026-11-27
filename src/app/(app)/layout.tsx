@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "sonner";
@@ -7,6 +8,23 @@ import { Toaster } from "sonner";
 import { dirFor } from "@/i18n/config";
 import { THEME_COOKIE, defaultTheme, isTheme } from "@/lib/theme";
 import "./globals.css";
+
+// Self-hosted at build time. No adjusted fallback on the Latin face: it is
+// local Arial, which has Arabic glyphs and sits ahead of Plex Arabic in the
+// stack, so Arabic text would never reach the Arabic font.
+const plexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  adjustFontFallback: false,
+  variable: "--font-plex-sans",
+});
+const plexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  variable: "--font-plex-arabic",
+});
 
 export const metadata: Metadata = {
   title: "MNW ERP",
@@ -23,13 +41,12 @@ export default async function RootLayout({
   const theme = isTheme(themeCookie) ? themeCookie : defaultTheme;
 
   return (
-    <html lang={locale} dir={dirFor(locale)} className={theme} suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"
-        />
-      </head>
+    <html
+      lang={locale}
+      dir={dirFor(locale)}
+      className={`${theme} ${plexSans.variable} ${plexArabic.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
