@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { communeLinkable, COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, isRealIsoDate, MAX_COMMUNE_KEY, kpiFiltersJson, parseStatsFilters, statsFiltersToParams } from "./query-string";
+import { communeLinkable, COMMUNE_UNKNOWN_PARAM, drillHref, ISO_DATE, isRealIsoDate, MAX_COMMUNE_KEY, kpiFiltersJson, ordersQs, parseStatsFilters, statsDrillFilters, statsFiltersToParams } from "./query-string";
 import { dropOneKey, leaveDrillKeys } from "@/app/(app)/app/sell/orders/_lib/drill-filters";
 
 describe("drillHref", () => {
@@ -38,6 +38,24 @@ describe("normalized stats filters", () => {
     expect(p.has("from")).toBe(false);
     expect(kpiFiltersJson(f)).toEqual({ category: U.toLowerCase(), wilaya: "6", agent: U.toLowerCase() });
     expect(kpiFiltersJson(read(statsFiltersToParams(f).toString()))).toEqual(kpiFiltersJson(f));
+  });
+  test("product-first and wilaya-first links keep the resolved dates and full cohort", () => {
+    const common = `season=${U}&year=2026&f_category=${U}&f_agent=${U}&f_source=manual&f_delivery=home`;
+    const range = { from: "2026-03-10", to: "2026-03-16" };
+    const productScope = statsDrillFilters(read(`${common}&product=${U}`), range);
+    const wilayaScope = statsDrillFilters(read(`${common}&f_wilaya=06`), range);
+    for (const drill of ["delivered", "shipped"]) {
+      const expected = {
+        ...range, product_id: U.toLowerCase(), wilaya_code: "6", source: "manual",
+        category: U.toLowerCase(), conf_agent: U.toLowerCase(), delivery_type: "home", drill,
+      };
+      for (const href of [
+        ordersQs(productScope, { wilaya_code: "6", drill }),
+        ordersQs(wilayaScope, { product_id: U.toLowerCase(), drill }),
+      ]) {
+        expect(Object.fromEntries(new URL(href, "http://x").searchParams)).toEqual(expected);
+      }
+    }
   });
   const qs = "drill=received&commune_key=x&category=c&conf_agent=a&delivery_type=home&wilaya_code=16&page=2";
   test("leaveDrill removes drill params and the three key filters in drill mode", () => {

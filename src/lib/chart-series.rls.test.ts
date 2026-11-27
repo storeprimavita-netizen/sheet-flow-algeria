@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import { deleteLeakedWorkspaces, deleteWorkspaces } from "@/lib/test-cleanup";
+import type { KpiGroupRates } from "@/lib/kpi";
 
 /** Live CHART-1 checks (migration 00078): admin-only series, money = pnl_lines, Algiers days, rates via kpi_rates. */
 const URL = process.env.LOCAL_SUPABASE_URL;
@@ -238,6 +239,30 @@ describe.skipIf(!URL)("chart series (live DB, 00078)", () => {
     expect(rows.map((r) => r.product_id).sort()).toEqual([p1, p2].sort());
     const one = await admin.rpc("kpi_by_product", { p_from: FROM, p_to: TO, p_product: [p1] });
     expect((one.data as unknown[]).length).toBe(1);
+  });
+
+  test("product and wilaya comparisons report the same delivery metric for their intersection", async () => {
+    const placed = `${FROM}T15:00:00Z`;
+    const otherWilaya = await order(p2, placed, { wilaya_code: 31, delivery_status: "returned" });
+    const excluded = await order(p2, placed, { delivery_status: "delivered", excluded_reason: "test" });
+    try {
+      const range = { p_from: FROM, p_to: TO };
+      const [products, wilayas] = await Promise.all([
+        admin.rpc("kpi_by_product", { ...range, p_filters: { wilaya: "16" } }),
+        admin.rpc("kpi_by_wilaya", { ...range, p_product: [p2] }),
+      ]);
+      expect(products.error).toBeNull();
+      expect(wilayas.error).toBeNull();
+      const productRows = products.data as { product_id: string; rates: KpiGroupRates }[];
+      const wilayaRows = wilayas.data as { wilaya_code: number; rates: KpiGroupRates }[];
+      expect(productRows.map((r) => r.product_id).sort()).toEqual([p1, p2].sort());
+      expect(wilayaRows.map((r) => r.wilaya_code).sort()).toEqual([16, 31]);
+      const delivery = productRows.find((r) => r.product_id === p2)!.rates.delivery;
+      expect(delivery).toEqual(wilayaRows.find((r) => r.wilaya_code === 16)!.rates.delivery);
+      expect(delivery).toMatchObject({ num: 2, den: 3, matured: false });
+    } finally {
+      expect((await svc.from("orders").delete().in("id", [otherWilaya, excluded])).error).toBeNull();
+    }
   });
 
   test("dashboard_stats no longer carries a daily series", async () => {

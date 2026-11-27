@@ -292,6 +292,45 @@ describe.skipIf(!URL)("kpi_by_wilaya / kpi_by_commune (live DB, 00058)", () => {
     expect((await drill({ p_wilaya: 16 }, client(ANON_KEY))).error).not.toBeNull();
   });
 
+  test("delivery drills match the product × wilaya slice including the swapped original", async () => {
+    const p = await product();
+    const cohort = { delivery_type: "home", source: "manual" };
+    const delivered = await order(p, { ...cohort, delivery_status: "delivered" });
+    const replacement = await order(p, { ...cohort, delivery_status: "delivered" });
+    const original = await order(p, { ...cohort, delivery_status: "returning" });
+    psql(`begin; set local mnw.swap_link = '1'; update public.orders set swapped_to_order_id = '${replacement}' where id = '${original}'; commit;`);
+    const excluded = await order(p, { ...cohort, delivery_status: "delivered", excluded_reason: "test" });
+    const otherWilaya = await order(p, { ...cohort, wilaya_code: 31, delivery_status: "delivered" });
+    const otherProduct = await order(await product(), { ...cohort, delivery_status: "delivered" });
+    const otherType = await order(p, { ...cohort, delivery_type: "stopdesk", delivery_status: "delivered" });
+    const range = { p_from: DAY, p_to: DAY, p_filters: cohort };
+    const [wilayas, products] = await Promise.all([
+      admin.rpc("kpi_by_wilaya", { ...range, p_product: [p] }),
+      admin.rpc("kpi_by_product", { ...range, p_filters: { ...cohort, wilaya: "16" } }),
+    ]);
+    expect(wilayas.error).toBeNull();
+    expect(products.error).toBeNull();
+    const wilaya = (wilayas.data as WRow[]).find((r) => r.wilaya_code === 16)!;
+    const productRow = (products.data as { product_id: string; rates: Rates }[]).find((r) => r.product_id === p)!;
+    const delivery = wilaya.rates.delivery;
+    expect(delivery).toEqual(productRow.rates.delivery);
+
+    for (const [p_metric, total, expected] of [
+      ["delivered", delivery.num, [delivered, replacement]],
+      ["shipped", delivery.den, [delivered, replacement, original]],
+    ] as const) {
+      const { data, error } = await admin.rpc("kpi_drill_orders", {
+        ...range, p_metric, p_product: [p], p_wilaya: 16, p_delivery_type: cohort.delivery_type,
+      });
+      expect(error).toBeNull();
+      const rows = data as { id: string; total: number }[];
+      expect(Number(rows[0]?.total)).toBe(total);
+      const ids = rows.map((r) => r.id);
+      expect(ids.sort()).toEqual([...expected].sort());
+      for (const id of [excluded, otherWilaya, otherProduct, otherType]) expect(ids).not.toContain(id);
+    }
+  });
+
   test("drill return includes swap original (D47); avg_days excludes a swapped delivered original; commune confirmed/return totals match", async () => {
     const p = await product();
     const b = await order(p, { delivery_status: "returning", commune: "Hydra" });

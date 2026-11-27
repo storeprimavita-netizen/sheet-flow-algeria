@@ -2182,6 +2182,7 @@
       "wilayasForProduct": "Delivery by wilaya for {name}",
       "productsInWilaya": "Delivery by product in {name}",
       "shipped": "Shipped",
+      "comparisonDrill": "{name} · {metric} · {count}",
       "byWeekday": "Orders by weekday",
       "byHour": "Orders by hour of day",
       "weekday": {

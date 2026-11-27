@@ -4,8 +4,13 @@ import { describe, expect, test, vi } from "vitest";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/statistics",
   useSearchParams: () => new URLSearchParams("product=p"),
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
-vi.mock("next-intl", () => ({ useTranslations: () => (k: string) => k }));
+vi.mock("next-intl", () => ({
+  useTranslations: () => (k: string, values?: Record<string, string>) =>
+    values ? [k, ...Object.values(values)].join(" ") : k,
+}));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 import { asKpiGroup } from "@/lib/kpi";
 import { AlgeriaMap } from "@/components/dashboard/algeria-map";
@@ -13,6 +18,7 @@ import { RateBar } from "@/components/stats/rate-bar";
 import { MetricCell } from "@/components/stats/metric-cell";
 import { DrillBanner } from "@/components/stats/drill-banner";
 import { WilayaTable, type StatsRow } from "@/components/stats/wilaya-table";
+import { DeliveryComparison, WilayaChart } from "@/components/stats/stats-charts";
 import { communeBannerLabel, DRILL_PARAMS } from "@/lib/query-string";
 
 const metric = (num: number, den: number, matured: boolean) => ({ num, den, value: den ? num / den : null, matured });
@@ -74,6 +80,54 @@ describe("unmatured rendering", () => {
     );
     expect(html).toContain("fill-neutral/30");
     expect(html).not.toMatch(/fill-(success|danger|warning)/);
+  });
+});
+
+describe("delivery comparisons", () => {
+  const filters = {
+    from: "2026-03-10", to: "2026-03-16", source: "manual", category: "c",
+    conf_agent: "a", delivery_type: "home",
+  };
+  test("either comparison links to the same delivered and shipped cohorts", () => {
+    const wilayas = renderToStaticMarkup(
+      <WilayaChart rows={[row(16), row(31)]} filters={{ ...filters, product: "p" }} productName="Dress" />,
+    );
+    const products = renderToStaticMarkup(
+      <DeliveryComparison title="Products in Alger" dimension="product" filters={{ ...filters, wilaya: "16" }}
+        rows={[{ id: "p", name: "Dress", delivery: group(true).rates.delivery }]} />,
+    );
+    expect(wilayas).toContain("wilayasForProduct Dress");
+    expect(products).toContain("Products in Alger");
+    for (const html of [products, wilayas]) {
+      const links = [...html.matchAll(/href="(\/app\/sell\/orders\?[^"]+)"/g)].map(([, href]) =>
+        Object.fromEntries(new URL(href.replaceAll("&amp;", "&"), "http://x").searchParams),
+      );
+      const cohort = { ...filters, product_id: "p", wilaya_code: "16" };
+      expect(links).toContainEqual({ ...cohort, drill: "delivered" });
+      expect(links).toContainEqual({ ...cohort, drill: "shipped" });
+      expect(html).toContain("25%");
+    }
+    expect(wilayas).toContain("wilaya_code=31");
+  });
+
+  test("empty, zero shipped, and zero delivery with shipments stay distinct", () => {
+    const render = (rows: { id: string; name: string; delivery: ReturnType<typeof metric> }[]) =>
+      renderToStaticMarkup(<DeliveryComparison title="Comparison" dimension="product" filters={{ wilaya: "16" }} rows={rows} />);
+    const empty = render([]);
+    expect(empty).toContain("statistics.emptyTitle");
+    expect(empty).not.toContain("<table");
+    const zero = render([{ id: "p", name: "Dress", delivery: metric(0, 0, false) }]);
+    expect(zero).toContain(">—<");
+    expect(zero).toContain("statistics.notEnoughData");
+    expect(zero).not.toContain("drill=");
+    const returned = render([{ id: "p", name: "Dress", delivery: metric(0, 2, false) }]);
+    expect(returned).toContain("0%");
+    expect(returned).toContain("statistics.notEnoughData");
+    expect(returned).toContain("drill=shipped");
+    expect(returned).not.toContain("drill=delivered");
+    const sqlValue = render([{ id: "p", name: "Dress", delivery: { ...metric(0, 2, true), value: 0.125 } }]);
+    expect(sqlValue).toContain("12.5%");
+    expect(sqlValue).not.toContain("statistics.notEnoughData");
   });
 });
 

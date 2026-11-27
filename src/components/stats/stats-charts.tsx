@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -6,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { asKpiDaily, kpiPct, type KpiGroupRates, type KpiMetric } from "@/lib/kpi";
 import { worstFirst, collapseSlices } from "@/lib/chart-math";
 import { formatInt, formatPercent } from "@/lib/format";
-import { drillHref, ordersQs, type DashboardFilters } from "@/lib/query-string";
+import { ordersQs, type DashboardFilters } from "@/lib/query-string";
 import { BarChart, type BarItem } from "@/components/charts/bar-chart";
 import { ChartLoadError, ChartPanel, ChartSkeleton } from "@/components/charts/chart-panel";
 import { DonutChart } from "@/components/charts/donut-chart";
@@ -14,6 +15,8 @@ import { LineChart, type LineSeries, type LineX } from "@/components/charts/line
 import type { StatsRow } from "@/components/stats/wilaya-section";
 import { tableClass } from "@/components/field";
 import { RateBar } from "@/components/stats/rate-bar";
+import { DRILL_LINK } from "@/components/stats/metric-cell";
+import { cn } from "@/lib/utils";
 
 /** Floor for "worst first": a wilaya or product with fewer orders says nothing about its rate. */
 const MIN_ORDERS = 10;
@@ -117,21 +120,24 @@ async function OutcomeChart({ scope }: { scope: Scope }) {
 
 type ComparisonRow = { id: string; name: string; delivery: KpiMetric };
 
-export function DeliveryComparison({ title, dimension, rows }: {
+export function DeliveryComparison({ title, dimension, rows, filters }: {
   title: string;
   dimension: "product" | "wilaya";
   rows: ComparisonRow[];
+  filters: DashboardFilters;
 }) {
   const t = useTranslations();
   const sorted = [...rows].sort((a, b) =>
     (a.delivery.value ?? Infinity) - (b.delivery.value ?? Infinity) || a.name.localeCompare(b.name),
   );
+  const drillKey = dimension === "product" ? "product_id" : "wilaya_code";
   return (
     <ChartPanel
       title={title}
+      minHeight={rows.length ? 0 : undefined}
       empty={rows.length ? null : emptyOrders(t("statistics.emptyTitle"), t("statistics.charts.allOrders"))}
       plot={
-        <table className={`${tableClass} [&_td]:px-2 [&_th]:px-2`}>
+        <table className={cn(tableClass, "[&_td]:px-1.5 sm:[&_td]:px-2 [&_th]:px-1.5 sm:[&_th]:px-2 [&_thead_th:not(:first-child)]:text-end")}>
           <caption className="sr-only">{title}</caption>
           <thead>
             <tr>
@@ -146,12 +152,26 @@ export function DeliveryComparison({ title, dimension, rows }: {
               const pct = kpiPct(delivery);
               return (
                 <tr key={id}>
-                  <th scope="row" className="break-words text-start font-medium"><bdi>{name}</bdi></th>
-                  <td className="num text-end">{formatInt(delivery.num)}</td>
-                  <td className="num text-end">{formatInt(delivery.den)}</td>
+                  <th scope="row" className="[overflow-wrap:anywhere]"><bdi>{name}</bdi></th>
+                  {([["delivered", delivery.num], ["shipped", delivery.den]] as const).map(([drill, count]) => (
+                    <td key={drill} className="num text-end">
+                      {count > 0 ? (
+                        <Link
+                          href={ordersQs(filters, { [drillKey]: id, drill })}
+                          prefetch={false}
+                          className={DRILL_LINK}
+                          aria-label={t("statistics.charts.comparisonDrill", {
+                            name, metric: t(`orders.drill.${drill}`), count: formatInt(count),
+                          })}
+                        >
+                          {formatInt(count)}
+                        </Link>
+                      ) : formatInt(count)}
+                    </td>
+                  ))}
                   <td className="text-end">
                     <div className="flex items-center justify-end gap-2">
-                      {pct === null ? null : <RateBar pct={pct} matured={delivery.matured} className="hidden xl:block" />}
+                      {pct === null ? null : <RateBar pct={pct} matured={delivery.matured} className="hidden 2xl:block" />}
                       <span className="num">{formatPercent(pct)}</span>
                     </div>
                     {delivery.matured ? null : (
@@ -182,7 +202,7 @@ async function ProductChart({ scope }: { scope: Scope }) {
     return rates?.counts && r.product_id ? [{ id: r.product_id, name: r.product_name ?? "—", rates }] : [];
   });
   if (scope.wilayaName) {
-    return <DeliveryComparison title={title} dimension="product" rows={rows.map((r) => ({ ...r, delivery: r.rates.delivery }))} />;
+    return <DeliveryComparison title={title} dimension="product" rows={rows.map((r) => ({ id: r.id, name: r.name, delivery: r.rates.delivery }))} filters={scope.filters} />;
   }
   const items: BarItem[] = worstFirst(rows, (r) => r.rates.counts.received, (r) => kpiPct(r.rates.delivery), MIN_ORDERS, TOP).map((r) => ({
     key: r.id,
@@ -215,6 +235,7 @@ export function WilayaChart({ rows, filters, productName }: { rows: StatsRow[]; 
         title={t("wilayasForProduct", { name: productName })}
         dimension="wilaya"
         rows={rows.flatMap((r) => r.code === null ? [] : [{ id: String(r.code), name: r.name ?? String(r.code), delivery: r.group.rates.delivery }])}
+        filters={filters}
       />
     );
   }
@@ -230,7 +251,7 @@ export function WilayaChart({ rows, filters, productName }: { rows: StatsRow[]; 
     value: kpiPct(r.group.rates.delivery) ?? 0,
     display: formatPercent(kpiPct(r.group.rates.delivery)),
     sub: t("ordersCount", { n: formatInt(r.group.rates.counts.received) }),
-    href: drillHref(filters, "received", { wilaya: r.code as number }),
+    href: ordersQs(filters, { wilaya_code: String(r.code), drill: "received" }),
     color: r.group.rates.delivery.matured ? undefined : "var(--neutral)",
   }));
   return (

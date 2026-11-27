@@ -2182,6 +2182,7 @@
       "wilayasForProduct": "التسليم حسب الولاية للمنتج {name}",
       "productsInWilaya": "التسليم حسب المنتج في {name}",
       "shipped": "المشحونة",
+      "comparisonDrill": "{name} · {metric} · {count}",
       "byWeekday": "الطلبات حسب يوم الأسبوع",
       "byHour": "الطلبات حسب ساعة اليوم",
       "weekday": {
