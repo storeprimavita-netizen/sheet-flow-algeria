@@ -166,7 +166,7 @@ pick rule is unchanged (first eligible `todo`, top to bottom).
 | MONEY-2 | Accounts screen: three cards (ZR / DZD / USDT), quick-add ledger, transfer, mark ZR payout taken | MONEY | L | ui | – | money | MONEY-1, NAV-3 | blocked:ship failed twice — built on v3-MONEY-2 |
 | MONEY-3 | "Paid from" on expense/ad-spend forms; statement export | MONEY | L | ui | – | money | MONEY-2 | todo |
 | NOTIF-3 | Admin alerts: stock, balance, stuck orders, daily summary | NOTIF | L | – | – | team | NOTIF-2 | todo |
-| P1-5 | Lists: pagination / SQL views for contacts, cash, finance, performance | – | L | ui | – | orders | NAV-3 | claimed:w2-agy |
+| P1-5 | Lists: pagination / SQL views for contacts, cash, finance, performance | – | L | ui | – | orders | NAV-3 | blocked:ship failed twice — built on v3-P1-5 |
 
 ## Wave 3 — catalog intelligence
 
