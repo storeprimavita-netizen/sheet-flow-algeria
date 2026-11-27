@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Empty } from "@/components/empty";
@@ -27,6 +28,19 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: bo
   const [busy, setBusy] = React.useState(false);
   const [fieldError, setFieldError] = React.useState<string | null>(null);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<SizeSetRow | null>(null);
+  const [deletePending, setDeletePending] = React.useState(false);
+  const cancelDeleteRef = React.useRef<HTMLButtonElement>(null);
+  const deleteTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const addButtonRef = React.useRef<HTMLButtonElement>(null);
+  const headingRef = React.useRef<HTMLHeadingElement>(null);
+  const focusAfterDeleteRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!focusAfterDeleteRef.current || (deleteTarget && sets.some((set) => set.id === deleteTarget.id))) return;
+    focusAfterDeleteRef.current = false;
+    (addButtonRef.current ?? headingRef.current)?.focus();
+  }, [deleteTarget, sets]);
 
   function open(row: SizeSetRow | "new") {
     setEditing(row);
@@ -48,25 +62,29 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: bo
     } else setFieldError(res.code === "duplicate" ? t("duplicate") : res.code === "invalid" ? t("invalid") : t("failed"));
   }
 
-  async function remove(row: SizeSetRow) {
-    if (!window.confirm(t("deleteConfirm", { name: row.name }))) return;
+  async function remove() {
+    if (!deleteTarget || deletePending) return;
+    const row = deleteTarget;
     setDeleteError(null);
-    setBusy(true);
+    setDeletePending(true);
     const res = await deleteSizeSet(row.id);
-    setBusy(false);
-    if (res.ok) router.refresh();
-    else setDeleteError(t("failed"));
+    setDeletePending(false);
+    if (res.ok) {
+      focusAfterDeleteRef.current = true;
+      setDeleteTarget(null);
+      router.refresh();
+    } else setDeleteError(t("deleteFailed"));
   }
 
   return (
     <section className="card-surface space-y-4 rounded-xl p-5" aria-labelledby="size-sets-title" aria-busy={busy}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
-          <h2 id="size-sets-title" className="text-sm font-semibold">{t("title")}</h2>
+          <h2 ref={headingRef} tabIndex={-1} id="size-sets-title" className="text-sm font-semibold">{t("title")}</h2>
           <p className="text-xs text-muted-foreground">{t("hint")}</p>
         </div>
         {!error && sets.length ? (
-          <Button type="button" size="sm" variant="outline" onClick={() => open("new")}>
+          <Button ref={addButtonRef} type="button" size="sm" variant="outline" onClick={() => open("new")}>
             <Plus />
             {t("add")}
           </Button>
@@ -81,7 +99,7 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: bo
       ) : !sets.length && editing === null ? (
         <Empty>
           <p className="mb-3">{t("empty")}</p>
-          <Button type="button" size="sm" onClick={() => open("new")}>
+          <Button ref={addButtonRef} type="button" size="sm" onClick={() => open("new")}>
             <Plus />
             {t("add")}
           </Button>
@@ -98,7 +116,7 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: bo
                 <Button type="button" variant="ghost" size="icon" aria-label={t("edit", { name: s.name })} onClick={() => open(s)}>
                   <Pencil />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" aria-label={t("delete", { name: s.name })} disabled={busy} onClick={() => remove(s)}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("delete", { name: s.name })} disabled={busy || deletePending} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteError(null); setDeleteTarget(s); }}>
                   <Trash2 />
                 </Button>
               </div>
@@ -107,7 +125,26 @@ export function SizeSetsSection({ sets, error }: { sets: SizeSetRow[]; error: bo
         </ul>
       )}
 
-      {deleteError ? <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p> : null}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !deletePending) setDeleteTarget(null); }}>
+        <DialogContent
+          aria-busy={deletePending}
+          onOpenAutoFocus={(event) => { event.preventDefault(); cancelDeleteRef.current?.focus(); }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            if (!focusAfterDeleteRef.current) deleteTriggerRef.current?.focus();
+          }}
+        >
+          <DialogTitle>{t("deleteTitle")}</DialogTitle>
+          <DialogDescription>
+            {t.rich("deleteConfirm", { name: (chunks) => <bdi dir="auto">{chunks}</bdi> })}
+          </DialogDescription>
+          {deleteError ? <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">{deleteError}</p> : null}
+          <div className="flex justify-end gap-2">
+            <Button ref={cancelDeleteRef} type="button" variant="outline" disabled={deletePending} onClick={() => setDeleteTarget(null)}>{t("cancel")}</Button>
+            <Button type="button" disabled={deletePending} onClick={remove}>{deletePending ? t("deleting") : deleteError ? t("retry") : t("confirmDelete")}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {editing !== null ? (
         <form onSubmit={submit} className="space-y-3 rounded-lg border border-border p-3">

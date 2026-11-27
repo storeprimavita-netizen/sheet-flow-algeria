@@ -687,7 +687,11 @@
           "duplicate": "توجد مجموعة بهذا الاسم.",
           "failed": "تعذّر الحفظ. حاول مجددا.",
           "loadFailed": "تعذّر تحميل المجموعات. حاول مجددا.",
-          "deleteConfirm": "حذف مجموعة المقاسات {name}؟",
+          "deleteTitle": "حذف مجموعة المقاسات؟",
+          "deleteConfirm": "حذف <name>{name}</name>؟",
+          "confirmDelete": "حذف",
+          "deleting": "جارٍ الحذف…",
+          "deleteFailed": "تعذّر حذف مجموعة المقاسات. حاول مجددا.",
           "retry": "إعادة المحاولة"
     },
     "title": "الإعدادات",

@@ -687,7 +687,11 @@
           "duplicate": "A size set with this name already exists.",
           "failed": "Could not save. Try again.",
           "loadFailed": "Could not load size sets. Try again.",
-          "deleteConfirm": "Delete size set {name}?",
+          "deleteTitle": "Delete size set?",
+          "deleteConfirm": "Delete <name>{name}</name>?",
+          "confirmDelete": "Delete",
+          "deleting": "Deleting…",
+          "deleteFailed": "Could not delete this size set. Try again.",
           "retry": "Retry"
     },
     "title": "Settings",
