@@ -1116,3 +1116,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Gate fix — `src/lib/my-day.rls.test.ts` (from NAV-5) built its client while the suite was skipped, failing the unit-only gate; the client is now created in `beforeAll`.
 - Screenshots (`docs/design/audit/CHART-1-B/`) — empty overview, dashboard and statistics at EN dark 1280; the three table views at AR light 390 (rows 44 px, no horizontal overflow). Other theme/language/width pairs not captured.
 - Not run — live suite (nodb worker), so the new far-future-order test in `chart-series.rls.test.ts` and the `my-day` live tests have not run here.
+
+### CHART-1-B ship
+- Done — Stats and dashboard charts cap at 366 days; Money overview shows "no data" when all costs are 0; cost table rows link like their bars.
+- Verify — `scripts/gate.sh` passed (tsc, 1,034 unit tests, i18n parity, color lint, build, protected paths, secret scan). Review 2 VERDICT: PASS.
+- Evidence — `docs/briefs/CHART-1-B.review-2.md`; screenshots in `docs/design/audit/CHART-1-B/`.
+- Owner — live RLS suite not run here (nodb worker); far-future-order and my-day live tests still unverified.
+- Next — run the live suite on the owner machine; open LOWs tracked in docs/BACKLOG.md.
