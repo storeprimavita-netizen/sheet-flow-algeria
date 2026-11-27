@@ -5,9 +5,15 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { createSearchSync } from "./search-param-sync";
+import { createSearchSync, leavesAddress } from "./search-param-sync";
 
-export type SearchBoxHandle = { mergeInto: (params: URLSearchParams) => void };
+export type SearchBoxHandle = { mergeInto: (params: URLSearchParams) => void; text: () => string };
+
+let active: SearchBoxHandle | null = null;
+/** the queue bar's search box, when mounted (lets the saved-view bar read its text) */
+export function activeSearchBox(): SearchBoxHandle | null {
+  return active;
+}
 
 /** Search-as-you-type bound to a URL param (default `q`), debounced 300ms;
  * the server page reads the param, so results stay shareable/bookmarkable. */
@@ -42,26 +48,35 @@ export function SearchParamInput({
   const [sync] = React.useState(() =>
     createSearchSync({ write: (qs) => writeRef.current(qs), onText: setValue, param, clearedMarker, initialText: value }),
   );
-  React.useImperativeHandle(syncRef, () => ({ mergeInto: sync.mergeInto }), [sync]);
+  const handle = React.useMemo<SearchBoxHandle>(() => ({ mergeInto: sync.mergeInto, text: sync.text }), [sync]);
+  React.useImperativeHandle(syncRef, () => handle, [handle]);
+  const registers = syncRef != null;
+  React.useEffect(() => {
+    if (!registers) return;
+    active = handle;
+    return () => {
+      if (active === handle) active = null;
+    };
+  }, [registers, handle]);
   React.useEffect(() => {
     sync.seen(query, inherited);
   }, [sync, query, inherited]);
   React.useEffect(() => () => sync.cancel(), [sync]);
-  const box = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
-    // a tap on another link or button (view pill, Reset, ...) starts an address change that may still be loading
-    const onDown = (e: PointerEvent) => {
+    // a plain click (pointer or keyboard) to another address, or on a control that drops unsent text, ends the search
+    const onClick = (e: MouseEvent) => {
       const el = e.target instanceof Element ? e.target : null;
-      if (!el || box.current?.contains(el)) return;
-      if (el.closest("[role=combobox], [role=listbox], [role=option]")) return;
-      if (el.closest("a[href], button")) sync.hold();
+      if (!el) return;
+      if (el.closest("[data-search-discard]")) return sync.cancel();
+      const a = el.closest("a[href]");
+      if (a instanceof HTMLAnchorElement && leavesAddress({ href: a.href, target: a.target, download: a.hasAttribute("download") }, e, window.location.href)) sync.cancel();
     };
-    document.addEventListener("pointerdown", onDown, true);
-    return () => document.removeEventListener("pointerdown", onDown, true);
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, [sync]);
 
   return (
-    <div ref={box} className="relative max-w-sm">
+    <div className="relative max-w-sm">
       <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input type="search" value={value} onChange={(e) => {
           setValue(e.target.value);

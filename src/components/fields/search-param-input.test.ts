@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createSearchSync } from "./search-param-sync";
+import { createSearchSync, leavesAddress } from "./search-param-sync";
 
 const CLEARED = "__cleared__";
 
@@ -168,33 +168,63 @@ describe("search param sync", () => {
     expect(texts).toEqual(["Amina"]);
   });
 
-  test("m: another control used while the write waits: an outside address arriving first wins, nothing is written", () => {
-    const { s, writes, texts } = setup({ qs: "view=a&delivery_status=x", inherited: "Karim", text: "Karim" });
+  test("status picked then more typing before the echo keeps the status", () => {
+    const { s, writes } = setup();
+    s.type("Amina");
+    const params = new URLSearchParams("view=a");
+    params.set("status", "x");
+    s.mergeInto(params);
+    s.type("Amina B");
+    vi.advanceTimersByTime(300);
+    expect(Object.fromEntries(new URLSearchParams(writes[0]))).toEqual({ view: "a", status: "x", q: "Amina B" });
+  });
+
+  test("m: link cancel then a slow outside address: nothing is written", () => {
+    const { s, writes, texts } = setup();
     s.type("Amina");
     vi.advanceTimersByTime(100);
-    s.hold();
-    vi.advanceTimersByTime(2000); // slow network: the other change has not arrived yet
+    s.cancel();
+    vi.advanceTimersByTime(20000);
     expect(writes).toEqual([]);
     s.seen("view=b", "");
-    vi.advanceTimersByTime(10000);
-    expect(writes).toEqual([]);
     expect(texts).toEqual([""]);
   });
 
-  test("n: hold without an outside change still sends the text, later", () => {
-    const { s, writes } = setup();
-    s.type("Amina");
-    s.hold();
-    vi.advanceTimersByTime(4999);
-    expect(writes).toEqual([]);
-    vi.advanceTimersByTime(1);
-    expect(writes).toEqual(["view=a&q=Amina"]);
+  test("n: leavesAddress is true only for a plain click to another address", () => {
+    const cur = "https://x.test/app/orders?view=a";
+    const ev = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+    const ln = { href: "/app/orders?view=b", target: "", download: false };
+    expect(leavesAddress(ln, ev, cur)).toBe(true);
+    expect(leavesAddress({ ...ln, target: "_self" }, ev, cur)).toBe(true);
+    expect(leavesAddress(ln, { ...ev, metaKey: true }, cur)).toBe(false);
+    expect(leavesAddress(ln, { ...ev, button: 1 }, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, target: "_blank" }, ev, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, download: true }, ev, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, href: "tel:+213555" }, ev, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, href: "https://other.test/app/orders?view=b" }, ev, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, href: "/app/orders?view=a" }, ev, cur)).toBe(false);
+    expect(leavesAddress({ ...ln, href: "/app/orders?view=a#top" }, ev, cur)).toBe(false);
   });
 
-  test("o: hold with nothing waiting does nothing", () => {
-    const { s, writes } = setup();
-    s.hold();
-    vi.advanceTimersByTime(10000);
-    expect(writes).toEqual([]);
+  test("o: text() is the trimmed box text", () => {
+    const { s } = setup();
+    s.type("  Amina ");
+    expect(s.text()).toBe("Amina");
+  });
+
+  test("an echo with reordered params is the box's own write", () => {
+    const { s, writes, texts } = setup({ qs: "a=1&b=2" });
+    s.type("Z");
+    vi.advanceTimersByTime(300);
+    const reordered = new URLSearchParams(writes[0]);
+    reordered.sort();
+    s.seen(reordered.toString(), "");
+    expect(texts).toEqual([]);
+  });
+
+  test("same query, changed inherited, is an outside change", () => {
+    const { s, texts } = setup({ qs: "view=a", inherited: "Karim", text: "Karim" });
+    s.seen("view=a", "Omar");
+    expect(texts).toEqual(["Omar"]);
   });
 });

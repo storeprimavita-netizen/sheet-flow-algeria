@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { activeSearchBox } from "@/components/fields/search-param-input";
 import { Button } from "@/components/ui/button";
 import type { OrderViewDto, ViewConfig, ViewPresentation, ViewScope } from "@/lib/order-views";
 import { createView, saveView } from "./views-actions";
@@ -30,6 +31,7 @@ export function SavedViewBar({
   const t = useTranslations("orderViews");
   const router = useRouter();
   const path = usePathname();
+  const sp = useSearchParams();
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const [saveAs, setSaveAs] = useState(false);
@@ -39,10 +41,20 @@ export function SavedViewBar({
   const { layout, groupBy, cardFields } = presentation;
   const config = { ...effective, groupBy, cardFields };
 
+  /** the config with the text now in the search box (emptied box = no q) */
+  const withBox = (box: ReturnType<typeof activeSearchBox>) => (box ? { ...config, q: box.text() || undefined } : config);
+
   async function save() {
     if (!view) return;
+    const box = activeSearchBox();
+    if (box) {
+      // sends the box text now and cancels the waiting write
+      const next = new URLSearchParams(sp.toString());
+      box.mergeInto(next);
+      router.replace(`${path}?${next}`, { scroll: false });
+    }
     setBusy(true);
-    const r = await saveView(view.id, config, layout);
+    const r = await saveView(view.id, withBox(box), layout);
     setBusy(false);
     setStatus(r.ok ? t("saved") : t(`error.${r.error}`));
     if (r.ok) router.refresh();
@@ -78,6 +90,7 @@ export function SavedViewBar({
               type="button"
               size="sm"
               variant="ghost"
+              data-search-discard
               onClick={() => {
                 setStatus(t("resetDone"));
                 router.replace(withKeep(`view=${view.id}`));
@@ -98,7 +111,9 @@ export function SavedViewBar({
           submitLabel={t("save")}
           returnFocus={() => saveAsRef.current}
           onSubmit={async (v) => {
-            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: isAdmin && v.shared, layout, config });
+            const box = activeSearchBox();
+            box?.mergeInto(new URLSearchParams(sp.toString())); // only cancels the waiting write
+            const r = await createView({ name: v.name, emoji: v.emoji, scope, shared: isAdmin && v.shared, layout, config: withBox(box) });
             if (r.ok) router.replace(withKeep(`view=${r.id}`));
             return r;
           }}

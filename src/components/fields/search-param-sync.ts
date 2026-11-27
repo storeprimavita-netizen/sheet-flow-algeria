@@ -7,8 +7,8 @@ export type SearchSync = {
   type(text: string): void;
   seen(queryString: string, inherited: string): void;
   mergeInto(params: URLSearchParams): void;
-  /** the user activated something else on the page: give its address change time to arrive before the waiting write fires */
-  hold(): void;
+  /** the trimmed text in the box */
+  text(): string;
   cancel(): void;
 };
 
@@ -20,7 +20,6 @@ type Options = {
   param?: string;
   clearedMarker?: string;
   delay?: number;
-  holdDelay?: number;
   initialText?: string;
 };
 
@@ -31,7 +30,7 @@ function pairKey(qs: string): string {
     .join("&");
 }
 
-export function createSearchSync({ write, onText, param = "q", clearedMarker, delay = 300, holdDelay = 5000, initialText = "" }: Options): SearchSync {
+export function createSearchSync({ write, onText, param = "q", clearedMarker, delay = 300, initialText = "" }: Options): SearchSync {
   let text = initialText;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let lastQs: string | null = null;
@@ -55,7 +54,7 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
 
   const fire = () => {
     timer = null;
-    const params = new URLSearchParams(lastQs ?? "");
+    const params = new URLSearchParams(sent.at(-1) ?? lastQs ?? "");
     if (!apply(params)) return;
     params.delete("page");
     const qs = params.toString();
@@ -100,11 +99,25 @@ export function createSearchSync({ write, onText, param = "q", clearedMarker, de
       stop();
       sent.push(params.toString());
     },
-    hold() {
-      if (!timer) return;
-      stop();
-      timer = setTimeout(fire, holdDelay);
-    },
+    text: () => text.trim(),
     cancel: stop,
   };
+}
+
+/** true only for a plain primary click that opens another address of this site in the same tab */
+export function leavesAddress(
+  link: { href: string; target: string; download: boolean },
+  event: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean },
+  currentHref: string,
+): boolean {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  if (link.download || (link.target !== "" && link.target !== "_self")) return false;
+  try {
+    const to = new URL(link.href, currentHref);
+    const from = new URL(currentHref);
+    if (to.origin !== from.origin || (to.protocol !== "http:" && to.protocol !== "https:")) return false;
+    return to.pathname + to.search !== from.pathname + from.search;
+  } catch {
+    return false;
+  }
 }
