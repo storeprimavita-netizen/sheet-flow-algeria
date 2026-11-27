@@ -40,10 +40,12 @@ export function CrumbProvider({ role, children }: { role: Role | null; children:
  */
 export function CrumbRecord({ label, href, tail }: { label: string; href?: string; tail?: string }) {
   const set = useContext(RecordCtx);
+  // A layout stays mounted across tab switches: re-register the record for the new path.
+  const pathname = usePathname();
   useEffect(() => {
     set?.({ label, href, tail });
     return () => set?.(null);
-  }, [set, label, href, tail]);
+  }, [set, label, href, tail, pathname]);
   return null;
 }
 
@@ -70,18 +72,20 @@ export function Breadcrumbs() {
         ) : null}
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
+          // The record shrinks (so a trailing "Preview" stays visible); parents keep their width.
+          const shrinkable = last || (rec?.tail && i === crumbs.length - 2);
           return (
             <li
               key={i}
-              className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${last ? "text-foreground max-sm:min-w-[40%]" : "sm:shrink-0"}`}
+              className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${last ? "text-foreground max-sm:min-w-[40%]" : shrinkable ? "" : "sm:shrink-0"}`}
             >
               {i > 0 ? <ChevronRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden="true" /> : null}
               {c.href && !last ? (
-                <Link href={c.href} title={c.label} className="truncate hover:text-foreground hover:underline">
+                <Link href={c.href} title={c.label} dir="auto" className="truncate hover:text-foreground hover:underline">
                   <bdi>{c.label}</bdi>
                 </Link>
               ) : (
-                <span aria-current={last ? "page" : undefined} title={c.label} className="truncate">
+                <span aria-current={last ? "page" : undefined} title={c.label} dir="auto" className="truncate">
                   <bdi>{c.label}</bdi>
                 </span>
               )}
