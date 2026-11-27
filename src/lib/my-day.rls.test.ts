@@ -15,7 +15,8 @@ const SERVICE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 const SEED_PASSWORD = "SeedDev!2026";
 
-const client = (key: string) => createClient(URL!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+// The placeholder only lets a skipped suite be collected when there is no local database.
+const client = (key: string) => createClient(URL ?? "http://skipped.invalid", key,{ auth: { persistSession: false, autoRefreshToken: false } });
 type Role = "admin" | "confirmation_agent" | "delivery_agent";
 type Who = { c: SupabaseClient; id: string };
 

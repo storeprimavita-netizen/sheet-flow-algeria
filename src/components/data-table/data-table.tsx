@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { DRILL_PARAMS } from "@/lib/query-string";
+import { PAGE_SIZE, parsePage } from "@/lib/list-pagination";
 import type { Column } from "./types";
 
 const DRILL_RESET = Object.fromEntries(DRILL_PARAMS.map((k) => [k, null]));
@@ -66,7 +67,7 @@ export function DataTable<T>({
   rows,
   rowKey,
   total,
-  pageSize = 25,
+  pageSize = PAGE_SIZE,
   status,
   onRetry,
   defaultDensity = "comfortable",
@@ -134,7 +135,7 @@ export function DataTable<T>({
 
   const sortId = searchParams.get("sort");
   const sortDir = searchParams.get("dir") === "desc" ? "desc" : "asc";
-  const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+  const page = parsePage(searchParams.get("page"));
   const openRow = searchParams.get("row");
 
   function toggleSort(id: string) {
