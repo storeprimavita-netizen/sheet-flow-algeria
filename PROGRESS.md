@@ -1123,3 +1123,7 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/CHART-1-B.review-2.md`; screenshots in `docs/design/audit/CHART-1-B/`.
 - Owner — live RLS suite not run here (nodb worker); far-future-order and my-day live tests still unverified.
 - Next — run the live suite on the owner machine; open LOWs tracked in docs/BACKLOG.md.
+
+## CONF-1-F
+- Done — Queue search: status then typing keeps both; link click or Reset cancels the waiting write; Save / Save as send the box text; no-match state (table and board) on Confirmation and Delivery; `hold` removed.
+- Verify — gate run; live throttled checks and screenshots NOT done: no browser tool in this session.
