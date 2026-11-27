@@ -10,8 +10,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Run on everything except static assets and the public store (`/s` or `/s/...`):
   // the store never refreshes a session and never sets a cookie. `s(?:/|$)` is an exact
-  // segment, so `/settings` still matches.
+  // segment, so `/settings` still matches. `/api/webhooks` is skipped too: providers
+  // send no session cookie and each route checks its own signature.
   matcher: [
-    "/((?!s(?:/|$)|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!s(?:/|$)|api/webhooks(?:/|$)|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
