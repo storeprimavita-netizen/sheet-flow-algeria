@@ -56,3 +56,4 @@ CONF-2 · `sell/orders/order-kanban.tsx` · clear a stale move error after serve
 CONF-3 · Confirmation score row and card · distinguish the absence of a saved link, a phone match and a parse error (review 2)
 CONF-3 · customer score queries · consider reuse of scoped delivery statistics when several cards refer to the same customer (review 2)
 NAV-1-H · `src/lib/palette-filter.ts` · strip invisible characters pasted into a ⌘K query (RLM, ZWJ); they currently block matches (brief)
+NAV-1-H · command.tsx · give the palette dialog and combobox an accessible name (sr-only DialogTitle from cmd.title, label on Command) (review 1)

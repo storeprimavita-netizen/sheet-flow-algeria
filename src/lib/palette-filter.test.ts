@@ -43,7 +43,8 @@ describe("NAV-1-H filter", () => {
       keywords: l.oldKey ? [en.navOld[l.oldKey as keyof typeof en.navOld] as string] : [],
     }));
     expect(rows.length).toBeGreaterThan(5);
-    expect(hasPaletteMatch(rows, "zzzz")).toBe(false);
+    const actionRows = [en.cmd.newOrder, en.cmd.addAdSpend].map((value) => ({ value }));
+    expect(hasPaletteMatch([...rows, ...actionRows], "zzzz")).toBe(false);
     expect(hasPaletteMatch(rows, "")).toBe(true);
   });
   it("طلب against real AR labels", () => {
@@ -57,7 +58,13 @@ describe("NAV-1-H filter", () => {
   });
   it("filter source is ASCII inside its regexes", () => {
     const code = src("src/lib/palette-filter.ts");
-    expect(code).not.toMatch(/[\u0300-\u036F\u0640\u064B-\u065F\u0670]/);
+    expect(code).not.toMatch(
+      /[\u0300-\u036F\u0640\u064B-\u065F\u0670\u06CC\u06A9\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/,
+    );
+  });
+  it("hasPaletteMatch is true when only a keyword matches", () => {
+    expect(hasPaletteMatch([{ value: "Finance", keywords: ["Ad spend"] }], "ad spend")).toBe(true);
+    expect(hasPaletteMatch([{ value: "Finance" }], "ad spend")).toBe(false);
   });
 });
 
