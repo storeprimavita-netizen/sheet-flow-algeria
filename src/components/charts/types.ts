@@ -10,6 +10,8 @@ export type ChartTableData = {
   caption: string;
   head: string[];
   rows: string[][];
+  /** Same address as the row's bar segment, when it has one. */
+  rowHrefs?: (string | undefined)[];
 };
 
 export type ChartEmpty = { title: string; action?: { label: string; href: string } };

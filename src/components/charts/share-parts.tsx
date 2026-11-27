@@ -12,5 +12,5 @@ export function shareLegend(slices: ShareSlice[], total: number) {
 }
 
 export function shareTable(title: string, head: [string, string, string], slices: ShareSlice[], total: number) {
-  return { caption: title, head, rows: slices.map((s) => [s.label, s.display, shareOf(s.value, total)]) };
+  return { caption: title, head, rows: slices.map((s) => [s.label, s.display, shareOf(s.value, total)]), rowHrefs: slices.map((s) => s.href) };
 }

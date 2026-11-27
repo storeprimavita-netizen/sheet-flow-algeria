@@ -131,6 +131,14 @@ describe("Donut / StackedBar", () => {
     expect(html).toContain("%");
     expect(html).toContain('href="/app/sell/orders?x=other"');
   });
+  test("table view rows link like the slices", () => {
+    const mixed = [slices[0], { ...slices[1], href: undefined }];
+    const t = shareTable("Outcome", ["a", "b", "c"], mixed, 52);
+    expect(t.rowHrefs).toEqual([slices[0].href, undefined]);
+    const html = render(<ChartTable data={t} />);
+    expect(html.match(/<a /g)).toHaveLength(1);
+    expect(html).toContain(`href="${slices[0].href}"`);
+  });
   test("share table lists the same numbers as the slices", () => {
     const t = shareTable("Outcome", ["a", "b", "c"], slices, 52);
     expect(t.rows).toHaveLength(5);
