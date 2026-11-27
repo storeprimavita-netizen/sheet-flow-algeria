@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
-import { paletteFilter } from "@/lib/palette-filter";
+import { paletteFilter, hasPaletteMatch } from "@/lib/palette-filter";
+import { navLeaves } from "@/components/nav-model";
 import en from "@/messages/en.json";
 import ar from "@/messages/ar.json";
 
@@ -25,6 +26,46 @@ describe("palette filter", () => {
   it("internal keys do not match; old-name keywords do", () => {
     expect(paletteFilter("Finance Overview", "financeOverview")).toBe(0);
     expect(paletteFilter("Finance Overview", "ad spend", ["Ad spend"])).toBe(1);
+  });
+});
+
+describe("NAV-1-H filter", () => {
+  it("Arabic old-name keyword matches", () => {
+    expect(paletteFilter(`${ar.nav.groupSell} ${ar.nav.shipping}`, "التوصيل", [ar.navOld.delivery])).toBe(1);
+  });
+  it("group-only query matches", () => {
+    expect(paletteFilter(`${ar.nav.groupSell} ${ar.nav.customers}`, ar.nav.groupSell)).toBe(1);
+    expect(paletteFilter(`${en.nav.groupSell} ${en.nav.customers}`, en.nav.groupSell)).toBe(1);
+  });
+  it("nonsense EN query hides every real nav row", () => {
+    const rows = navLeaves("admin").map((l) => ({
+      value: en.nav[l.key as keyof typeof en.nav] as string,
+      keywords: l.oldKey ? [en.navOld[l.oldKey as keyof typeof en.navOld] as string] : [],
+    }));
+    expect(rows.length).toBeGreaterThan(5);
+    expect(hasPaletteMatch(rows, "zzzz")).toBe(false);
+    expect(hasPaletteMatch(rows, "")).toBe(true);
+  });
+  it("طلب against real AR labels", () => {
+    expect(paletteFilter(ar.nav.all, "طلب")).toBe(1);
+    expect(paletteFilter(ar.cmd.newOrder, "طلب")).toBe(1);
+    expect(paletteFilter(ar.nav.tasks, "طلب")).toBe(0);
+  });
+  it("Persian yeh and keheh fold", () => {
+    expect(paletteFilter("\u064A\u0643", "\u06CC\u06A9")).toBe(1);
+    expect(paletteFilter("\u06CC\u06A9", "\u064A\u0643")).toBe(1);
+  });
+  it("filter source is ASCII inside its regexes", () => {
+    const code = src("src/lib/palette-filter.ts");
+    expect(code).not.toMatch(/[\u0300-\u036F\u0640\u064B-\u065F\u0670]/);
+  });
+});
+
+describe("NAV-1-H palette source", () => {
+  it("uses hasPaletteMatch and cmd.noNavMatch", () => {
+    const code = src("src/components/command-palette.tsx");
+    expect(code).toContain("hasPaletteMatch");
+    expect(code).toContain("cmd.noNavMatch");
   });
 });
 

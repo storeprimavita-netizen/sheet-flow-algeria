@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { PlusCircle, Package, Building2, Megaphone, Users, Hash } from "lucide-react";
 
 import type { Role } from "@/lib/roles";
-import { paletteFilter } from "@/lib/palette-filter";
+import { paletteFilter, hasPaletteMatch } from "@/lib/palette-filter";
 import {
   CommandDialog,
   CommandInput,
@@ -72,6 +72,17 @@ export function CommandPalette({ role, children }: { role: Role | null; children
     ...(home ? [{ leaf: home }] : []),
     ...groups.flatMap((g) => g.items.map((leaf) => ({ leaf, groupKey: g.key }))),
   ];
+  const navRows = navItems.map(({ leaf, groupKey }) => {
+    const label = t(`nav.${leaf.key}`);
+    const group = groupKey ? t(`nav.${groupKey}`) : "";
+    return {
+      leaf,
+      label,
+      group,
+      value: `${group} ${label}`,
+      keywords: leaf.oldKey ? [t(`navOld.${leaf.oldKey}`)] : [],
+    };
+  });
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   const kbdHint = isMac ? "⌘K" : "Ctrl K";
 
@@ -87,8 +98,9 @@ export function CommandPalette({ role, children }: { role: Role | null; children
           { key: "newProduct", href: "/app/catalog/products/new", Icon: Package },
           { key: "newSupplier", href: "/app/money/suppliers/new", Icon: Building2 },
           { key: "addAdSpend", href: "/app/money/ad-spend", Icon: Megaphone },
-        ]
+        ].map((a) => ({ ...a, value: t(`cmd.${a.key}`) }))
       : [];
+  const noNavMatch = query.trim() !== "" && !hasPaletteMatch([...navRows, ...actions], query);
 
   return (
     <>
@@ -99,32 +111,26 @@ export function CommandPalette({ role, children }: { role: Role | null; children
 
       <CommandDialog open={open} onOpenChange={setOpen} filter={paletteFilter}>
         <CommandInput placeholder={t("cmd.placeholder")} value={query} onValueChange={setQuery} />
+        <div role="status" className="text-sm text-muted-foreground empty:hidden px-4 py-2">
+          {noNavMatch ? t("cmd.noNavMatch") : null}
+        </div>
         <CommandList>
           {query.trim() ? null : <CommandEmpty>{t("cmd.empty")}</CommandEmpty>}
           <CommandGroup heading={t("cmd.navigate")}>
-            {navItems.map(({ leaf: n, groupKey }) => {
-              const label = t(`nav.${n.key}`);
-              const group = groupKey ? t(`nav.${groupKey}`) : "";
-              return (
-                <CommandItem
-                  key={n.href}
-                  value={`${group} ${label}`}
-                  keywords={[...(n.oldKey ? [t(`navOld.${n.oldKey}`)] : [])]}
-                  onSelect={() => go(n.href)}
-                >
-                  <n.icon />
-                  {label}
-                  {group ? <span className="ms-auto text-xs text-muted-foreground">{group}</span> : null}
-                </CommandItem>
-              );
-            })}
+            {navRows.map(({ leaf: n, label, group, value, keywords }) => (
+              <CommandItem key={n.href} value={value} keywords={keywords} onSelect={() => go(n.href)}>
+                <n.icon />
+                {label}
+                {group ? <span className="ms-auto text-xs text-muted-foreground">{group}</span> : null}
+              </CommandItem>
+            ))}
           </CommandGroup>
           {actions.length ? (
             <CommandGroup heading={t("cmd.actions")}>
               {actions.map((a) => (
-                <CommandItem key={a.href} value={t(`cmd.${a.key}`)} onSelect={() => go(a.href)}>
+                <CommandItem key={a.href} value={a.value} onSelect={() => go(a.href)}>
                   <a.Icon />
-                  {t(`cmd.${a.key}`)}
+                  {a.value}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -62,6 +62,7 @@
   "cmd": {
     "title": "Search",
     "placeholder": "Type a command or search…",
+    "noNavMatch": "No matching page or action.",
     "empty": "No results.",
     "navigate": "Go to",
     "actions": "Actions",
