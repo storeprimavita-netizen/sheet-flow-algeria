@@ -808,7 +808,8 @@
         "product_fabric": "Fabric",
         "expense_subcategory": "Expense subcategory",
         "order_tag": "Tags",
-        "cancellation_reason": "Cancellation reason"
+        "cancellation_reason": "Cancellation reason",
+        "money_category": "Money category"
       },
       "navTitle": "Options & labels"
     },
@@ -1134,31 +1135,152 @@
   },
   "accounts": {
     "title": "Accounts",
-    "subtitle": "Track spending budgets across your accounts",
-    "noAccounts": "No accounts yet. Create one to start tracking spending.",
-    "errors": {
-      "systemOnly": "Your workspace already has its three system accounts.",
-      "invalidInput": "Check the account details and try again.",
-      "saveFailed": "Could not save this account.",
-      "topupFailed": "Could not record the top-up. Check the account currency and amount."
-    },
-    "fields": {
-      "name": "Account name",
-      "currency": "Currency",
-      "openingBalance": "Opening balance",
-      "lowBalanceThreshold": "Low balance threshold",
-      "isActive": "Active"
-    },
-    "topup": {
-      "title": "Record top-up",
-      "amount": "Amount",
-      "occurredOn": "Date",
-      "note": "Note"
-    },
+    "subtitle": "ZR, dinar and USDT balances",
     "balance": "Balance",
     "lowBalance": "Low balance",
     "lowBalanceBanner": "Low balance on: {accounts}",
-    "empty": "No accounts yet — add one in Accounts."
+    "empty": "No active accounts.",
+    "errors": {
+      "systemOnly": "Your workspace already has its three system accounts.",
+      "invalidInput": "Check the details and try again.",
+      "saveFailed": "Could not save this account.",
+      "entryFailed": "Could not record the movement. Check the amount, its decimals and the category.",
+      "transferFailed": "Could not record the transfer. Check the amounts and the rate.",
+      "reverseFailed": "Could not reverse this entry. It may already be reversed. Reload and check.",
+      "postFailed": "Nothing was posted. Reload and check every account and conversion.",
+      "remapFailed": "Could not move this account. Reload and check the conversions.",
+      "staleMapping": "This mapping has changed since the page loaded. Reload the page and try again.",
+      "loadReason": "The accounts could not be loaded."
+    },
+    "fields": {
+      "name": "Account name",
+      "lowBalanceThreshold": "Low balance threshold",
+      "thresholdHint": "0 = no warning",
+      "isActive": "Active"
+    },
+    "cards": {
+      "lastMovement": "Last movement {date}",
+      "noMovement": "No movement yet",
+      "inactive": "Inactive",
+      "pending": "Old account",
+      "edit": "Edit {name}",
+      "editTitle": "Edit account",
+      "total": "Total in dinars",
+      "rate": "1 USDT = {rate} DA since {date}",
+      "noRate": "No USDT rate yet, so there is no dinar total.",
+      "addRate": "Add it in Settings"
+    },
+    "quickAdd": {
+      "title": "Add a movement",
+      "account": "Account",
+      "date": "Date",
+      "direction": "Direction",
+      "in": "Money in",
+      "out": "Money out",
+      "amount": "Amount",
+      "category": "Category",
+      "categoryPlaceholder": "Optional",
+      "note": "Note",
+      "submit": "Record movement",
+      "saving": "Saving…",
+      "noAccounts": "No active account. Activate one to add a movement."
+    },
+    "ledger": {
+      "title": "Ledger",
+      "filter": "Filter by account",
+      "all": "All accounts",
+      "date": "Date",
+      "account": "Account",
+      "amount": "Amount",
+      "category": "Category",
+      "note": "Details",
+      "actions": "Actions",
+      "empty": "No movements here yet.",
+      "emptyAction": "Add a movement",
+      "firstPage": "Back to the first page",
+      "prev": "Newer",
+      "next": "Older",
+      "page": "Page {page} of {pages}",
+      "reverse": "Reverse",
+      "reverseRow": "Reverse {amount} of {date}",
+      "reverseTitle": "Reverse this entry?",
+      "reverseBody": "A matching opposite entry is added today. The original stays in the ledger.",
+      "reverseTransferBody": "This is a transfer: both sides are reversed with opposite entries dated today.",
+      "reversedToast": "Entry reversed.",
+      "flags": {
+        "transfer": "Transfer",
+        "reversal": "Reversal",
+        "reversed": "Reversed",
+        "legacy": "From old account",
+        "expense": "Expense",
+        "adSpend": "Ad spend"
+      }
+    },
+    "charges": {
+      "title": "Charges without a ledger entry",
+      "hint": "These expenses and ad spend also lower the balances above. Edit them where they were recorded.",
+      "expense": "Expense",
+      "adSpend": "Ad spend",
+      "more": "Showing the latest {shown} of {count}."
+    },
+    "transfer": {
+      "button": "Transfer",
+      "title": "Transfer DZD and USDT",
+      "description": "The rate is in dinars for 1 USDT.",
+      "direction": "Direction",
+      "dzdToUsdt": "DZD to USDT",
+      "usdtToDzd": "USDT to DZD",
+      "date": "Date",
+      "amountOut": "Amount out",
+      "rate": "Rate",
+      "amountIn": "Amount in",
+      "note": "Note",
+      "submit": "Record transfer",
+      "done": "Transfer recorded.",
+      "mismatch": "The amounts and the rate do not agree. Check the decimals."
+    },
+    "payout": {
+      "button": "Mark ZR payout taken",
+      "title": "ZR payout taken",
+      "description": "Moves the money from ZR to the dinar account.",
+      "amount": "Amount",
+      "balance": "ZR balance {amount}",
+      "date": "Date",
+      "note": "Note",
+      "submit": "Record payout",
+      "done": "Payout recorded.",
+      "disabled": "Nothing to take: the ZR balance is zero or negative."
+    },
+    "legacy": {
+      "title": "Old accounts",
+      "description": "Move each old account into ZR, DZD or USDT. Check the preview before posting.",
+      "kind": "Move into",
+      "moveTo": "Change to",
+      "chooseKind": "Choose an account",
+      "current": "Currently in {name}",
+      "oldBalance": "Old balance {amount}",
+      "noSources": "No records on this account.",
+      "source": {
+        "opening": "Opening balance",
+        "topup": "Top-up",
+        "entry": "Movement",
+        "expense": "Expense",
+        "ad_spend": "Ad spend"
+      },
+      "in": "In",
+      "out": "Out",
+      "converted": "Converted amount",
+      "evidence": "Evidence (receipt, statement)",
+      "invalidLinks": "Blocked: records from another workspace are linked to this account.",
+      "directDebit": "Blocked: a debit from this account was already posted directly in the ledger.",
+      "incomplete": "Choose every destination and fill every conversion first. A blocked account stops the whole posting.",
+      "postAll": "Post all",
+      "postTitle": "Post all old accounts?",
+      "postBody": "Every account listed is moved in one step. If one fails, nothing is posted.",
+      "posted": "Old accounts posted.",
+      "remap": "Move",
+      "remapped": "Account moved."
+    }
   },
   "role": {
     "admin": "Admin",

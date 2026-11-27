@@ -149,7 +149,7 @@ async function SectionBody({ section }: { section: SectionId }) {
       return <FixedFeesSection fees={fixedFeesRes.data ?? []} rates={{ USD: usd.data ?? 1, EUR: eur.data ?? 1 }} />;
     }
     case "exchange-rates": {
-      const [exchangeRatesRes, usd, eur] = await Promise.all([
+      const [exchangeRatesRes, usd, eur, usdt] = await Promise.all([
         supabase
           .from("exchange_rates")
           .select("*")
@@ -158,8 +158,9 @@ async function SectionBody({ section }: { section: SectionId }) {
           .order("created_at", { ascending: false }),
         supabase.rpc("current_fx_rate", { p_ws: ws, p_currency: "USD" }),
         supabase.rpc("current_fx_rate", { p_ws: ws, p_currency: "EUR" }),
+        supabase.rpc("current_fx_rate", { p_ws: ws, p_currency: "USDT" }),
       ]);
-      return <ExchangeRatesSection rates={exchangeRatesRes.data ?? []} current={{ USD: usd.data ?? null, EUR: eur.data ?? null }} />;
+      return <ExchangeRatesSection rates={exchangeRatesRes.data ?? []} current={{ USD: usd.data ?? null, EUR: eur.data ?? null, USDT: usdt.data ?? null }} />;
     }
     case "pricing": {
       const [settings, row] = await Promise.all([

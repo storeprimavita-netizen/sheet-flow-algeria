@@ -2,11 +2,12 @@ import { getTranslations } from "next-intl/server";
 
 import type { Tables } from "@/lib/supabase/database.types";
 import { formatDate } from "@/lib/format";
+import { algiersToday } from "@/lib/ledger";
 import { Field, tableClass } from "@/components/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { EnumSelect } from "@/components/fields/enum-select";
-import { MoneyField } from "@/components/fields/money-field";
+import { NumberField } from "@/components/fields/number-field";
 import { DateField } from "@/components/fields/date-field";
 import { addExchangeRate } from "./actions";
 
@@ -15,17 +16,17 @@ export async function ExchangeRatesSection({
   current,
 }: {
   rates: Tables<"exchange_rates">[];
-  current: { USD: number | null; EUR: number | null };
+  current: { USD: number | null; EUR: number | null; USDT: number | null };
 }) {
   const t = await getTranslations();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = algiersToday();
 
   return (
     <section id="exchange-rates" className="card-surface scroll-mt-20 space-y-4 rounded-xl p-5">
       <h2 className="text-sm font-semibold">{t("settings.exchangeRates")}</h2>
 
-      <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-        {(["USD", "EUR"] as const).map((c) => (
+      <div className="grid grid-cols-1 gap-3 sm:max-w-md sm:grid-cols-3">
+        {(["USD", "EUR", "USDT"] as const).map((c) => (
           <Card key={c}>
             <CardHeader className="gap-1 p-4">
               <CardDescription>{c} → DZD</CardDescription>
@@ -43,11 +44,12 @@ export async function ExchangeRatesSection({
             options={[
               { value: "USD", label: "USD" },
               { value: "EUR", label: "EUR" },
+              { value: "USDT", label: "USDT" },
             ]}
           />
         </Field>
         <Field label={t("settings.rate")}>
-          <MoneyField name="rate_dzd" />
+          <NumberField name="rate_dzd" unit="DA" />
         </Field>
         <Field label={t("settings.validFrom")}>
           <DateField name="valid_from" defaultValue={today} />

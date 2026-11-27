@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { headers } from "next/headers";
 
+import { algiersToday } from "@/lib/ledger";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdminProfile as adminProfile } from "@/lib/rbac";
 import { setSetting, SETTINGS_SCHEMAS, MEETING_SLOT_COUNT, zrStateKey } from "@/lib/settings";
@@ -504,8 +505,9 @@ export async function deleteFixedFee(id: string) {
 // Exchange rates (append-only)
 // ---------------------------------------------------------------------------
 const exchangeRateSchema = z.object({
-  currency: z.enum(["USD", "EUR"]),
-  rate_dzd: z.coerce.number().positive(),
+  currency: z.enum(["USD", "EUR", "USDT"]),
+  // the DB keeps USDT rates below 1e8 (00085)
+  rate_dzd: z.coerce.number().positive().lt(100_000_000),
   valid_from: z.string().min(1),
 });
 
@@ -514,13 +516,14 @@ export async function addExchangeRate(formData: FormData) {
   const input = exchangeRateSchema.parse({
     currency: formData.get("currency"),
     rate_dzd: formData.get("rate_dzd"),
-    valid_from: String(formData.get("valid_from") || new Date().toISOString().slice(0, 10)),
+    valid_from: String(formData.get("valid_from") || algiersToday()),
   });
 
   const supabase = await createClient();
   const { error } = await supabase.from("exchange_rates").insert({ workspace_id: workspaceId, ...input });
   if (error) throw new Error(error.message);
   revalidatePath("/app/settings");
+  revalidatePath("/app/money/accounts");
 }
 
 // ---------------------------------------------------------------------------

@@ -23,6 +23,7 @@ export const OPTION_SET_KEYS = [
   "expense_subcategory",
   "order_tag",
   "cancellation_reason",
+  "money_category",
 ] as const;
 export type OptionSetKey = (typeof OPTION_SET_KEYS)[number];
 
@@ -66,7 +67,7 @@ export async function getAllOptionSets(
   return results;
 }
 
-/** id -> usage count, for the one known consumer column each set has (no generic polymorphic counter — 5 fixed sets). */
+/** id -> usage count, for the one known consumer column each set has (no generic polymorphic counter — fixed sets). */
 export async function getOptionUsageCounts(workspaceId: string, key: OptionSetKey): Promise<Record<string, number>> {
   const supabase = await createClient();
   let ids: (string | null)[] = [];
@@ -89,6 +90,11 @@ export async function getOptionUsageCounts(workspaceId: string, key: OptionSetKe
     case "cancellation_reason": {
       const { data } = await supabase.from("orders").select("cancellation_reason_option_id").eq("workspace_id", workspaceId);
       ids = (data ?? []).map((r) => r.cancellation_reason_option_id);
+      break;
+    }
+    case "money_category": {
+      const { data } = await supabase.from("account_entries").select("category_id").eq("workspace_id", workspaceId);
+      ids = (data ?? []).map((r) => r.category_id);
       break;
     }
     case "order_tag": {

@@ -4,7 +4,8 @@ import { Banknote, Landmark, Megaphone, Wallet } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/rbac";
-import { formatCurrency, formatPercent } from "@/lib/format";
+import { formatAccountAmount, formatCurrency, formatPercent } from "@/lib/format";
+import { isLowBalance } from "@/lib/ledger";
 import { asPnl, pnlMetrics } from "@/lib/pricing";
 import { asKpi, kpiRoas } from "@/lib/kpi";
 import { PageHeader } from "@/components/page-header";
@@ -20,10 +21,6 @@ const AGE_BUCKETS = [
   { key: "age15", max: 30 },
   { key: "age30", max: Infinity },
 ] as const;
-
-/** Money for a non-DZD account balance: same grouping, its own currency code. */
-const money = (v: number | null, currency: string) =>
-  currency === "DZD" ? formatCurrency(v) : v == null ? "—" : `${Math.round(v).toLocaleString("en-US").replace(/,/g, " ")} ${currency}`;
 
 export default async function FinanceOverviewPage({
   searchParams,
@@ -78,7 +75,7 @@ export default async function FinanceOverviewPage({
   const cashOnHand = (onHand ?? []).reduce((s, c) => s + (c.amount_dzd ?? 0), 0);
 
   const balances = (accountBalances ?? []).filter((a) => a.is_active);
-  const lowBalances = balances.filter((a) => a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold);
+  const lowBalances = balances.filter((a) => a.balance != null && isLowBalance(a.balance, a.low_balance_threshold ?? 0));
   const categorySpending = ((categories as unknown as { category_spending?: { category: string; amount_dzd: number }[] } | null)?.category_spending ?? [])
     .slice()
     .sort((a, b) => b.amount_dzd - a.amount_dzd);
@@ -107,7 +104,7 @@ export default async function FinanceOverviewPage({
       {lowBalances.length > 0 ? (
         <Link href="/app/money/accounts" className="block rounded-xl border border-danger/30 bg-danger-bg p-4 text-sm text-danger">
           {t("accounts.lowBalanceBanner", {
-            accounts: lowBalances.map((a) => `${a.name} (${money(a.balance, a.currency ?? "DZD")})`).join(", "),
+            accounts: lowBalances.map((a) => `${a.name} (${formatAccountAmount(a.balance, a.currency ?? "DZD")})`).join(", "),
           })}
         </Link>
       ) : null}
@@ -204,13 +201,13 @@ export default async function FinanceOverviewPage({
           ) : (
             <ul className="divide-y divide-border">
               {balances.map((a) => {
-                const low = a.balance != null && a.low_balance_threshold != null && a.balance <= a.low_balance_threshold;
+                const low = a.balance != null && isLowBalance(a.balance, a.low_balance_threshold ?? 0);
                 return (
                   <li key={a.account_id} className="flex items-baseline justify-between py-2 text-sm">
                     <Link href="/app/money/accounts" className="hover:underline">
                       {a.name}
                     </Link>
-                    <span className={`num ${low ? "text-danger" : ""}`}>{money(a.balance, a.currency ?? "DZD")}</span>
+                    <span className={`num ${low ? "text-danger" : ""}`}>{formatAccountAmount(a.balance, a.currency ?? "DZD")}</span>
                   </li>
                 );
               })}

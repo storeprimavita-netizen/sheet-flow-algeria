@@ -1110,3 +1110,11 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
 - Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
 - Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
+
+## MONEY-2 — Accounts screen: ZR, DZD, USDT (2026-11-27) — BUILT, not merged
+- Done: three cards + DZD total, quick-add, ledger + reversal, transfer, ZR payout, legacy mapping, USDT rate in Settings, money categories. Review 1 high + medium findings fixed.
+- Removed: account-table, topup-form, saveTopup, create/opening-balance/currency inputs.
+- Changed beyond the brief: `NumberField` (shared) reads a comma as decimals or clear grouping; an ambiguous "1,000" is refused (reviews 1-2).
+- Screens: docs/design/audit/MONEY-2/ (EN dark, AR light, 390 px). Not seen with real data: legacy panel, charges list, pagination, payout submit.
+- Tests: accounts.rls.test.ts 9/9 live (run alone; this lane skips the live suite). gate.sh in this lane fails only on my-day.rls.test.ts ("supabaseUrl is required"), untouched by this task.
+- Left open (review 1 low): merging a used money category fails with a raw FK error; Expense / Ad spend chips and charge rows do not deep-link to the record.

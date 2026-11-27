@@ -59,6 +59,7 @@ export function CountBySize({ productId, rows, notAssigned }: { productId: strin
             </span>
             <NumberField
               className="w-24"
+              integer
               aria-label={t("countInput", { label: r.label })}
               placeholder={String(r.stock)}
               disabled={busy}

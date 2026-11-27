@@ -1,11 +1,18 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 import type { Database } from "@/lib/supabase/database.types";
 import { deleteLeakedWorkspaces, deleteWorkspaces } from "@/lib/test-cleanup";
 import { DB_CONTAINER } from "@/lib/test-db";
+
+// The MONEY-2 actions run against the live database on the test's own admin session.
+const acting = vi.hoisted(() => ({ session: null as unknown, workspace: "" }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("next-intl/server", () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock("@/lib/rbac", () => ({ requireAdminProfile: async () => ({ role: "admin", workspaceId: acting.workspace }) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => acting.session }));
 
 const url = process.env.LOCAL_SUPABASE_URL;
 // Published local Supabase demo credentials.
@@ -402,5 +409,36 @@ describe.skipIf(!url)("MONEY-1 accounts and ledger (live)", () => {
     expect(await balance(review, await account(review, "zr"))).toBe(8020);
     expect((await review.from("account_legacy_mappings").select("previous_mapping_id")
       .eq("id", remappedAgain.data!).single()).data?.previous_mapping_id).toBe(remapped.data);
+  });
+
+  test("actions' RPC payloads move balances by the exact amounts", async () => {
+    const own = await makeWorkspace();
+    const owner = (await member(own, "admin")).session;
+    acting.session = owner;
+    acting.workspace = own;
+    const { markPayoutTaken, reverseEntry, saveEntry, transferFunds } =
+      await import("@/app/(app)/app/money/accounts/actions");
+    const zr = await account(owner, "zr");
+    const dzd = await account(owner, "dzd");
+    const usdt = await account(owner, "usdt");
+    const balances = async () => [await balance(owner, zr), await balance(owner, dzd), await balance(owner, usdt)];
+
+    const entry = { account_id: zr, occurred_on: day, direction: "in" as const, amount: 1000.25, request_key: crypto.randomUUID() };
+    expect(await saveEntry(entry)).toEqual({ ok: true });
+    expect(await saveEntry(entry)).toEqual({ ok: true });
+    expect(await balances()).toEqual([1000.25, 0, 0]);
+
+    expect(await markPayoutTaken({ occurred_on: day, amount: 600.1, request_key: crypto.randomUUID() })).toEqual({ ok: true });
+    expect(await balances()).toEqual([400.15, 600.1, 0]);
+
+    expect(await transferFunds({ from: "dzd", occurred_on: day, amount_out: 480, amount_in: 2, rate: 240, request_key: crypto.randomUUID() })).toEqual({ ok: true });
+    expect(await balances()).toEqual([400.15, 120.1, 2]);
+    // a rounded quote must satisfy the database's own rate check
+    expect(await transferFunds({ from: "usdt", occurred_on: day, amount_out: 0.1, amount_in: 24.03, rate: 240.3, request_key: crypto.randomUUID() })).toEqual({ ok: true });
+    expect(await balances()).toEqual([400.15, 144.13, 1.9]);
+
+    const added = await owner.from("account_entries").select("id").eq("account_id", zr).eq("amount", 1000.25).single();
+    expect(await reverseEntry({ entry_id: added.data!.id, occurred_on: day, request_key: crypto.randomUUID() })).toEqual({ ok: true });
+    expect(await balances()).toEqual([-600.1, 144.13, 1.9]);
   });
 });

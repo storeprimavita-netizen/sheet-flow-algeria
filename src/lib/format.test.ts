@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCurrency, formatDate, formatDuration, formatOrderNo, formatUsd, groupDigits } from "./format";
+import { formatAccountAmount, formatCurrency, formatDate, formatDuration, formatOrderNo, formatUsd, groupDigits } from "./format";
 
 describe("formatDuration", () => {
   it("returns — for null/undefined", () => {
@@ -79,4 +79,12 @@ describe("groupDigits", () => {
     expect(groupDigits("1.2.3")).toBe("1.2");
     expect(groupDigits("")).toBe("");
   });
+});
+
+it("account amounts keep their own precision", () => {
+  const plain = (s: string) => s.replace(/[⁦⁩]/g, "").replace(/ /g, " ");
+  expect(plain(formatAccountAmount(12345.5, "DZD"))).toBe("12 345.50 DA");
+  expect(plain(formatAccountAmount(1.234567, "USDT"))).toBe("1.234567 USDT");
+  expect(plain(formatAccountAmount(2, "USDT"))).toBe("2.00 USDT");
+  expect(formatAccountAmount(null, "DZD")).toBe("—");
 });

@@ -16,6 +16,18 @@ export function integerInput(raw: string): string {
   return raw.split(".")[0].replace(/[^\d]/g, "");
 }
 
+/** Reads the whole typed text. A comma is the decimal mark (French/Arabic keyboards)
+ * unless the text is clearly thousands-grouped. A single comma before three digits
+ * ("1,000") could mean 1 or 1000, so it is returned unchanged and parses as NaN:
+ * a money field must never turn what was typed into another valid amount. */
+export function decimalInput(text: string): string {
+  if (!text.includes(",")) return text;
+  const commas = text.split(",").length - 1;
+  const grouped = /^-?[1-9]\d{0,2}(,\d{3})+(\.\d*)?$/.test(text);
+  if (grouped) return commas > 1 || text.includes(".") ? text.replace(/,/g, "") : text;
+  return commas === 1 && !text.includes(".") ? text.replace(",", ".") : text;
+}
+
 /**
  * Plain non-negative number input with an optional unit suffix. Empty reports
  * `null` (never 0) so callers can mean "inherit". Uncontrolled: remount with a
@@ -57,31 +69,35 @@ export function NumberField({
 }) {
   const [value, setValue] = React.useState(defaultValue == null ? "" : String(defaultValue));
   const [focused, setFocused] = React.useState(false);
+  const normalized = decimalInput(value);
+  // With a comma on screen, the form posts the interpreted number instead of the text.
+  const comma = value.includes(",");
   return (
     <div className={`relative ${className ?? ""}`}>
       <input
         id={id}
-        name={name}
+        name={comma ? undefined : name}
         type="text"
         inputMode="decimal"
         dir="ltr"
         disabled={disabled}
-        value={group && !focused ? groupDigits(value) : value}
+        value={group && !focused && !normalized.includes(",") ? groupDigits(normalized) : value}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        aria-invalid={invalid || undefined}
+        aria-invalid={invalid || Number.isNaN(parseNumberInput(normalized)) || undefined}
         aria-describedby={describedBy}
         onChange={(e) => {
           const raw = e.target.value;
           const neg = allowNegative && raw.trimStart().startsWith("-") ? "-" : "";
-          const clean = neg + (integer ? integerInput(raw) : raw.replace(/[^\d.]/g, ""));
+          const clean = neg + (integer ? integerInput(raw) : raw.replace(/[^\d.,]/g, ""));
           setValue(clean);
-          onChange?.(parseNumberInput(clean));
+          onChange?.(parseNumberInput(decimalInput(clean)));
         }}
-        className={`num flex h-9 w-full rounded-md border border-input bg-transparent py-1 ps-3 text-end text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive ${unit ? "pe-10" : "pe-3"}`}
+        className={`num flex h-9 w-full rounded-md border border-input bg-transparent py-1 ps-3 text-end text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive ${unit ? (unit.length > 3 ? "pe-14" : "pe-10") : "pe-3"}`}
       />
+      {comma && name ? <input type="hidden" name={name} value={normalized} /> : null}
       {unit ? (
         <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
           {unit}

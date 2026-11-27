@@ -14,6 +14,14 @@ export function formatCurrency(
   return ltr(`${n.toLocaleString("en-US").replace(/,/g, NBSP)}${NBSP}${unit}`);
 }
 
+/** Account balances and movements in their own currency: 2 decimals, USDT up to 6. */
+export function formatAccountAmount(value: number | null | undefined, currency: string): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const n = value || 0; // folds -0
+  const body = n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: currency === "USDT" ? 6 : 2 });
+  return ltr(`${body.replace(/,/g, NBSP)}${NBSP}${currency === "DZD" ? "DA" : currency}`);
+}
+
 /** Whole number, space-grouped, no unit, isolated for RTL: `135 900`. */
 export function formatInt(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";

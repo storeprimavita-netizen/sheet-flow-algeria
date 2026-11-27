@@ -1,89 +1,50 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 
 import { Field } from "@/components/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { EnumSelect } from "@/components/fields/enum-select";
+import { NumberField } from "@/components/fields/number-field";
+import { SettingSwitch } from "@/components/fields/setting-switch";
 import { saveAccount } from "@/app/(app)/app/money/accounts/actions";
-import { CURRENCY_CODES } from "@/lib/enums";
+import { useLedgerSubmit } from "./use-ledger-submit";
 
-type AccountRow = {
-  id?: string;
-  name: string;
-  currency: string;
-  opening_balance: number;
-  low_balance_threshold: number;
-  is_active: boolean;
-};
-
+/** Name, low-balance threshold and active flag: the only editable account settings. */
 export function AccountForm({
   account,
   onDone,
 }: {
-  account?: AccountRow;
-  onDone?: () => void;
+  account: { id: string; name: string; low_balance_threshold: number; is_active: boolean };
+  onDone: () => void;
 }) {
   const t = useTranslations();
-  const router = useRouter();
-  const [busy, setBusy] = React.useState(false);
+  const id = React.useId();
+  const { busy, submit } = useLedgerSubmit();
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
-    const res = await saveAccount(new FormData(e.currentTarget));
-    setBusy(false);
-    if (res.ok) {
-      toast.success(t("common.updated"));
-      router.refresh();
-      onDone?.();
-    } else {
-      toast.error(res.error);
-    }
+    const data = new FormData(e.currentTarget);
+    data.set("id", account.id);
+    submit(null, () => saveAccount(data), onDone);
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <input type="hidden" name="id" value={account?.id ?? ""} />
-
-      <Field label={t("accounts.fields.name")}>
-        <Input name="name" defaultValue={account?.name ?? ""} required />
+      <Field label={t("accounts.fields.name")} htmlFor={`${id}-name`}>
+        <Input id={`${id}-name`} name="name" defaultValue={account.name} required autoComplete="off" />
       </Field>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t("accounts.fields.currency")}>
-          <EnumSelect
-            name="currency"
-            defaultValue={account?.currency ?? "DZD"}
-            options={CURRENCY_CODES.map((c) => ({ value: c, label: c }))}
-          />
-        </Field>
-        <Field label={t("accounts.fields.openingBalance")}>
-          <Input name="opening_balance" type="number" step="0.01" min="0" defaultValue={account?.opening_balance ?? 0} />
-        </Field>
-      </div>
-
-      <Field label={t("accounts.fields.lowBalanceThreshold")}>
-        <Input name="low_balance_threshold" type="number" step="0.01" min="0" defaultValue={account?.low_balance_threshold ?? 0} />
+      <Field label={t("accounts.fields.lowBalanceThreshold")} htmlFor={`${id}-threshold`} hint={t("accounts.fields.thresholdHint")}>
+        <NumberField id={`${id}-threshold`} name="low_balance_threshold" defaultValue={account.low_balance_threshold} />
       </Field>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="is_active" defaultChecked={account?.is_active ?? true} className="rounded" />
-        {t("accounts.fields.isActive")}
-      </label>
-
+      <SettingSwitch name="is_active" label={t("accounts.fields.isActive")} defaultChecked={account.is_active} />
       <div className="flex justify-end gap-2">
-        {onDone ? (
-          <Button type="button" variant="ghost" size="sm" onClick={onDone}>
-            {t("actions.cancel")}
-          </Button>
-        ) : null}
+        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+          {t("actions.cancel")}
+        </Button>
         <Button type="submit" size="sm" disabled={busy}>
-          {busy ? t("actions.saving") : account ? t("actions.save") : t("actions.create")}
+          {busy ? t("actions.saving") : t("actions.save")}
         </Button>
       </div>
     </form>
