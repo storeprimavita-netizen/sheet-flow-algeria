@@ -1123,3 +1123,7 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/CHART-1-B.review-2.md`; screenshots in `docs/design/audit/CHART-1-B/`.
 - Owner — live RLS suite not run here (nodb worker); far-future-order and my-day live tests still unverified.
 - Next — run the live suite on the owner machine; open LOWs tracked in docs/BACKLOG.md.
+
+## P1-2-F
+- Done — dashboard lows closed (cost sub-line, journey notes, Home heading, stock Delivered hidden on phones, 44 px targets); stuck count and link share one predicate (?stuck=1 on shipping); band render tests added.
+- Screens — not taken: no browser session in this run; AR 390 legend (chart-panel) left unchanged, needs the ui-reviewer check.
