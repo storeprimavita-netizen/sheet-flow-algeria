@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { lastPage, pageHref, parsePage, readPage } from "@/lib/list-pagination";
+import { ButtonLink } from "@/components/button-link";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,37 +13,76 @@ import { Empty } from "@/components/empty";
 import { recordCashCollection, markDeposited } from "../actions";
 import { OrderNo } from "@/components/order-no";
 
-export async function CollectionsTab() {
+const PATH = "/app/money/courier-cash";
+type Params = Record<string, string | undefined>;
+type PageKey = "uncollectedPage" | "outstandingPage" | "depositsPage";
+
+export async function CollectionsTab({ searchParams }: { searchParams: Params }) {
   const t = await getTranslations();
   const supabase = await createClient();
 
-  const [{ data: delivered }, { data: collections }] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, order_seq, sale_price, quantity, customer_name")
-      .eq("delivery_status", "delivered")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("cash_collections")
-      .select("*, order:orders(order_seq, customer_name)")
-      .order("created_at", { ascending: false }),
-  ]);
+  const pages: Record<PageKey, number> = {
+    uncollectedPage: parsePage(searchParams.uncollectedPage),
+    outstandingPage: parsePage(searchParams.outstandingPage),
+    depositsPage: parsePage(searchParams.depositsPage),
+  };
+  const collections = (status: "collected" | "deposited", page: number) =>
+    readPage(page, (start, end) =>
+      supabase
+        .from("cash_collections")
+        .select("*, order:orders(order_seq, customer_name)", { count: "exact" })
+        .eq("status", status)
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(start, end),
+    );
 
-  const collectedOrderIds = new Set((collections ?? []).map((c) => c.order_id));
-  const uncollected = (delivered ?? []).filter((o) => !collectedOrderIds.has(o.id));
-  const outstanding = (collections ?? []).filter((c) => c.status === "collected");
-  const deposits = (collections ?? []).filter((c) => c.status === "deposited");
+  const [uncollected, outstanding, deposits] = await Promise.all([
+    // Anti-join in the database: delivered orders with no collection, before paging.
+    readPage(pages.uncollectedPage, (start, end) =>
+      supabase
+        .from("orders")
+        .select("id, order_seq, sale_price, quantity, customer_name, cash:cash_collections(id)", { count: "exact" })
+        .eq("delivery_status", "delivered")
+        .is("cash", null)
+        .order("created_at", { ascending: false })
+        .order("id")
+        .range(start, end),
+    ),
+    collections("collected", pages.outstandingPage),
+    collections("deposited", pages.depositsPage),
+  ]);
+  const lists = { uncollectedPage: uncollected, outstandingPage: outstanding, depositsPage: deposits };
+  for (const key of Object.keys(lists) as PageKey[]) {
+    const { goTo } = lists[key];
+    if (goTo) redirect(pageHref(PATH, searchParams, key, goTo));
+  }
+
+  const pager = (key: PageKey) => {
+    const page = pages[key];
+    const last = lastPage(lists[key].total);
+    if (last <= 1) return null;
+    return (
+      <nav aria-labelledby={`${key}-title`} className="flex items-center justify-between gap-2 text-sm">
+        <span className="num text-muted-foreground">{t("table.page")} {page} / {last}</span>
+        <div className="flex gap-2">
+          {page > 1 ? <ButtonLink href={`${pageHref(PATH, searchParams, key, page - 1)}#${key}-title`} variant="outline" size="sm">{t("common.prev")}</ButtonLink> : null}
+          {page < last ? <ButtonLink href={`${pageHref(PATH, searchParams, key, page + 1)}#${key}-title`} variant="outline" size="sm">{t("common.next")}</ButtonLink> : null}
+        </div>
+      </nav>
+    );
+  };
 
   return (
     <div className="space-y-6">
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">{t("cash.record")}</h2>
+        <h2 id="uncollectedPage-title" className="scroll-mt-20 text-sm font-semibold">{t("cash.record")}</h2>
         <p className="text-xs text-muted-foreground">{t("cash.recordHint")}</p>
-        {!uncollected.length ? (
+        {!uncollected.rows.length ? (
           <Empty>{t("cash.noUncollected")}</Empty>
         ) : (
           <div className="space-y-2">
-            {uncollected.map((o) => {
+            {uncollected.rows.map((o) => {
               const total = (o.sale_price ?? 0) * o.quantity;
               return (
                 <form
@@ -73,15 +115,16 @@ export async function CollectionsTab() {
             })}
           </div>
         )}
+        {pager("uncollectedPage")}
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">{t("cash.outstanding")}</h2>
-        {!outstanding.length ? (
+        <h2 id="outstandingPage-title" className="scroll-mt-20 text-sm font-semibold">{t("cash.outstanding")}</h2>
+        {!outstanding.rows.length ? (
           <Empty>{t("cash.noOutstanding")}</Empty>
         ) : (
           <div className="space-y-2">
-            {outstanding.map((c) => (
+            {outstanding.rows.map((c) => (
               <form
                 key={c.id}
                 action={markDeposited.bind(null, c.id)}
@@ -103,11 +146,12 @@ export async function CollectionsTab() {
             ))}
           </div>
         )}
+        {pager("outstandingPage")}
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">{t("cash.deposits")}</h2>
-        {!deposits.length ? (
+        <h2 id="depositsPage-title" className="scroll-mt-20 text-sm font-semibold">{t("cash.deposits")}</h2>
+        {!deposits.rows.length ? (
           <Empty>{t("cash.noDeposits")}</Empty>
         ) : (
           <div className="card-surface overflow-hidden rounded-xl">
@@ -122,7 +166,7 @@ export async function CollectionsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {deposits.map((d) => (
+                  {deposits.rows.map((d) => (
                     <tr key={d.id}>
                       <td className="font-medium"><OrderNo seq={d.order?.order_seq} /></td>
                       <td>
@@ -137,6 +181,7 @@ export async function CollectionsTab() {
             </div>
           </div>
         )}
+        {pager("depositsPage")}
       </section>
     </div>
   );

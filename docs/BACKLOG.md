@@ -64,3 +64,6 @@ P1-5 · finance filter bar · repeated URL params show chips over unfiltered row
 P1-5 · `money/finance-filters.ts` · `?from=0000-01-01` passes `isRealIsoDate` and ends on the error screen (review-4 #2)
 P1-5 · `src/lib/list-pagination.ts` `readPage` · rows changing between page read and count probe can leave an empty page above 1 (review-3 #3)
 P1-5 · `money/finance-filter-bar.tsx` · chip buttons use `focus:outline-none` with no visible ring (review-4 #4, pre-existing)
+P1-5 · `money/courier-cash/_components/collections-tab.tsx` · deposits column headed "Placed at" shows `deposited_on` (review-5 #4, pre-existing)
+P1-5 · courier cash pagers · focus falls to body when Previous/Next disappears; no pending state during a slow read (review-6 #2, #3)
+P1-5 · courier cash cards · customer name is not bidi-isolated with `<bdi>` (review-6 #4, pre-existing)

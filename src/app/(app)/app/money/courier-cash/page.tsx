@@ -11,7 +11,8 @@ export default async function CourierCashPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { tab, from, to } = await searchParams;
+  const sp = await searchParams;
+  const { tab, from, to } = sp;
   const active = tab === "income" ? "income" : "collections";
   const t = await getTranslations();
 
@@ -25,7 +26,7 @@ export default async function CourierCashPage({
           { key: "income", href: "/app/money/courier-cash?tab=income", label: t("nav.income") },
         ]}
       />
-      {active === "income" ? <IncomeTab from={from} to={to} /> : <CollectionsTab />}
+      {active === "income" ? <IncomeTab from={from} to={to} /> : <CollectionsTab searchParams={sp} />}
     </div>
   );
 }
