@@ -27,6 +27,13 @@ export default async function DeliveryQueuePage({
   const sp = await searchParams;
   const showAll = sp.show === "all";
   const stuck = sp.stuck === "1";
+  // "Show all" drops only `stuck`; layout, grouping and filters stay.
+  const unstuckHref = (() => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (k !== "stuck" && typeof v === "string") q.set(k, v);
+    const qs = q.toString();
+    return qs ? `/app/sell/shipping?${qs}` : "/app/sell/shipping";
+  })();
   const t = await getTranslations();
   const supabase = await createClient();
   const isAdmin = await isCurrentUserAdmin();
@@ -115,7 +122,7 @@ export default async function DeliveryQueuePage({
       {stuck ? (
         <p role="status" className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>{t("orderViews.stuckNotice", { days: STUCK_DAYS })}</span>
-          <ButtonLink href="/app/sell/shipping" variant="outline" size="sm">{t("orderViews.stuckClear")}</ButtonLink>
+          <ButtonLink href={unstuckHref} variant="outline" size="sm" className="max-sm:min-h-11">{t("orderViews.stuckClear")}</ButtonLink>
         </p>
       ) : null}
       {invalid ? <InvalidViewNotice rest={rest} /> : null}
@@ -136,8 +143,8 @@ export default async function DeliveryQueuePage({
       {ordersError ? <OrderBoardLoadError /> : presentation.layout === "kanban" ? (
         <OrderKanban scope="shipping" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
           empty={<OrderBoardEmpty scope="shipping" filtered={stuck || FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
-            resetHref={stuck ? "/app/sell/shipping" : boardResetHref("/app/sell/shipping", sp, active?.config, presentation)} />} />
-      ) : <DeliveryTable rows={rows} isAdmin={isAdmin} />}
+            resetHref={stuck ? unstuckHref : boardResetHref("/app/sell/shipping", sp, active?.config, presentation)} />} />
+      ) : <DeliveryTable rows={rows} isAdmin={isAdmin} clearHref={stuck ? unstuckHref : undefined} />}
     </div>
   );
 }

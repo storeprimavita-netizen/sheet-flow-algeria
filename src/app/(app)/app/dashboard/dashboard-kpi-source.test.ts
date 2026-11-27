@@ -69,4 +69,12 @@ describe("dashboard reads SQL figures only", () => {
       expect(src, p).toMatch(/AT_COURIER/);
     }
   });
+
+  test("shipping stuck filter keeps the confirmed predicate and a filtered empty table", () => {
+    const dir = path.resolve(__dirname, "../sell/shipping");
+    const page = readFileSync(path.join(dir, "page.tsx"), "utf8");
+    expect(page).toMatch(/confirmation_status", "confirmed"/);
+    expect(page).toMatch(/clearHref=\{stuck/);
+    expect(readFileSync(path.join(dir, "delivery-table.tsx"), "utf8")).toMatch(/clearHref \?/);
+  });
 });

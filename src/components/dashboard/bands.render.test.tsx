@@ -44,6 +44,7 @@ describe("dashboard bands render", () => {
       await nodes(MoneyBand({ kpi: null, prev: null, hrefs: { revenue: "", ads: "", finance: "" } })),
       await nodes(StockStrip({ rows: null })),
       await nodes(ProductScorecard({ rows: null, hasProducts: true })),
+      await nodes(OrderJourney({ kpi: null, hrefs: { received: "", confirmed: "", onRoad: "", delivered: "" } })),
     ];
     for (const t of trees) {
       expect(t.some((n) => n.props.role === "alert")).toBe(true);
@@ -64,6 +65,7 @@ describe("dashboard bands render", () => {
 
   test("no delta for 0 vs 0", async () => {
     const t = await nodes(MoneyBand({ kpi: kpi({ net_profit: 0 }), prev: kpi({ net_profit: 0 }), hrefs: { revenue: "", ads: "", finance: "" } }));
+    expect(by(t, "KpiTile").length).toBeGreaterThan(0);
     for (const tile of by(t, "KpiTile")) expect(tile.props.delta ?? null).toBeNull();
   });
 
@@ -78,6 +80,13 @@ describe("dashboard bands render", () => {
     expect(stages.find((s) => s.label === "t:confirmed")?.dropNote).toBe("t:vsReceived");
     expect(stages.find((s) => s.label === "t:delivered")?.dropNote).toBe("t:vsConfirmed");
     expect(JSON.stringify(stages)).not.toContain("text-danger");
+  });
+
+  test("stock: Delivered column hidden below sm but still rendered", async () => {
+    const row = { productId: "p1", name: "P", inStock: 1, reserved: 0, onRoad: 0, delivered: 4, low: false };
+    const t = await nodes(StockStrip({ rows: [row] }));
+    const hidden = t.filter((n) => typeof n.props.className === "string" && n.props.className.includes("hidden") && n.props.className.includes("sm:flex"));
+    expect(hidden).toHaveLength(1);
   });
 
   test("stuck tile opens the filtered shipping queue", async () => {

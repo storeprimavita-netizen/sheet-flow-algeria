@@ -67,7 +67,7 @@ function accent(status: string): string {
   return "";
 }
 
-export function DeliveryTable({ rows, isAdmin }: { rows: DelivRow[]; isAdmin: boolean }) {
+export function DeliveryTable({ rows, isAdmin, clearHref }: { rows: DelivRow[]; isAdmin: boolean; clearHref?: string }) {
   const t = useTranslations();
   const router = useRouter();
   const advance = useAdvanceDelivery();
@@ -172,7 +172,11 @@ export function DeliveryTable({ rows, isAdmin }: { rows: DelivRow[]; isAdmin: bo
           {t("settings.zrexpress.sendToZR")}
         </Button>
       )}
-      empty={{
+      empty={clearHref ? {
+        title: t("orders.none"),
+        description: t("orders.emptyHint"),
+        action: <ButtonLink href={clearHref} size="sm">{t("orders.clearFilters")}</ButtonLink>,
+      } : {
         title: t("orders.none"),
         description: t("orders.deliveryEmptyHint"),
         action: <ButtonLink href="/app/sell/orders" size="sm">{t("orders.tabs.all")}</ButtonLink>,
