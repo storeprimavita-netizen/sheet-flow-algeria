@@ -1110,3 +1110,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
 - Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
 - Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
+
+## P1-5 — paginate contacts, cash, finance and performance lists (2026-11-28) — built, NOT shippable yet
+- Done: `src/lib/list-pagination.ts` (25 per page, `fetchAll`, `readPage`); Suppliers, Expenses, Ad spend, Courier cash (three pagers, DB anti-join), Team performance (headers now sort).
+- Deviations: new `money/finance-filters.ts`, also read by the filter bar; pager links carry a `#section` hash; one-line fix in `my-day.rls.test.ts` so the gate can collect it with the live suite skipped.
+- Screens: Courier cash EN dark 1280; Suppliers, Ad spend (filtered empty), Performance AR light 390 (`docs/design/audit/P1-5/`, plus reviewer shots). Seed data is too small for page 2 or real pagers; the full theme/locale/width matrix was not shot.
+- Known issues: P1-5 lines in `docs/BACKLOG.md`.
+- Next chat must know: D24 — run the gate with the live suite (`list-pagination.rls.test.ts` has never run) before ship; the manual >1000-row and confirmation-before-window checks are still owed.
