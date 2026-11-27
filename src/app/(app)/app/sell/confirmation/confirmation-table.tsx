@@ -38,7 +38,7 @@ export type ConfRow = {
   recent: { id: string; order_seq: number; delivery_status: string; placed_at: string | null }[];
 };
 
-export function ConfirmationTable({ rows, scoreScope }: { rows: ConfRow[]; scoreScope: string | null }) {
+export function ConfirmationTable({ rows, scoreScope, search }: { rows: ConfRow[]; scoreScope: string | null; search?: { q: string; clearHref: string } }) {
   const t = useTranslations();
   const orderedKeys = rows.map((r) => r.id);
 
@@ -101,7 +101,11 @@ export function ConfirmationTable({ rows, scoreScope }: { rows: ConfRow[]; score
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}
-        empty={{
+        empty={search ? {
+          title: t("orders.noMatch", { q: search.q }),
+          description: t("orders.noMatchHint"),
+          action: <ButtonLink href={search.clearHref} size="sm">{t("orders.clearSearch")}</ButtonLink>,
+        } : {
           title: t("orders.none"),
           description: t("orders.confirmationEmptyHint"),
           action: <ButtonLink href="/app/sell/orders/new" size="sm">{t("orders.new")}</ButtonLink>,

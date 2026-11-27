@@ -18,7 +18,7 @@ import { ConfirmationTable, type ConfRow } from "./confirmation-table";
 import { NewOrdersPill } from "./new-orders-pill";
 import { OrderBoardLoadError, OrderKanban } from "../orders/order-kanban";
 import { OrderBoardEmpty } from "../orders/order-board-empty";
-import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_lib/kanban";
+import { boardResetHref, boardShowClosedHref, clearSearchHref, type KanbanRow } from "../orders/_lib/kanban";
 
 const rest = (sp: Record<string, string | string[] | undefined>) =>
   new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (typeof v === "string" && k !== "view" ? [[k, v]] : []))).toString();
@@ -51,6 +51,7 @@ export default async function ConfirmationQueuePage({
   const presentation = viewPresentation("confirmation", isAdmin, active, sp);
   const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("confirmation", isAdmin, active), presentation));
   query = applyOrderConfig(query, cfg);
+  const search = cfg.q ? { q: cfg.q, clearHref: clearSearchHref("/app/sell/confirmation", sp, active?.config) } : undefined;
   // oldest first unless the view sorts; the page's own filter below is applied last, so a view can only narrow
   const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
   query = query.order(sort.column, { ascending: sort.ascending });
@@ -179,10 +180,10 @@ export default async function ConfirmationQueuePage({
         <div className="min-w-0 space-y-3">
           <NewOrdersPill />
           <OrderKanban scope="confirmation" rows={boardRows} presentation={presentation} isAdmin={isAdmin} customerScoreScope={scoreScope}
-            empty={<OrderBoardEmpty scope="confirmation" filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
+            empty={<OrderBoardEmpty scope="confirmation" search={search} filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
               resetHref={boardResetHref("/app/sell/confirmation", sp, active?.config, presentation)} />} />
         </div>
-      ) : <ConfirmationTable rows={rows} scoreScope={scoreScope} />}
+      ) : <ConfirmationTable rows={rows} scoreScope={scoreScope} search={search} />}
     </div>
   );
 }

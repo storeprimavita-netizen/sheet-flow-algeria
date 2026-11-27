@@ -5,12 +5,13 @@ import { Empty } from "@/components/empty";
 import type { ViewScope } from "@/lib/order-views";
 
 export async function OrderBoardEmpty({
-  scope, filtered, resetHref, isAdmin,
+  scope, filtered, resetHref, isAdmin, search,
 }: {
   scope: ViewScope;
   filtered: boolean;
   resetHref: string;
   isAdmin: boolean;
+  search?: { q: string; clearHref: string };
 }) {
   const t = await getTranslations("orders");
   const hint = scope === "confirmation" ? "confirmationEmptyHint" : scope === "shipping" ? "deliveryEmptyHint" : "emptyHint";
@@ -18,6 +19,16 @@ export async function OrderBoardEmpty({
     ? { href: "/app/sell/shipping?show=all", label: t("showClosed") }
     : isAdmin ? { href: "/app/sell/orders/new", label: t("new") }
     : { href: "/app/sell/confirmation?show=all", label: t("showClosed") };
+
+  if (search) {
+    return (
+      <Empty>
+        <p className="font-medium text-foreground">{t("noMatch", { q: search.q })}</p>
+        <p className="mt-1">{t("noMatchHint")}</p>
+        <ButtonLink className="mt-3" href={search.clearHref} size="sm">{t("clearSearch")}</ButtonLink>
+      </Empty>
+    );
+  }
 
   return (
     <Empty>

@@ -96,6 +96,15 @@ export function boardResetHref(
   return `${path}?${reset.toString()}`;
 }
 
+/** current params minus the search and the page; a view's own search is marked cleared */
+export function clearSearchHref(path: string, sp: SearchParams, viewConfig: ViewConfig | undefined) {
+  const next = new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
+    typeof value === "string" && key !== "q" && key !== "page" ? [[key, value]] : [],
+  ));
+  if (viewConfig?.q) next.set("q", CLEARED);
+  return `${path}${next.size ? `?${next}` : ""}`;
+}
+
 export function boardShowClosedHref(path: string, sp: SearchParams) {
   const next = new URLSearchParams(Object.entries(sp).flatMap(([key, value]) =>
     typeof value === "string" ? [[key, value]] : [],

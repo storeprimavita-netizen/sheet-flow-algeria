@@ -17,7 +17,7 @@ import { DELIVERY_STATUSES } from "@/lib/enums";
 import { DeliveryTable, type DelivRow } from "./delivery-table";
 import { OrderBoardLoadError, OrderKanban } from "../orders/order-kanban";
 import { OrderBoardEmpty } from "../orders/order-board-empty";
-import { boardResetHref, boardShowClosedHref, type KanbanRow } from "../orders/_lib/kanban";
+import { boardResetHref, boardShowClosedHref, clearSearchHref, type KanbanRow } from "../orders/_lib/kanban";
 
 export default async function DeliveryQueuePage({
   searchParams,
@@ -44,6 +44,7 @@ export default async function DeliveryQueuePage({
   const presentation = viewPresentation("shipping", isAdmin, active, sp);
   const dirty = !!active && (isDirty(active.config, sp) || presentationDirty(viewPresentation("shipping", isAdmin, active), presentation));
   query = applyOrderConfig(query, cfg);
+  const search = cfg.q ? { q: cfg.q, clearHref: clearSearchHref("/app/sell/shipping", sp, active?.config) } : undefined;
   const sort = cfg.sort ? orderSort(cfg) : { column: "created_at", ascending: true };
   // fixed page filter applied last: whatever the view says, only confirmed orders are listed here
   query = query.order(sort.column, { ascending: sort.ascending }).eq("confirmation_status", "confirmed");
@@ -127,9 +128,9 @@ export default async function DeliveryQueuePage({
       ) : null}
       {ordersError ? <OrderBoardLoadError /> : presentation.layout === "kanban" ? (
         <OrderKanban scope="shipping" rows={boardRows} presentation={presentation} isAdmin={isAdmin}
-          empty={<OrderBoardEmpty scope="shipping" filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
+          empty={<OrderBoardEmpty scope="shipping" search={search} filtered={FILTER_KEYS.some((key) => cfg[key] !== undefined)} isAdmin={isAdmin}
             resetHref={boardResetHref("/app/sell/shipping", sp, active?.config, presentation)} />} />
-      ) : <DeliveryTable rows={rows} isAdmin={isAdmin} />}
+      ) : <DeliveryTable rows={rows} isAdmin={isAdmin} search={search} />}
     </div>
   );
 }
