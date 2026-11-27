@@ -1110,3 +1110,10 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Done — The Confirmation table and Kanban offer a scoped customer score card with order history, keyboard access and admin-only lifetime value.
 - Verify — Full gate passed with 1,414 tests and live RLS. Independent security and UI recheck passed.
 - Evidence — `docs/briefs/CONF-3.review-2.md` and `docs/design/audit/CONF-3/` record browser checks and coverage limits.
+
+## CONF-4 — attempt timeline and callbacks (2026-11-27) — built, awaiting /verify
+- Done: migration 00091 (callback_at, RPC, guard trigger, two seeded views), Confirmation sheet outcome timeline and callback form, `queue_slice` views, tests. Fixed `guard_order_fields` search_path (pg_temp).
+- Screens checked (agent session): Due view table 1280 EN dark/light; sheet 1280 EN dark and 390 AR dark/light; Today confirmed board 390 AR light; filtered-empty Due 390 AR. Keyboard date/time entry, save and clear work; focus stays in the sheet.
+- Fixed from screenshots: focus lost after save/clear; timeline rows wrapped unevenly.
+- Gaps: no screenshot of the timeline error/retry or locked-order states (unit-covered only for the failed read); screenshots were not saved to files. The shared TimeField clock icon is nearly invisible in dark (pre-existing).
+- Next chat must know: NOTIF-1 owns due notifications. No `db push` done.

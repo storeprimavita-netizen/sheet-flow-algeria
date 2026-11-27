@@ -60,8 +60,6 @@ export function CallbackForm({ order }: { order: ConfRow }) {
       ) : <p className="text-muted-foreground">{t("none")}</p>}
       {order.can_callback ? (
         <form
-          // remount the fields (not the focused button's form position) when the saved value changes
-          key={order.callback_at ?? "none"}
           noValidate
           aria-describedby={error ? errorId : undefined}
           onSubmit={(event) => {
@@ -70,7 +68,8 @@ export function CallbackForm({ order }: { order: ConfRow }) {
           }}
           className="space-y-2"
         >
-          <div className="grid grid-cols-2 gap-2">
+          {/* remount only the fields when the saved value changes, so the focused button survives */}
+          <div key={order.callback_at ?? "none"} className="grid grid-cols-2 gap-2">
             <Field label={t("date")} htmlFor={dateId}>
               <DateField id={dateId} name="date" defaultValue={initial.date} />
             </Field>
@@ -144,7 +143,7 @@ export function AttemptTimeline({ orderId, status }: { orderId: string; status: 
           ) : null}
           <ol className="space-y-2">
             {result.attempts.map((attempt) => (
-              <li key={attempt.id} className="flex flex-wrap items-center justify-between gap-2 border-s-2 border-border ps-3">
+              <li key={attempt.id} className="flex flex-col items-start gap-1 border-s-2 border-border ps-3">
                 <StatusPill kind="confirmation" status={attempt.outcome} size="sm" />
                 <span className="text-xs text-muted-foreground">
                   <bdi>{attempt.actor.kind === "user" ? attempt.actor.name : t(`actor.${attempt.actor.kind}`)}</bdi>
