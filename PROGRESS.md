@@ -1138,3 +1138,15 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Parked — MONEY-2(ship failed twice — built on v3-MONEY-2) P1-6(ship failed twice — built on v3-P1-6) P1-2-F(ship failed twice — built on v3-P1-2-F) CONF-1-F(review rounds used up with a high finding open — built on v3-CONF-1-F) 
 - Sessions (stage:program:model) — 6×analyse:claude:sonnet 6×execute:claude:haiku 4×execute:claude:sonnet 1×say:claude:haiku 7×ship:claude:haiku 6×verify:claude:sonnet 
 - Time — 125 min. Open questions: docs/QUESTIONS.md.
+
+## NAV-2-G
+Bdi removed from crumbs, CrumbList extracted, tail shrink-0, 3 tests added. Matrix in docs/design/audit/NAV-2-G/ (jpeg, 45 shots, browser MCP, admin seed user).
+- Taken: store preview EN+AR x dark+light x 390+1280; long-Arabic-name sweep at 640/700/768 (AR and EN interface, crumb text and title substituted in the browser, shared data untouched; record width 59-165 px, tail always whole, no page scroll, so parents need not shrink up to md); product, product pricing, order, expenses, accounts, store page at EN-dark-1280 (product pages, order, expenses, accounts, store page) and AR-light-390; hubs sell/money/catalog/team at AR-light-390. No console errors on the record pages. Nothing needed fixing.
+- Skips: remaining lang/theme/width combos for non-preview screens, hubs at 1280/EN/dark, confirmation and delivery agent shots (sampled in review 1), long Latin name at 390. Shots taken straight after navigation can precede the client-side record crumb (checked in the DOM instead).
+
+### NAV-2-G ship
+- Done — Arabic record crumbs keep their start (no `<bdi>` under `dir="auto"`); the tail shows whole and only the record gives way; 3 tests added.
+- Verify — `scripts/gate.sh` GATE OK on v3-NAV-2-G (tsc, 1,043 unit tests, i18n, color lint, build, protected paths, secret scan). Review 2 VERDICT: FIX, no HIGH open; rounds used up (D111).
+- Evidence — `docs/briefs/NAV-2-G.review-2.md`; matrix in `docs/design/audit/NAV-2-G/` is 30 shots, not 45, and 7 of them do not show their names (see NAV-2-H).
+- Owner — none. Live RLS suite not run (no database task).
+- Next — `/auto` picks NAV-2-H (screenshot retake, D111).

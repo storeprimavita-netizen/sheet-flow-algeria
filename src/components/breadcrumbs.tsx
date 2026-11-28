@@ -60,39 +60,44 @@ export function Breadcrumbs() {
   if (rec) crumbs.push({ label: rec.label, href: rec.href });
   if (rec?.tail) crumbs.push({ label: rec.tail });
   if (crumbs.length === 0) return null;
-  const collapse = crumbs.length > 2;
   return (
     <nav aria-label={t("nav.breadcrumb")} className="min-w-0 flex-1 text-sm text-muted-foreground">
-      <ol className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
-        {collapse ? (
-          // Decorative on phones: the group hub is reachable from the sidebar.
-          <li aria-hidden="true" className="flex items-center gap-1 sm:hidden">
-            …
-          </li>
-        ) : null}
-        {crumbs.map((c, i) => {
-          const last = i === crumbs.length - 1;
-          // The record shrinks (so a trailing "Preview" stays visible); parents keep their width.
-          const shrinkable = last || (rec?.tail && i === crumbs.length - 2);
-          return (
-            <li
-              key={i}
-              className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${last ? "text-foreground max-sm:min-w-[40%]" : shrinkable ? "" : "sm:shrink-0"}`}
-            >
-              {i > 0 ? <ChevronRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden="true" /> : null}
-              {c.href && !last ? (
-                <Link href={c.href} title={c.label} dir="auto" className="truncate hover:text-foreground hover:underline">
-                  <bdi>{c.label}</bdi>
-                </Link>
-              ) : (
-                <span aria-current={last ? "page" : undefined} title={c.label} dir="auto" className="truncate">
-                  <bdi>{c.label}</bdi>
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <CrumbList crumbs={crumbs} hasTail={!!rec?.tail} />
     </nav>
+  );
+}
+
+/** The trail markup, pure so it can be rendered without the context. */
+export function CrumbList({ crumbs, hasTail }: { crumbs: { label: string; href?: string }[]; hasTail: boolean }) {
+  const collapse = crumbs.length > 2;
+  return (
+    <ol className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
+      {collapse ? (
+        // Decorative on phones: the group hub is reachable from the sidebar.
+        <li aria-hidden="true" className="flex items-center gap-1 sm:hidden">
+          …
+        </li>
+      ) : null}
+      {crumbs.map((c, i) => {
+        const last = i === crumbs.length - 1;
+        // The record shrinks (so a trailing "Preview" stays whole); parents keep their width.
+        const shrinkable = last || (hasTail && i === crumbs.length - 2);
+        const width = last ? (hasTail ? "text-foreground shrink-0" : "text-foreground max-sm:min-w-[40%]") : shrinkable ? "" : "sm:shrink-0";
+        return (
+          <li key={i} className={`flex min-w-0 items-center gap-1 ${collapse && i === 0 ? "max-sm:hidden" : ""} ${width}`}>
+            {i > 0 ? <ChevronRight className="h-3 w-3 shrink-0 rtl:rotate-180" aria-hidden="true" /> : null}
+            {c.href && !last ? (
+              <Link href={c.href} title={c.label} dir="auto" className="truncate hover:text-foreground hover:underline">
+                {c.label}
+              </Link>
+            ) : (
+              <span aria-current={last ? "page" : undefined} title={c.label} dir="auto" className="truncate">
+                {c.label}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
