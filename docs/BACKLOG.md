@@ -58,3 +58,4 @@ CONF-3 · customer score queries · consider reuse of scoped delivery statistics
 - Bounding the series in SQL for a far-future placed_at needs a migration (kpi_daily still computes to the last order day); also reject absurd webhook placed_at. From CHART-1-B.
 - Agent "Show closed" button takes its own row at 390 px (NAV-2 review 3 #6, later UI pass).
 - NAV-2 review 3 missing tests: GroupHub leaf set / redirect / counts; page title key = sidebar key.
+- Breadcrumb at 390 with a long Latin record name: parent crumb collapses to "P." (preview page, EN). From NAV-2-H.
