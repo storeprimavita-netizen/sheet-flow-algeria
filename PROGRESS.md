@@ -1134,4 +1134,6 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Next — `/auto` picks NAV-2-G (follow-up row, D110).
 
 ## NAV-2-G
-Bdi removed from crumbs, CrumbList extracted, tail shrink-0, 3 tests added. Screenshot matrix (docs/design/audit/NAV-2-G/) NOT taken: no app/browser run in this parallel worker session; sweep at 640-768 px and the record min-width edge case remain to check.
+Bdi removed from crumbs, CrumbList extracted, tail shrink-0, 3 tests added. Matrix in docs/design/audit/NAV-2-G/ (jpeg, 45 shots, browser MCP, admin seed user).
+- Taken: store preview EN+AR x dark+light x 390+1280; long-Arabic-name sweep at 640/700/768 (AR and EN interface, crumb text and title substituted in the browser, shared data untouched; record width 59-165 px, tail always whole, no page scroll, so parents need not shrink up to md); product, product pricing, order, expenses, accounts, store page at EN-dark-1280 (product pages, order, expenses, accounts, store page) and AR-light-390; hubs sell/money/catalog/team at AR-light-390. No console errors on the record pages. Nothing needed fixing.
+- Skips: remaining lang/theme/width combos for non-preview screens, hubs at 1280/EN/dark, confirmation and delivery agent shots (sampled in review 1), long Latin name at 390. Shots taken straight after navigation can precede the client-side record crumb (checked in the DOM instead).
