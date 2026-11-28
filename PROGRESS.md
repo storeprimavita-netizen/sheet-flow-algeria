@@ -1132,3 +1132,9 @@ CHART-1 round 4: waterfall removed from Finance overview (five-cost StackedBar, 
 - Evidence — `docs/briefs/NAV-2-F.review-2.md`; screenshots only pre-fix in `docs/design/audit/NAV-2-F/`.
 - Owner — none. Live RLS suite not run (no database task).
 - Next — `/auto` picks NAV-2-G (follow-up row, D110).
+
+### Run report (night.sh, w3-claude, 2026-11-28)
+- Shipped — CHART-1-B(cf9e9df) 
+- Parked — MONEY-2(ship failed twice — built on v3-MONEY-2) P1-6(ship failed twice — built on v3-P1-6) P1-2-F(ship failed twice — built on v3-P1-2-F) CONF-1-F(review rounds used up with a high finding open — built on v3-CONF-1-F) 
+- Sessions (stage:program:model) — 6×analyse:claude:sonnet 6×execute:claude:haiku 4×execute:claude:sonnet 1×say:claude:haiku 7×ship:claude:haiku 6×verify:claude:sonnet 
+- Time — 125 min. Open questions: docs/QUESTIONS.md.
