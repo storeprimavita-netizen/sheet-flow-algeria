@@ -1150,3 +1150,9 @@ Bdi removed from crumbs, CrumbList extracted, tail shrink-0, 3 tests added. Matr
 - Evidence — `docs/briefs/NAV-2-G.review-2.md`; matrix in `docs/design/audit/NAV-2-G/` is 30 shots, not 45, and 7 of them do not show their names (see NAV-2-H).
 - Owner — none. Live RLS suite not run (no database task).
 - Next — `/auto` picks NAV-2-H (screenshot retake, D111).
+
+### Run report (night.sh, w2-agy, 2026-11-28)
+- Shipped — NAV-2-F(2afe4b1) NAV-2-G(f891fcc) 
+- Parked — P1-5(question not settled — see docs/briefs/P1-5.md) P1-6(question not settled — see docs/briefs/P1-6.md) STATS-4(two sessions in a row changed nothing — look at v3-STATS-4) VAR-1-F(gate failed twice — built on v3-VAR-1-F) P1-5(ship failed twice — built on v3-P1-5) NAV-1-H(ship failed twice — built on v3-NAV-1-H) NAV-2-H(two sessions in a row changed nothing — look at v3-NAV-2-H) 
+- Sessions (stage:program:model) — 8×analyse:claude:sonnet 4×analyse:codex:gpt-6.2-sol 4×decide:claude:claude-fable-5-2 7×execute:claude:haiku 2×execute:claude:sonnet 2×execute:codex:gpt-6-luna 5×execute:codex:gpt-6.2-sol 2×say:claude:haiku 4×ship:claude:haiku 8×verify:claude:sonnet 1×verify:codex:gpt-6.1-terra 
+- Time — 140 min. Open questions: docs/QUESTIONS.md.
